@@ -23,13 +23,17 @@ const queryClient = new QueryClient();
 
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
   
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
   }
 
-  return children;
+  return <>{children}</>;
 };
 
 const App = () => (
@@ -40,45 +44,58 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/feed" element={<SocialFeed />} />
-              <Route path="/connections" element={<Connections />} />
-              <Route path="/mentorship" element={<Mentorship />} />
-              <Route path="/marketplace" element={<Marketplace />} />
-              <Route 
-                path="/discovery" 
-                element={
-                  <ProtectedRoute>
-                    <Discovery />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/messages" 
-                element={
-                  <ProtectedRoute>
-                    <Messages />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AppRoutes />
           </BrowserRouter>
         </TooltipProvider>
       </SocialProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
+
+// Separate component to use the useAuth hook
+const AppRoutes = () => {
+  const { loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
+  
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/feed" element={<SocialFeed />} />
+      <Route path="/connections" element={<Connections />} />
+      <Route path="/mentorship" element={<Mentorship />} />
+      <Route path="/marketplace" element={<Marketplace />} />
+      <Route 
+        path="/discovery" 
+        element={
+          <ProtectedRoute>
+            <Discovery />
+          </ProtectedRoute>
+        } 
+      />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/messages" 
+        element={
+          <ProtectedRoute>
+            <Messages />
+          </ProtectedRoute>
+        } 
+      />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
 
 export default App;
