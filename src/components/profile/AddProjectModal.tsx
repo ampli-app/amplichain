@@ -74,15 +74,17 @@ export function AddProjectModal({ isOpen, onClose, onProjectAdded }: AddProjectM
     setIsSubmitting(true);
     
     try {
-      // Use raw query for now since the TypeScript types don't know about our new tables
-      const { error } = await supabase.rpc('insert_project', {
-        p_profile_id: user.id,
-        p_title: formData.title,
-        p_description: formData.description,
-        p_image_url: formData.image_url,
-        p_date: formData.date,
-        p_tags: formData.tags
-      });
+      // Use the table insert method instead of RPC
+      const { error } = await supabase
+        .from('projects')
+        .insert({
+          profile_id: user.id,
+          title: formData.title,
+          description: formData.description,
+          image_url: formData.image_url,
+          date: formData.date,
+          tags: formData.tags
+        });
 
       if (error) {
         throw error;

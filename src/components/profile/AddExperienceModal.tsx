@@ -43,13 +43,15 @@ export function AddExperienceModal({ isOpen, onClose, onExperienceAdded }: AddEx
     setIsSubmitting(true);
     
     try {
-      // Use raw query for now since the TypeScript types don't know about our new tables
-      const { error } = await supabase.rpc('insert_experience', {
-        p_profile_id: user.id,
-        p_position: formData.position,
-        p_company: formData.company,
-        p_period: formData.period
-      });
+      // Use the table insert method instead of RPC
+      const { error } = await supabase
+        .from('experience')
+        .insert({
+          profile_id: user.id,
+          position: formData.position,
+          company: formData.company,
+          period: formData.period
+        });
 
       if (error) {
         throw error;
