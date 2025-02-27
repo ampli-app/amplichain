@@ -64,18 +64,15 @@ export function EditProfileModal({ isOpen, onClose, onProfileUpdated, currentPro
     setIsSubmitting(true);
     
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: formData.full_name,
-          username: formData.username,
-          website: formData.website,
-          bio: formData.bio,
-          location: formData.location,
-          role: formData.role,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
+      // Since we can't update the types file, we'll use a REST call with custom fields
+      const { error } = await supabase.rpc('update_profile', {
+        p_full_name: formData.full_name,
+        p_username: formData.username,
+        p_website: formData.website,
+        p_bio: formData.bio,
+        p_location: formData.location,
+        p_role: formData.role,
+      });
 
       if (error) {
         throw error;

@@ -9,32 +9,164 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      education: {
+        Row: {
+          created_at: string | null
+          degree: string
+          id: string
+          institution: string
+          profile_id: string | null
+          year: string
+        }
+        Insert: {
+          created_at?: string | null
+          degree: string
+          id?: string
+          institution: string
+          profile_id?: string | null
+          year: string
+        }
+        Update: {
+          created_at?: string | null
+          degree?: string
+          id?: string
+          institution?: string
+          profile_id?: string | null
+          year?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "education_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      experience: {
+        Row: {
+          company: string
+          created_at: string | null
+          id: string
+          period: string
+          position: string
+          profile_id: string | null
+        }
+        Insert: {
+          company: string
+          created_at?: string | null
+          id?: string
+          period: string
+          position: string
+          profile_id?: string | null
+        }
+        Update: {
+          company?: string
+          created_at?: string | null
+          id?: string
+          period?: string
+          position?: string
+          profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "experience_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
+          followers: number | null
+          following: number | null
           full_name: string | null
           id: string
+          joined_date: string | null
+          location: string | null
+          role: string | null
+          specialties: string[] | null
           updated_at: string | null
           username: string | null
           website: string | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
+          followers?: number | null
+          following?: number | null
           full_name?: string | null
           id: string
+          joined_date?: string | null
+          location?: string | null
+          role?: string | null
+          specialties?: string[] | null
           updated_at?: string | null
           username?: string | null
           website?: string | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
+          followers?: number | null
+          following?: number | null
           full_name?: string | null
           id?: string
+          joined_date?: string | null
+          location?: string | null
+          role?: string | null
+          specialties?: string[] | null
           updated_at?: string | null
           username?: string | null
           website?: string | null
         }
         Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string | null
+          date: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          profile_id: string | null
+          tags: string[] | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          profile_id?: string | null
+          tags?: string[] | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          profile_id?: string | null
+          tags?: string[] | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

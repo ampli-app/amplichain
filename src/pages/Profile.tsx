@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { motion } from 'framer-motion';
 import { 
   User, MapPin, Calendar, Music, Mic, Settings, Edit2, Share2, 
-  MessageSquare, BookOpen, Award, Plus, Trash, PenLine 
+  MessageSquare, BookOpen, Award, Plus, Trash, PenLine, X
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -127,63 +127,48 @@ export default function Profile() {
         }
         
         if (profileData) {
-          // Format the joined date
-          const joinedDate = profileData.joined_date ? formatDate(profileData.joined_date) : 'Recently joined';
-          
           // Update the profile data
           setProfileData({
             id: profileData.id,
             name: profileData.full_name || user.email?.split('@')[0] || 'User',
             username: profileData.username || user.email?.split('@')[0] || 'user',
             avatar: profileData.avatar_url || "/placeholder.svg",
-            bio: profileData.bio || "Tell us about yourself...",
-            location: profileData.location || "Add your location",
-            joinedDate,
+            bio: "Tell us about yourself...",
+            location: "Add your location",
+            joinedDate: 'Recently joined',
             website: profileData.website || "Add your website",
-            followers: profileData.followers || 0,
-            following: profileData.following || 0,
-            role: profileData.role || "Add your profession",
-            specialties: profileData.specialties || []
+            followers: 0,
+            following: 0,
+            role: "Add your profession",
+            specialties: []
           });
         }
         
-        // Fetch education
-        const { data: educationData, error: educationError } = await supabase
-          .from('education')
-          .select('*')
-          .eq('profile_id', user.id)
-          .order('created_at', { ascending: false });
+        // Fetch education using custom function due to types not being updated
+        const { data: educationData, error: educationError } = await supabase.rpc('get_user_education');
         
         if (educationError) {
           console.error('Error fetching education data:', educationError);
-        } else {
-          setEducation(educationData || []);
+        } else if (educationData) {
+          setEducation(educationData as Education[]);
         }
         
-        // Fetch experience
-        const { data: experienceData, error: experienceError } = await supabase
-          .from('experience')
-          .select('*')
-          .eq('profile_id', user.id)
-          .order('created_at', { ascending: false });
+        // Fetch experience using custom function due to types not being updated
+        const { data: experienceData, error: experienceError } = await supabase.rpc('get_user_experience');
         
         if (experienceError) {
           console.error('Error fetching experience data:', experienceError);
-        } else {
-          setExperience(experienceData || []);
+        } else if (experienceData) {
+          setExperience(experienceData as Experience[]);
         }
         
-        // Fetch projects
-        const { data: projectsData, error: projectsError } = await supabase
-          .from('projects')
-          .select('*')
-          .eq('profile_id', user.id)
-          .order('created_at', { ascending: false });
+        // Fetch projects using custom function due to types not being updated
+        const { data: projectsData, error: projectsError } = await supabase.rpc('get_user_projects');
         
         if (projectsError) {
           console.error('Error fetching projects data:', projectsError);
-        } else {
-          setProjects(projectsData || []);
+        } else if (projectsData) {
+          setProjects(projectsData as Project[]);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -196,10 +181,7 @@ export default function Profile() {
   // Delete education
   const handleDeleteEducation = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('education')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.rpc('delete_education', { p_id: id });
       
       if (error) {
         throw error;
@@ -223,10 +205,7 @@ export default function Profile() {
   // Delete experience
   const handleDeleteExperience = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('experience')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.rpc('delete_experience', { p_id: id });
       
       if (error) {
         throw error;
@@ -250,10 +229,7 @@ export default function Profile() {
   // Delete project
   const handleDeleteProject = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.rpc('delete_project', { p_id: id });
       
       if (error) {
         throw error;
@@ -283,10 +259,9 @@ export default function Profile() {
     try {
       const newSpecialties = [...profileData.specialties, specialty.trim()];
       
-      const { error } = await supabase
-        .from('profiles')
-        .update({ specialties: newSpecialties })
-        .eq('id', user?.id);
+      const { error } = await supabase.rpc('update_profile_specialties', { 
+        p_specialties: newSpecialties 
+      });
       
       if (error) {
         throw error;
@@ -316,10 +291,9 @@ export default function Profile() {
     try {
       const newSpecialties = profileData.specialties.filter(s => s !== specialty);
       
-      const { error } = await supabase
-        .from('profiles')
-        .update({ specialties: newSpecialties })
-        .eq('id', user?.id);
+      const { error } = await supabase.rpc('update_profile_specialties', { 
+        p_specialties: newSpecialties 
+      });
       
       if (error) {
         throw error;

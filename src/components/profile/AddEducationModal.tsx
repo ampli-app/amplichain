@@ -43,14 +43,13 @@ export function AddEducationModal({ isOpen, onClose, onEducationAdded }: AddEduc
     setIsSubmitting(true);
     
     try {
-      const { error } = await supabase
-        .from('education')
-        .insert({
-          profile_id: user.id,
-          institution: formData.institution,
-          degree: formData.degree,
-          year: formData.year
-        });
+      // Use raw query for now since the TypeScript types don't know about our new tables
+      const { error } = await supabase.rpc('insert_education', {
+        p_profile_id: user.id,
+        p_institution: formData.institution,
+        p_degree: formData.degree,
+        p_year: formData.year
+      });
 
       if (error) {
         throw error;
