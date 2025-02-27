@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  // For demo purposes, let's assume the user is not logged in initially
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -55,18 +57,25 @@ export function Navbar() {
             ))}
           </div>
           <div className="space-x-3 flex items-center">
-            <Link to="/messages" className="text-rhythm-600 hover:text-primary transition-colors">
-              <MessageSquare className="h-5 w-5" />
-            </Link>
-            <Link to="/profile" className="text-rhythm-600 hover:text-primary transition-colors">
-              <User className="h-5 w-5" />
-            </Link>
-            <Link to="/login">
-              <Button variant="outline" size="sm">Log in</Button>
-            </Link>
-            <Link to="/signup">
-              <Button size="sm">Sign up</Button>
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Link to="/messages" className="text-rhythm-600 hover:text-primary transition-colors">
+                  <MessageSquare className="h-5 w-5" />
+                </Link>
+                <Link to="/profile" className="text-rhythm-600 hover:text-primary transition-colors">
+                  <User className="h-5 w-5" />
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="outline" size="sm">Log in</Button>
+                </Link>
+                <Link to="/signup">
+                  <Button size="sm">Sign up</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
@@ -98,30 +107,36 @@ export function Navbar() {
                 {link.name}
               </Link>
             ))}
-            <Link 
-              to="/messages"
-              className="text-rhythm-600 hover:text-primary py-2 transition-colors text-lg font-medium flex items-center gap-2"
-              onClick={() => setIsOpen(false)}
-            >
-              <MessageSquare className="h-5 w-5" />
-              Messages
-            </Link>
-            <Link 
-              to="/profile"
-              className="text-rhythm-600 hover:text-primary py-2 transition-colors text-lg font-medium flex items-center gap-2"
-              onClick={() => setIsOpen(false)}
-            >
-              <User className="h-5 w-5" />
-              Profile
-            </Link>
-            <div className="pt-2 grid grid-cols-2 gap-3">
-              <Link to="/login" className="w-full" onClick={() => setIsOpen(false)}>
-                <Button variant="outline" className="w-full">Log in</Button>
-              </Link>
-              <Link to="/signup" className="w-full" onClick={() => setIsOpen(false)}>
-                <Button className="w-full">Sign up</Button>
-              </Link>
-            </div>
+            
+            {isLoggedIn ? (
+              <>
+                <Link 
+                  to="/messages"
+                  className="text-rhythm-600 hover:text-primary py-2 transition-colors text-lg font-medium flex items-center gap-2"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <MessageSquare className="h-5 w-5" />
+                  Messages
+                </Link>
+                <Link 
+                  to="/profile"
+                  className="text-rhythm-600 hover:text-primary py-2 transition-colors text-lg font-medium flex items-center gap-2"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <User className="h-5 w-5" />
+                  Profile
+                </Link>
+              </>
+            ) : (
+              <div className="pt-2 grid grid-cols-2 gap-3">
+                <Link to="/login" className="w-full" onClick={() => setIsOpen(false)}>
+                  <Button variant="outline" className="w-full">Log in</Button>
+                </Link>
+                <Link to="/signup" className="w-full" onClick={() => setIsOpen(false)}>
+                  <Button className="w-full">Sign up</Button>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}
