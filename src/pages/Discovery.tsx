@@ -24,7 +24,6 @@ import {
   Clock,
   Sparkles,
   BookOpen,
-  LogIn,
   Compass,
   Users as UsersIcon
 } from 'lucide-react';
@@ -157,7 +156,6 @@ const personalizedRecommendations = [
 ];
 
 export default function Discovery() {
-  const { isLoggedIn } = useAuth();
   const { users, posts, followUser } = useSocial();
   const [productCategory, setProductCategory] = useState<'all' | 'popular' | 'new'>('all');
   
@@ -170,153 +168,6 @@ export default function Discovery() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-  
-  // If user is not logged in, show a simplified version with login prompt
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        
-        <main className="flex-1 pt-24 pb-16">
-          <div className="container px-4 mx-auto">
-            <div className="max-w-3xl mx-auto text-center mb-12">
-              <div className="mb-6 p-3 w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                <Compass className="w-8 h-8 text-primary" />
-              </div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">Discover Everything Music</h1>
-              <p className="text-rhythm-600 text-lg mb-8">
-                Explore our marketplace, connect with industry professionals, and find mentorship opportunities all in one place.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button asChild size="lg">
-                  <Link to="/login" className="flex items-center gap-2">
-                    <LogIn className="h-4 w-4" />
-                    Sign In
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="lg">
-                  <Link to="/signup">Create Account</Link>
-                </Button>
-              </div>
-            </div>
-            
-            {/* Preview sections even for non-logged in users */}
-            <div className="space-y-16">
-              {/* Personalized Recommendations Preview */}
-              <section>
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold mb-1">Discover Top Content</h2>
-                    <p className="text-rhythm-600">Popular items across our platform</p>
-                  </div>
-                  
-                  <Button variant="ghost" size="sm" asChild className="gap-1.5 text-primary">
-                    <Link to="/login">
-                      See more
-                      <ChevronRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                  {personalizedRecommendations.map((item, index) => (
-                    <Link to="/login" key={item.id}>
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className="glass-card rounded-xl overflow-hidden border hover:shadow-md transition-all duration-300 h-full"
-                      >
-                        <div className="aspect-video relative overflow-hidden">
-                          <img 
-                            src={item.image}
-                            alt={item.title}
-                            className="w-full h-full object-cover transition-transform hover:scale-105 duration-500"
-                          />
-                          <Badge className="absolute top-3 left-3 capitalize">
-                            {item.type}
-                          </Badge>
-                        </div>
-                        <div className="p-4">
-                          <h3 className="font-medium mb-1">{item.title}</h3>
-                          <p className="text-sm text-rhythm-600">{item.description}</p>
-                        </div>
-                      </motion.div>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-              
-              {/* Marketplace Preview */}
-              <section>
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold mb-1">Discover Equipment</h2>
-                    <p className="text-rhythm-600">Professional music equipment for every need</p>
-                  </div>
-                  
-                  <Button variant="ghost" size="sm" asChild className="gap-1.5 text-primary">
-                    <Link to="/login">
-                      Browse marketplace
-                      <ChevronRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {recommendedProducts.slice(0, 2).map((product, index) => (
-                    <Link to="/login" key={product.id}>
-                      <div className="glass-card rounded-xl overflow-hidden border hover:shadow-md transition-all duration-300">
-                        <div className="flex flex-col sm:flex-row">
-                          <div className="sm:w-1/3 aspect-square">
-                            <img
-                              src={product.image}
-                              alt={product.title}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="p-4 sm:w-2/3">
-                            <Badge variant="outline" className="mb-2">{product.category}</Badge>
-                            <h3 className="font-medium mb-1 line-clamp-1">{product.title}</h3>
-                            <div className="flex items-center gap-1 mb-2">
-                              <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
-                              <span className="text-sm">{product.rating}</span>
-                              <span className="text-xs text-rhythm-500">({product.reviewCount} reviews)</span>
-                            </div>
-                            <p className="font-semibold">${product.price}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-              
-              {/* Call to Action */}
-              <section className="py-10 md:py-16">
-                <div className="max-w-3xl mx-auto text-center">
-                  <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to explore everything SoundConnect has to offer?</h2>
-                  <p className="text-rhythm-600 mb-8">
-                    Create an account to access personalized recommendations, connect with industry professionals, and discover exclusive opportunities.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <Button asChild size="lg">
-                      <Link to="/signup">Create Account</Link>
-                    </Button>
-                    <Button asChild variant="outline" size="lg">
-                      <Link to="/login">Sign In</Link>
-                    </Button>
-                  </div>
-                </div>
-              </section>
-            </div>
-          </div>
-        </main>
-        
-        <Footer />
-      </div>
-    );
-  }
 
   // Function for horizontal scrolling with buttons
   const scroll = (ref: React.RefObject<HTMLDivElement>, direction: 'left' | 'right') => {
