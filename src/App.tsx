@@ -12,6 +12,7 @@ import SocialFeed from "./pages/SocialFeed";
 import Connections from "./pages/Connections";
 import Mentorship from "./pages/Mentorship";
 import Marketplace from "./pages/Marketplace";
+import Discovery from "./pages/Discovery";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="/connections" element={<Connections />} />
               <Route path="/mentorship" element={<Mentorship />} />
               <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/discovery" element={<Discovery />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route 

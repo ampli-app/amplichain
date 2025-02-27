@@ -22,7 +22,10 @@ import {
   Settings, 
   MessageSquare, 
   Rss, 
-  Users 
+  Users,
+  ShoppingBag,
+  Compass,
+  GraduationCap
 } from 'lucide-react';
 
 export function Navbar() {
@@ -45,6 +48,9 @@ export function Navbar() {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
   
+  // Check if the current path is active
+  const isActive = (path: string) => location.pathname === path;
+  
   return (
     <header 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -65,10 +71,11 @@ export function Navbar() {
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
-            <NavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} />
-            <NavItem to="/mentorship" label="Mentorship" />
-            <NavItem to="/marketplace" label="Marketplace" />
-            <NavItem to="/connections" label="Network" icon={<Users className="h-4 w-4" />} />
+            <NavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
+            <NavItem to="/discovery" label="Discovery" icon={<Compass className="h-4 w-4" />} active={isActive('/discovery')} />
+            <NavItem to="/marketplace" label="Marketplace" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
+            <NavItem to="/mentorship" label="Mentoring" icon={<GraduationCap className="h-4 w-4" />} active={isActive('/mentorship')} />
+            <NavItem to="/connections" label="Network" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
           </nav>
           
           {/* Auth Buttons / User Menu */}
@@ -113,10 +120,11 @@ export function Navbar() {
       {isMobileMenuOpen && (
         <div className="md:hidden bg-background border-t">
           <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
-            <MobileNavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} />
-            <MobileNavItem to="/mentorship" label="Mentorship" />
-            <MobileNavItem to="/marketplace" label="Marketplace" />
-            <MobileNavItem to="/connections" label="Network" icon={<Users className="h-4 w-4" />} />
+            <MobileNavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
+            <MobileNavItem to="/discovery" label="Discovery" icon={<Compass className="h-4 w-4" />} active={isActive('/discovery')} />
+            <MobileNavItem to="/marketplace" label="Marketplace" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
+            <MobileNavItem to="/mentorship" label="Mentoring" icon={<GraduationCap className="h-4 w-4" />} active={isActive('/mentorship')} />
+            <MobileNavItem to="/connections" label="Network" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
             
             {!isLoggedIn && (
               <Button asChild className="mt-4 sm:hidden">
@@ -130,15 +138,12 @@ export function Navbar() {
   );
 }
 
-function NavItem({ to, label, icon }: { to: string; label: string; icon?: React.ReactNode }) {
-  const location = useLocation();
-  const isActive = location.pathname === to;
-  
+function NavItem({ to, label, icon, active }: { to: string; label: string; icon?: React.ReactNode; active: boolean }) {
   return (
     <Button 
       asChild 
-      variant={isActive ? "default" : "ghost"} 
-      className={`gap-1.5 ${isActive ? '' : 'hover:bg-accent/50'}`}
+      variant={active ? "default" : "ghost"} 
+      className={`gap-1.5 ${active ? '' : 'hover:bg-accent/50'}`}
     >
       <Link to={to}>
         {icon}
@@ -148,15 +153,12 @@ function NavItem({ to, label, icon }: { to: string; label: string; icon?: React.
   );
 }
 
-function MobileNavItem({ to, label, icon }: { to: string; label: string; icon?: React.ReactNode }) {
-  const location = useLocation();
-  const isActive = location.pathname === to;
-  
+function MobileNavItem({ to, label, icon, active }: { to: string; label: string; icon?: React.ReactNode; active: boolean }) {
   return (
     <Button 
       asChild 
-      variant={isActive ? "default" : "ghost"} 
-      className={`w-full justify-start gap-1.5 ${isActive ? '' : ''}`}
+      variant={active ? "default" : "ghost"} 
+      className={`w-full justify-start gap-1.5 ${active ? '' : ''}`}
     >
       <Link to={to}>
         {icon}
