@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ShoppingCart, Star, Tag, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -60,7 +61,7 @@ export function MarketplaceItem({
       transition={{ duration: 0.5, delay }}
       className="group rounded-xl border bg-card overflow-hidden hover:shadow-md transition-all duration-300"
     >
-      <div className="relative aspect-square overflow-hidden bg-rhythm-100">
+      <Link to={`/product/${id}`} className="block relative aspect-square overflow-hidden bg-rhythm-100">
         {sale && (
           <Badge className="absolute top-3 left-3 z-10 bg-red-500 hover:bg-red-600">
             {salePercentage}% OFF
@@ -79,7 +80,7 @@ export function MarketplaceItem({
           alt={title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-      </div>
+      </Link>
       
       <div className="p-5">
         <div className="flex items-center justify-between mb-1">
@@ -95,7 +96,9 @@ export function MarketplaceItem({
           </div>
         </div>
         
-        <h3 className="font-medium mt-2 mb-1 line-clamp-1">{title}</h3>
+        <Link to={`/product/${id}`} className="block hover:text-primary transition-colors">
+          <h3 className="font-medium mt-2 mb-1 line-clamp-1">{title}</h3>
+        </Link>
         
         {forTesting ? (
           <Tabs 
@@ -144,9 +147,11 @@ export function MarketplaceItem({
           </div>
         )}
         
-        <Button className="w-full gap-2">
-          <ShoppingCart className="h-4 w-4" /> 
-          {purchaseType === 'buy' ? 'Add to Cart' : 'Rent for Testing'}
+        <Button className="w-full gap-2" asChild>
+          <Link to={`/product/${id}`}>
+            <ShoppingCart className="h-4 w-4" /> 
+            {purchaseType === 'buy' ? 'View Product' : 'Rent for Testing'}
+          </Link>
         </Button>
       </div>
     </motion.div>

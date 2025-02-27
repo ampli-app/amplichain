@@ -1,101 +1,49 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { SocialProvider } from "./contexts/SocialContext";
-import Index from "./pages/Index";
-import Feed from "./pages/Feed";
-import SocialFeed from "./pages/SocialFeed";
-import Connections from "./pages/Connections";
-import Mentorship from "./pages/Mentorship";
-import Marketplace from "./pages/Marketplace";
-import Discovery from "./pages/Discovery";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import Profile from "./pages/Profile";
-import Messages from "./pages/Messages";
-import NotFound from "./pages/NotFound";
+import './App.css'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Index from './pages/Index';
+import Feed from './pages/Feed';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import NotFound from './pages/NotFound';
+import SocialFeed from './pages/SocialFeed';
+import Profile from './pages/Profile';
+import Discovery from './pages/Discovery';
+import Messages from './pages/Messages';
+import Marketplace from './pages/Marketplace';
+import ProductDetail from './pages/ProductDetail';
+import Connections from './pages/Connections';
+import Mentorship from './pages/Mentorship';
 
-const queryClient = new QueryClient();
+import { AuthProvider } from './contexts/AuthContext';
+import { SocialProvider } from './contexts/SocialContext';
+import { Toaster } from '@/components/ui/toaster';
 
-// Protected Route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isLoggedIn, loading } = useAuth();
-  
-  if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
-  }
-  
-  if (!isLoggedIn) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+function App() {
+  return (
     <AuthProvider>
       <SocialProvider>
-        <TooltipProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/feed" element={<Feed />} />
+            <Route path="/social-feed" element={<SocialFeed />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/discover" element={<Discovery />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/marketplace" element={<Marketplace />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/connections" element={<Connections />} />
+            <Route path="/mentorship" element={<Mentorship />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
           <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
+        </Router>
       </SocialProvider>
     </AuthProvider>
-  </QueryClientProvider>
-);
+  )
+}
 
-// Separate component to use the useAuth hook
-const AppRoutes = () => {
-  const { loading } = useAuth();
-  
-  if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
-  }
-  
-  return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/feed" element={<SocialFeed />} />
-      <Route path="/connections" element={<Connections />} />
-      <Route path="/mentorship" element={<Mentorship />} />
-      <Route path="/marketplace" element={<Marketplace />} />
-      <Route 
-        path="/discovery" 
-        element={
-          <ProtectedRoute>
-            <Discovery />
-          </ProtectedRoute>
-        } 
-      />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route 
-        path="/profile" 
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/messages" 
-        element={
-          <ProtectedRoute>
-            <Messages />
-          </ProtectedRoute>
-        } 
-      />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-};
-
-export default App;
+export default App
