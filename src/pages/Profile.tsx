@@ -11,13 +11,17 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { motion } from 'framer-motion';
 import { User, MapPin, Calendar, Music, Mic, Settings, Edit2, Share2, MessageSquare, BookOpen, Award } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Profile() {
-  // Mock user data - in a real app, this would come from your authentication system
-  const [user, setUser] = useState({
-    id: "user123", // Add an ID for the current user
-    name: "Alex Thompson",
-    username: "alexthompson",
+  const { user } = useAuth();
+  
+  // State for user profile data
+  const [profileData, setProfileData] = useState({
+    id: "",
+    name: "",
+    username: "",
     avatar: "/placeholder.svg",
     bio: "Music producer and mixing engineer with 10+ years of experience. Worked with indie artists and major labels.",
     location: "Los Angeles, CA",
@@ -79,9 +83,41 @@ export default function Profile() {
     }
   ];
 
+  // Fetch profile data from Supabase when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    
+    const fetchProfileData = async () => {
+      if (user) {
+        try {
+          // Get profile data from Supabase
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          
+          if (error) {
+            console.error('Error fetching profile data:', error);
+          } else if (data) {
+            // Update the profile data with user information from Supabase
+            setProfileData(prevData => ({
+              ...prevData,
+              id: data.id,
+              name: data.full_name || user.email?.split('@')[0] || 'User',
+              username: data.username || user.email?.split('@')[0] || 'user',
+              avatar: data.avatar_url || prevData.avatar,
+              website: data.website || prevData.website
+            }));
+          }
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+        }
+      }
+    };
+
+    fetchProfileData();
+  }, [user]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -99,7 +135,7 @@ export default function Profile() {
             >
               <div className="flex flex-col md:flex-row gap-6 md:gap-8">
                 <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-white dark:border-rhythm-800">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage src={profileData.avatar} alt={profileData.name} />
                   <AvatarFallback>
                     <User className="h-12 w-12" />
                   </AvatarFallback>
@@ -108,12 +144,12 @@ export default function Profile() {
                 <div className="flex-1">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                     <div>
-                      <h1 className="text-2xl md:text-3xl font-bold mb-1">{user.name}</h1>
+                      <h1 className="text-2xl md:text-3xl font-bold mb-1">{profileData.name}</h1>
                       <div className="flex items-center gap-2 text-rhythm-600 dark:text-rhythm-400">
                         <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                          {user.role}
+                          {profileData.role}
                         </Badge>
-                        <span className="text-sm">@{user.username}</span>
+                        <span className="text-sm">@{profileData.username}</span>
                       </div>
                     </div>
                     
@@ -137,30 +173,30 @@ export default function Profile() {
                     </div>
                   </div>
                   
-                  <p className="text-rhythm-700 dark:text-rhythm-300 mb-4">{user.bio}</p>
+                  <p className="text-rhythm-700 dark:text-rhythm-300 mb-4">{profileData.bio}</p>
                   
                   <div className="flex flex-wrap gap-y-2 gap-x-4 text-sm text-rhythm-600 dark:text-rhythm-400">
                     <div className="flex items-center gap-1">
                       <MapPin className="h-4 w-4" />
-                      {user.location}
+                      {profileData.location}
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      Joined {user.joinedDate}
+                      Joined {profileData.joinedDate}
                     </div>
                     <div className="flex items-center gap-1">
                       <Share2 className="h-4 w-4" />
-                      {user.website}
+                      {profileData.website}
                     </div>
                   </div>
                   
                   <div className="flex gap-8 mt-4 text-sm">
                     <div>
-                      <span className="font-bold">{user.followers}</span>
+                      <span className="font-bold">{profileData.followers}</span>
                       <span className="text-rhythm-600 dark:text-rhythm-400 ml-1">Followers</span>
                     </div>
                     <div>
-                      <span className="font-bold">{user.following}</span>
+                      <span className="font-bold">{profileData.following}</span>
                       <span className="text-rhythm-600 dark:text-rhythm-400 ml-1">Following</span>
                     </div>
                   </div>
@@ -235,7 +271,7 @@ export default function Profile() {
                   <div className="glass-card rounded-xl border p-6 mb-6">
                     <h2 className="text-xl font-semibold mb-4">Specialties</h2>
                     <div className="flex flex-wrap gap-2">
-                      {user.specialties.map((specialty) => (
+                      {profileData.specialties.map((specialty) => (
                         <Badge key={specialty} className="px-3 py-1">
                           {specialty}
                         </Badge>
@@ -246,7 +282,7 @@ export default function Profile() {
                   <div className="glass-card rounded-xl border p-6 mb-6">
                     <h2 className="text-xl font-semibold mb-4">Experience</h2>
                     <div className="space-y-4">
-                      {user.experience.map((exp, index) => (
+                      {profileData.experience.map((exp, index) => (
                         <div key={index} className="flex gap-4">
                           <div className="mt-1 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                             <Music className="h-5 w-5 text-primary" />
@@ -265,7 +301,7 @@ export default function Profile() {
                   <div className="glass-card rounded-xl border p-6">
                     <h2 className="text-xl font-semibold mb-4">Education</h2>
                     <div className="space-y-4">
-                      {user.education.map((edu, index) => (
+                      {profileData.education.map((edu, index) => (
                         <div key={index} className="flex gap-4">
                           <div className="mt-1 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                             <BookOpen className="h-5 w-5 text-primary" />
