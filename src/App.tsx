@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Index from "./pages/Index";
 import Feed from "./pages/Feed";
+import SocialFeed from "./pages/SocialFeed";
+import Connections from "./pages/Connections";
 import Mentorship from "./pages/Mentorship";
 import Marketplace from "./pages/Marketplace";
 import Login from "./pages/Login";
@@ -37,7 +39,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/feed" element={<Feed />} />
+            <Route path="/feed" element={<SocialFeed />} />
+            <Route path="/connections" element={<Connections />} />
             <Route path="/mentorship" element={<Mentorship />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/login" element={<Login />} />
