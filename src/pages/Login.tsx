@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Music, LogIn, Mail, Lock, AlertCircle, ArrowRight, User } from 'lucide-react';
@@ -8,17 +7,18 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/context/auth';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simple validation
     if (!email || !password) {
       toast({
         title: "Error",
@@ -30,24 +30,19 @@ export default function Login() {
     
     setIsLoading(true);
     
-    // This is where you would integrate with your authentication system
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Call login function from auth context
+      login();
       
       toast({
         title: "Success",
         description: "You've successfully logged in!",
       });
       
-      // Important: Set isLoggedIn to true in App.tsx (in a real app, this would be handled by your auth system)
-      // For this demo, we're navigating to the profile page even though the isLoggedIn state in App.tsx is false
-      // In a real implementation, this would update a global auth state before navigating
       navigate('/profile');
-      
-      // Force reload the page to simulate the auth state changing
-      // In a real app, you would use a proper state management solution instead
-      window.location.reload();
     } catch (error) {
       toast({
         title: "Error",
@@ -62,10 +57,12 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     
-    // This is where you would integrate with Google Authentication
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Call login function from auth context
+      login();
       
       toast({
         title: "Success",
@@ -73,9 +70,6 @@ export default function Login() {
       });
       
       navigate('/profile');
-      
-      // Force reload the page to simulate the auth state changing
-      window.location.reload();
     } catch (error) {
       toast({
         title: "Error",

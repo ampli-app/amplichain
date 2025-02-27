@@ -4,12 +4,12 @@ import { Link } from 'react-router-dom';
 import { Music, Menu, X, MessageSquare, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  // For demo purposes, let's assume the user is not logged in initially
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isLoggedIn } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
