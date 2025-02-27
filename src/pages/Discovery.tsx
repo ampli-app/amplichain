@@ -25,7 +25,8 @@ import {
   Sparkles,
   BookOpen,
   LogIn,
-  Compass
+  Compass,
+  Users as UsersIcon
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -529,7 +530,7 @@ export default function Discovery() {
                   className="flex-shrink-0 w-[300px] h-full flex items-center justify-center border rounded-xl p-4 hover:bg-accent transition-colors"
                 >
                   <div className="flex flex-col items-center text-center gap-2">
-                    <Users className="h-8 w-8 text-primary" />
+                    <UsersIcon className="h-8 w-8 text-primary" />
                     <span className="font-medium">Explore more profiles</span>
                     <p className="text-sm text-rhythm-500">View all network connections</p>
                   </div>
