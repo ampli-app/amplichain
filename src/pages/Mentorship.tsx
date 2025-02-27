@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -124,7 +125,7 @@ const individualMentors = [
   {
     id: 3,
     name: "Yvette Kondoh",
-    image: "public/lovable-uploads/9b8af26a-e395-4b2d-b30e-ff147a5f2eac.png",
+    image: "/lovable-uploads/9b8af26a-e395-4b2d-b30e-ff147a5f2eac.png",
     title: "Data Scientist",
     company: "Kraft Heinz",
     experience: "7+ years of experience in data and analytics",
@@ -139,7 +140,7 @@ const individualMentors = [
   {
     id: 4,
     name: "Daniel Lee",
-    image: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8cHJvZmVzc2lvbmFsJTIwbWFufGVufDB8fDB8Hww",
+    image: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8cHJvZmVzc2lvbmFsJTIwbWFufGVufDB8fDB8fHww",
     title: "Music Marketing Specialist",
     company: "Pinnacle Digital",
     experience: "6+ years of experience in digital marketing",
