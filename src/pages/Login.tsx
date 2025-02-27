@@ -40,7 +40,14 @@ export default function Login() {
         description: "You've successfully logged in!",
       });
       
+      // Important: Set isLoggedIn to true in App.tsx (in a real app, this would be handled by your auth system)
+      // For this demo, we're navigating to the profile page even though the isLoggedIn state in App.tsx is false
+      // In a real implementation, this would update a global auth state before navigating
       navigate('/profile');
+      
+      // Force reload the page to simulate the auth state changing
+      // In a real app, you would use a proper state management solution instead
+      window.location.reload();
     } catch (error) {
       toast({
         title: "Error",
@@ -66,6 +73,9 @@ export default function Login() {
       });
       
       navigate('/profile');
+      
+      // Force reload the page to simulate the auth state changing
+      window.location.reload();
     } catch (error) {
       toast({
         title: "Error",
