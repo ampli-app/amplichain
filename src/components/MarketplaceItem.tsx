@@ -38,9 +38,9 @@ export function MarketplaceItem({
 }: MarketplaceItemProps) {
   const [purchaseType, setPurchaseType] = useState<'buy' | 'test'>(forTesting ? 'test' : 'buy');
   
-  const formattedPrice = new Intl.NumberFormat('en-US', {
+  const formattedPrice = new Intl.NumberFormat('pl-PL', {
     style: 'currency',
-    currency: 'USD'
+    currency: 'PLN'
   }).format(purchaseType === 'buy' ? price : (testingPrice || 0));
   
   const originalPrice = sale && salePercentage 
@@ -48,9 +48,9 @@ export function MarketplaceItem({
     : undefined;
     
   const formattedOriginalPrice = originalPrice 
-    ? new Intl.NumberFormat('en-US', {
+    ? new Intl.NumberFormat('pl-PL', {
         style: 'currency',
-        currency: 'USD'
+        currency: 'PLN'
       }).format(originalPrice)
     : undefined;
   
@@ -64,14 +64,14 @@ export function MarketplaceItem({
       <Link to={`/product/${id}`} className="block relative aspect-square overflow-hidden bg-rhythm-100">
         {sale && (
           <Badge className="absolute top-3 left-3 z-10 bg-red-500 hover:bg-red-600">
-            {salePercentage}% OFF
+            {salePercentage}% ZNIŻKI
           </Badge>
         )}
         
         {forTesting && (
           <Badge className="absolute top-3 right-3 z-10 bg-primary/10 text-primary border-primary/20">
             <Calendar className="mr-1 h-3 w-3" />
-            Available for Testing
+            Dostępne do testów
           </Badge>
         )}
         
@@ -107,15 +107,15 @@ export function MarketplaceItem({
             className="mb-3"
           >
             <TabsList className="grid w-full grid-cols-2 mb-2">
-              <TabsTrigger value="buy">Buy</TabsTrigger>
-              <TabsTrigger value="test">Test for 1 Week</TabsTrigger>
+              <TabsTrigger value="buy">Kup</TabsTrigger>
+              <TabsTrigger value="test">Testuj przez tydzień</TabsTrigger>
             </TabsList>
             
             <TabsContent value="buy" className="mt-0">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-lg">{new Intl.NumberFormat('en-US', {
+                <span className="font-semibold text-lg">{new Intl.NumberFormat('pl-PL', {
                   style: 'currency',
-                  currency: 'USD'
+                  currency: 'PLN'
                 }).format(price)}</span>
                 
                 {sale && formattedOriginalPrice && (
@@ -128,11 +128,11 @@ export function MarketplaceItem({
             
             <TabsContent value="test" className="mt-0">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-lg">{new Intl.NumberFormat('en-US', {
+                <span className="font-semibold text-lg">{new Intl.NumberFormat('pl-PL', {
                   style: 'currency',
-                  currency: 'USD'
+                  currency: 'PLN'
                 }).format(testingPrice || 0)}</span>
-                <span className="text-rhythm-500 text-sm">for 1 week</span>
+                <span className="text-rhythm-500 text-sm">za tydzień</span>
               </div>
             </TabsContent>
           </Tabs>
@@ -150,7 +150,7 @@ export function MarketplaceItem({
         <Button className="w-full gap-2" asChild>
           <Link to={`/product/${id}`}>
             <ShoppingCart className="h-4 w-4" /> 
-            {purchaseType === 'buy' ? 'View Product' : 'Rent for Testing'}
+            {purchaseType === 'buy' ? 'Zobacz produkt' : 'Wypożycz do testów'}
           </Link>
         </Button>
       </div>

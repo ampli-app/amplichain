@@ -84,10 +84,10 @@ export function Navbar() {
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
-            <NavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
-            <NavItem to="/marketplace" label="Marketplace" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
-            <NavItem to="/mentorship" label="Mentoring" icon={<GraduationCap className="h-4 w-4" />} active={isActive('/mentorship')} />
-            <NavItem to="/connections" label="Network" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
+            <NavItem to="/feed" label="Aktualności" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
+            <NavItem to="/marketplace" label="Produkty" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
+            <NavItem to="/mentorship" label="Mentorzy" icon={<GraduationCap className="h-4 w-4" />} active={isActive('/mentorship')} />
+            <NavItem to="/connections" label="Kontakty" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
           </nav>
           
           {/* Auth Buttons / User Menu */}
@@ -107,10 +107,10 @@ export function Navbar() {
             ) : (
               <>
                 <Button variant="outline" asChild>
-                  <Link to="/login">Log in</Link>
+                  <Link to="/login">Zaloguj się</Link>
                 </Button>
                 <Button asChild className="hidden sm:flex">
-                  <Link to="/signup">Sign up</Link>
+                  <Link to="/signup">Zarejestruj się</Link>
                 </Button>
               </>
             )}
@@ -132,14 +132,14 @@ export function Navbar() {
       {isMobileMenuOpen && (
         <div className="md:hidden bg-background border-t">
           <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
-            <MobileNavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
-            <MobileNavItem to="/marketplace" label="Marketplace" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
-            <MobileNavItem to="/mentorship" label="Mentoring" icon={<GraduationCap className="h-4 w-4" />} active={isActive('/mentorship')} />
-            <MobileNavItem to="/connections" label="Network" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
+            <MobileNavItem to="/feed" label="Aktualności" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
+            <MobileNavItem to="/marketplace" label="Produkty" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
+            <MobileNavItem to="/mentorship" label="Mentorzy" icon={<GraduationCap className="h-4 w-4" />} active={isActive('/mentorship')} />
+            <MobileNavItem to="/connections" label="Kontakty" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
             
             {!isLoggedIn && (
               <Button asChild className="mt-4 sm:hidden">
-                <Link to="/signup">Sign up</Link>
+                <Link to="/signup">Zarejestruj się</Link>
               </Button>
             )}
           </nav>
@@ -195,30 +195,30 @@ function UserMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+        <DropdownMenuLabel>Moje konto</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link to="/profile" className="flex items-center cursor-pointer">
             <User className="mr-2 h-4 w-4" />
-            Profile
+            Profil
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link to="/messages" className="flex items-center cursor-pointer">
             <MessageSquare className="mr-2 h-4 w-4" />
-            Messages
+            Wiadomości
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link to="/discovery" className="flex items-center cursor-pointer">
             <User className="mr-2 h-4 w-4" />
-            Discovery
+            Odkrywaj
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link to="/settings" className="flex items-center cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />
-            Settings
+            Ustawienia
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -227,7 +227,7 @@ function UserMenu() {
           className="flex items-center cursor-pointer text-red-500 focus:text-red-500"
         >
           <LogOut className="mr-2 h-4 w-4" />
-          Log out
+          Wyloguj się
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Music, UserPlus, Mail, Lock, User } from 'lucide-react';
@@ -23,8 +24,8 @@ export default function Signup() {
     // Simple validation
     if (!name || !email || !password) {
       toast({
-        title: "Error",
-        description: "Please fill in all fields",
+        title: "Błąd",
+        description: "Proszę wypełnić wszystkie pola",
         variant: "destructive",
       });
       return;
@@ -32,8 +33,8 @@ export default function Signup() {
     
     if (password.length < 8) {
       toast({
-        title: "Error",
-        description: "Password must be at least 8 characters",
+        title: "Błąd",
+        description: "Hasło musi mieć co najmniej 8 znaków",
         variant: "destructive",
       });
       return;
@@ -56,8 +57,8 @@ export default function Signup() {
     } catch (error) {
       console.error('Unexpected error during signup:', error);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Błąd",
+        description: "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",
         variant: "destructive",
       });
     } finally {
@@ -68,8 +69,8 @@ export default function Signup() {
   const handleGoogleSignup = async () => {
     // We'll implement Google signup in a future update
     toast({
-      title: "Not implemented",
-      description: "Google signup will be available soon.",
+      title: "Niedostępne",
+      description: "Rejestracja przez Google będzie dostępna wkrótce.",
     });
   };
 
@@ -92,8 +93,8 @@ export default function Signup() {
           className="w-full max-w-md px-8 py-10 bg-white dark:bg-rhythm-900 rounded-xl shadow-sm border"
         >
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2">Create your account</h1>
-            <p className="text-rhythm-600 dark:text-rhythm-400">Join the music industry network</p>
+            <h1 className="text-2xl font-bold mb-2">Utwórz swoje konto</h1>
+            <p className="text-rhythm-600 dark:text-rhythm-400">Dołącz do sieci branży muzycznej</p>
           </div>
           
           <Button 
@@ -110,20 +111,20 @@ export default function Signup() {
                 <path d="M-1089.333-727.244c14.028 0 26.497 4.849 36.455 14.201l27.276-27.276c-16.539-15.413-38.013-24.852-63.731-24.852-37.234 0-69.359 21.388-85.032 52.561l31.692 24.592c7.533-22.514 28.575-39.226 53.34-39.226z" fill="#ea4335"/>
               </g>
             </svg>
-            Sign up with Google
+            Zarejestruj się przez Google
           </Button>
           
           <div className="relative mb-6">
             <Separator />
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="bg-white dark:bg-rhythm-900 px-2 text-sm text-rhythm-500">or continue with email</span>
+              <span className="bg-white dark:bg-rhythm-900 px-2 text-sm text-rhythm-500">lub kontynuuj przez email</span>
             </div>
           </div>
           
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name">Imię i nazwisko</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-rhythm-500 h-4 w-4" />
                   <Input 
@@ -132,7 +133,7 @@ export default function Signup() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="pl-10" 
-                    placeholder="John Doe" 
+                    placeholder="Jan Kowalski" 
                     autoComplete="name"
                   />
                 </div>
@@ -148,14 +149,14 @@ export default function Signup() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10" 
-                    placeholder="name@example.com" 
+                    placeholder="nazwa@example.com" 
                     autoComplete="email"
                   />
                 </div>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Hasło</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-rhythm-500 h-4 w-4" />
                   <Input 
@@ -168,28 +169,28 @@ export default function Signup() {
                     autoComplete="new-password"
                   />
                 </div>
-                <p className="text-xs text-rhythm-500">Password must be at least 8 characters long</p>
+                <p className="text-xs text-rhythm-500">Hasło musi mieć co najmniej 8 znaków</p>
               </div>
               
               <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                {isLoading ? 'Creating account...' : 'Create account'}
+                {isLoading ? 'Tworzenie konta...' : 'Utwórz konto'}
                 {!isLoading && <UserPlus className="ml-2 h-4 w-4" />}
               </Button>
             </div>
           </form>
           
           <div className="mt-6 text-center text-sm">
-            <span className="text-rhythm-600 dark:text-rhythm-400">Already have an account? </span>
+            <span className="text-rhythm-600 dark:text-rhythm-400">Masz już konto? </span>
             <Link to="/login" className="text-primary font-medium hover:underline">
-              Sign in
+              Zaloguj się
             </Link>
           </div>
           
           <p className="mt-8 text-xs text-center text-rhythm-500">
-            By creating an account, you agree to our
-            <Link to="/terms" className="text-primary hover:underline mx-1">Terms of Service</Link>
-            and
-            <Link to="/privacy" className="text-primary hover:underline ml-1">Privacy Policy</Link>.
+            Tworząc konto, zgadzasz się na nasze
+            <Link to="/terms" className="text-primary hover:underline mx-1">Warunki korzystania z usługi</Link>
+            oraz
+            <Link to="/privacy" className="text-primary hover:underline ml-1">Politykę prywatności</Link>.
           </p>
         </motion.div>
       </main>

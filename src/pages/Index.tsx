@@ -14,43 +14,43 @@ import { ArrowRight, Globe, Users, ShoppingBag } from 'lucide-react';
 
 const mentorshipCommunities = [
   {
-    title: "Producer's Circle",
-    description: "Learn from top music producers and get feedback on your tracks.",
+    title: "Krąg Producentów",
+    description: "Ucz się od najlepszych producentów muzycznych i otrzymuj opinie na temat swoich utworów.",
     image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop",
     members: 1250,
     rating: 4.9,
     features: [
-      "Weekly live sessions with industry pros",
-      "Track feedback and reviews",
-      "Exclusive production resources",
-      "Private networking opportunities"
+      "Cotygodniowe sesje na żywo z profesjonalistami",
+      "Ocena i recenzje utworów",
+      "Ekskluzywne zasoby produkcyjne",
+      "Prywatne możliwości networkingu"
     ],
     popular: true
   },
   {
-    title: "A&R Insights",
-    description: "Discover what A&R executives are looking for in new artists.",
+    title: "Spostrzeżenia A&R",
+    description: "Dowiedz się, czego szukają dyrektorzy A&R u nowych artystów.",
     image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2000&auto=format&fit=crop",
     members: 850,
     rating: 4.7,
     features: [
-      "A&R mentorship opportunities",
-      "Demo submission feedback",
-      "Industry trends analysis",
-      "Artist development resources"
+      "Możliwości mentoringu A&R",
+      "Informacje zwrotne dotyczące demo",
+      "Analiza trendów branżowych",
+      "Zasoby do rozwoju artystycznego"
     ]
   },
   {
-    title: "Sound Engineering Lab",
-    description: "Master the technical side of music with expert sound engineers.",
+    title: "Laboratorium Inżynierii Dźwięku",
+    description: "Opanuj techniczną stronę muzyki z ekspertami inżynierii dźwięku.",
     image: "https://images.unsplash.com/photo-1588479839125-731d7ae923f6?q=80&w=2000&auto=format&fit=crop",
     members: 950,
     rating: 4.8,
     features: [
-      "Studio equipment tutorials",
-      "Mixing and mastering workshops",
-      "Acoustics and studio design",
-      "Technical problem-solving"
+      "Tutoriale sprzętu studyjnego",
+      "Warsztaty miksowania i masteringu",
+      "Akustyka i projektowanie studia",
+      "Rozwiązywanie problemów technicznych"
     ]
   }
 ];
@@ -58,10 +58,10 @@ const mentorshipCommunities = [
 const marketplaceItems = [
   {
     id: 1,
-    title: "Neumann U87 Condenser Microphone",
+    title: "Neumann U87 Mikrofon Pojemnościowy",
     price: 2999.99,
     image: "https://images.unsplash.com/photo-1520116468816-95b69f847357?q=80&w=2000&auto=format&fit=crop",
-    category: "Microphones",
+    category: "Mikrofony",
     rating: 5.0,
     reviewCount: 124
   },
@@ -70,7 +70,7 @@ const marketplaceItems = [
     title: "Universal Audio Apollo Twin X Duo",
     price: 899.00,
     image: "https://images.unsplash.com/photo-1558612846-ec0107aaf552?q=80&w=2000&auto=format&fit=crop",
-    category: "Audio Interfaces",
+    category: "Interfejsy Audio",
     rating: 4.8,
     reviewCount: 86,
     sale: true,
@@ -78,19 +78,19 @@ const marketplaceItems = [
   },
   {
     id: 3,
-    title: "Ableton Push 2 MIDI Controller",
+    title: "Ableton Push 2 Kontroler MIDI",
     price: 799.00,
     image: "https://images.unsplash.com/photo-1553526665-10042bd50dd1?q=80&w=2000&auto=format&fit=crop",
-    category: "Controllers",
+    category: "Kontrolery",
     rating: 4.9,
     reviewCount: 102
   },
   {
     id: 4,
-    title: "Yamaha HS8 Studio Monitors (Pair)",
+    title: "Yamaha HS8 Monitory Studyjne (Para)",
     price: 699.99,
     image: "https://images.unsplash.com/photo-1609587312208-cea54be969e7?q=80&w=2000&auto=format&fit=crop",
-    category: "Monitors",
+    category: "Monitory",
     rating: 4.7,
     reviewCount: 93
   }
@@ -115,20 +115,20 @@ export default function Index() {
             {[
               {
                 icon: Globe,
-                title: "Industry Feed",
-                description: "Stay connected with the latest updates, trends, and opportunities in the music industry.",
+                title: "Aktualności Branżowe",
+                description: "Bądź na bieżąco z najnowszymi aktualizacjami, trendami i możliwościami w branży muzycznej.",
                 link: "/feed"
               },
               {
                 icon: Users,
-                title: "Mentorship Communities",
-                description: "Join exclusive communities led by industry experts to accelerate your growth and knowledge.",
+                title: "Społeczności Mentoringowe",
+                description: "Dołącz do ekskluzywnych społeczności prowadzonych przez ekspertów branżowych, aby przyspieszyć swój rozwój i wiedzę.",
                 link: "/mentorship"
               },
               {
                 icon: ShoppingBag,
-                title: "Equipment Marketplace",
-                description: "Discover, buy, and sell professional music equipment with our trusted marketplace.",
+                title: "Rynek Sprzętu",
+                description: "Odkrywaj, kupuj i sprzedawaj profesjonalny sprzęt muzyczny na naszym zaufanym rynku.",
                 link: "/marketplace"
               }
             ].map((feature, index) => (
@@ -146,7 +146,7 @@ export default function Index() {
                 <p className="text-rhythm-600 mb-5">{feature.description}</p>
                 <Link to={feature.link} className="mt-auto">
                   <Button variant="link" className="gap-1 group">
-                    Learn more
+                    Dowiedz się więcej
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </Link>
@@ -158,8 +158,8 @@ export default function Index() {
       
       {/* Feed Preview */}
       <FeaturedSection
-        title="Stay Connected"
-        description="Join the conversation with industry professionals, share insights, and discover new opportunities."
+        title="Pozostań w Kontakcie"
+        description="Dołącz do rozmowy z profesjonalistami branżowymi, dziel się spostrzeżeniami i odkrywaj nowe możliwości."
         variant="alternate"
         id="feed"
       >
@@ -168,8 +168,8 @@ export default function Index() {
       
       {/* Mentorship */}
       <FeaturedSection
-        title="Exclusive Mentorship Communities"
-        description="Join closed communities led by industry experts to accelerate your growth and expand your network."
+        title="Ekskluzywne Społeczności Mentoringowe"
+        description="Dołącz do zamkniętych społeczności prowadzonych przez ekspertów branżowych, aby przyspieszyć swój rozwój i poszerzyć swoją sieć kontaktów."
         id="mentorship"
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
@@ -191,7 +191,7 @@ export default function Index() {
         <div className="text-center mt-10">
           <Link to="/mentorship">
             <Button size="lg" variant="outline" className="gap-2 group">
-              View All Communities
+              Zobacz Wszystkie Społeczności
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>
@@ -200,8 +200,8 @@ export default function Index() {
       
       {/* Marketplace */}
       <FeaturedSection
-        title="Professional Equipment Marketplace"
-        description="Discover high-quality music equipment from trusted sellers in our curated marketplace."
+        title="Profesjonalny Rynek Sprzętu"
+        description="Odkryj wysokiej jakości sprzęt muzyczny od zaufanych sprzedawców w naszym wyselekcjonowanym sklepie."
         variant="alternate"
         id="marketplace"
       >
@@ -226,7 +226,7 @@ export default function Index() {
         <div className="text-center mt-10">
           <Link to="/marketplace">
             <Button size="lg" variant="outline" className="gap-2 group">
-              Browse Marketplace
+              Przeglądaj Sklep
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>
@@ -246,17 +246,17 @@ export default function Index() {
               className="space-y-6"
             >
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-                Ready to take your music industry presence to the next level?
+                Gotowy, aby przenieść swoją obecność w branży muzycznej na wyższy poziom?
               </h2>
               <p className="text-lg text-rhythm-600">
-                Join thousands of music industry professionals who are already connecting, learning, and growing with Rhythm.
+                Dołącz do tysięcy profesjonalistów z branży muzycznej, którzy już nawiązują kontakty, uczą się i rozwijają z Rhythm.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                 <Button size="lg" className="min-w-[160px]">
-                  Get Started
+                  Rozpocznij
                 </Button>
                 <Button size="lg" variant="outline" className="min-w-[160px]">
-                  Learn More
+                  Dowiedz się więcej
                 </Button>
               </div>
             </motion.div>
