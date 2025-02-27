@@ -261,68 +261,23 @@ export default function Connections() {
                   Pending
                 </TabsTrigger>
               </TabsList>
+              
+              <TabsContent value="all">
+                {renderUserList(filteredUsers)}
+              </TabsContent>
+              
+              <TabsContent value="following">
+                {renderUserList(filteredUsers)}
+              </TabsContent>
+              
+              <TabsContent value="connections">
+                {renderUserList(filteredUsers)}
+              </TabsContent>
+              
+              <TabsContent value="pending">
+                {renderUserList(filteredUsers)}
+              </TabsContent>
             </Tabs>
-            
-            <TabsContent value={activeTab} className="mt-0">
-              {filteredUsers.length === 0 ? (
-                <Card className="border-dashed">
-                  <CardContent className="pt-6 text-center">
-                    <p className="text-rhythm-500 mb-2">No users found</p>
-                    {searchQuery && (
-                      <Button variant="link" onClick={() => setSearchQuery('')}>
-                        Clear search
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {filteredUsers.map((user, index) => (
-                    <motion.div
-                      key={user.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className="glass-card rounded-xl p-5 border"
-                    >
-                      <div className="flex flex-col sm:flex-row gap-5">
-                        <Avatar className="h-16 w-16">
-                          <AvatarImage src={user.avatar} alt={user.name} />
-                          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="flex-1">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="font-semibold text-lg">{user.name}</h3>
-                                {getStatusBadge(user.connectionStatus)}
-                              </div>
-                              <p className="text-rhythm-500">@{user.username}</p>
-                            </div>
-                            
-                            <div className="sm:self-start">
-                              {getConnectionAction(user.connectionStatus, user.id)}
-                            </div>
-                          </div>
-                          
-                          <p className="my-2">{user.role}</p>
-                          
-                          <div className="flex gap-4 text-sm">
-                            <span className="text-rhythm-600">
-                              <strong>{user.followersCount}</strong> followers
-                            </span>
-                            <span className="text-rhythm-600">
-                              <strong>{user.connectionsCount}</strong> connections
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
           </div>
         </div>
       </main>
@@ -330,4 +285,69 @@ export default function Connections() {
       <Footer />
     </div>
   );
+  
+  function renderUserList(users: typeof filteredUsers) {
+    if (users.length === 0) {
+      return (
+        <Card className="border-dashed">
+          <CardContent className="pt-6 text-center">
+            <p className="text-rhythm-500 mb-2">No users found</p>
+            {searchQuery && (
+              <Button variant="link" onClick={() => setSearchQuery('')}>
+                Clear search
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      );
+    }
+    
+    return (
+      <div className="space-y-4">
+        {users.map((user, index) => (
+          <motion.div
+            key={user.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+            className="glass-card rounded-xl p-5 border"
+          >
+            <div className="flex flex-col sm:flex-row gap-5">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-lg">{user.name}</h3>
+                      {getStatusBadge(user.connectionStatus)}
+                    </div>
+                    <p className="text-rhythm-500">@{user.username}</p>
+                  </div>
+                  
+                  <div className="sm:self-start">
+                    {getConnectionAction(user.connectionStatus, user.id)}
+                  </div>
+                </div>
+                
+                <p className="my-2">{user.role}</p>
+                
+                <div className="flex gap-4 text-sm">
+                  <span className="text-rhythm-600">
+                    <strong>{user.followersCount}</strong> followers
+                  </span>
+                  <span className="text-rhythm-600">
+                    <strong>{user.connectionsCount}</strong> connections
+                  </span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
 }
