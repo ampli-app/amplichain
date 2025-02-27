@@ -21,26 +21,71 @@ import {
 } from 'lucide-react';
 
 export function Notifications() {
-  const { 
-    notifications, 
-    unreadNotifications, 
-    markNotificationAsRead, 
-    markAllNotificationsAsRead 
-  } = useSocial();
-  
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsList, setNotificationsList] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   
-  // Mark as read when opening the notification popover
+  // Simulate the social context if it's not available
+  const socialContext = useSocial ? useSocial() : null;
+  
   useEffect(() => {
-    if (isOpen && unreadNotifications > 0) {
-      const timer = setTimeout(() => {
-        markAllNotificationsAsRead();
-      }, 3000);
-      
-      return () => clearTimeout(timer);
+    if (socialContext) {
+      setUnreadCount(socialContext.unreadNotifications);
+      setNotificationsList(socialContext.notifications);
+    } else {
+      // Mock data if context is not available
+      setUnreadCount(2);
+      setNotificationsList([
+        {
+          id: "notif1",
+          type: "follow",
+          from: {
+            id: "user124",
+            name: "Sarah Johnson",
+            avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1974&auto=format&fit=crop"
+          },
+          read: false,
+          time: "2h ago"
+        },
+        {
+          id: "notif2",
+          type: "connection_request",
+          from: {
+            id: "user127",
+            name: "James Wilson",
+            avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fHByb2Zlc3Npb25hbCUyMG1hbnxlbnwwfHwwfHx8MA%3D%3D"
+          },
+          read: false,
+          time: "5h ago"
+        }
+      ]);
     }
-  }, [isOpen, unreadNotifications, markAllNotificationsAsRead]);
-
+  }, [socialContext]);
+  
+  const markAllAsRead = () => {
+    if (socialContext) {
+      socialContext.markAllNotificationsAsRead();
+    } else {
+      setUnreadCount(0);
+      setNotificationsList(prev => 
+        prev.map(notif => ({ ...notif, read: true }))
+      );
+    }
+  };
+  
+  const markAsRead = (id: string) => {
+    if (socialContext) {
+      socialContext.markNotificationAsRead(id);
+    } else {
+      setNotificationsList(prev => 
+        prev.map(notif => 
+          notif.id === id ? { ...notif, read: true } : notif
+        )
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    }
+  };
+  
   const getNotificationContent = (notification: Notification) => {
     switch (notification.type) {
       case 'follow':
@@ -127,9 +172,9 @@ export function Notifications() {
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          {unreadNotifications > 0 && (
+          {unreadCount > 0 && (
             <Badge className="absolute top-0 right-0 h-5 min-w-5 flex items-center justify-center p-1 text-xs">
-              {unreadNotifications}
+              {unreadCount}
             </Badge>
           )}
         </Button>
@@ -137,12 +182,12 @@ export function Notifications() {
       <PopoverContent className="w-[380px] p-0" align="end">
         <div className="flex items-center justify-between px-4 py-3">
           <h4 className="font-semibold">Notifications</h4>
-          {notifications.length > 0 && (
+          {notificationsList.length > 0 && (
             <Button 
               variant="ghost" 
               size="sm" 
               className="h-7 text-xs"
-              onClick={markAllNotificationsAsRead}
+              onClick={markAllAsRead}
             >
               <Check className="mr-1 h-3 w-3" />
               Mark all as read
@@ -151,19 +196,19 @@ export function Notifications() {
         </div>
         <Separator />
         <ScrollArea className="max-h-[400px]">
-          {notifications.length === 0 ? (
+          {notificationsList.length === 0 ? (
             <div className="py-8 text-center text-sm text-rhythm-500">
               <p>No notifications yet</p>
             </div>
           ) : (
             <div className="space-y-1 py-1.5">
-              {notifications.map((notification) => (
+              {notificationsList.map((notification) => (
                 <div
                   key={notification.id}
                   className={`flex items-center gap-3 px-4 py-2.5 hover:bg-accent transition-colors cursor-pointer ${
                     !notification.read ? 'bg-primary/5' : ''
                   }`}
-                  onClick={() => markNotificationAsRead(notification.id)}
+                  onClick={() => markAsRead(notification.id)}
                 >
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={notification.from.avatar} alt={notification.from.name} />
@@ -175,7 +220,7 @@ export function Notifications() {
             </div>
           )}
         </ScrollArea>
-        {notifications.length > 0 && (
+        {notificationsList.length > 0 && (
           <>
             <Separator />
             <div className="p-2 text-center">

@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
-import { SocialProvider } from '@/contexts/SocialContext';
+import { useSocial } from '@/contexts/SocialContext';
 import { 
   Menu, 
   X, 
@@ -46,89 +46,87 @@ export function Navbar() {
   }, [location.pathname]);
   
   return (
-    <SocialProvider>
-      <header 
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled || isMobileMenuOpen 
-            ? 'bg-white/80 dark:bg-gray-950/80 backdrop-blur-md shadow-sm' 
-            : 'bg-transparent'
-        }`}
-      >
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-20">
-            {/* Logo */}
-            <Link to="/" className="text-2xl font-bold flex items-center gap-1.5">
-              <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-white text-xl font-bold">S</span>
-              </div>
-              <span>SoundConnect</span>
-            </Link>
-            
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-1">
-              <NavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} />
-              <NavItem to="/mentorship" label="Mentorship" />
-              <NavItem to="/marketplace" label="Marketplace" />
-              <NavItem to="/connections" label="Network" icon={<Users className="h-4 w-4" />} />
-            </nav>
-            
-            {/* Auth Buttons / User Menu */}
-            <div className="flex items-center gap-2">
-              {isLoggedIn ? (
-                <>
-                  <Notifications />
-                  
-                  <Button asChild variant="ghost" size="icon">
-                    <Link to="/messages">
-                      <MessageSquare className="h-5 w-5" />
-                    </Link>
-                  </Button>
-                  
-                  <UserMenu />
-                </>
-              ) : (
-                <>
-                  <Button variant="outline" asChild>
-                    <Link to="/login">Log in</Link>
-                  </Button>
-                  <Button asChild className="hidden sm:flex">
-                    <Link to="/signup">Sign up</Link>
-                  </Button>
-                </>
-              )}
-              
-              {/* Mobile Menu Toggle */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              >
-                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </Button>
+    <header 
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled || isMobileMenuOpen 
+          ? 'bg-white/80 dark:bg-gray-950/80 backdrop-blur-md shadow-sm' 
+          : 'bg-transparent'
+      }`}
+    >
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-20">
+          {/* Logo */}
+          <Link to="/" className="text-2xl font-bold flex items-center gap-1.5">
+            <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
+              <span className="text-white text-xl font-bold">S</span>
             </div>
-          </div>
-        </div>
-        
-        {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden bg-background border-t">
-            <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
-              <MobileNavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} />
-              <MobileNavItem to="/mentorship" label="Mentorship" />
-              <MobileNavItem to="/marketplace" label="Marketplace" />
-              <MobileNavItem to="/connections" label="Network" icon={<Users className="h-4 w-4" />} />
-              
-              {!isLoggedIn && (
-                <Button asChild className="mt-4 sm:hidden">
+            <span>SoundConnect</span>
+          </Link>
+          
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-1">
+            <NavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} />
+            <NavItem to="/mentorship" label="Mentorship" />
+            <NavItem to="/marketplace" label="Marketplace" />
+            <NavItem to="/connections" label="Network" icon={<Users className="h-4 w-4" />} />
+          </nav>
+          
+          {/* Auth Buttons / User Menu */}
+          <div className="flex items-center gap-2">
+            {isLoggedIn ? (
+              <>
+                <Notifications />
+                
+                <Button asChild variant="ghost" size="icon">
+                  <Link to="/messages">
+                    <MessageSquare className="h-5 w-5" />
+                  </Link>
+                </Button>
+                
+                <UserMenu />
+              </>
+            ) : (
+              <>
+                <Button variant="outline" asChild>
+                  <Link to="/login">Log in</Link>
+                </Button>
+                <Button asChild className="hidden sm:flex">
                   <Link to="/signup">Sign up</Link>
                 </Button>
-              )}
-            </nav>
+              </>
+            )}
+            
+            {/* Mobile Menu Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
           </div>
-        )}
-      </header>
-    </SocialProvider>
+        </div>
+      </div>
+      
+      {/* Mobile Navigation */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-background border-t">
+          <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
+            <MobileNavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} />
+            <MobileNavItem to="/mentorship" label="Mentorship" />
+            <MobileNavItem to="/marketplace" label="Marketplace" />
+            <MobileNavItem to="/connections" label="Network" icon={<Users className="h-4 w-4" />} />
+            
+            {!isLoggedIn && (
+              <Button asChild className="mt-4 sm:hidden">
+                <Link to="/signup">Sign up</Link>
+              </Button>
+            )}
+          </nav>
+        </div>
+      )}
+    </header>
   );
 }
 
