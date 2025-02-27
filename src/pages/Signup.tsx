@@ -80,8 +80,8 @@ export default function Signup() {
         <div className="container px-4 mx-auto">
           <Link to="/" className="flex items-center">
             <img 
-              src="/lovable-uploads/16892876-2744-491f-acab-cbcf263983ed.png"
-              alt="amplichain logo" 
+              src="/lovable-uploads/f8ca029f-1e5e-42c9-ae3a-01ffb67072b4.png"
+              alt="Amplichain logo" 
               className="h-8"
             />
           </Link>

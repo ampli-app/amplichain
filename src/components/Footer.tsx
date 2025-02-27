@@ -13,8 +13,8 @@ export function Footer() {
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center mb-4">
               <img 
-                src="/lovable-uploads/16892876-2744-491f-acab-cbcf263983ed.png"
-                alt="amplichain logo" 
+                src="/lovable-uploads/f8ca029f-1e5e-42c9-ae3a-01ffb67072b4.png"
+                alt="Amplichain logo" 
                 className="h-8"
               />
             </Link>
@@ -120,7 +120,7 @@ export function Footer() {
         
         <div className="flex flex-col sm:flex-row justify-between items-center">
           <p className="text-sm text-rhythm-500">
-            &copy; {currentYear} amplichain. Wszelkie prawa zastrzeżone.
+            &copy; {currentYear} Amplichain. Wszelkie prawa zastrzeżone.
           </p>
           <div className="flex space-x-6 mt-4 sm:mt-0">
             <Link to="/terms" className="text-sm text-rhythm-500 hover:text-primary transition-colors">
