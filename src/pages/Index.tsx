@@ -249,7 +249,7 @@ export default function Index() {
                 Gotowy, aby przenieść swoją obecność w branży muzycznej na wyższy poziom?
               </h2>
               <p className="text-lg text-rhythm-600">
-                Dołącz do tysięcy profesjonalistów z branży muzycznej, którzy już nawiązują kontakty, uczą się i rozwijają z Rhythm.
+                Dołącz do tysięcy profesjonalistów z branży muzycznej, którzy już nawiązują kontakty, uczą się i rozwijają z amplichain.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                 <Button size="lg" className="min-w-[160px]">

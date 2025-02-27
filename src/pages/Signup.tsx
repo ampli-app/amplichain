@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Music, UserPlus, Mail, Lock, User } from 'lucide-react';
+import { UserPlus, Mail, Lock, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -78,9 +78,12 @@ export default function Signup() {
     <div className="min-h-screen flex flex-col bg-rhythm-50 dark:bg-rhythm-950/50">
       <header className="py-6">
         <div className="container px-4 mx-auto">
-          <Link to="/" className="flex items-center space-x-2">
-            <Music className="h-8 w-8 text-primary" />
-            <span className="text-xl font-semibold tracking-tight">Rhythm</span>
+          <Link to="/" className="flex items-center">
+            <img 
+              src="/lovable-uploads/16892876-2744-491f-acab-cbcf263983ed.png"
+              alt="amplichain logo" 
+              className="h-8"
+            />
           </Link>
         </div>
       </header>

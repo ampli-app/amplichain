@@ -74,12 +74,13 @@ export function Navbar() {
           {/* Logo */}
           <div 
             onClick={handleLogoClick}
-            className="text-2xl font-bold flex items-center gap-1.5 cursor-pointer"
+            className="flex items-center gap-1.5 cursor-pointer"
           >
-            <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
-              <span className="text-white text-xl font-bold">S</span>
-            </div>
-            <span>SoundConnect</span>
+            <img 
+              src="/lovable-uploads/16892876-2744-491f-acab-cbcf263983ed.png"
+              alt="amplichain logo"
+              className="h-8"
+            />
           </div>
           
           {/* Desktop Navigation */}

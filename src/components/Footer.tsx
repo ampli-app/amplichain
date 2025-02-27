@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { Music, Instagram, Twitter, Linkedin, Github } from 'lucide-react';
+import { Instagram, Twitter, Linkedin, Github } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 export function Footer() {
@@ -11,11 +11,12 @@ export function Footer() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           <div className="lg:col-span-2">
-            <Link to="/" className="flex items-center space-x-2 mb-4">
-              <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-white text-xl font-bold">S</span>
-              </div>
-              <span className="text-xl font-semibold tracking-tight">SoundConnect</span>
+            <Link to="/" className="flex items-center mb-4">
+              <img 
+                src="/lovable-uploads/16892876-2744-491f-acab-cbcf263983ed.png"
+                alt="amplichain logo" 
+                className="h-8"
+              />
             </Link>
             <p className="text-rhythm-600 mb-4 max-w-sm">
               Platforma dla profesjonalistów branży muzycznej do nawiązywania kontaktów, współpracy i rozwoju kariery.
@@ -119,7 +120,7 @@ export function Footer() {
         
         <div className="flex flex-col sm:flex-row justify-between items-center">
           <p className="text-sm text-rhythm-500">
-            &copy; {currentYear} SoundConnect. Wszelkie prawa zastrzeżone.
+            &copy; {currentYear} amplichain. Wszelkie prawa zastrzeżone.
           </p>
           <div className="flex space-x-6 mt-4 sm:mt-0">
             <Link to="/terms" className="text-sm text-rhythm-500 hover:text-primary transition-colors">
