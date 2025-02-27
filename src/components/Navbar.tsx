@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Music, Menu, X } from 'lucide-react';
+import { Music, Menu, X, MessageSquare, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -54,7 +54,13 @@ export function Navbar() {
               </Link>
             ))}
           </div>
-          <div className="space-x-3">
+          <div className="space-x-3 flex items-center">
+            <Link to="/messages" className="text-rhythm-600 hover:text-primary transition-colors">
+              <MessageSquare className="h-5 w-5" />
+            </Link>
+            <Link to="/profile" className="text-rhythm-600 hover:text-primary transition-colors">
+              <User className="h-5 w-5" />
+            </Link>
             <Link to="/login">
               <Button variant="outline" size="sm">Log in</Button>
             </Link>
@@ -92,6 +98,22 @@ export function Navbar() {
                 {link.name}
               </Link>
             ))}
+            <Link 
+              to="/messages"
+              className="text-rhythm-600 hover:text-primary py-2 transition-colors text-lg font-medium flex items-center gap-2"
+              onClick={() => setIsOpen(false)}
+            >
+              <MessageSquare className="h-5 w-5" />
+              Messages
+            </Link>
+            <Link 
+              to="/profile"
+              className="text-rhythm-600 hover:text-primary py-2 transition-colors text-lg font-medium flex items-center gap-2"
+              onClick={() => setIsOpen(false)}
+            >
+              <User className="h-5 w-5" />
+              Profile
+            </Link>
             <div className="pt-2 grid grid-cols-2 gap-3">
               <Link to="/login" className="w-full" onClick={() => setIsOpen(false)}>
                 <Button variant="outline" className="w-full">Log in</Button>

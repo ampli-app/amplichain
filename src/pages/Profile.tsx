@@ -15,6 +15,7 @@ import { User, MapPin, Calendar, Music, Mic, Settings, Edit2, Share2, MessageSqu
 export default function Profile() {
   // Mock user data - in a real app, this would come from your authentication system
   const [user, setUser] = useState({
+    id: "user123", // Add an ID for the current user
     name: "Alex Thompson",
     username: "alexthompson",
     avatar: "/placeholder.svg",
@@ -46,6 +47,9 @@ export default function Profile() {
       }
     ]
   });
+
+  // Check if profile is the current user's profile
+  const isCurrentUserProfile = true; // In a real app, this would compare profile ID with logged-in user ID
 
   // Mock projects/posts
   const projects = [
@@ -114,14 +118,22 @@ export default function Profile() {
                     </div>
                     
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="gap-1">
-                        <MessageSquare className="h-4 w-4" />
-                        Message
-                      </Button>
-                      <Button size="sm" className="gap-1">
-                        <Edit2 className="h-4 w-4" />
-                        Edit Profile
-                      </Button>
+                      {isCurrentUserProfile ? (
+                        <Button size="sm" className="gap-1">
+                          <Edit2 className="h-4 w-4" />
+                          Edit Profile
+                        </Button>
+                      ) : (
+                        <>
+                          <Button size="sm" variant="outline" className="gap-1" onClick={() => window.location.href = "/messages"}>
+                            <MessageSquare className="h-4 w-4" />
+                            Message
+                          </Button>
+                          <Button size="sm">
+                            Follow
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                   
