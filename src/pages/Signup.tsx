@@ -50,7 +50,7 @@ export default function Signup() {
         description: "Your account has been created!",
       });
       
-      navigate('/feed');
+      navigate('/profile');
     } catch (error) {
       toast({
         title: "Error",
@@ -75,7 +75,7 @@ export default function Signup() {
         description: "You've successfully signed up with Google!",
       });
       
-      navigate('/feed');
+      navigate('/profile');
     } catch (error) {
       toast({
         title: "Error",

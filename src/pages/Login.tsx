@@ -40,7 +40,7 @@ export default function Login() {
         description: "You've successfully logged in!",
       });
       
-      navigate('/feed');
+      navigate('/profile');
     } catch (error) {
       toast({
         title: "Error",
@@ -65,7 +65,7 @@ export default function Login() {
         description: "You've successfully logged in with Google!",
       });
       
-      navigate('/feed');
+      navigate('/profile');
     } catch (error) {
       toast({
         title: "Error",
