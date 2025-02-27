@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Music, LogIn, Mail, Lock, AlertCircle, ArrowRight, User } from 'lucide-react';
+import { Music, LogIn, Mail, Lock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,22 +32,24 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { error } = await login(email, password);
       
-      // Call login function from auth context
-      login();
-      
-      toast({
-        title: "Success",
-        description: "You've successfully logged in!",
-      });
-      
-      navigate('/profile');
+      if (error) {
+        console.error('Login error:', error);
+        // Error toast is already shown by the AuthContext
+      } else {
+        toast({
+          title: "Success",
+          description: "You've successfully logged in!",
+        });
+        
+        navigate('/discovery');
+      }
     } catch (error) {
+      console.error('Unexpected error during login:', error);
       toast({
         title: "Error",
-        description: "Invalid email or password",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -56,30 +58,11 @@ export default function Login() {
   };
 
   const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Call login function from auth context
-      login();
-      
-      toast({
-        title: "Success",
-        description: "You've successfully logged in with Google!",
-      });
-      
-      navigate('/profile');
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to login with Google",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    // We'll implement Google login in a future update
+    toast({
+      title: "Not implemented",
+      description: "Google login will be available soon.",
+    });
   };
 
   return (

@@ -1,13 +1,13 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Music, UserPlus, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Music, UserPlus, Mail, Lock, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Signup() {
   const [name, setName] = useState('');
@@ -15,6 +15,7 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { signup } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,21 +41,23 @@ export default function Signup() {
     
     setIsLoading(true);
     
-    // This is where you would integrate with your authentication system
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { error } = await signup(email, password, name);
       
-      toast({
-        title: "Success",
-        description: "Your account has been created!",
-      });
-      
-      navigate('/profile');
+      if (error) {
+        console.error('Signup error:', error);
+        // Error toast is already shown by the AuthContext
+      } else {
+        // The success toast is shown by the AuthContext
+        // Redirect to discovery if we have a session (auto-confirm enabled)
+        // Otherwise, show a message to check email
+        navigate('/discovery');
+      }
     } catch (error) {
+      console.error('Unexpected error during signup:', error);
       toast({
         title: "Error",
-        description: "Failed to create account",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -63,28 +66,11 @@ export default function Signup() {
   };
 
   const handleGoogleSignup = async () => {
-    setIsLoading(true);
-    
-    // This is where you would integrate with Google Authentication
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Success",
-        description: "You've successfully signed up with Google!",
-      });
-      
-      navigate('/profile');
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to sign up with Google",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    // We'll implement Google signup in a future update
+    toast({
+      title: "Not implemented",
+      description: "Google signup will be available soon.",
+    });
   };
 
   return (
