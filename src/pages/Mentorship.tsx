@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, Users, Star, UserPlus, Calendar, ArrowRight } from 'lucide-react';
+import { Search, Filter, Users, Star, UserPlus, Calendar, ArrowRight, DollarSign } from 'lucide-react';
 
 const mentorshipCommunities = [
   {
