@@ -1,8 +1,10 @@
 
-import { ShoppingCart, Star, Tag } from 'lucide-react';
+import { useState } from 'react';
+import { ShoppingCart, Star, Tag, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface MarketplaceItemProps {
   id: number;
@@ -14,6 +16,8 @@ interface MarketplaceItemProps {
   reviewCount: number;
   sale?: boolean;
   salePercentage?: number;
+  forTesting?: boolean;
+  testingPrice?: number;
   delay?: number;
 }
 
@@ -27,12 +31,16 @@ export function MarketplaceItem({
   reviewCount,
   sale = false,
   salePercentage,
+  forTesting = false,
+  testingPrice,
   delay = 0
 }: MarketplaceItemProps) {
+  const [purchaseType, setPurchaseType] = useState<'buy' | 'test'>(forTesting ? 'test' : 'buy');
+  
   const formattedPrice = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD'
-  }).format(price);
+  }).format(purchaseType === 'buy' ? price : (testingPrice || 0));
   
   const originalPrice = sale && salePercentage 
     ? price / (1 - salePercentage / 100) 
@@ -59,6 +67,13 @@ export function MarketplaceItem({
           </Badge>
         )}
         
+        {forTesting && (
+          <Badge className="absolute top-3 right-3 z-10 bg-primary/10 text-primary border-primary/20">
+            <Calendar className="mr-1 h-3 w-3" />
+            Available for Testing
+          </Badge>
+        )}
+        
         <img
           src={image}
           alt={title}
@@ -82,18 +97,56 @@ export function MarketplaceItem({
         
         <h3 className="font-medium mt-2 mb-1 line-clamp-1">{title}</h3>
         
-        <div className="flex items-center gap-2 mb-3">
-          <span className="font-semibold text-lg">{formattedPrice}</span>
-          {sale && formattedOriginalPrice && (
-            <span className="text-rhythm-500 line-through text-sm">
-              {formattedOriginalPrice}
-            </span>
-          )}
-        </div>
+        {forTesting ? (
+          <Tabs 
+            defaultValue={purchaseType} 
+            onValueChange={(value) => setPurchaseType(value as 'buy' | 'test')}
+            className="mb-3"
+          >
+            <TabsList className="grid w-full grid-cols-2 mb-2">
+              <TabsTrigger value="buy">Buy</TabsTrigger>
+              <TabsTrigger value="test">Test for 1 Week</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="buy" className="mt-0">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-lg">{new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD'
+                }).format(price)}</span>
+                
+                {sale && formattedOriginalPrice && (
+                  <span className="text-rhythm-500 line-through text-sm">
+                    {formattedOriginalPrice}
+                  </span>
+                )}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="test" className="mt-0">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-lg">{new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD'
+                }).format(testingPrice || 0)}</span>
+                <span className="text-rhythm-500 text-sm">for 1 week</span>
+              </div>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <div className="flex items-center gap-2 mb-3">
+            <span className="font-semibold text-lg">{formattedPrice}</span>
+            {sale && formattedOriginalPrice && (
+              <span className="text-rhythm-500 line-through text-sm">
+                {formattedOriginalPrice}
+              </span>
+            )}
+          </div>
+        )}
         
         <Button className="w-full gap-2">
           <ShoppingCart className="h-4 w-4" /> 
-          Add to Cart
+          {purchaseType === 'buy' ? 'Add to Cart' : 'Rent for Testing'}
         </Button>
       </div>
     </motion.div>

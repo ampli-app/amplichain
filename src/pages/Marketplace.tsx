@@ -1,11 +1,12 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { MarketplaceItem } from '@/components/MarketplaceItem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, SlidersHorizontal } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Search, Filter, SlidersHorizontal, Calendar } from 'lucide-react';
 
 const marketplaceItems = [
   {
@@ -15,7 +16,9 @@ const marketplaceItems = [
     image: "https://images.unsplash.com/photo-1520116468816-95b69f847357?q=80&w=2000&auto=format&fit=crop",
     category: "Microphones",
     rating: 5.0,
-    reviewCount: 124
+    reviewCount: 124,
+    forTesting: true,
+    testingPrice: 149.99
   },
   {
     id: 2,
@@ -26,7 +29,9 @@ const marketplaceItems = [
     rating: 4.8,
     reviewCount: 86,
     sale: true,
-    salePercentage: 15
+    salePercentage: 15,
+    forTesting: true,
+    testingPrice: 59.99
   },
   {
     id: 3,
@@ -44,7 +49,9 @@ const marketplaceItems = [
     image: "https://images.unsplash.com/photo-1609587312208-cea54be969e7?q=80&w=2000&auto=format&fit=crop",
     category: "Monitors",
     rating: 4.7,
-    reviewCount: 93
+    reviewCount: 93,
+    forTesting: true,
+    testingPrice: 49.99
   },
   {
     id: 5,
@@ -64,7 +71,9 @@ const marketplaceItems = [
     image: "https://images.unsplash.com/photo-1552056776-9b5657118ca4?q=80&w=2000&auto=format&fit=crop",
     category: "Keyboards",
     rating: 4.8,
-    reviewCount: 67
+    reviewCount: 67,
+    forTesting: true,
+    testingPrice: 89.99
   },
   {
     id: 7,
@@ -82,7 +91,9 @@ const marketplaceItems = [
     image: "https://images.unsplash.com/photo-1598629715558-266900d30e65?q=80&w=2000&auto=format&fit=crop",
     category: "Drum Machines",
     rating: 4.9,
-    reviewCount: 58
+    reviewCount: 58,
+    forTesting: true,
+    testingPrice: 69.99
   }
 ];
 
@@ -103,6 +114,12 @@ export default function Marketplace() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const [showTestingOnly, setShowTestingOnly] = useState(false);
+
+  const filteredItems = showTestingOnly 
+    ? marketplaceItems.filter(item => item.forTesting) 
+    : marketplaceItems;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -182,6 +199,34 @@ export default function Marketplace() {
                 </div>
               </div>
               
+              <div className="glass-card rounded-xl p-5 border">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Try Before You Buy
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <label className="flex items-center w-full cursor-pointer hover:text-primary transition-colors">
+                      <input 
+                        type="checkbox" 
+                        className="mr-2 accent-primary"
+                        checked={showTestingOnly}
+                        onChange={(e) => setShowTestingOnly(e.target.checked)}
+                      />
+                      Available for Testing
+                    </label>
+                  </div>
+                  <div className="text-sm text-rhythm-600">
+                    <p>Try equipment for one week before deciding to purchase.</p>
+                    <div className="flex items-center mt-2">
+                      <Badge variant="outline" className="bg-primary/10 text-primary text-xs">
+                        One-Week Rental
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
               <Button className="w-full">Apply Filters</Button>
             </div>
             
@@ -207,7 +252,7 @@ export default function Marketplace() {
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {marketplaceItems.map((item, index) => (
+                {filteredItems.map((item, index) => (
                   <MarketplaceItem
                     key={item.id}
                     id={item.id}
@@ -219,6 +264,8 @@ export default function Marketplace() {
                     reviewCount={item.reviewCount}
                     sale={item.sale}
                     salePercentage={item.salePercentage}
+                    forTesting={item.forTesting}
+                    testingPrice={item.testingPrice}
                     delay={index * 0.05}
                   />
                 ))}
