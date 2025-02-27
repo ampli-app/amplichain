@@ -55,8 +55,12 @@ export function Navbar() {
             ))}
           </div>
           <div className="space-x-3">
-            <Button variant="outline" size="sm">Log in</Button>
-            <Button size="sm">Sign up</Button>
+            <Link to="/login">
+              <Button variant="outline" size="sm">Log in</Button>
+            </Link>
+            <Link to="/signup">
+              <Button size="sm">Sign up</Button>
+            </Link>
           </div>
         </div>
 
@@ -89,8 +93,12 @@ export function Navbar() {
               </Link>
             ))}
             <div className="pt-2 grid grid-cols-2 gap-3">
-              <Button variant="outline" className="w-full">Log in</Button>
-              <Button className="w-full">Sign up</Button>
+              <Link to="/login" className="w-full" onClick={() => setIsOpen(false)}>
+                <Button variant="outline" className="w-full">Log in</Button>
+              </Link>
+              <Link to="/signup" className="w-full" onClick={() => setIsOpen(false)}>
+                <Button className="w-full">Sign up</Button>
+              </Link>
             </div>
           </div>
         </div>
