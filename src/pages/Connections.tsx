@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useSocial, UserConnectionStatus } from '@/contexts/SocialContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Search, 
   Users, 
@@ -18,11 +20,14 @@ import {
   Bell, 
   MessageSquare,
   Check,
-  X
+  X,
+  LogIn,
+  UserCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Connections() {
+  const { isLoggedIn } = useAuth();
   const { 
     users, 
     currentUser, 
@@ -40,6 +45,44 @@ export default function Connections() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // If user is not logged in, show a prompt to log in
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        
+        <main className="flex-1 pt-24 pb-16 flex items-center">
+          <div className="container px-4 mx-auto">
+            <div className="max-w-md mx-auto text-center">
+              <div className="p-8 border rounded-xl bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm shadow-sm">
+                <div className="mb-6 p-3 w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                  <UserCircle className="w-8 h-8 text-primary" />
+                </div>
+                <h1 className="text-2xl font-bold mb-2">Connect with Industry Professionals</h1>
+                <p className="text-rhythm-600 mb-6">
+                  Sign in to view your network, follow industry professionals, and connect with peers.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button asChild>
+                    <Link to="/login" className="flex items-center gap-2">
+                      <LogIn className="h-4 w-4" />
+                      Sign In
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link to="/signup">Create Account</Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        
+        <Footer />
+      </div>
+    );
+  }
 
   const getConnectionAction = (status: UserConnectionStatus | undefined, userId: string) => {
     switch (status) {
