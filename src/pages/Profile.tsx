@@ -10,114 +10,365 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { motion } from 'framer-motion';
-import { User, MapPin, Calendar, Music, Mic, Settings, Edit2, Share2, MessageSquare, BookOpen, Award } from 'lucide-react';
+import { 
+  User, MapPin, Calendar, Music, Mic, Settings, Edit2, Share2, 
+  MessageSquare, BookOpen, Award, Plus, Trash, PenLine 
+} from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { EditProfileModal } from '@/components/profile/EditProfileModal';
+import { AddEducationModal } from '@/components/profile/AddEducationModal';
+import { AddExperienceModal } from '@/components/profile/AddExperienceModal';
+import { AddProjectModal } from '@/components/profile/AddProjectModal';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
+// Types for profile data
+interface Education {
+  id: string;
+  institution: string;
+  degree: string;
+  year: string;
+}
+
+interface Experience {
+  id: string;
+  position: string;
+  company: string;
+  period: string;
+}
+
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  date: string;
+  tags: string[];
+}
+
+interface ProfileData {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string;
+  bio: string;
+  location: string;
+  joinedDate: string;
+  website: string;
+  followers: number;
+  following: number;
+  role: string;
+  specialties: string[];
+}
 
 export default function Profile() {
   const { user } = useAuth();
   
   // State for user profile data
-  const [profileData, setProfileData] = useState({
+  const [profileData, setProfileData] = useState<ProfileData>({
     id: "",
     name: "",
     username: "",
     avatar: "/placeholder.svg",
-    bio: "Music producer and mixing engineer with 10+ years of experience. Worked with indie artists and major labels.",
-    location: "Los Angeles, CA",
-    joinedDate: "March 2022",
-    website: "alexthompson.com",
-    followers: 854,
-    following: 235,
-    role: "Music Producer",
-    specialties: ["Electronic", "Hip-Hop", "Pop", "R&B"],
-    education: [
-      {
-        institution: "Berklee College of Music",
-        degree: "Bachelor of Music in Music Production",
-        year: "2015"
-      }
-    ],
-    experience: [
-      {
-        position: "Lead Producer",
-        company: "Echo Studios",
-        period: "2018 - Present"
-      },
-      {
-        position: "Assistant Engineer",
-        company: "Soundwave Productions",
-        period: "2015 - 2018"
-      }
-    ]
+    bio: "",
+    location: "",
+    joinedDate: "",
+    website: "",
+    followers: 0,
+    following: 0,
+    role: "",
+    specialties: []
   });
+  
+  // State for education, experience, and projects
+  const [education, setEducation] = useState<Education[]>([]);
+  const [experience, setExperience] = useState<Experience[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  
+  // Modal states
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [addEducationModalOpen, setAddEducationModalOpen] = useState(false);
+  const [addExperienceModalOpen, setAddExperienceModalOpen] = useState(false);
+  const [addProjectModalOpen, setAddProjectModalOpen] = useState(false);
+  
+  // Loading states
+  const [isLoading, setIsLoading] = useState(true);
 
   // Check if profile is the current user's profile
   const isCurrentUserProfile = true; // In a real app, this would compare profile ID with logged-in user ID
+  
+  // Format date to readable format
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric',
+      month: 'long'
+    });
+  };
 
-  // Mock projects/posts
-  const projects = [
-    {
-      id: 1,
-      title: "Summer Vibes EP",
-      description: "Produced and mixed a 5-track EP for indie artist Maya Reeves",
-      image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop",
-      date: "June 2023",
-      tags: ["Electronic", "Pop"]
-    },
-    {
-      id: 2,
-      title: "Urban Beats Collection",
-      description: "Created a sample pack featuring 100+ original sounds and loops",
-      image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2000&auto=format&fit=crop",
-      date: "April 2023",
-      tags: ["Hip-Hop", "R&B"]
-    },
-    {
-      id: 3,
-      title: "Midnight Sessions",
-      description: "Mixed and mastered a live studio album for The Night Owls",
-      image: "https://images.unsplash.com/photo-1588479839125-731d7ae923f6?q=80&w=2000&auto=format&fit=crop",
-      date: "January 2023",
-      tags: ["Jazz", "Live Recording"]
+  // Fetch profile data from Supabase
+  const fetchProfileData = async () => {
+    if (user) {
+      setIsLoading(true);
+      try {
+        // Get profile data from Supabase
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (profileError) {
+          console.error('Error fetching profile data:', profileError);
+          return;
+        }
+        
+        if (profileData) {
+          // Format the joined date
+          const joinedDate = profileData.joined_date ? formatDate(profileData.joined_date) : 'Recently joined';
+          
+          // Update the profile data
+          setProfileData({
+            id: profileData.id,
+            name: profileData.full_name || user.email?.split('@')[0] || 'User',
+            username: profileData.username || user.email?.split('@')[0] || 'user',
+            avatar: profileData.avatar_url || "/placeholder.svg",
+            bio: profileData.bio || "Tell us about yourself...",
+            location: profileData.location || "Add your location",
+            joinedDate,
+            website: profileData.website || "Add your website",
+            followers: profileData.followers || 0,
+            following: profileData.following || 0,
+            role: profileData.role || "Add your profession",
+            specialties: profileData.specialties || []
+          });
+        }
+        
+        // Fetch education
+        const { data: educationData, error: educationError } = await supabase
+          .from('education')
+          .select('*')
+          .eq('profile_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (educationError) {
+          console.error('Error fetching education data:', educationError);
+        } else {
+          setEducation(educationData || []);
+        }
+        
+        // Fetch experience
+        const { data: experienceData, error: experienceError } = await supabase
+          .from('experience')
+          .select('*')
+          .eq('profile_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (experienceError) {
+          console.error('Error fetching experience data:', experienceError);
+        } else {
+          setExperience(experienceData || []);
+        }
+        
+        // Fetch projects
+        const { data: projectsData, error: projectsError } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('profile_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (projectsError) {
+          console.error('Error fetching projects data:', projectsError);
+        } else {
+          setProjects(projectsData || []);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  ];
+  };
 
-  // Fetch profile data from Supabase when component mounts
+  // Delete education
+  const handleDeleteEducation = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('education')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setEducation(current => current.filter(item => item.id !== id));
+      toast({
+        title: "Education deleted",
+        description: "Education entry has been removed successfully."
+      });
+    } catch (error: any) {
+      console.error('Error deleting education:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete education entry.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Delete experience
+  const handleDeleteExperience = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('experience')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setExperience(current => current.filter(item => item.id !== id));
+      toast({
+        title: "Experience deleted",
+        description: "Experience entry has been removed successfully."
+      });
+    } catch (error: any) {
+      console.error('Error deleting experience:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete experience entry.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Delete project
+  const handleDeleteProject = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setProjects(current => current.filter(item => item.id !== id));
+      toast({
+        title: "Project deleted",
+        description: "Project has been removed successfully."
+      });
+    } catch (error: any) {
+      console.error('Error deleting project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete project.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Update specialties
+  const handleAddSpecialty = async (specialty: string) => {
+    if (!specialty.trim() || profileData.specialties.includes(specialty.trim())) {
+      return;
+    }
+    
+    try {
+      const newSpecialties = [...profileData.specialties, specialty.trim()];
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ specialties: newSpecialties })
+        .eq('id', user?.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setProfileData(prev => ({
+        ...prev,
+        specialties: newSpecialties
+      }));
+      
+      toast({
+        title: "Specialty added",
+        description: `"${specialty}" has been added to your specialties.`
+      });
+    } catch (error: any) {
+      console.error('Error adding specialty:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add specialty.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Remove specialty
+  const handleRemoveSpecialty = async (specialty: string) => {
+    try {
+      const newSpecialties = profileData.specialties.filter(s => s !== specialty);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ specialties: newSpecialties })
+        .eq('id', user?.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setProfileData(prev => ({
+        ...prev,
+        specialties: newSpecialties
+      }));
+      
+      toast({
+        title: "Specialty removed",
+        description: `"${specialty}" has been removed from your specialties.`
+      });
+    } catch (error: any) {
+      console.error('Error removing specialty:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove specialty.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Fetch data when component mounts or user changes
   useEffect(() => {
     window.scrollTo(0, 0);
-    
-    const fetchProfileData = async () => {
-      if (user) {
-        try {
-          // Get profile data from Supabase
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-          
-          if (error) {
-            console.error('Error fetching profile data:', error);
-          } else if (data) {
-            // Update the profile data with user information from Supabase
-            setProfileData(prevData => ({
-              ...prevData,
-              id: data.id,
-              name: data.full_name || user.email?.split('@')[0] || 'User',
-              username: data.username || user.email?.split('@')[0] || 'user',
-              avatar: data.avatar_url || prevData.avatar,
-              website: data.website || prevData.website
-            }));
-          }
-        } catch (error) {
-          console.error('Error fetching profile:', error);
-        }
-      }
-    };
-
     fetchProfileData();
   }, [user]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 pt-24 pb-16 flex items-center justify-center">
+          <div className="text-center">
+            <div className="mb-4">
+              <svg className="animate-spin h-10 w-10 text-primary mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+            <p className="text-rhythm-600 dark:text-rhythm-400">Loading profile information...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -155,7 +406,7 @@ export default function Profile() {
                     
                     <div className="flex gap-2">
                       {isCurrentUserProfile ? (
-                        <Button size="sm" className="gap-1">
+                        <Button size="sm" className="gap-1" onClick={() => setEditModalOpen(true)}>
                           <Edit2 className="h-4 w-4" />
                           Edit Profile
                         </Button>
@@ -221,44 +472,93 @@ export default function Profile() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.4 }}
                 >
-                  <h2 className="text-xl font-semibold mb-4">Recent Projects</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {projects.map((project, index) => (
-                      <motion.div 
-                        key={project.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: index * 0.1 }}
-                        className="glass-card rounded-xl border overflow-hidden"
-                      >
-                        <div className="relative h-48 overflow-hidden">
-                          <img 
-                            src={project.image} 
-                            alt={project.title} 
-                            className="w-full h-full object-cover transition-transform hover:scale-105"
-                          />
-                          <div className="absolute top-2 right-2">
-                            <span className="bg-black/60 text-white text-xs px-2 py-1 rounded">
-                              {project.date}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="p-4">
-                          <h3 className="font-semibold mb-2">{project.title}</h3>
-                          <p className="text-sm text-rhythm-600 dark:text-rhythm-400 mb-3">
-                            {project.description}
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {project.tags.map(tag => (
-                              <Badge key={tag} variant="secondary" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">Projects</h2>
+                    {isCurrentUserProfile && (
+                      <Button variant="outline" size="sm" className="gap-1" onClick={() => setAddProjectModalOpen(true)}>
+                        <Plus className="h-4 w-4" />
+                        Add Project
+                      </Button>
+                    )}
                   </div>
+                  
+                  {projects.length === 0 ? (
+                    <div className="text-center py-10 border rounded-lg bg-muted/30">
+                      <Music className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No projects yet</h3>
+                      <p className="text-muted-foreground mb-4">Showcase your work by adding your first project</p>
+                      {isCurrentUserProfile && (
+                        <Button onClick={() => setAddProjectModalOpen(true)}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Project
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {projects.map((project, index) => (
+                        <motion.div 
+                          key={project.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, delay: index * 0.1 }}
+                          className="glass-card rounded-xl border overflow-hidden group relative"
+                        >
+                          <div className="relative h-48 overflow-hidden">
+                            <img 
+                              src={project.image_url} 
+                              alt={project.title} 
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                            <div className="absolute top-2 right-2">
+                              <span className="bg-black/60 text-white text-xs px-2 py-1 rounded">
+                                {project.date}
+                              </span>
+                            </div>
+                            
+                            {isCurrentUserProfile && (
+                              <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="icon" className="h-8 w-8">
+                                      <Trash className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete "{project.title}"? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteProject(project.id)}>
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-4">
+                            <h3 className="font-semibold mb-2">{project.title}</h3>
+                            <p className="text-sm text-rhythm-600 dark:text-rhythm-400 mb-3">
+                              {project.description}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {project.tags && project.tags.map(tag => (
+                                <Badge key={tag} variant="secondary" className="text-xs">
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </motion.div>
               </TabsContent>
               
@@ -269,52 +569,171 @@ export default function Profile() {
                   transition={{ duration: 0.4 }}
                 >
                   <div className="glass-card rounded-xl border p-6 mb-6">
-                    <h2 className="text-xl font-semibold mb-4">Specialties</h2>
-                    <div className="flex flex-wrap gap-2">
-                      {profileData.specialties.map((specialty) => (
-                        <Badge key={specialty} className="px-3 py-1">
-                          {specialty}
-                        </Badge>
-                      ))}
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-xl font-semibold">Specialties</h2>
+                      
+                      {isCurrentUserProfile && (
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Add specialty..."
+                            className="pl-3 pr-12 py-1 text-sm border rounded-md"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleAddSpecialty((e.target as HTMLInputElement).value);
+                                (e.target as HTMLInputElement).value = '';
+                              }
+                            }}
+                          />
+                          <button
+                            className="absolute right-0 top-0 p-1 h-full px-2 border-l rounded-r-md hover:bg-muted"
+                            onClick={(e) => {
+                              const input = e.currentTarget.previousSibling as HTMLInputElement;
+                              handleAddSpecialty(input.value);
+                              input.value = '';
+                            }}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
                     </div>
+                    
+                    {profileData.specialties.length === 0 ? (
+                      <p className="text-rhythm-500 italic">No specialties added yet.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {profileData.specialties.map((specialty) => (
+                          <Badge key={specialty} className="px-3 py-1 flex items-center gap-1">
+                            {specialty}
+                            {isCurrentUserProfile && (
+                              <button 
+                                onClick={() => handleRemoveSpecialty(specialty)} 
+                                className="ml-1 rounded-full hover:bg-primary/20"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   
                   <div className="glass-card rounded-xl border p-6 mb-6">
-                    <h2 className="text-xl font-semibold mb-4">Experience</h2>
-                    <div className="space-y-4">
-                      {profileData.experience.map((exp, index) => (
-                        <div key={index} className="flex gap-4">
-                          <div className="mt-1 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Music className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold">{exp.position}</h3>
-                            <p className="text-sm text-rhythm-600 dark:text-rhythm-400">
-                              {exp.company} · {exp.period}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-xl font-semibold">Experience</h2>
+                      {isCurrentUserProfile && (
+                        <Button variant="outline" size="sm" className="gap-1" onClick={() => setAddExperienceModalOpen(true)}>
+                          <Plus className="h-4 w-4" />
+                          Add Experience
+                        </Button>
+                      )}
                     </div>
+                    
+                    {experience.length === 0 ? (
+                      <p className="text-rhythm-500 italic">No work experience added yet.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {experience.map((exp) => (
+                          <div key={exp.id} className="flex gap-4 relative group">
+                            <div className="mt-1 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <Music className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold">{exp.position}</h3>
+                              <p className="text-sm text-rhythm-600 dark:text-rhythm-400">
+                                {exp.company} · {exp.period}
+                              </p>
+                            </div>
+                            
+                            {isCurrentUserProfile && (
+                              <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-100/20">
+                                      <Trash className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Experience</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete this experience entry? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteExperience(exp.id)}>
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   
                   <div className="glass-card rounded-xl border p-6">
-                    <h2 className="text-xl font-semibold mb-4">Education</h2>
-                    <div className="space-y-4">
-                      {profileData.education.map((edu, index) => (
-                        <div key={index} className="flex gap-4">
-                          <div className="mt-1 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <BookOpen className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold">{edu.degree}</h3>
-                            <p className="text-sm text-rhythm-600 dark:text-rhythm-400">
-                              {edu.institution} · {edu.year}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-xl font-semibold">Education</h2>
+                      {isCurrentUserProfile && (
+                        <Button variant="outline" size="sm" className="gap-1" onClick={() => setAddEducationModalOpen(true)}>
+                          <Plus className="h-4 w-4" />
+                          Add Education
+                        </Button>
+                      )}
                     </div>
+                    
+                    {education.length === 0 ? (
+                      <p className="text-rhythm-500 italic">No education added yet.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {education.map((edu) => (
+                          <div key={edu.id} className="flex gap-4 relative group">
+                            <div className="mt-1 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <BookOpen className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold">{edu.degree}</h3>
+                              <p className="text-sm text-rhythm-600 dark:text-rhythm-400">
+                                {edu.institution} · {edu.year}
+                              </p>
+                            </div>
+                            
+                            {isCurrentUserProfile && (
+                              <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-100/20">
+                                      <Trash className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Education</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete this education entry? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteEducation(edu.id)}>
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               </TabsContent>
@@ -408,6 +827,32 @@ export default function Profile() {
       </main>
       
       <Footer />
+      
+      {/* Modals */}
+      <EditProfileModal 
+        isOpen={editModalOpen} 
+        onClose={() => setEditModalOpen(false)} 
+        onProfileUpdated={fetchProfileData} 
+        currentProfile={profileData} 
+      />
+      
+      <AddEducationModal 
+        isOpen={addEducationModalOpen} 
+        onClose={() => setAddEducationModalOpen(false)} 
+        onEducationAdded={fetchProfileData} 
+      />
+      
+      <AddExperienceModal 
+        isOpen={addExperienceModalOpen} 
+        onClose={() => setAddExperienceModalOpen(false)} 
+        onExperienceAdded={fetchProfileData} 
+      />
+      
+      <AddProjectModal 
+        isOpen={addProjectModalOpen} 
+        onClose={() => setAddProjectModalOpen(false)} 
+        onProjectAdded={fetchProfileData} 
+      />
     </div>
   );
 }
