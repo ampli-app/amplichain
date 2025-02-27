@@ -37,7 +37,7 @@ const posts = [
       role: 'A&R Executive',
     },
     timeAgo: '1d ago',
-    content: 'Looking for emerging indie artists with strong songwriting skills for a new project. Send me your demos if you think you've got what it takes!',
+    content: 'Looking for emerging indie artists with strong songwriting skills for a new project. Send me your demos if you think you\'ve got what it takes!',
     likes: 73,
     comments: 24,
   },

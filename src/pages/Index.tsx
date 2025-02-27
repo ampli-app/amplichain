@@ -43,7 +43,7 @@ const mentorshipCommunities = [
   {
     title: "Sound Engineering Lab",
     description: "Master the technical side of music with expert sound engineers.",
-    image: "https://images.unsplash.com/photo-15884798396903-635d6810d699?q=80&w=2000&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1588479839125-731d7ae923f6?q=80&w=2000&auto=format&fit=crop",
     members: 950,
     rating: 4.8,
     features: [
