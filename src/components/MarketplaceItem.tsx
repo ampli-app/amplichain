@@ -99,12 +99,8 @@ export function MarketplaceItem({
   
   const handlePurchaseClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isLoggedIn) {
-      setShowAuthDialog(true);
-    } else {
-      // Navigate to product page when user is logged in
-      navigate(`/marketplace/${id}`);
-    }
+    // Zmiana: Zawsze przechodzimy do strony produktu, niezależnie od statusu logowania
+    navigate(`/marketplace/${id}`);
   };
   
   const handleShareClick = (e: React.MouseEvent) => {
