@@ -71,7 +71,7 @@ export function MarketplaceItem({
     : undefined;
   
   // Obsługa różnych formatów zdjęć
-  let imageToShow: string | string[] = '/placeholder.svg';
+  let imageToShow = '/placeholder.svg';
   
   if (typeof image === 'string') {
     try {
