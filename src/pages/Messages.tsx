@@ -42,7 +42,8 @@ export default function Messages() {
     activeTab,
     setActiveTab,
     error,
-    retryFetchConversations
+    retryFetchConversations,
+    creatingConversation
   } = useMessages();
 
   // Sprawdź czy widok jest mobilny
@@ -207,7 +208,10 @@ export default function Messages() {
                       </div>
 
                       <div className="p-4 border-t dark:border-gray-700">
-                        <NewMessageButton onSelectUser={handleNewMessage} />
+                        <NewMessageButton 
+                          onSelectUser={handleNewMessage} 
+                          isLoading={creatingConversation} 
+                        />
                       </div>
                     </motion.div>
                   )}
@@ -273,6 +277,7 @@ export default function Messages() {
                   <EmptyState 
                     title="Twoje wiadomości"
                     description="Wybierz konwersację lub rozpocznij nową, aby pisać wiadomości"
+                    isLoading={creatingConversation}
                   />
                 )}
                 

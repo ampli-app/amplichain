@@ -36,9 +36,16 @@ export function EmptyState({
         <p className={`${error ? 'text-destructive/80' : 'text-gray-500'} mb-6`}>{description}</p>
         
         <div className="flex flex-col sm:flex-row gap-2 justify-center">
-          {action && (
+          {action && !isLoading && (
             <Button onClick={action.onClick} className="gap-2">
               {action.label}
+            </Button>
+          )}
+          
+          {isLoading && (
+            <Button disabled className="gap-2">
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              Ładowanie...
             </Button>
           )}
           

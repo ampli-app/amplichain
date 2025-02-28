@@ -11,14 +11,15 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, Search, User } from 'lucide-react';
+import { Plus, Search, User, Loader2 } from 'lucide-react';
 import { useSocial } from '@/contexts/SocialContext';
 
 interface NewMessageButtonProps {
   onSelectUser: (userId: string) => void;
+  isLoading?: boolean;
 }
 
-export function NewMessageButton({ onSelectUser }: NewMessageButtonProps) {
+export function NewMessageButton({ onSelectUser, isLoading = false }: NewMessageButtonProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const { users } = useSocial();
@@ -39,8 +40,12 @@ export function NewMessageButton({ onSelectUser }: NewMessageButtonProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="w-full" size="sm">
-          <Plus className="h-4 w-4 mr-2" />
+        <Button className="w-full" size="sm" disabled={isLoading}>
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4 mr-2" />
+          )}
           Nowa wiadomość
         </Button>
       </DialogTrigger>
@@ -71,6 +76,7 @@ export function NewMessageButton({ onSelectUser }: NewMessageButtonProps) {
                     key={user.id}
                     className="w-full flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
                     onClick={() => handleSelectUser(user.id)}
+                    disabled={isLoading}
                   >
                     <Avatar className="h-9 w-9 mr-3">
                       <AvatarImage src={user.avatar || undefined} alt={user.name} />
