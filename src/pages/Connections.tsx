@@ -22,7 +22,8 @@ import {
   Check,
   X,
   LogIn,
-  UserCircle
+  UserCircle,
+  Heart
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '@/components/ui/use-toast';
@@ -43,7 +44,7 @@ export default function Connections() {
   } = useSocial();
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'following' | 'connections' | 'pending'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'following' | 'followers' | 'connections' | 'pending'>('all');
   const [searchResults, setSearchResults] = useState<typeof users>([]);
   const [isSearching, setIsSearching] = useState(false);
   
@@ -235,39 +236,56 @@ export default function Connections() {
     }
   };
 
-  const getStatusBadge = (status: UserConnectionStatus | undefined) => {
-    switch (status) {
-      case 'following':
-        return (
-          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-            <UserPlus className="mr-1 h-3 w-3" />
-            Obserwujesz
-          </Badge>
-        );
-      case 'connected':
-        return (
-          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
-            <UserCheck className="mr-1 h-3 w-3" />
-            Połączeni
-          </Badge>
-        );
-      case 'pending_sent':
-        return (
-          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
-            <Bell className="mr-1 h-3 w-3" />
-            Zaproszenie wysłane
-          </Badge>
-        );
-      case 'pending_received':
-        return (
-          <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
-            <Bell className="mr-1 h-3 w-3" />
-            Zaproszenie otrzymane
-          </Badge>
-        );
-      default:
-        return null;
+  const getStatusBadge = (status: UserConnectionStatus | undefined, isFollower?: boolean) => {
+    const badges = [];
+    
+    if (status) {
+      switch (status) {
+        case 'following':
+          badges.push(
+            <Badge key="following" variant="outline" className="bg-primary/10 text-primary border-primary/20">
+              <UserPlus className="mr-1 h-3 w-3" />
+              Obserwujesz
+            </Badge>
+          );
+          break;
+        case 'connected':
+          badges.push(
+            <Badge key="connected" variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+              <UserCheck className="mr-1 h-3 w-3" />
+              Połączeni
+            </Badge>
+          );
+          break;
+        case 'pending_sent':
+          badges.push(
+            <Badge key="pending_sent" variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+              <Bell className="mr-1 h-3 w-3" />
+              Zaproszenie wysłane
+            </Badge>
+          );
+          break;
+        case 'pending_received':
+          badges.push(
+            <Badge key="pending_received" variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+              <Bell className="mr-1 h-3 w-3" />
+              Zaproszenie otrzymane
+            </Badge>
+          );
+          break;
+      }
     }
+    
+    if (isFollower) {
+      badges.push(
+        <Badge key="follower" variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/20">
+          <Heart className="mr-1 h-3 w-3" />
+          Obserwuje Cię
+        </Badge>
+      );
+    }
+    
+    return badges.length > 0 ? <div className="flex flex-wrap gap-1.5">{badges}</div> : null;
   };
 
   // Display users based on search or filtered by tab
@@ -278,7 +296,9 @@ export default function Connections() {
       
       switch (activeTab) {
         case 'following':
-          return user.connectionStatus === 'following';
+          return user.connectionStatus === 'following' || user.connectionStatus === 'connected';
+        case 'followers':
+          return user.isFollower === true;
         case 'connections':
           return user.connectionStatus === 'connected';
         case 'pending':
@@ -332,10 +352,10 @@ export default function Connections() {
             
             <Tabs 
               value={activeTab} 
-              onValueChange={(v) => setActiveTab(v as 'all' | 'following' | 'connections' | 'pending')}
+              onValueChange={(v) => setActiveTab(v as 'all' | 'following' | 'followers' | 'connections' | 'pending')}
               className="mb-8"
             >
-              <TabsList className="grid grid-cols-4 w-full">
+              <TabsList className="grid grid-cols-5 w-full">
                 <TabsTrigger value="all" className="flex items-center gap-1.5">
                   <Users className="h-4 w-4" />
                   Wszyscy
@@ -343,6 +363,10 @@ export default function Connections() {
                 <TabsTrigger value="following" className="flex items-center gap-1.5">
                   <UserPlus className="h-4 w-4" />
                   Obserwowani
+                </TabsTrigger>
+                <TabsTrigger value="followers" className="flex items-center gap-1.5">
+                  <Heart className="h-4 w-4" />
+                  Obserwujący
                 </TabsTrigger>
                 <TabsTrigger value="connections" className="flex items-center gap-1.5">
                   <UserCheck className="h-4 w-4" />
@@ -359,6 +383,10 @@ export default function Connections() {
               </TabsContent>
               
               <TabsContent value="following">
+                {renderUserList(displayUsers)}
+              </TabsContent>
+              
+              <TabsContent value="followers">
                 {renderUserList(displayUsers)}
               </TabsContent>
               
@@ -402,9 +430,11 @@ export default function Connections() {
                   ? "Nie znaleziono żadnych użytkowników"
                   : activeTab === 'following'
                     ? "Nie obserwujesz jeszcze nikogo"
-                    : activeTab === 'connections'
-                      ? "Nie masz jeszcze żadnych połączeń"
-                      : "Nie masz żadnych oczekujących zaproszeń"
+                    : activeTab === 'followers'
+                      ? "Nikt jeszcze Cię nie obserwuje"
+                      : activeTab === 'connections'
+                        ? "Nie masz jeszcze żadnych połączeń"
+                        : "Nie masz żadnych oczekujących zaproszeń"
               }
             </p>
             {searchQuery && (
@@ -438,7 +468,6 @@ export default function Connections() {
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-lg">{user.name}</h3>
-                      {getStatusBadge(user.connectionStatus)}
                     </div>
                     <p className="text-rhythm-500">@{user.username}</p>
                   </div>
@@ -446,6 +475,10 @@ export default function Connections() {
                   <div className="sm:self-start">
                     {getConnectionAction(user.connectionStatus, user.id)}
                   </div>
+                </div>
+                
+                <div className="my-2">
+                  {getStatusBadge(user.connectionStatus, user.isFollower)}
                 </div>
                 
                 <p className="my-2">{user.role}</p>
