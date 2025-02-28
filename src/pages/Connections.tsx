@@ -354,18 +354,25 @@ export default function Connections() {
 
   const displayUsers = searchQuery.trim() ? searchResults : 
     users.filter(user => {
-      if (user.isCurrentUser) return false;
+      // Najpierw wyklucz bieżącego użytkownika ze wszystkich widoków
+      if (currentUser && user.id === currentUser.id) return false;
       
       switch (activeTab) {
         case 'following':
+          // Obserwowani: użytkownicy, których obserwujemy
           return user.connectionStatus === 'following' || user.connectionStatus === 'connected';
         case 'followers':
+          // Obserwujący: użytkownicy, którzy nas obserwują
           return user.isFollower === true;
         case 'connections':
+          // Połączenia: użytkownicy, z którymi jesteśmy połączeni
           return user.connectionStatus === 'connected';
         case 'pending':
+          // Oczekujące: zaproszenia wysłane lub otrzymane
           return user.connectionStatus === 'pending_sent' || user.connectionStatus === 'pending_received';
+        case 'all':
         default:
+          // Wszyscy użytkownicy oprócz bieżącego
           return true;
       }
     });
