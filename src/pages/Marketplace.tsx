@@ -558,9 +558,9 @@ export default function Marketplace() {
             </Button>
           </div>
           
-          {/* Categories as Buttons with More Categories Button */}
+          {/* Categories as Buttons with More Categories Button - wyśrodkowane na dużym ekranie */}
           <div className="mb-8">
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex items-center justify-center mb-4">
               <div className="flex overflow-x-auto p-1 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1 rounded-md">
                 {/* Wyświetlanie tylko kilku kategorii */}
                 {categories.slice(0, 7).map((category) => (
