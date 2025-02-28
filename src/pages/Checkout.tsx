@@ -1,70 +1,65 @@
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { Separator } from "@/components/ui/separator";
 import { 
   ArrowLeft, 
   CreditCard, 
   Banknote, 
+  Package, 
   Clock, 
-  Calendar, 
-  Truck, 
-  ShieldCheck, 
   Info, 
-  CheckCircle2, 
-  Loader2 
+  Calendar, 
+  Loader2,
+  ShieldCheck, 
+  LockIcon
 } from 'lucide-react';
-
-// Definiujemy typy dla dostępnych metod płatności
-type PaymentMethod = 'card' | 'transfer' | 'blik';
-// Definiujemy typy dla trybu zakupu
-type PurchaseMode = 'buy' | 'test';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Checkout() {
-  const { id, mode = 'buy' } = useParams<{ id: string; mode?: PurchaseMode }>();
+  const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const isTestMode = location.pathname.includes('/test');
   const navigate = useNavigate();
   const { isLoggedIn, user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Dane produktu
   const [product, setProduct] = useState<any>(null);
-  const [seller, setSeller] = useState<any>(null);
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [deliveryMethod, setDeliveryMethod] = useState('courier');
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
   
-  // Dane formularza
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
-  const [shippingAddress, setShippingAddress] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [additionalInfo, setAdditionalInfo] = useState('');
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  
-  // Stany walidacji
-  const [errors, setErrors] = useState({
-    shippingAddress: '',
-    contactPhone: '',
-    terms: ''
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    postalCode: '',
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
   });
   
-  // Pobierz dane produktu i sprzedawcy
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+  
   useEffect(() => {
     if (!isLoggedIn) {
-      toast({
-        title: "Wymagane logowanie",
-        description: "Musisz być zalogowany, aby dokonać zakupu.",
-        variant: "destructive",
-      });
       navigate('/login');
       return;
     }
@@ -75,14 +70,23 @@ export default function Checkout() {
     }
     
     fetchProductData();
-  }, [id, isLoggedIn, user]);
+    if (user?.email) {
+      setFormData(prev => ({
+        ...prev,
+        email: user.email || ''
+      }));
+    }
+  }, [id, isLoggedIn, user?.email]);
   
   const fetchProductData = async () => {
     setIsLoading(true);
+    
     try {
+      console.log("Fetching product with ID:", id);
+      
       const { data, error } = await supabase
         .from('products')
-        .select('*, profiles(*)')
+        .select('*')
         .eq('id', id)
         .single();
       
@@ -93,52 +97,28 @@ export default function Checkout() {
           description: "Nie udało się pobrać danych produktu.",
           variant: "destructive",
         });
-        navigate('/marketplace');
+        // Dajemy użytkownikowi szansę na powrót
+        // navigate('/marketplace');
+        setIsLoading(false);
         return;
       }
       
-      if (!data) {
+      if (data) {
+        console.log("Received product data:", data);
+        setProduct(data);
+      } else {
+        console.error("No product data returned");
         toast({
-          title: "Produkt nie znaleziony",
+          title: "Błąd",
           description: "Nie znaleziono produktu o podanym ID.",
           variant: "destructive",
         });
-        navigate('/marketplace');
-        return;
       }
-      
-      // Sprawdź, czy ten produkt nie należy do aktualnego użytkownika
-      if (user?.id === data.user_id) {
-        toast({
-          title: "To Twój produkt",
-          description: "Nie możesz kupić własnego produktu.",
-          variant: "destructive",
-        });
-        navigate(`/marketplace/${id}`);
-        return;
-      }
-      
-      // Sprawdź, czy produkt jest dostępny do testów, jeśli wybrano tryb testowy
-      if (mode === 'test' && !data.for_testing) {
-        toast({
-          title: "Produkt niedostępny do testów",
-          description: "Ten produkt nie jest dostępny w opcji testowej.",
-          variant: "destructive",
-        });
-        navigate(`/marketplace/${id}`);
-        return;
-      }
-      
-      setProduct(data);
-      
-      // Pobierz dane sprzedawcy
-      fetchSellerData(data.user_id);
-      
     } catch (err) {
       console.error('Unexpected error:', err);
       toast({
         title: "Błąd",
-        description: "Wystąpił nieoczekiwany błąd.",
+        description: "Wystąpił nieoczekiwany błąd podczas pobierania danych produktu.",
         variant: "destructive",
       });
     } finally {
@@ -146,109 +126,78 @@ export default function Checkout() {
     }
   };
   
-  const fetchSellerData = async (sellerId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', sellerId)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching seller data:', error);
-        return;
-      }
-      
-      setSeller(data);
-    } catch (err) {
-      console.error('Error fetching seller:', err);
-    }
-  };
-  
-  const validateForm = () => {
-    let isValid = true;
-    const newErrors = {
-      shippingAddress: '',
-      contactPhone: '',
-      terms: ''
-    };
-    
-    if (!shippingAddress.trim()) {
-      newErrors.shippingAddress = 'Podaj adres dostawy';
-      isValid = false;
-    }
-    
-    if (!contactPhone.trim()) {
-      newErrors.contactPhone = 'Podaj numer telefonu kontaktowego';
-      isValid = false;
-    } else if (!/^\d{9}$/.test(contactPhone.replace(/\s/g, ''))) {
-      newErrors.contactPhone = 'Podaj poprawny 9-cyfrowy numer telefonu';
-      isValid = false;
-    }
-    
-    if (!acceptTerms) {
-      newErrors.terms = 'Musisz zaakceptować regulamin';
-      isValid = false;
-    }
-    
-    setErrors(newErrors);
-    return isValid;
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Walidacja podstawowych pól
     if (!validateForm()) {
       return;
     }
     
-    setIsProcessing(true);
-    
-    try {
-      // Tutaj byłaby integracja z systemem płatności
-      // Na potrzeby demonstracji, symulujemy opóźnienie
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Po udanej płatności zapisujemy zamówienie w bazie danych
-      const orderData = {
-        product_id: id,
-        buyer_id: user?.id,
-        seller_id: product.user_id,
-        purchase_type: mode,
-        price: mode === 'buy' ? product.price : product.testing_price,
-        payment_method: paymentMethod,
-        shipping_address: shippingAddress,
-        contact_phone: contactPhone,
-        additional_info: additionalInfo,
-        status: 'paid', // Na potrzeby demonstracji, status od razu jest "opłacony"
-        created_at: new Date().toISOString()
-      };
-      
-      console.log('Dane zamówienia:', orderData);
-      
-      // Symulujemy udaną operację
+    // Symulacja przetwarzania płatności
+    simulatePaymentProcessing();
+  };
+  
+  const validateForm = () => {
+    // Walidacja zgody na regulamin
+    if (!agreeToTerms) {
       toast({
-        title: "Zamówienie zrealizowane!",
-        description: mode === 'buy' 
-          ? "Dziękujemy za zakup! Sprzedawca zostanie powiadomiony o Twoim zamówieniu."
-          : "Dziękujemy za zamówienie! Produkt będzie dostępny do testowania przez 7 dni.",
-      });
-      
-      // Przekieruj do strony potwierdzenia
-      setTimeout(() => {
-        navigate(`/checkout/success/${id}?mode=${mode}`);
-      }, 500);
-      
-    } catch (err) {
-      console.error('Error processing payment:', err);
-      toast({
-        title: "Błąd płatności",
-        description: "Wystąpił problem z przetwarzaniem płatności. Spróbuj ponownie później.",
+        title: "Błąd",
+        description: "Musisz zaakceptować regulamin, aby kontynuować.",
         variant: "destructive",
       });
-    } finally {
-      setIsProcessing(false);
+      return false;
     }
+    
+    // Walidacja podstawowych pól formularza
+    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'postalCode'];
+    
+    for (const field of requiredFields) {
+      if (!formData[field as keyof typeof formData]) {
+        toast({
+          title: "Błąd",
+          description: `Pole ${field} jest wymagane.`,
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+    
+    // Walidacja płatności kartą
+    if (paymentMethod === 'card') {
+      if (!formData.cardNumber || !formData.expiryDate || !formData.cvv) {
+        toast({
+          title: "Błąd",
+          description: "Wypełnij wszystkie dane karty płatniczej.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+    
+    return true;
+  };
+  
+  const simulatePaymentProcessing = () => {
+    setIsProcessing(true);
+    
+    // Symulacja opóźnienia przetwarzania płatności
+    setTimeout(() => {
+      setIsProcessing(false);
+      
+      // Zakładamy sukces płatności i przekierowujemy do potwierdzenia
+      toast({
+        title: "Płatność zaakceptowana",
+        description: "Twoje zamówienie zostało złożone pomyślnie!",
+      });
+      
+      // Przekierowanie na stronę potwierdzenia
+      const url = isTestMode 
+        ? `/checkout/success/${id}?mode=test` 
+        : `/checkout/success/${id}?mode=buy`;
+      
+      navigate(url);
+    }, 1500);
   };
   
   if (isLoading) {
@@ -260,7 +209,7 @@ export default function Checkout() {
             <div className="mb-4">
               <Loader2 className="animate-spin h-10 w-10 text-primary mx-auto" />
             </div>
-            <p className="text-rhythm-600 dark:text-rhythm-400">Ładowanie danych zamówienia...</p>
+            <p className="text-rhythm-600 dark:text-rhythm-400">Ładowanie danych produktu...</p>
           </div>
         </main>
         <Footer />
@@ -274,8 +223,10 @@ export default function Checkout() {
         <Navbar />
         <main className="flex-1 pt-24 pb-16 flex items-center justify-center">
           <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">Produkt nie został znaleziony</h2>
-            <p className="text-rhythm-600 dark:text-rhythm-400 mb-6">Nie udało się załadować informacji o zamawianym produkcie.</p>
+            <h2 className="text-2xl font-bold mb-4">Błąd pobrania produktu</h2>
+            <p className="text-rhythm-600 dark:text-rhythm-400 mb-6">
+              Nie udało się pobrać informacji o produkcie. Spróbuj ponownie później.
+            </p>
             <Button asChild>
               <Link to="/marketplace">
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -289,22 +240,47 @@ export default function Checkout() {
     );
   }
   
-  // Format ceny
-  const formatPrice = (price: number) => {
+  // Obliczenia cenowe
+  const price = isTestMode && product.testing_price 
+    ? parseFloat(product.testing_price) 
+    : parseFloat(product.price);
+  
+  const deliveryCost = 15.99;
+  const totalCost = price + deliveryCost;
+  
+  // Formatowanie walutowe
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pl-PL', {
       style: 'currency',
       currency: 'PLN'
-    }).format(price);
+    }).format(amount);
   };
   
-  // Określ cenę w zależności od trybu zakupu
-  const purchasePrice = mode === 'buy' ? product.price : product.testing_price;
-  const deliveryFee = 15; // Przykładowa opłata za dostawę
-  const totalPrice = purchasePrice + deliveryFee;
-  
-  // Określ tytuł i opis w zależności od trybu zakupu
-  const pageTitle = mode === 'buy' ? 'Finalizacja zakupu' : 'Rezerwacja testu';
-  const actionButtonText = mode === 'buy' ? 'Zapłać i zamów' : 'Zapłać i zarezerwuj test';
+  // Przygotowanie URL obrazka produktu
+  const getProductImageUrl = () => {
+    if (!product.image_url) return '/placeholder.svg';
+    
+    try {
+      if (typeof product.image_url === 'string') {
+        // Spróbuj sparsować jako JSON
+        try {
+          const images = JSON.parse(product.image_url);
+          if (Array.isArray(images) && images.length > 0) {
+            return images[0];
+          }
+        } catch (e) {
+          // To nie jest JSON, więc traktujemy jako zwykły string
+          return product.image_url;
+        }
+      } else if (Array.isArray(product.image_url) && product.image_url.length > 0) {
+        return product.image_url[0];
+      }
+    } catch (e) {
+      console.error("Error parsing image URL:", e);
+    }
+    
+    return '/placeholder.svg';
+  };
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -322,255 +298,337 @@ export default function Checkout() {
             </Link>
           </div>
           
-          <div className="max-w-5xl mx-auto">
-            <h1 className="text-3xl font-bold mb-2">{pageTitle}</h1>
-            <p className="text-zinc-600 dark:text-zinc-400 mb-8">
-              {mode === 'buy' 
-                ? 'Wprowadź dane do dostawy i wybierz metodę płatności' 
-                : 'Rezerwujesz produkt do testów na okres 7 dni'}
-            </p>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-6">
-                <form onSubmit={handleSubmit}>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Dane dostawy</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="shipping-address">Adres dostawy</Label>
-                        <Textarea 
-                          id="shipping-address" 
-                          placeholder="Podaj pełny adres dostawy (ulica, numer, kod pocztowy, miasto)" 
-                          rows={3}
-                          value={shippingAddress}
-                          onChange={(e) => setShippingAddress(e.target.value)}
-                          className={errors.shippingAddress ? "border-red-500" : ""}
-                        />
-                        {errors.shippingAddress && (
-                          <p className="text-sm text-red-500">{errors.shippingAddress}</p>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="contact-phone">Telefon kontaktowy</Label>
-                        <Input 
-                          id="contact-phone" 
-                          type="tel" 
-                          placeholder="Numer telefonu (np. 555 555 555)" 
-                          value={contactPhone}
-                          onChange={(e) => setContactPhone(e.target.value)}
-                          className={errors.contactPhone ? "border-red-500" : ""}
-                        />
-                        {errors.contactPhone && (
-                          <p className="text-sm text-red-500">{errors.contactPhone}</p>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="additional-info">Dodatkowe informacje (opcjonalnie)</Label>
-                        <Textarea 
-                          id="additional-info" 
-                          placeholder="Wpisz dodatkowe informacje dla sprzedawcy lub dotyczące dostawy" 
-                          rows={2}
-                          value={additionalInfo}
-                          onChange={(e) => setAdditionalInfo(e.target.value)}
-                        />
-                      </div>
-                    </CardContent>
-                    <CardHeader>
-                      <CardTitle>Metoda płatności</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <RadioGroup 
-                        value={paymentMethod} 
-                        onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}
-                        className="space-y-3"
-                      >
-                        <div className="flex items-center space-x-3 border rounded-md p-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer">
-                          <RadioGroupItem value="card" id="payment-card" />
-                          <Label htmlFor="payment-card" className="flex items-center cursor-pointer">
-                            <CreditCard className="h-5 w-5 mr-2 text-primary" />
-                            Płatność kartą
-                          </Label>
-                          <p className="ml-auto text-sm text-zinc-500">Visa, Mastercard, inne</p>
-                        </div>
-                        
-                        <div className="flex items-center space-x-3 border rounded-md p-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer">
-                          <RadioGroupItem value="transfer" id="payment-transfer" />
-                          <Label htmlFor="payment-transfer" className="flex items-center cursor-pointer">
-                            <Banknote className="h-5 w-5 mr-2 text-blue-500" />
-                            Przelew bankowy
-                          </Label>
-                          <p className="ml-auto text-sm text-zinc-500">Wszystkie banki</p>
-                        </div>
-                        
-                        <div className="flex items-center space-x-3 border rounded-md p-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer">
-                          <RadioGroupItem value="blik" id="payment-blik" />
-                          <Label htmlFor="payment-blik" className="flex items-center cursor-pointer">
-                            <span className="font-bold mr-2 text-zinc-800 dark:text-zinc-200">BLIK</span>
-                            Płatność BLIK
-                          </Label>
-                          <p className="ml-auto text-sm text-zinc-500">Szybka płatność kodem</p>
-                        </div>
-                      </RadioGroup>
-                      
-                      <div className="mt-6 flex items-start space-x-2">
-                        <Checkbox 
-                          id="terms" 
-                          checked={acceptTerms}
-                          onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
-                          className={errors.terms ? "border-red-500" : ""}
-                        />
-                        <div className="space-y-1">
-                          <Label 
-                            htmlFor="terms" 
-                            className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            Akceptuję regulamin serwisu oraz warunki zakupu
-                          </Label>
-                          {errors.terms && (
-                            <p className="text-sm text-red-500">{errors.terms}</p>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter>
-                      <Button 
-                        type="submit" 
-                        className="w-full gap-2 py-6 text-lg"
-                        disabled={isProcessing}
-                      >
-                        {isProcessing && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-                        {actionButtonText}
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                </form>
-              </div>
-              
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Podsumowanie zamówienia</CardTitle>
+          <h1 className="text-3xl font-bold mb-8 text-center">
+            {isTestMode ? 'Rezerwacja testowa' : 'Finalizacja zakupu'}
+          </h1>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Formularz zamówienia - 2 kolumny na dużych ekranach */}
+            <div className="lg:col-span-2">
+              <form onSubmit={handleSubmit}>
+                <Card className="mb-8">
+                  <CardHeader className="border-b bg-muted/40">
+                    <h2 className="text-xl font-semibold">Dane do wysyłki</h2>
                   </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="flex items-center gap-4">
-                      <div className="h-16 w-16 rounded-md overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-                        {product.image_url && (
-                          <img 
-                            src={typeof product.image_url === 'string' 
-                              ? (product.image_url.startsWith('[') 
-                                ? JSON.parse(product.image_url)[0] 
-                                : product.image_url)
-                              : (Array.isArray(product.image_url) 
-                                ? product.image_url[0] 
-                                : '/placeholder.svg')
-                            } 
-                            alt={product.title}
-                            className="h-full w-full object-cover"
-                          />
-                        )}
+                  
+                  <CardContent className="p-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName">Imię</Label>
+                        <Input 
+                          id="firstName"
+                          name="firstName"
+                          placeholder="Jan"
+                          value={formData.firstName}
+                          onChange={handleInputChange}
+                          required
+                        />
                       </div>
-                      <div>
-                        <h3 className="font-medium">{product.title}</h3>
-                        <p className="text-sm text-zinc-500">{product.category}</p>
-                      </div>
-                    </div>
-                    
-                    {mode === 'test' && (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md border border-blue-200 dark:border-blue-800">
-                        <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                          <Calendar className="h-5 w-5 flex-shrink-0" />
-                          <p className="text-sm font-medium">
-                            Rezerwujesz ten produkt na 7-dniowy test
-                          </p>
-                        </div>
-                        <p className="mt-1 text-xs text-blue-600/70 dark:text-blue-400/70">
-                          Po zakończeniu testu produkt należy zwrócić w nienaruszonym stanie.
-                        </p>
-                      </div>
-                    )}
-                    
-                    <div className="border-t pt-4 space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-zinc-600 dark:text-zinc-400">
-                          {mode === 'buy' ? 'Cena produktu' : 'Cena testu (7 dni)'}
-                        </span>
-                        <span className="font-medium">{formatPrice(purchasePrice)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-zinc-600 dark:text-zinc-400">Dostawa</span>
-                        <span className="font-medium">{formatPrice(deliveryFee)}</span>
-                      </div>
-                      <Separator className="my-2" />
-                      <div className="flex justify-between font-bold">
-                        <span>Razem do zapłaty</span>
-                        <span className="text-primary">{formatPrice(totalPrice)}</span>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName">Nazwisko</Label>
+                        <Input 
+                          id="lastName"
+                          name="lastName"
+                          placeholder="Kowalski"
+                          value={formData.lastName}
+                          onChange={handleInputChange}
+                          required
+                        />
                       </div>
                     </div>
                     
-                    {seller && (
-                      <div className="border-t pt-4">
-                        <h4 className="font-medium mb-2">Sprzedawca</h4>
-                        <div className="flex items-center gap-2">
-                          <div className="h-8 w-8 rounded-full overflow-hidden bg-zinc-200 dark:bg-zinc-700">
-                            {seller.avatar_url ? (
-                              <img 
-                                src={seller.avatar_url} 
-                                alt={seller.full_name || "Sprzedawca"} 
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="h-full w-full flex items-center justify-center text-zinc-500 bg-zinc-200 dark:bg-zinc-700">
-                                {(seller.full_name || "S").charAt(0)}
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">{seller.full_name || "Sprzedawca"}</p>
-                            <p className="text-xs text-zinc-500">Dołączył: {new Date(seller.joined_date).toLocaleDateString('pl-PL')}</p>
-                          </div>
-                        </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input 
+                          id="email"
+                          name="email"
+                          type="email"
+                          placeholder="jan.kowalski@example.com"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          required
+                        />
                       </div>
-                    )}
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Telefon</Label>
+                        <Input 
+                          id="phone"
+                          name="phone"
+                          placeholder="123 456 789"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                    </div>
                     
-                    <div className="border-t pt-4 space-y-3">
-                      <div className="flex items-start gap-2">
-                        <ShieldCheck className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium">Bezpieczne zakupy</p>
-                          <p className="text-xs text-zinc-500">Twoja płatność jest zabezpieczona</p>
-                        </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="address">Adres</Label>
+                      <Input 
+                        id="address"
+                        name="address"
+                        placeholder="ul. Przykładowa 123/45"
+                        value={formData.address}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="city">Miasto</Label>
+                        <Input 
+                          id="city"
+                          name="city"
+                          placeholder="Warszawa"
+                          value={formData.city}
+                          onChange={handleInputChange}
+                          required
+                        />
                       </div>
-                      <div className="flex items-start gap-2">
-                        <Truck className="h-5 w-5 text-zinc-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium">Szybka dostawa</p>
-                          <p className="text-xs text-zinc-500">Wysyłka w ciągu 24 godzin od płatności</p>
-                        </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="postalCode">Kod pocztowy</Label>
+                        <Input 
+                          id="postalCode"
+                          name="postalCode"
+                          placeholder="00-000"
+                          value={formData.postalCode}
+                          onChange={handleInputChange}
+                          required
+                        />
                       </div>
-                      {mode === 'test' && (
-                        <div className="flex items-start gap-2">
-                          <Clock className="h-5 w-5 text-zinc-600 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-sm font-medium">Okres testowy: 7 dni</p>
-                            <p className="text-xs text-zinc-500">Testuj produkt przez tydzień</p>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
                 
-                <div className="flex items-center justify-center">
-                  <Info className="h-4 w-4 text-zinc-400 mr-2" />
-                  <p className="text-xs text-zinc-500">
-                    Potrzebujesz pomocy? <a href="#" className="text-primary underline">Skontaktuj się z nami</a>
-                  </p>
+                <Card className="mb-8">
+                  <CardHeader className="border-b bg-muted/40">
+                    <h2 className="text-xl font-semibold">Sposób dostawy</h2>
+                  </CardHeader>
+                  
+                  <CardContent className="p-6">
+                    <RadioGroup value={deliveryMethod} onValueChange={setDeliveryMethod}>
+                      <div className="flex items-center space-x-2 border rounded-lg p-4 mb-3 cursor-pointer hover:bg-muted/20 transition-colors">
+                        <RadioGroupItem value="courier" id="courier" />
+                        <Label htmlFor="courier" className="flex-1 cursor-pointer">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <Package className="h-5 w-5 text-primary" />
+                              <span>Kurier</span>
+                            </div>
+                            <span className="font-medium">{formatCurrency(deliveryCost)}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">Dostawa w ciągu 1-2 dni roboczych</p>
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-muted/20 transition-colors">
+                        <RadioGroupItem value="inpost" id="inpost" />
+                        <Label htmlFor="inpost" className="flex-1 cursor-pointer">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <Package className="h-5 w-5 text-primary" />
+                              <span>Paczkomat InPost</span>
+                            </div>
+                            <span className="font-medium">{formatCurrency(deliveryCost)}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">Dostawa do paczkomatu w ciągu 1-2 dni roboczych</p>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </CardContent>
+                </Card>
+                
+                <Card className="mb-8">
+                  <CardHeader className="border-b bg-muted/40">
+                    <h2 className="text-xl font-semibold">Metoda płatności</h2>
+                  </CardHeader>
+                  
+                  <CardContent className="p-6">
+                    <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="mb-4">
+                      <div className="flex items-center space-x-2 border rounded-lg p-4 mb-3 cursor-pointer hover:bg-muted/20 transition-colors">
+                        <RadioGroupItem value="card" id="card" />
+                        <Label htmlFor="card" className="flex-1 cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="h-5 w-5 text-primary" />
+                            <span>Karta płatnicza</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">Visa, Mastercard, American Express</p>
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-muted/20 transition-colors">
+                        <RadioGroupItem value="transfer" id="transfer" />
+                        <Label htmlFor="transfer" className="flex-1 cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <Banknote className="h-5 w-5 text-primary" />
+                            <span>Przelew bankowy</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">Szybki przelew online</p>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                    
+                    {paymentMethod === 'card' && (
+                      <div className="space-y-4 mt-6 border-t pt-6">
+                        <div className="grid grid-cols-1 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="cardNumber">Numer karty</Label>
+                            <Input 
+                              id="cardNumber"
+                              name="cardNumber"
+                              placeholder="1234 5678 9012 3456"
+                              value={formData.cardNumber}
+                              onChange={handleInputChange}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="expiryDate">Data ważności</Label>
+                            <Input 
+                              id="expiryDate"
+                              name="expiryDate"
+                              placeholder="MM/RR"
+                              value={formData.expiryDate}
+                              onChange={handleInputChange}
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="cvv">Kod CVV</Label>
+                            <Input 
+                              id="cvv"
+                              name="cvv"
+                              placeholder="123"
+                              value={formData.cvv}
+                              onChange={handleInputChange}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <LockIcon className="h-4 w-4" />
+                          <span>Bezpieczna płatność szyfrowana 256-bit SSL</span>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                
+                <div className="flex items-start space-x-2 mb-8">
+                  <Checkbox 
+                    id="terms" 
+                    checked={agreeToTerms}
+                    onCheckedChange={(checked) => setAgreeToTerms(checked as boolean)}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <label
+                      htmlFor="terms"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Akceptuję regulamin i politykę prywatności
+                    </label>
+                    <p className="text-sm text-muted-foreground">
+                      Składając zamówienie, akceptujesz {" "}
+                      <a href="#" className="text-primary underline hover:text-primary/90">regulamin</a> {" "}
+                      i zgadzasz się na przetwarzanie danych zgodnie z naszą {" "}
+                      <a href="#" className="text-primary underline hover:text-primary/90">polityką prywatności</a>.
+                    </p>
+                  </div>
                 </div>
-              </div>
+                
+                <Button type="submit" className="w-full py-6" size="lg" disabled={isProcessing}>
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Przetwarzanie płatności...
+                    </>
+                  ) : (
+                    <>
+                      {isTestMode ? 'Rezerwuj test' : 'Zapłać i zamów'} ({formatCurrency(totalCost)})
+                    </>
+                  )}
+                </Button>
+              </form>
+            </div>
+            
+            {/* Podsumowanie zamówienia - 1 kolumna */}
+            <div className="lg:col-span-1">
+              <Card className="sticky top-24">
+                <CardHeader className="border-b bg-muted/40">
+                  <h2 className="text-xl font-semibold">Podsumowanie</h2>
+                </CardHeader>
+                
+                <CardContent className="p-6">
+                  <div className="space-y-6">
+                    <div className="flex gap-4 border-b pb-4">
+                      <div className="h-20 w-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                        <img 
+                          src={getProductImageUrl()} 
+                          alt={product.title}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <h3 className="font-medium">{product.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {isTestMode ? 'Test przez 7 dni' : 'Zakup produktu'}
+                        </p>
+                        <p className="font-medium mt-1">
+                          {formatCurrency(price)}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {isTestMode && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 flex gap-2">
+                        <Info className="h-5 w-5 flex-shrink-0 mt-0.5 text-blue-500" />
+                        <div className="text-sm">
+                          <p className="font-medium">Informacja o teście</p>
+                          <p className="mt-1">Produkt zostanie dostarczony na 7 dni. Po tym czasie musisz go odesłać lub opłacić pełną wartość produktu.</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between py-1">
+                        <span className="text-muted-foreground">Cena produktu</span>
+                        <span>{formatCurrency(price)}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-muted-foreground">Dostawa</span>
+                        <span>{formatCurrency(deliveryCost)}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between py-2 font-bold">
+                        <span>Razem</span>
+                        <span>{formatCurrency(totalCost)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <ShieldCheck className="h-4 w-4 text-green-500" />
+                        <span>Bezpieczne płatności</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Package className="h-4 w-4 text-green-500" />
+                        <span>Szybka dostawa</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4 text-green-500" />
+                        <span>30-dniowe prawo zwrotu</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>

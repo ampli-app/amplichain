@@ -86,6 +86,8 @@ export default function ProductDetail() {
       setIsLoading(true);
       
       try {
+        console.log("Fetching product with ID:", id);
+        
         const { data, error } = await supabase
           .from('products')
           .select('*')
@@ -104,6 +106,7 @@ export default function ProductDetail() {
         }
         
         if (data) {
+          console.log("Received product data:", data);
           setProduct(data);
           
           if (user && data.user_id === user.id) {
@@ -113,9 +116,21 @@ export default function ProductDetail() {
           if (data.user_id) {
             fetchSellerInfo(data.user_id);
           }
+        } else {
+          console.error('No product data found');
+          toast({
+            title: "Błąd",
+            description: "Nie znaleziono produktu o podanym ID.",
+            variant: "destructive",
+          });
         }
       } catch (err) {
         console.error('Unexpected error:', err);
+        toast({
+          title: "Błąd",
+          description: "Wystąpił nieoczekiwany błąd podczas pobierania danych produktu.",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -126,6 +141,8 @@ export default function ProductDetail() {
 
   const fetchSellerInfo = async (userId: string) => {
     try {
+      console.log("Fetching seller info for user ID:", userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('full_name, avatar_url')
@@ -138,6 +155,7 @@ export default function ProductDetail() {
       }
       
       if (data) {
+        console.log("Received seller data:", data);
         setSellerInfo({
           name: data.full_name || "Sprzedawca",
           image: data.avatar_url || "/placeholder.svg",
@@ -156,12 +174,31 @@ export default function ProductDetail() {
     }
     
     if (product) {
-      // Zamiast dodawać do koszyka, przechodzimy bezpośrednio do checkout
-      if (purchaseType === 'test') {
-        navigate(`/checkout/${id}/test`);
-      } else {
-        navigate(`/checkout/${id}`);
+      try {
+        // Dodajemy console.log dla debugowania
+        console.log("Navigating to checkout:", purchaseType, id);
+        
+        // Zamiast dodawać do koszyka, przechodzimy bezpośrednio do checkout
+        if (purchaseType === 'test') {
+          navigate(`/checkout/${id}/test`);
+        } else {
+          navigate(`/checkout/${id}`);
+        }
+      } catch (err) {
+        console.error("Navigation error:", err);
+        toast({
+          title: "Błąd",
+          description: "Wystąpił problem podczas przechodzenia do finalizacji zakupu.",
+          variant: "destructive",
+        });
       }
+    } else {
+      console.error("Can't navigate to checkout - product is null");
+      toast({
+        title: "Błąd",
+        description: "Brak danych produktu - nie można kontynuować.",
+        variant: "destructive",
+      });
     }
   };
 
