@@ -1,85 +1,139 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription,
-  DialogFooter
-} from '@/components/ui/dialog';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { toast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
-import { Upload, Image, X } from 'lucide-react';
-
-const categories = [
-  "Mikrofony", 
-  "Interfejsy Audio", 
-  "Kontrolery", 
-  "Monitory", 
-  "Słuchawki", 
-  "Instrumenty", 
-  "Oprogramowanie", 
-  "Akcesoria"
-];
+import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
+import { Loader2 } from 'lucide-react';
 
 interface AddProductDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  productId?: string;
 }
 
-export function AddProductDialog({ open, onOpenChange }: AddProductDialogProps) {
-  const navigate = useNavigate();
+// Product categories
+const categories = [
+  "Mikrofony",
+  "Interfejsy Audio",
+  "Monitory",
+  "Słuchawki",
+  "Kontrolery",
+  "Instrumenty",
+  "Oprogramowanie",
+  "Akcesoria"
+];
+
+export function AddProductDialog({ open, onOpenChange, productId }: AddProductDialogProps) {
   const { isLoggedIn, user } = useAuth();
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   
+  // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState<string>('');
   const [imageUrl, setImageUrl] = useState('');
+  const [isForTesting, setIsForTesting] = useState(false);
+  const [testingPrice, setTestingPrice] = useState('');
+  const [isOnSale, setIsOnSale] = useState(false);
+  const [salePercentage, setSalePercentage] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
-  const [forSale, setForSale] = useState(false);
-  const [salePercentage, setSalePercentage] = useState('');
-  
-  const [forTesting, setForTesting] = useState(false);
-  const [testingPrice, setTestingPrice] = useState('');
-  
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Redirect if not logged in
   useEffect(() => {
     if (open && !isLoggedIn) {
       onOpenChange(false);
-      toast({
-        title: "Wymagane logowanie",
-        description: "Musisz być zalogowany, aby dodać nowy produkt.",
-        variant: "destructive",
-      });
+      setShowAuthDialog(true);
     }
-  }, [open, isLoggedIn, onOpenChange]);
+    
+    // Reset form state when the dialog opens
+    if (open && !productId) {
+      resetForm();
+      setIsEditMode(false);
+    }
+    
+    // If productId is provided, fetch the product data
+    if (open && productId) {
+      setIsEditMode(true);
+      fetchProductData(productId);
+    }
+  }, [open, isLoggedIn, productId]);
+  
+  const fetchProductData = async (id: string) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching product:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się pobrać danych produktu do edycji.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (data) {
+        // Set form state with product data
+        setTitle(data.title);
+        setDescription(data.description || '');
+        setPrice(data.price.toString());
+        setCategory(data.category || '');
+        setImageUrl(data.image_url || '');
+        setIsForTesting(data.for_testing || false);
+        setTestingPrice(data.testing_price ? data.testing_price.toString() : '');
+        setIsOnSale(data.sale || false);
+        setSalePercentage(data.sale_percentage ? data.sale_percentage.toString() : '');
+        
+        // Set image preview
+        if (data.image_url) {
+          setImagePreview(data.image_url);
+        }
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setPrice('');
+    setCategory('');
+    setImageUrl('');
+    setIsForTesting(false);
+    setTestingPrice('');
+    setIsOnSale(false);
+    setSalePercentage('');
+    setImageFile(null);
+    setImagePreview(null);
+  };
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
       
-      // Create a preview URL
+      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -88,17 +142,41 @@ export function AddProductDialog({ open, onOpenChange }: AddProductDialogProps) 
     }
   };
   
-  const clearImagePreview = () => {
-    setImagePreview(null);
-    setImageFile(null);
-    setImageUrl('');
+  const uploadImage = async (): Promise<string> => {
+    if (!imageFile) {
+      // If there's no new image but there is an existing image URL, return it
+      if (imageUrl) return imageUrl;
+      
+      return '';
+    }
+    
+    // Generate a unique file name
+    const fileExt = imageFile.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const filePath = `product-images/${fileName}`;
+    
+    const { data, error } = await supabase.storage
+      .from('products')
+      .upload(filePath, imageFile);
+    
+    if (error) {
+      console.error('Error uploading image:', error);
+      throw new Error('Failed to upload image');
+    }
+    
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from('products')
+      .getPublicUrl(filePath);
+    
+    return urlData.publicUrl;
   };
   
   const validateForm = () => {
     if (!title.trim()) {
       toast({
-        title: "Błąd",
-        description: "Nazwa produktu jest wymagana",
+        title: "Brak nazwy produktu",
+        description: "Podaj nazwę produktu.",
         variant: "destructive",
       });
       return false;
@@ -106,8 +184,8 @@ export function AddProductDialog({ open, onOpenChange }: AddProductDialogProps) 
     
     if (!price.trim() || isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
       toast({
-        title: "Błąd",
-        description: "Wprowadź poprawną cenę",
+        title: "Nieprawidłowa cena",
+        description: "Podaj poprawną cenę produktu.",
         variant: "destructive",
       });
       return false;
@@ -115,26 +193,26 @@ export function AddProductDialog({ open, onOpenChange }: AddProductDialogProps) 
     
     if (!category) {
       toast({
-        title: "Błąd",
-        description: "Wybierz kategorię produktu",
+        title: "Brak kategorii",
+        description: "Wybierz kategorię produktu.",
         variant: "destructive",
       });
       return false;
     }
     
-    if (forSale && (!salePercentage.trim() || isNaN(parseFloat(salePercentage)) || parseFloat(salePercentage) <= 0 || parseFloat(salePercentage) >= 100)) {
+    if (isForTesting && (!testingPrice.trim() || isNaN(parseFloat(testingPrice)) || parseFloat(testingPrice) <= 0)) {
       toast({
-        title: "Błąd",
-        description: "Wprowadź poprawny procent zniżki (1-99)",
+        title: "Nieprawidłowa cena testowa",
+        description: "Podaj poprawną cenę tygodniowego testu.",
         variant: "destructive",
       });
       return false;
     }
     
-    if (forTesting && (!testingPrice.trim() || isNaN(parseFloat(testingPrice)) || parseFloat(testingPrice) <= 0)) {
+    if (isOnSale && (!salePercentage.trim() || isNaN(parseFloat(salePercentage)) || parseFloat(salePercentage) <= 0 || parseFloat(salePercentage) >= 100)) {
       toast({
-        title: "Błąd",
-        description: "Wprowadź poprawną cenę wynajmu testowego",
+        title: "Nieprawidłowy procent zniżki",
+        description: "Podaj procent zniżki między 1 a 99.",
         variant: "destructive",
       });
       return false;
@@ -143,347 +221,270 @@ export function AddProductDialog({ open, onOpenChange }: AddProductDialogProps) 
     return true;
   };
   
-  const uploadImage = async (): Promise<string | null> => {
-    if (!imageFile) return null;
-    
-    try {
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `product-images/${fileName}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('products')
-        .upload(filePath, imageFile);
-      
-      if (uploadError) {
-        console.error('Error uploading image:', uploadError);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się przesłać zdjęcia. Spróbuj ponownie.",
-          variant: "destructive",
-        });
-        return null;
-      }
-      
-      const { data } = supabase.storage
-        .from('products')
-        .getPublicUrl(filePath);
-      
-      return data.publicUrl;
-    } catch (error) {
-      console.error('Unexpected error during image upload:', error);
-      return null;
-    }
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async () => {
     if (!isLoggedIn || !user) {
-      toast({
-        title: "Wymagane logowanie",
-        description: "Musisz być zalogowany, aby dodać nowy produkt.",
-        variant: "destructive",
-      });
+      setShowAuthDialog(true);
       return;
     }
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
     
-    setIsSubmitting(true);
+    setIsLoading(true);
     
     try {
-      let finalImageUrl = imageUrl;
-      
-      // Upload image if a file was selected
+      // Upload image if there's a new one
+      let imageUrlToUse = imageUrl;
       if (imageFile) {
-        const uploadedUrl = await uploadImage();
-        if (uploadedUrl) {
-          finalImageUrl = uploadedUrl;
-        } else if (!imageUrl) {
-          // If upload failed and no URL was provided, show error
-          toast({
-            title: "Błąd",
-            description: "Nie udało się przesłać zdjęcia. Spróbuj ponownie.",
-            variant: "destructive",
-          });
-          setIsSubmitting(false);
-          return;
-        }
+        imageUrlToUse = await uploadImage();
       }
       
-      // Default to a placeholder image if no image is provided
-      if (!finalImageUrl) {
-        finalImageUrl = 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop';
+      const productData = {
+        title,
+        description,
+        price: parseFloat(price),
+        category,
+        image_url: imageUrlToUse,
+        for_testing: isForTesting,
+        testing_price: isForTesting ? parseFloat(testingPrice) : null,
+        sale: isOnSale,
+        sale_percentage: isOnSale ? parseFloat(salePercentage) : null,
+        user_id: user.id
+      };
+      
+      let result;
+      
+      if (isEditMode && productId) {
+        // Update existing product
+        result = await supabase
+          .from('products')
+          .update(productData)
+          .eq('id', productId);
+      } else {
+        // Insert new product
+        result = await supabase
+          .from('products')
+          .insert(productData);
       }
       
-      // Insert product into database
-      const { error } = await supabase
-        .from('products')
-        .insert({
-          title,
-          description,
-          price: parseFloat(price),
-          category,
-          image_url: finalImageUrl,
-          user_id: user.id,
-          sale: forSale,
-          sale_percentage: forSale ? parseFloat(salePercentage) : null,
-          for_testing: forTesting,
-          testing_price: forTesting ? parseFloat(testingPrice) : null,
-          rating: 0,
-          review_count: 0
-        });
+      const { error } = result;
       
       if (error) {
-        console.error('Error creating product:', error);
+        console.error('Error saving product:', error);
         toast({
           title: "Błąd",
-          description: "Nie udało się dodać produktu. Spróbuj ponownie.",
+          description: `Nie udało się ${isEditMode ? 'zaktualizować' : 'dodać'} produktu.`,
           variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Sukces",
-          description: "Produkt został dodany pomyślnie!",
-        });
-        
-        // Reset form and close dialog
-        setTitle('');
-        setDescription('');
-        setPrice('');
-        setCategory('');
-        setImageUrl('');
-        setImageFile(null);
-        setImagePreview(null);
-        setForSale(false);
-        setSalePercentage('');
-        setForTesting(false);
-        setTestingPrice('');
-        
-        onOpenChange(false);
-        
-        // Redirect to marketplace to see the new product
-        navigate('/marketplace');
+        return;
       }
+      
+      toast({
+        title: "Sukces",
+        description: `Produkt został ${isEditMode ? 'zaktualizowany' : 'dodany'}.`,
+      });
+      
+      // Close dialog and reset form
+      onOpenChange(false);
+      resetForm();
+      
+      // Refresh page to show new product
+      setTimeout(() => {
+        window.location.href = '/marketplace';
+      }, 1500);
+      
     } catch (err) {
       console.error('Unexpected error:', err);
       toast({
         title: "Błąd",
-        description: "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",
+        description: "Wystąpił nieoczekiwany błąd.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
   
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Dodaj nowy produkt</DialogTitle>
-          <DialogDescription>
-            Wypełnij formularz, aby dodać nowy produkt do rynku.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-6 py-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="title">Nazwa produktu *</Label>
-                <Input
-                  id="title"
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{isEditMode ? 'Edytuj produkt' : 'Dodaj nowy produkt'}</DialogTitle>
+            <DialogDescription>
+              {isEditMode 
+                ? 'Edytuj informacje o swoim produkcie' 
+                : 'Dodaj własny produkt do Rynku. Wypełnij formularz poniżej, aby rozpocząć sprzedaż.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Ładowanie...</span>
+            </div>
+          ) : (
+            <div className="grid gap-6 py-4">
+              <div className="grid gap-3">
+                <Label htmlFor="title">Nazwa produktu</Label>
+                <Input 
+                  id="title" 
+                  placeholder="np. Mikrofon XYZ Pro"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Np. Neumann U87 Mikrofon Pojemnościowy"
-                  required
                 />
               </div>
               
-              <div>
-                <Label htmlFor="price">Cena (PLN) *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="0.00"
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="category">Kategoria *</Label>
-                <Select value={category} onValueChange={setCategory} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Wybierz kategorię" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="description">Opis produktu</Label>
-                <Textarea
-                  id="description"
+              <div className="grid gap-3">
+                <Label htmlFor="description">Opis</Label>
+                <Textarea 
+                  id="description" 
+                  placeholder="Szczegółowy opis produktu..."
+                  rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Opisz swój produkt..."
-                  className="min-h-[120px]"
                 />
               </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <Label>Zdjęcie produktu</Label>
-                <div className="mt-1 border-2 border-dashed rounded-md p-4 flex flex-col items-center justify-center">
-                  {imagePreview ? (
-                    <div className="relative w-full">
-                      <img 
-                        src={imagePreview} 
-                        alt="Podgląd produktu" 
-                        className="w-full h-48 object-cover rounded-md"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full"
-                        onClick={clearImagePreview}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex flex-col items-center justify-center py-4">
-                        <Image className="h-12 w-12 text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-500">Kliknij, aby przesłać zdjęcie</p>
-                        <p className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP (maks. 5MB)</p>
-                      </div>
-                      <Input
-                        id="image"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                      <label 
-                        htmlFor="image" 
-                        className="w-full mt-2 cursor-pointer text-center py-2 px-4 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                      >
-                        <Upload className="h-4 w-4 inline-block mr-1" />
-                        <span>Prześlij zdjęcie</span>
-                      </label>
-                    </>
-                  )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-3">
+                  <Label htmlFor="price">Cena (PLN)</Label>
+                  <Input 
+                    id="price" 
+                    type="number"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                  />
                 </div>
                 
-                <div className="mt-3">
-                  <Label htmlFor="imageUrl">Lub podaj URL zdjęcia</Label>
-                  <Input
-                    id="imageUrl"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    disabled={!!imagePreview}
-                  />
+                <div className="grid gap-3">
+                  <Label htmlFor="category">Kategoria</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Wybierz kategorię" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               
-              <div className="space-y-4 pt-2">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="forSale">Produkt w promocji</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Zaznacz, jeśli produkt ma mieć obniżoną cenę
-                    </p>
-                  </div>
-                  <Switch
-                    id="forSale"
-                    checked={forSale}
-                    onCheckedChange={setForSale}
+              <div className="grid gap-3">
+                <Label htmlFor="image">Zdjęcie produktu</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                  <Input 
+                    id="image" 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleImageChange}
                   />
+                  
+                  {imagePreview && (
+                    <div className="rounded-md overflow-hidden border bg-muted/50 aspect-square">
+                      <img 
+                        src={imagePreview} 
+                        alt="Product preview" 
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Dodaj zdjęcie produktu. Zalecany format: JPG lub PNG, wymiary min. 800x800px.
+                </p>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="forTesting" 
+                    checked={isForTesting}
+                    onCheckedChange={(checked) => setIsForTesting(checked as boolean)}
+                  />
+                  <Label htmlFor="forTesting">Dostępny do testów przez tydzień</Label>
                 </div>
                 
-                {forSale && (
-                  <div>
-                    <Label htmlFor="salePercentage">Procent zniżki (%)</Label>
-                    <Input
-                      id="salePercentage"
+                {isForTesting && (
+                  <div className="grid gap-3 pl-6">
+                    <Label htmlFor="testingPrice">Cena tygodniowego testu (PLN)</Label>
+                    <Input 
+                      id="testingPrice" 
                       type="number"
-                      min="1"
-                      max="99"
-                      step="1"
-                      value={salePercentage}
-                      onChange={(e) => setSalePercentage(e.target.value)}
-                      placeholder="15"
-                      required
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      value={testingPrice}
+                      onChange={(e) => setTestingPrice(e.target.value)}
                     />
+                    <p className="text-sm text-muted-foreground">
+                      Ustaw cenę za tygodniowy test produktu. Powinno to być 10-20% wartości produktu.
+                    </p>
                   </div>
                 )}
               </div>
               
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="forTesting">Możliwość wynajmu testowego</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Zaznacz, jeśli produkt można wypożyczyć na tydzień
-                    </p>
-                  </div>
-                  <Switch
-                    id="forTesting"
-                    checked={forTesting}
-                    onCheckedChange={setForTesting}
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="saleSwitch"
+                    checked={isOnSale}
+                    onCheckedChange={setIsOnSale}
                   />
+                  <Label htmlFor="saleSwitch">Produkt w promocji</Label>
                 </div>
                 
-                {forTesting && (
-                  <div>
-                    <Label htmlFor="testingPrice">Cena za tydzień (PLN)</Label>
-                    <Input
-                      id="testingPrice"
+                {isOnSale && (
+                  <div className="grid gap-3 pl-6">
+                    <Label htmlFor="salePercentage">Procent zniżki (%)</Label>
+                    <Input 
+                      id="salePercentage" 
                       type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={testingPrice}
-                      onChange={(e) => setTestingPrice(e.target.value)}
-                      placeholder="0.00"
-                      required
+                      placeholder="0"
+                      min="1"
+                      max="99"
+                      value={salePercentage}
+                      onChange={(e) => setSalePercentage(e.target.value)}
                     />
                   </div>
                 )}
               </div>
             </div>
-          </div>
+          )}
           
           <DialogFooter>
             <Button 
-              type="button" 
               variant="outline" 
-              onClick={() => onOpenChange(false)} 
-              disabled={isSubmitting}
+              onClick={() => {
+                onOpenChange(false);
+                resetForm();
+              }}
+              disabled={isLoading}
             >
               Anuluj
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Dodawanie...' : 'Dodaj produkt'}
+            <Button onClick={handleSubmit} disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEditMode ? 'Zapisz zmiany' : 'Dodaj produkt'}
             </Button>
           </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+      
+      <AuthRequiredDialog 
+        open={showAuthDialog} 
+        onOpenChange={setShowAuthDialog} 
+        title="Wymagane logowanie"
+        description="Aby dodać produkt do rynku, musisz być zalogowany."
+      />
+    </>
   );
 }

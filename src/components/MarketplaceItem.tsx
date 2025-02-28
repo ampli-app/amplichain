@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Tag, Calendar } from 'lucide-react';
+import { ShoppingCart, Tag, Calendar, Eye, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
@@ -15,6 +15,7 @@ interface MarketplaceItemProps {
   price: number;
   image: string;
   category: string;
+  userId?: string;
   rating?: number;
   reviewCount?: number;
   sale?: boolean;
@@ -30,6 +31,7 @@ export function MarketplaceItem({
   price,
   image,
   category,
+  userId,
   rating = 0,
   reviewCount = 0,
   sale = false,
@@ -38,10 +40,13 @@ export function MarketplaceItem({
   testingPrice,
   delay = 0
 }: MarketplaceItemProps) {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   const navigate = useNavigate();
   const [purchaseType, setPurchaseType] = useState<'buy' | 'test'>(forTesting ? 'test' : 'buy');
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  
+  // Check if this product belongs to the current user
+  const isUserProduct = user?.id === userId;
   
   const formattedPrice = new Intl.NumberFormat('pl-PL', {
     style: 'currency',
@@ -93,6 +98,12 @@ export function MarketplaceItem({
             </Badge>
           )}
           
+          {isUserProduct && (
+            <Badge className="absolute top-3 left-3 z-10 bg-green-500 hover:bg-green-600">
+              Twój produkt
+            </Badge>
+          )}
+          
           <img
             src={image || '/placeholder.svg'}
             alt={title}
@@ -116,7 +127,7 @@ export function MarketplaceItem({
           </div>
           
           <div className="mt-auto">
-            {forTesting ? (
+            {!isUserProduct && forTesting ? (
               <Tabs 
                 defaultValue={purchaseType} 
                 onValueChange={(value) => setPurchaseType(value as 'buy' | 'test')}
@@ -155,7 +166,7 @@ export function MarketplaceItem({
             ) : (
               <div className="flex items-center gap-2 mb-3">
                 <span className="font-semibold text-lg">{formattedPrice}</span>
-                {sale && formattedOriginalPrice && (
+                {sale && formattedOriginalPrice && !isUserProduct && (
                   <span className="text-rhythm-500 line-through text-sm">
                     {formattedOriginalPrice}
                   </span>
@@ -163,13 +174,33 @@ export function MarketplaceItem({
               </div>
             )}
             
-            <Button 
-              className="w-full gap-2" 
-              onClick={handleProductClick}
-            >
-              <ShoppingCart className="h-4 w-4" /> 
-              {purchaseType === 'buy' ? 'Zobacz produkt' : 'Wypożycz do testów'}
-            </Button>
+            {isUserProduct ? (
+              <div className="flex gap-2">
+                <Button 
+                  className="flex-1 gap-2" 
+                  onClick={handleProductClick}
+                  variant="outline"
+                >
+                  <Eye className="h-4 w-4" /> 
+                  Zobacz produkt
+                </Button>
+                <Button 
+                  className="flex-1 gap-2" 
+                  onClick={() => navigate(`/profile?editProduct=${id}`)}
+                >
+                  <Pencil className="h-4 w-4" /> 
+                  Edytuj
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                className="w-full gap-2" 
+                onClick={handleProductClick}
+              >
+                <ShoppingCart className="h-4 w-4" /> 
+                {purchaseType === 'buy' ? 'Zobacz produkt' : 'Wypożycz do testów'}
+              </Button>
+            )}
           </div>
         </div>
       </motion.div>

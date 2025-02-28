@@ -182,6 +182,13 @@ export default function ProductDetail() {
     }
   };
 
+  const handleEditProduct = () => {
+    if (!product || !isUserProduct) return;
+    
+    // Navigate to profile page with a query parameter for editing
+    navigate(`/profile?editProduct=${product.id}`);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -251,8 +258,6 @@ export default function ProductDetail() {
   const specifications: Record<string, string> = {
     "Kategoria": product.category || "Nie określono",
     "Stan": "Nowy", // Example value, could be added to products later
-    "Ocena": product.rating ? `${product.rating}/5` : "Brak ocen",
-    "Liczba ocen": product.review_count ? product.review_count.toString() : "0",
     "Dostępny do testów": product.for_testing ? "Tak" : "Nie",
     "Cena testowa (tydzień)": product.testing_price ? 
       new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(product.testing_price) : 
@@ -364,14 +369,6 @@ export default function ProductDetail() {
                 
                 <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
                 
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-                    <span className="font-medium">{product.rating || "0"}</span>
-                    <span className="text-rhythm-500">({product.review_count || 0} opinii)</span>
-                  </div>
-                </div>
-                
                 <p className="text-rhythm-700 dark:text-rhythm-300 mb-6">
                   {product.description || "Brak opisu produktu."}
                 </p>
@@ -386,14 +383,20 @@ export default function ProductDetail() {
                     <div>
                       <p className="text-sm font-medium">Sprzedawca: {sellerInfo.name}</p>
                       <div className="flex items-center gap-1 text-xs text-rhythm-500">
-                        <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
-                        <span>{sellerInfo.rating}</span>
+                        {isUserProduct ? (
+                          <span>To Twój produkt</span>
+                        ) : (
+                          <>
+                            <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                            <span>{sellerInfo.rating}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
                 
-                {product.for_testing && (
+                {!isUserProduct && product.for_testing && (
                   <div className="mb-6">
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="font-medium">Opcje zakupu</h3>
@@ -448,7 +451,7 @@ export default function ProductDetail() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-2xl font-bold text-primary">{formattedPrice}</h3>
-                      {formattedOriginalPrice && (
+                      {formattedOriginalPrice && !isUserProduct && (
                         <p className="text-rhythm-500 line-through">{formattedOriginalPrice}</p>
                       )}
                       {purchaseType === 'test' && (
@@ -467,7 +470,7 @@ export default function ProductDetail() {
                       <Button 
                         className="flex-1 gap-2"
                         variant="outline"
-                        onClick={() => navigate(`/profile/edit-product/${product.id}`)}
+                        onClick={handleEditProduct}
                       >
                         <Pencil className="h-4 w-4" />
                         Edytuj produkt
@@ -491,10 +494,12 @@ export default function ProductDetail() {
                     </Button>
                   )}
                   
-                  <div className="flex items-center justify-center gap-2 text-sm text-rhythm-600">
-                    <TruckIcon className="h-4 w-4" />
-                    <span>Darmowa dostawa • W magazynie • Wysyłka w ciągu 1-2 dni roboczych</span>
-                  </div>
+                  {!isUserProduct && (
+                    <div className="flex items-center justify-center gap-2 text-sm text-rhythm-600">
+                      <TruckIcon className="h-4 w-4" />
+                      <span>Darmowa dostawa • W magazynie • Wysyłka w ciągu 1-2 dni roboczych</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>

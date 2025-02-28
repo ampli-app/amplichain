@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -69,6 +68,7 @@ export default function Profile() {
   const [userProducts, setUserProducts] = useState<any[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [showAddProductDialog, setShowAddProductDialog] = useState(false);
+  const [productIdToEdit, setProductIdToEdit] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -109,6 +109,39 @@ export default function Profile() {
       console.error('Unexpected error:', err);
     } finally {
       setIsLoadingProducts(false);
+    }
+  };
+
+  const loadProductForEditing = async (productId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single();
+    
+      if (error) {
+        console.error('Error fetching product for editing:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się załadować produktu do edycji.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (data) {
+        // Set the product ID for editing and open the dialog
+        setProductIdToEdit(productId);
+        setShowAddProductDialog(true);
+        
+        toast({
+          title: "Edytuj produkt",
+          description: "Możesz teraz edytować szczegóły produktu.",
+        });
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
     }
   };
 
@@ -503,6 +536,7 @@ export default function Profile() {
       <AddProductDialog 
         open={showAddProductDialog} 
         onOpenChange={setShowAddProductDialog} 
+        productId={productIdToEdit}
       />
     </div>
   );

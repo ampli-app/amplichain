@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -35,7 +34,8 @@ interface Product {
   sale_percentage?: number | null;
   for_testing?: boolean | null;
   testing_price?: number | null;
-  created_at?: string; // Add created_at property
+  created_at?: string;
+  user_id?: string;
 }
 
 const categories = [
@@ -517,6 +517,7 @@ export default function Marketplace() {
                         price={item.price}
                         image={item.image_url}
                         category={item.category || "Inne"}
+                        userId={item.user_id}
                         rating={item.rating || 0}
                         reviewCount={item.review_count || 0}
                         sale={item.sale || false}
