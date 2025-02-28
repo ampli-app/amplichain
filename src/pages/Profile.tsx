@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -54,7 +55,7 @@ interface Project {
 export default function Profile() {
   const { userId } = useParams<{ userId?: string }>();
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const { users, fetchUserProfile } = useSocial();
   const [profile, setProfile] = useState<SocialUser | null>(null);
   const [isCurrentUserProfile, setIsCurrentUserProfile] = useState(false);
@@ -75,19 +76,20 @@ export default function Profile() {
     if (userId) {
       const userProfile = fetchUserProfile(userId);
       setProfile(userProfile);
-      setIsCurrentUserProfile(currentUser?.id === userId);
+      setIsCurrentUserProfile(user?.id === userId);
     } else {
       // If no userId is provided, it's the current user's profile
-      setProfile(currentUser as SocialUser);
+      const currentUserProfile = users.find(u => u.isCurrentUser === true);
+      setProfile(currentUserProfile as SocialUser);
       setIsCurrentUserProfile(true);
     }
-  }, [userId, currentUser, fetchUserProfile]);
+  }, [userId, user, fetchUserProfile, users]);
 
   useEffect(() => {
-    if (currentUser?.id && isCurrentUserProfile) {
-      fetchUserProducts(currentUser.id);
+    if (user?.id && isCurrentUserProfile) {
+      fetchUserProducts(user.id);
     }
-  }, [currentUser, isCurrentUserProfile]);
+  }, [user, isCurrentUserProfile]);
 
   const fetchUserProducts = async (userId: string) => {
     setIsLoadingProducts(true);
@@ -474,28 +476,28 @@ export default function Profile() {
       <Footer />
       
       <EditProfileModal 
-        open={isEditProfileOpen} 
-        onOpenChange={setIsEditProfileOpen} 
-        profile={profile} 
-        setProfile={setProfile} 
+        isOpen={isEditProfileOpen} 
+        onClose={() => setIsEditProfileOpen(false)} 
+        onProfileUpdated={() => {}} 
+        currentProfile={profile} 
       />
       
       <AddExperienceModal 
-        open={isAddExperienceOpen} 
-        onOpenChange={setIsAddExperienceOpen} 
-        setExperiences={setExperiences} 
+        isOpen={isAddExperienceOpen} 
+        onClose={() => setIsAddExperienceOpen(false)} 
+        onExperienceAdded={() => {}} 
       />
       
       <AddEducationModal 
-        open={isAddEducationOpen} 
-        onOpenChange={setIsAddEducationOpen} 
-        setEducations={setEducations} 
+        isOpen={isAddEducationOpen} 
+        onClose={() => setIsAddEducationOpen(false)} 
+        onEducationAdded={() => {}} 
       />
       
       <AddProjectModal 
-        open={isAddProjectOpen} 
-        onOpenChange={setIsAddProjectOpen} 
-        setProjects={setProjects} 
+        isOpen={isAddProjectOpen} 
+        onClose={() => setIsAddProjectOpen(false)} 
+        onProjectAdded={() => {}} 
       />
 
       <AddProductDialog 
