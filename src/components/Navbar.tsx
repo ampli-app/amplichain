@@ -98,7 +98,7 @@ export function Navbar() {
                   </Link>
                 </Button>
                 
-                <UserMenu avatarUrl={userProfile?.avatar} />
+                <UserMenu avatarUrl={userProfile?.avatar_url} />
               </>
             ) : (
               <>
