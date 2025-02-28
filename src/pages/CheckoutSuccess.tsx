@@ -14,7 +14,8 @@ import {
   ArrowLeft,
   Calendar,
   MapPin,
-  Loader2
+  Loader2,
+  ShoppingCart
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
@@ -89,9 +90,10 @@ export default function CheckoutSuccess() {
   
   const fetchSellerInfo = async (userId: string) => {
     try {
+      // Usunięto pole 'email', którego nie ma w tabeli 'profiles'
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, email, avatar_url')
+        .select('full_name, avatar_url')
         .eq('id', userId)
         .single();
       
@@ -104,7 +106,7 @@ export default function CheckoutSuccess() {
         setSellerInfo(prev => ({
           ...prev,
           name: data.full_name || "Sprzedawca",
-          email: data.email || "kontakt@example.com",
+          // Używamy domyślnego maila zamiast próby pobrania z tabeli
           location: product?.location || ""
         }));
       }
