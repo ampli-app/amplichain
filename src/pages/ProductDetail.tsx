@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -154,7 +155,14 @@ export default function ProductDetail() {
       return;
     }
     
-    navigate(`/checkout/${product?.id}${purchaseType === 'test' ? '/test' : ''}`);
+    if (product) {
+      // Zamiast dodawać do koszyka, przechodzimy bezpośrednio do checkout
+      if (purchaseType === 'test') {
+        navigate(`/checkout/${id}/test`);
+      } else {
+        navigate(`/checkout/${id}`);
+      }
+    }
   };
 
   const handleDelete = async () => {

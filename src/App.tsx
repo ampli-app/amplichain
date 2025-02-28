@@ -41,7 +41,7 @@ function App() {
             <Route path="/marketplace/:id" element={<ProductDetail />} />
             <Route path="/edit-product/:id" element={<EditProduct />} />
             
-            {/* Nowe ścieżki dla finalizacji zamówienia */}
+            {/* Ścieżki dla finalizacji zamówienia */}
             <Route path="/checkout/:id" element={<Checkout />} />
             <Route path="/checkout/:id/test" element={<Checkout />} />
             <Route path="/checkout/success/:id" element={<CheckoutSuccess />} />
