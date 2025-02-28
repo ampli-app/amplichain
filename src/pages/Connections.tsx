@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -22,7 +23,10 @@ import {
   X,
   LogIn,
   UserCircle,
-  Heart
+  Heart,
+  Slash,
+  CircleSlash,
+  Eye
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '@/components/ui/use-toast';
@@ -126,18 +130,9 @@ export default function Connections() {
   const getStatusBadge = (status: UserConnectionStatus | undefined, isFollower?: boolean) => {
     const badges = [];
     
+    // Wyświetl badge dla połączeń tylko gdy nie jesteśmy na zakładce "following"
     if (status && activeTab !== 'following') {
       switch (status) {
-        case 'following':
-          if (activeTab !== 'following') {
-            badges.push(
-              <Badge key="following" variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                <UserPlus className="mr-1 h-3 w-3" />
-                Obserwujesz
-              </Badge>
-            );
-          }
-          break;
         case 'connected':
           badges.push(
             <Badge key="connected" variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
@@ -165,22 +160,62 @@ export default function Connections() {
       }
     }
     
-    if (isFollower && activeTab !== 'followers') {
-      badges.push(
-        <Badge key="follower" variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/20">
-          <Heart className="mr-1 h-3 w-3" />
-          Obserwuje Cię
-        </Badge>
-      );
+    // Badge dla obserwujących tylko gdy nie jesteśmy na zakładce "followers"
+    if (activeTab === 'following') {
+      // W zakładce "Obserwowani" pokazujemy, czy dana osoba nas obserwuje czy nie
+      if (isFollower) {
+        badges.push(
+          <Badge key="follower" variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/20">
+            <Heart className="mr-1 h-3 w-3" />
+            Obserwuje Cię
+          </Badge>
+        );
+      } else {
+        badges.push(
+          <Badge key="not-follower" variant="outline" className="bg-gray-500/10 text-gray-600 border-gray-500/20">
+            <CircleSlash className="mr-1 h-3 w-3" />
+            Nie obserwuje Cię
+          </Badge>
+        );
+      }
+    } else if (activeTab === 'followers') {
+      // W zakładce "Obserwujący" pokazujemy, czy my obserwujemy daną osobę czy nie
+      if (status === 'following' || status === 'connected') {
+        badges.push(
+          <Badge key="following" variant="outline" className="bg-primary/10 text-primary border-primary/20">
+            <Eye className="mr-1 h-3 w-3" />
+            Obserwujesz
+          </Badge>
+        );
+      } else {
+        badges.push(
+          <Badge key="not-following" variant="outline" className="bg-gray-500/10 text-gray-600 border-gray-500/20">
+            <Slash className="mr-1 h-3 w-3" />
+            Nie obserwujesz
+          </Badge>
+        );
+      }
     }
     
     return badges.length > 0 ? <div className="flex flex-wrap gap-1.5">{badges}</div> : null;
   };
 
   const getConnectionAction = (status: UserConnectionStatus | undefined, userId: string) => {
+    // Dla zakładki obserwujących pokaż tylko przyciski do połączenia, bez przycisku do przestania obserwowania
     if (activeTab === 'followers' && status !== 'connected' && status !== 'pending_sent' && status !== 'pending_received') {
       return (
         <div className="flex gap-2">
+          {status !== 'following' && status !== 'connected' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-1"
+              onClick={() => followUser(userId)}
+            >
+              <UserPlus className="h-4 w-4" />
+              Obserwuj
+            </Button>
+          )}
           <Button 
             size="sm" 
             className="gap-1"
@@ -217,6 +252,7 @@ export default function Connections() {
           </div>
         );
       case 'following':
+        // Nie pokazuj przycisku "przestań obserwować" w zakładce "Obserwujący"
         if (activeTab === 'followers') {
           return (
             <Button 
