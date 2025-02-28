@@ -22,17 +22,12 @@ interface AddProductDialogProps {
   productId?: string;
 }
 
-// Product categories
-const categories = [
-  "Mikrofony",
-  "Interfejsy Audio",
-  "Monitory",
-  "Słuchawki",
-  "Kontrolery",
-  "Instrumenty",
-  "Oprogramowanie",
-  "Akcesoria"
-];
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+}
 
 export function AddProductDialog({ open, onOpenChange, productId }: AddProductDialogProps) {
   const { isLoggedIn, user } = useAuth();
@@ -40,11 +35,16 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
   const [isLoading, setIsLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   
+  // Categories state
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
+  
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState<string>('');
+  const [categoryId, setCategoryId] = useState<string>('');
   
   // Multi-image support
   const [productImages, setProductImages] = useState<{
@@ -57,6 +57,38 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
   const [testingPrice, setTestingPrice] = useState('');
   const [isOnSale, setIsOnSale] = useState(false);
   const [salePercentage, setSalePercentage] = useState('');
+  
+  // Fetch categories from Supabase
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        setIsCategoriesLoading(true);
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .order('name');
+        
+        if (error) {
+          console.error('Błąd podczas pobierania kategorii:', error);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się pobrać kategorii. Spróbuj ponownie później.",
+            variant: "destructive",
+          });
+        } else if (data) {
+          // Filter out "Wszystkie kategorie" if it exists
+          const filteredCategories = data.filter(cat => cat.slug !== 'all-categories');
+          setCategories(filteredCategories);
+        }
+      } catch (err) {
+        console.error('Nieoczekiwany błąd:', err);
+      } finally {
+        setIsCategoriesLoading(false);
+      }
+    }
+    
+    fetchCategories();
+  }, []);
   
   useEffect(() => {
     if (open && !isLoggedIn) {
@@ -82,7 +114,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('*, categories(*)')
         .eq('id', id)
         .single();
       
@@ -101,7 +133,21 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         setTitle(data.title);
         setDescription(data.description || '');
         setPrice(data.price.toString());
-        setCategory(data.category || '');
+        
+        // Handle category selection
+        if (data.category_id && data.categories) {
+          setCategoryId(data.category_id);
+          setCategory(data.categories.name);
+        } else if (data.category) {
+          // For backward compatibility with old data
+          setCategory(data.category);
+          // Try to find matching category id
+          const matchingCategory = categories.find(cat => cat.name === data.category);
+          if (matchingCategory) {
+            setCategoryId(matchingCategory.id);
+          }
+        }
+        
         setIsForTesting(data.for_testing || false);
         setTestingPrice(data.testing_price ? data.testing_price.toString() : '');
         setIsOnSale(data.sale || false);
@@ -136,6 +182,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     setDescription('');
     setPrice('');
     setCategory('');
+    setCategoryId('');
     setProductImages([{ file: null, preview: null }]);
     setIsForTesting(false);
     setTestingPrice('');
@@ -259,7 +306,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
       return false;
     }
     
-    if (!category) {
+    if (!categoryId) {
       toast({
         title: "Brak kategorii",
         description: "Wybierz kategorię produktu.",
@@ -316,11 +363,15 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
       // Upload images
       const imageUrl = await uploadImages();
       
+      // Find selected category name
+      const selectedCategory = categories.find(cat => cat.id === categoryId);
+      
       const productData = {
         title,
         description,
         price: parseFloat(price),
-        category,
+        category: selectedCategory?.name, // Keep for backward compatibility
+        category_id: categoryId, // Store the category ID
         image_url: imageUrl, // Now this is a string, as required by the schema
         for_testing: isForTesting,
         testing_price: isForTesting ? parseFloat(testingPrice) : null,
@@ -382,6 +433,15 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     }
   };
   
+  const handleCategoryChange = (categoryId: string) => {
+    setCategoryId(categoryId);
+    // Get category name from id
+    const selectedCategory = categories.find(cat => cat.id === categoryId);
+    if (selectedCategory) {
+      setCategory(selectedCategory.name);
+    }
+  };
+  
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -439,14 +499,21 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
                 
                 <div className="grid gap-3">
                   <Label htmlFor="category">Kategoria</Label>
-                  <Select value={category} onValueChange={setCategory}>
+                  <Select value={categoryId} onValueChange={handleCategoryChange}>
                     <SelectTrigger>
                       <SelectValue placeholder="Wybierz kategorię" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
+                      {isCategoriesLoading ? (
+                        <div className="flex items-center justify-center p-2">
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          <span>Ładowanie kategorii...</span>
+                        </div>
+                      ) : (
+                        categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

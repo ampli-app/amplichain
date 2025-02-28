@@ -16,18 +16,12 @@ import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Product categories
-const categories = [
-  "Mikrofony",
-  "Interfejsy Audio",
-  "Monitory",
-  "Słuchawki",
-  "Kontrolery",
-  "Instrumenty",
-  "Oprogramowanie",
-  "Akcesoria",
-  "Inne"
-];
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+}
 
 export default function EditProduct() {
   const { id } = useParams<{ id: string }>();
@@ -37,11 +31,16 @@ export default function EditProduct() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
+  // Categories state
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
+  
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState<string>('');
+  const [categoryId, setCategoryId] = useState<string>('');
   const [imageUrl, setImageUrl] = useState('');
   const [isForTesting, setIsForTesting] = useState(false);
   const [testingPrice, setTestingPrice] = useState('');
@@ -49,6 +48,38 @@ export default function EditProduct() {
   const [salePercentage, setSalePercentage] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Fetch categories
+    async function fetchCategories() {
+      try {
+        setIsCategoriesLoading(true);
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .order('name');
+        
+        if (error) {
+          console.error('Błąd podczas pobierania kategorii:', error);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się pobrać kategorii. Spróbuj ponownie później.",
+            variant: "destructive",
+          });
+        } else if (data) {
+          // Filter out "Wszystkie kategorie" if it exists
+          const filteredCategories = data.filter(cat => cat.slug !== 'all-categories');
+          setCategories(filteredCategories);
+        }
+      } catch (err) {
+        console.error('Nieoczekiwany błąd:', err);
+      } finally {
+        setIsCategoriesLoading(false);
+      }
+    }
+    
+    fetchCategories();
+  }, []);
   
   useEffect(() => {
     // Check if user is logged in
@@ -69,14 +100,14 @@ export default function EditProduct() {
       // If no ID, redirect to marketplace
       navigate('/marketplace');
     }
-  }, [id, isLoggedIn, user]);
+  }, [id, isLoggedIn, user, categories]);
   
   const fetchProductData = async (productId: string) => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('*, categories(*)')
         .eq('id', productId)
         .single();
       
@@ -116,7 +147,21 @@ export default function EditProduct() {
       setTitle(data.title);
       setDescription(data.description || '');
       setPrice(data.price.toString());
-      setCategory(data.category || '');
+      
+      // Handle category selection
+      if (data.category_id && data.categories) {
+        setCategoryId(data.category_id);
+        setCategory(data.categories.name);
+      } else if (data.category) {
+        // For backward compatibility with old data
+        setCategory(data.category);
+        // Try to find matching category id
+        const matchingCategory = categories.find(cat => cat.name === data.category);
+        if (matchingCategory) {
+          setCategoryId(matchingCategory.id);
+        }
+      }
+      
       setImageUrl(data.image_url || '');
       setIsForTesting(data.for_testing || false);
       setTestingPrice(data.testing_price ? data.testing_price.toString() : '');
@@ -214,7 +259,7 @@ export default function EditProduct() {
       return false;
     }
     
-    if (!category) {
+    if (!categoryId) {
       toast({
         title: "Brak kategorii",
         description: "Wybierz kategorię produktu.",
@@ -269,11 +314,15 @@ export default function EditProduct() {
         imageUrlToUse = await uploadImage();
       }
       
+      // Find selected category name
+      const selectedCategory = categories.find(cat => cat.id === categoryId);
+      
       const productData = {
         title,
         description,
         price: parseFloat(price),
-        category,
+        category: selectedCategory?.name, // Keep for backward compatibility
+        category_id: categoryId, // Store the category ID
         image_url: imageUrlToUse,
         for_testing: isForTesting,
         testing_price: isForTesting ? parseFloat(testingPrice) : null,
@@ -360,6 +409,15 @@ export default function EditProduct() {
     }
   };
   
+  const handleCategoryChange = (categoryId: string) => {
+    setCategoryId(categoryId);
+    // Get category name from id
+    const selectedCategory = categories.find(cat => cat.id === categoryId);
+    if (selectedCategory) {
+      setCategory(selectedCategory.name);
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -439,14 +497,21 @@ export default function EditProduct() {
                   
                   <div className="grid gap-3">
                     <Label htmlFor="category">Kategoria</Label>
-                    <Select value={category} onValueChange={setCategory}>
+                    <Select value={categoryId} onValueChange={handleCategoryChange}>
                       <SelectTrigger>
                         <SelectValue placeholder="Wybierz kategorię" />
                       </SelectTrigger>
                       <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                        ))}
+                        {isCategoriesLoading ? (
+                          <div className="flex items-center justify-center p-2">
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            <span>Ładowanie kategorii...</span>
+                          </div>
+                        ) : (
+                          categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
