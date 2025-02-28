@@ -300,24 +300,36 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         const filePath = `product-images/${fileName}`;
         
         try {
-          // Ensure the bucket exists
+          // Check if the bucket exists
           const { data: buckets } = await supabase.storage.listBuckets();
           const productsBucketExists = buckets?.some(bucket => bucket.name === 'products');
           
           if (!productsBucketExists) {
-            await supabase.storage.createBucket('products', {
-              public: true,
-              fileSizeLimit: 10485760 // 10MB limit
-            });
+            // Create the bucket with public access if it doesn't exist
+            try {
+              const { data, error } = await supabase.storage.createBucket('products', {
+                public: true,
+                fileSizeLimit: 10485760 // 10MB limit
+              });
+              
+              if (error) {
+                console.error('Error creating bucket:', error);
+                throw new Error(`Nie można utworzyć bucketu: ${error.message}`);
+              }
+            } catch (createError) {
+              console.error('Error in bucket creation:', createError);
+              // If we can't create a bucket, try to upload anyway to an existing one
+            }
           }
           
+          // Try to upload the image
           const { data, error } = await supabase.storage
             .from('products')
             .upload(filePath, image.file);
           
           if (error) {
             console.error('Error uploading image:', error);
-            throw new Error('Failed to upload image');
+            throw new Error('Nie udało się przesłać zdjęcia');
           }
           
           // Get the public URL
@@ -328,6 +340,11 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
           uploadedUrls.push(urlData.publicUrl);
         } catch (err) {
           console.error('Error in image upload:', err);
+          toast({
+            title: "Błąd",
+            description: `Problem z przesłaniem zdjęcia: ${err instanceof Error ? err.message : 'Nieznany błąd'}`,
+            variant: "destructive",
+          });
           // Continue with other images even if one fails
         }
       }
@@ -443,7 +460,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         console.error('Error saving product:', error);
         toast({
           title: "Błąd",
-          description: `Nie udało się ${isEditMode ? 'zaktualizować' : 'dodać'} produktu.`,
+          description: `Nie udało się ${isEditMode ? 'zaktualizować' : 'dodać'} produktu: ${error.message}`,
           variant: "destructive",
         });
         return;
@@ -467,7 +484,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
       console.error('Unexpected error:', err);
       toast({
         title: "Błąd",
-        description: "Wystąpił nieoczekiwany błąd.",
+        description: `Wystąpił nieoczekiwany błąd: ${err instanceof Error ? err.message : 'Nieznany błąd'}`,
         variant: "destructive",
       });
     } finally {
