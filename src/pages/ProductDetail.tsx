@@ -154,10 +154,7 @@ export default function ProductDetail() {
       return;
     }
     
-    toast({
-      title: purchaseType === 'buy' ? "Dodano do koszyka" : "Dodano wynajem testowy",
-      description: `${product?.title} został ${purchaseType === 'buy' ? 'dodany do koszyka' : 'zaplanowany do tygodniowego testu'}.`,
-    });
+    navigate(`/checkout/${product?.id}${purchaseType === 'test' ? '/test' : ''}`);
   };
 
   const handleDelete = async () => {
@@ -485,7 +482,7 @@ export default function ProductDetail() {
                       onClick={handleAddToCart}
                     >
                       <ShoppingCart className="h-5 w-5" />
-                      {purchaseType === 'buy' ? 'Dodaj do koszyka' : 'Dodaj wynajem testowy do koszyka'}
+                      {purchaseType === 'buy' ? 'Kup teraz' : 'Zamów test'}
                     </Button>
                   )}
                 </div>

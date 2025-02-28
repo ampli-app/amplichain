@@ -1,51 +1,57 @@
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Toaster } from '@/components/ui/toaster';
-import { SocialProvider } from '@/contexts/SocialContext';
 import { AuthProvider } from '@/contexts/AuthContext';
-
-// Page imports
+import { SocialProvider } from '@/contexts/SocialContext';
+import { Toaster } from '@/components/ui/toaster';
 import Index from '@/pages/Index';
-import Login from '@/pages/Login';
+import Feed from '@/pages/Feed';
 import Signup from '@/pages/Signup';
+import Login from '@/pages/Login';
+import Profile from '@/pages/Profile';
+import NotFound from '@/pages/NotFound';
+import Mentorship from '@/pages/Mentorship';
+import Connections from '@/pages/Connections';
+import Discovery from '@/pages/Discovery';
+import Messages from '@/pages/Messages';
 import Marketplace from '@/pages/Marketplace';
 import ProductDetail from '@/pages/ProductDetail';
 import EditProduct from '@/pages/EditProduct';
-import Feed from '@/pages/Feed';
+import Checkout from '@/pages/Checkout';
+import CheckoutSuccess from '@/pages/CheckoutSuccess';
 import SocialFeed from '@/pages/SocialFeed';
-import Connections from '@/pages/Connections';
-import Mentorship from '@/pages/Mentorship';
-import Messages from '@/pages/Messages';
-import Profile from '@/pages/Profile';
-import Discovery from '@/pages/Discovery';
-import NotFound from '@/pages/NotFound';
 
 function App() {
   return (
-    <AuthProvider>
-      <SocialProvider>
-        <Router>
+    <Router>
+      <AuthProvider>
+        <SocialProvider>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
+            <Route path="/feed" element={<Feed />} />
+            <Route path="/social" element={<SocialFeed />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/profile/:id" element={<Profile />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/mentorship" element={<Mentorship />} />
+            <Route path="/connections" element={<Connections />} />
+            <Route path="/discover" element={<Discovery />} />
+            <Route path="/messages" element={<Messages />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/marketplace/:id" element={<ProductDetail />} />
             <Route path="/edit-product/:id" element={<EditProduct />} />
-            <Route path="/feed" element={<Feed />} />
-            <Route path="/social" element={<SocialFeed />} />
-            <Route path="/connections" element={<Connections />} />
-            <Route path="/mentorship" element={<Mentorship />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/profile/:userId" element={<Profile />} />
-            <Route path="/discovery" element={<Discovery />} />
+            
+            {/* Nowe ścieżki dla finalizacji zamówienia */}
+            <Route path="/checkout/:id" element={<Checkout />} />
+            <Route path="/checkout/:id/test" element={<Checkout />} />
+            <Route path="/checkout/success/:id" element={<CheckoutSuccess />} />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />
-        </Router>
-      </SocialProvider>
-    </AuthProvider>
+        </SocialProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 
