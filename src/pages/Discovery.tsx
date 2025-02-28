@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -52,7 +51,7 @@ const recommendedProducts = [
     salePercentage: 15
   },
   {
-    id: 3,
+    id: "3",
     title: "Ableton Push 2 MIDI Controller",
     price: 799.00,
     image: "https://images.unsplash.com/photo-1553526665-10042bd50dd1?q=80&w=2000&auto=format&fit=crop",

@@ -30,6 +30,8 @@ export function MarketplaceItem({
   price,
   image,
   category,
+  rating = 0,
+  reviewCount = 0,
   sale = false,
   salePercentage,
   forTesting = false,

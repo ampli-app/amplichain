@@ -57,7 +57,7 @@ const mentorshipCommunities = [
 
 const marketplaceItems = [
   {
-    id: 1,
+    id: "1",
     title: "Neumann U87 Mikrofon Pojemnościowy",
     price: 2999.99,
     image: "https://images.unsplash.com/photo-1520116468816-95b69f847357?q=80&w=2000&auto=format&fit=crop",
@@ -66,7 +66,7 @@ const marketplaceItems = [
     reviewCount: 124
   },
   {
-    id: 2,
+    id: "2",
     title: "Universal Audio Apollo Twin X Duo",
     price: 899.00,
     image: "https://images.unsplash.com/photo-1558612846-ec0107aaf552?q=80&w=2000&auto=format&fit=crop",
@@ -77,7 +77,7 @@ const marketplaceItems = [
     salePercentage: 15
   },
   {
-    id: 3,
+    id: "3",
     title: "Ableton Push 2 Kontroler MIDI",
     price: 799.00,
     image: "https://images.unsplash.com/photo-1553526665-10042bd50dd1?q=80&w=2000&auto=format&fit=crop",
@@ -86,7 +86,7 @@ const marketplaceItems = [
     reviewCount: 102
   },
   {
-    id: 4,
+    id: "4",
     title: "Yamaha HS8 Monitory Studyjne (Para)",
     price: 699.99,
     image: "https://images.unsplash.com/photo-1609587312208-cea54be969e7?q=80&w=2000&auto=format&fit=crop",

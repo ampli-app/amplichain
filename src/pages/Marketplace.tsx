@@ -5,6 +5,7 @@ import { Footer } from '@/components/Footer';
 import { MarketplaceItem } from '@/components/MarketplaceItem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { 
   Search, 
@@ -34,6 +35,7 @@ interface Product {
   sale_percentage?: number | null;
   for_testing?: boolean | null;
   testing_price?: number | null;
+  created_at?: string; // Add created_at property
 }
 
 const categories = [
@@ -183,7 +185,12 @@ export default function Marketplace() {
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       case "newest":
-        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        // Handle the case where created_at might be undefined
+        filtered.sort((a, b) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA;
+        });
         break;
       default: // "featured" or any other default
         // No additional sorting needed as it's already sorted by created_at desc
@@ -375,7 +382,7 @@ export default function Marketplace() {
                 </div>
                 <div className="flex gap-2 mt-3">
                   <div className="flex-1">
-                    <Label htmlFor="minPrice" className="sr-only">Min</Label>
+                    <Label htmlFor="minPrice">Min</Label>
                     <Input
                       id="minPrice"
                       placeholder="Min"
@@ -389,7 +396,7 @@ export default function Marketplace() {
                     />
                   </div>
                   <div className="flex-1">
-                    <Label htmlFor="maxPrice" className="sr-only">Max</Label>
+                    <Label htmlFor="maxPrice">Max</Label>
                     <Input
                       id="maxPrice"
                       placeholder="Max"
