@@ -160,19 +160,9 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         setIsForTesting(data.for_testing || false);
         setTestingPrice(data.testing_price ? data.testing_price.toString() : '');
         
-        // Handle images - we need to adapt this based on whether image_url is a string or something else
-        let imageUrlsArray: string[] = [];
-        
-        if (typeof data.image_url === 'string') {
-          imageUrlsArray = [data.image_url];
-        } else if (Array.isArray(data.image_url)) {
-          imageUrlsArray = data.image_url;
-        }
-        
-        if (imageUrlsArray.length > 0) {
-          setProductImages(
-            imageUrlsArray.map(url => ({ file: null, preview: url, existingUrl: url }))
-          );
+        // Handle images
+        if (data.image_url) {
+          setProductImages([{ file: null, preview: data.image_url, existingUrl: data.image_url }]);
         } else {
           setProductImages([{ file: null, preview: null }]);
         }
@@ -281,76 +271,71 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     setProductImages(updatedImages);
   };
   
-  const uploadImages = async (): Promise<string[]> => {
-    const uploadedUrls: string[] = [];
-    
-    // First, include any existing URLs that weren't changed
-    for (const image of productImages) {
-      if (!image.file && image.existingUrl) {
-        uploadedUrls.push(image.existingUrl);
-      }
+  const uploadImages = async (): Promise<string> => {
+    // Jeśli nie ma nowych zdjęć, ale jest istniejący URL, zwracamy go
+    if (productImages.length > 0 && !productImages[0].file && productImages[0].existingUrl) {
+      return productImages[0].existingUrl;
     }
     
-    // Then upload any new files
-    for (const image of productImages) {
-      if (image.file) {
-        // Generate a unique file name
-        const fileExt = image.file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-        const filePath = `product-images/${fileName}`;
-        
+    // Znajdź pierwsze zdjęcie z plikiem do przesłania
+    const imageToUpload = productImages.find(img => img.file);
+    if (!imageToUpload || !imageToUpload.file) {
+      return ''; // Brak zdjęć do przesłania
+    }
+    
+    // Generate a unique file name
+    const fileExt = imageToUpload.file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const filePath = `product-images/${fileName}`;
+    
+    try {
+      // Check if the bucket exists
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const productsBucketExists = buckets?.some(bucket => bucket.name === 'products');
+      
+      if (!productsBucketExists) {
+        // Create the bucket with public access if it doesn't exist
         try {
-          // Check if the bucket exists
-          const { data: buckets } = await supabase.storage.listBuckets();
-          const productsBucketExists = buckets?.some(bucket => bucket.name === 'products');
-          
-          if (!productsBucketExists) {
-            // Create the bucket with public access if it doesn't exist
-            try {
-              const { data, error } = await supabase.storage.createBucket('products', {
-                public: true,
-                fileSizeLimit: 10485760 // 10MB limit
-              });
-              
-              if (error) {
-                console.error('Error creating bucket:', error);
-                throw new Error(`Nie można utworzyć bucketu: ${error.message}`);
-              }
-            } catch (createError) {
-              console.error('Error in bucket creation:', createError);
-              // If we can't create a bucket, try to upload anyway to an existing one
-            }
-          }
-          
-          // Try to upload the image
-          const { data, error } = await supabase.storage
-            .from('products')
-            .upload(filePath, image.file);
+          const { data, error } = await supabase.storage.createBucket('products', {
+            public: true,
+            fileSizeLimit: 10485760 // 10MB limit
+          });
           
           if (error) {
-            console.error('Error uploading image:', error);
-            throw new Error('Nie udało się przesłać zdjęcia');
+            console.error('Error creating bucket:', error);
+            throw new Error(`Nie można utworzyć bucketu: ${error.message}`);
           }
-          
-          // Get the public URL
-          const { data: urlData } = supabase.storage
-            .from('products')
-            .getPublicUrl(filePath);
-          
-          uploadedUrls.push(urlData.publicUrl);
-        } catch (err) {
-          console.error('Error in image upload:', err);
-          toast({
-            title: "Błąd",
-            description: `Problem z przesłaniem zdjęcia: ${err instanceof Error ? err.message : 'Nieznany błąd'}`,
-            variant: "destructive",
-          });
-          // Continue with other images even if one fails
+        } catch (createError) {
+          console.error('Error in bucket creation:', createError);
+          // If we can't create a bucket, try to upload anyway to an existing one
         }
       }
+      
+      // Try to upload the image
+      const { data, error } = await supabase.storage
+        .from('products')
+        .upload(filePath, imageToUpload.file);
+      
+      if (error) {
+        console.error('Error uploading image:', error);
+        throw new Error('Nie udało się przesłać zdjęcia: ' + error.message);
+      }
+      
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('products')
+        .getPublicUrl(filePath);
+      
+      return urlData.publicUrl;
+    } catch (err) {
+      console.error('Error in image upload:', err);
+      toast({
+        title: "Błąd",
+        description: `Problem z przesłaniem zdjęcia: ${err instanceof Error ? err.message : 'Nieznany błąd'}`,
+        variant: "destructive",
+      });
+      return '';
     }
-    
-    return uploadedUrls;
   };
   
   const validateForm = () => {
@@ -417,8 +402,8 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     setIsLoading(true);
     
     try {
-      // Upload images
-      const imageUrls = await uploadImages();
+      // Upload first image only and get URL
+      const imageUrl = await uploadImages();
       
       // Find selected category name
       const selectedCategory = categories.find(cat => cat.id === categoryId);
@@ -429,8 +414,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         price: parseFloat(price),
         category: selectedCategory?.name, // Keep for backward compatibility
         category_id: categoryId, // Store the category ID
-        image_url: imageUrls.length > 0 ? imageUrls[0] : '', // First image as main (for backward compatibility)
-        image_urls: imageUrls, // Store all image URLs in an array
+        image_url: imageUrl, // Używamy tylko jednego URL zdjęcia
         for_testing: isForTesting,
         testing_price: isForTesting ? parseFloat(testingPrice) : null,
         sale: false, // Always set to false as we removed the feature
@@ -438,6 +422,8 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         condition: condition, // Stan produktu
         user_id: user.id
       };
+      
+      console.log("Dane produktu do zapisania:", productData);
       
       let result;
       
