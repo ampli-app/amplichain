@@ -561,30 +561,28 @@ export default function Marketplace() {
           {/* Categories as Tabs with All Categories Button */}
           <div className="mb-8">
             <div className="flex items-center space-x-2 mb-4">
-              <TabsList className="flex-1 overflow-x-auto p-1 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1">
-                <TabsTrigger
-                  value=""
-                  className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800"
+              <div className="flex overflow-x-auto p-1 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1">
+                <Button
+                  variant={selectedCategory === "" ? "default" : "ghost"}
+                  className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2"
                   onClick={() => setSelectedCategory("")}
-                  data-state={selectedCategory === "" ? "active" : "inactive"}
                 >
                   <ListFilter className="h-5 w-5" />
                   <span>Wszystkie</span>
-                </TabsTrigger>
+                </Button>
                 
                 {categories.slice(0, 6).map((category) => (
-                  <TabsTrigger 
+                  <Button 
                     key={category.id}
-                    value={category.id}
-                    className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800"
+                    variant={selectedCategory === category.id ? "default" : "ghost"}
+                    className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2"
                     onClick={() => setSelectedCategory(category.id)}
-                    data-state={selectedCategory === category.id ? "active" : "inactive"}
                   >
                     {getCategoryIcon(category.name)}
                     <span>{category.name}</span>
-                  </TabsTrigger>
+                  </Button>
                 ))}
-              </TabsList>
+              </div>
               
               {categories.length > 6 && (
                 <Dialog open={showCategoriesDialog} onOpenChange={setShowCategoriesDialog}>
