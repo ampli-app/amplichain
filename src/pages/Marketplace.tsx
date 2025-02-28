@@ -558,20 +558,12 @@ export default function Marketplace() {
             </Button>
           </div>
           
-          {/* Categories as Tabs with All Categories Button */}
+          {/* Categories as Buttons with More Categories Button */}
           <div className="mb-8">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="flex overflow-x-auto p-1 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1">
-                <Button
-                  variant={selectedCategory === "" ? "default" : "ghost"}
-                  className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2"
-                  onClick={() => setSelectedCategory("")}
-                >
-                  <ListFilter className="h-5 w-5" />
-                  <span>Wszystkie</span>
-                </Button>
-                
-                {categories.slice(0, 6).map((category) => (
+              <div className="flex overflow-x-auto p-1 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1 rounded-md">
+                {/* Wyświetlanie tylko kilku kategorii */}
+                {categories.slice(0, 7).map((category) => (
                   <Button 
                     key={category.id}
                     variant={selectedCategory === category.id ? "default" : "ghost"}
@@ -582,61 +574,47 @@ export default function Marketplace() {
                     <span>{category.name}</span>
                   </Button>
                 ))}
+                
+                {/* Przycisk "Więcej kategorii" */}
+                <Button
+                  variant="ghost"
+                  className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2"
+                  onClick={() => setShowCategoriesDialog(true)}
+                >
+                  <ChevronDown className="h-5 w-5" />
+                  <span>Więcej kategorii</span>
+                </Button>
               </div>
               
-              {categories.length > 6 && (
-                <Dialog open={showCategoriesDialog} onOpenChange={setShowCategoriesDialog}>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="flex-shrink-0 h-10 px-3"
-                    >
-                      <span className="hidden sm:inline mr-2">Wszystkie kategorie</span>
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Wszystkie kategorie</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
+              {/* Dialog z wszystkimi kategoriami */}
+              <Dialog open={showCategoriesDialog} onOpenChange={setShowCategoriesDialog}>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Wszystkie kategorie</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
+                    {categories.map((category) => (
                       <div 
+                        key={category.id}
                         className={`rounded-lg border p-4 cursor-pointer transition-all 
-                        ${selectedCategory === "" 
+                        ${selectedCategory === category.id 
                           ? "bg-primary text-primary-foreground" 
                           : "hover:border-primary hover:text-primary"}
                         `}
-                        onClick={() => handleCategorySelect("")}
+                        onClick={() => handleCategorySelect(category.id)}
                       >
                         <div className="flex items-center gap-2">
-                          <ListFilter className="h-5 w-5" />
-                          <span className="font-medium">Wszystkie</span>
+                          {getCategoryIcon(category.name)}
+                          <span className="font-medium">{category.name}</span>
                         </div>
+                        {category.description && (
+                          <p className="text-xs mt-1 opacity-80">{category.description}</p>
+                        )}
                       </div>
-                      
-                      {categories.map((category) => (
-                        <div 
-                          key={category.id}
-                          className={`rounded-lg border p-4 cursor-pointer transition-all 
-                          ${selectedCategory === category.id 
-                            ? "bg-primary text-primary-foreground" 
-                            : "hover:border-primary hover:text-primary"}
-                          `}
-                          onClick={() => handleCategorySelect(category.id)}
-                        >
-                          <div className="flex items-center gap-2">
-                            {getCategoryIcon(category.name)}
-                            <span className="font-medium">{category.name}</span>
-                          </div>
-                          {category.description && (
-                            <p className="text-xs mt-1 opacity-80">{category.description}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              )}
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
           
