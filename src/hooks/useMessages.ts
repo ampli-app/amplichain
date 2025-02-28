@@ -29,6 +29,11 @@ export function useMessages() {
       
       if (participantsError) throw participantsError;
       
+      if (!participantsData) {
+        setConversations([]);
+        return;
+      }
+      
       // Konwersacje bez informacji o drugim użytkowniku
       const rawConversations = participantsData.map(p => ({
         ...p.conversation,
@@ -104,35 +109,37 @@ export function useMessages() {
         
       if (error) throw error;
       
-      setMessages(data || []);
-      
-      // Oznacz wiadomości jako przeczytane
-      if (data && data.length > 0) {
-        const unreadMessages = data.filter(m => !m.is_read && m.sender_id !== user?.id);
+      if (data) {
+        setMessages(data as Message[]);
         
-        if (unreadMessages.length > 0) {
-          await Promise.all(
-            unreadMessages.map(msg => 
-              supabase
-                .from('messages')
-                .update({ is_read: true })
-                .eq('id', msg.id)
-            )
-          );
+        // Oznacz wiadomości jako przeczytane
+        if (data.length > 0) {
+          const unreadMessages = data.filter(m => !m.is_read && m.sender_id !== user?.id);
           
-          // Aktualizuj licznik nieprzeczytanych
-          await supabase
-            .from('conversation_participants')
-            .update({ unread_count: 0 })
-            .eq('conversation_id', conversationId)
-            .eq('user_id', user?.id);
+          if (unreadMessages.length > 0) {
+            await Promise.all(
+              unreadMessages.map(msg => 
+                supabase
+                  .from('messages')
+                  .update({ is_read: true })
+                  .eq('id', msg.id)
+              )
+            );
             
-          // Aktualizuj lokalny stan konwersacji
-          setConversations(prevConversations => 
-            prevConversations.map(conv => 
-              conv.id === conversationId ? { ...conv, unread_count: 0 } : conv
-            )
-          );
+            // Aktualizuj licznik nieprzeczytanych
+            await supabase
+              .from('conversation_participants')
+              .update({ unread_count: 0 })
+              .eq('conversation_id', conversationId)
+              .eq('user_id', user?.id);
+              
+            // Aktualizuj lokalny stan konwersacji
+            setConversations(prevConversations => 
+              prevConversations.map(conv => 
+                conv.id === conversationId ? { ...conv, unread_count: 0 } : conv
+              )
+            );
+          }
         }
       }
     } catch (error: any) {
@@ -152,22 +159,26 @@ export function useMessages() {
     if (!user || !text.trim() || !conversationId) return null;
     
     try {
+      const newMessage = {
+        conversation_id: conversationId,
+        sender_id: user.id,
+        text: text.trim(),
+      };
+      
       const { data, error } = await supabase
         .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: user.id,
-          text: text.trim(),
-        })
+        .insert(newMessage)
         .select('*, sender:profiles(id, full_name, avatar_url, username, role)')
         .single();
         
       if (error) throw error;
       
       // Dodaj nową wiadomość do stanu
-      setMessages(prev => [...prev, data]);
+      if (data) {
+        setMessages(prev => [...prev, data as Message]);
+      }
       
-      return data;
+      return data as Message;
     } catch (error: any) {
       console.error('Błąd podczas wysyłania wiadomości:', error);
       toast({
@@ -239,7 +250,7 @@ export function useMessages() {
           const newMessage = {
             ...payload.new,
             sender: senderData
-          };
+          } as Message;
           
           // Jeśli wiadomość jest od innego użytkownika, oznacz ją jako przeczytaną
           if (payload.new.sender_id !== user.id) {
