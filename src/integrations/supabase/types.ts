@@ -576,6 +576,12 @@ export type Database = {
         }
         Returns: string
       }
+      get_user_conversations: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: string[]
+      }
     }
     Enums: {
       [_ in never]: never

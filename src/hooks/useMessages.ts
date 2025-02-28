@@ -5,6 +5,97 @@ import { Conversation, Message, Profile } from '@/types/messages';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 
+// Funkcja pomocnicza do pobierania konwersacji
+const fetchConversationDetails = async (userId: string): Promise<Conversation[]> => {
+  try {
+    // 1. Najpierw pobierz tylko ID konwersacji, w których uczestniczy użytkownik
+    const { data: participantsData, error: participantsError } = await supabase
+      .from('conversation_participants')
+      .select('conversation_id, unread_count')
+      .eq('user_id', userId);
+    
+    if (participantsError) throw participantsError;
+    if (!participantsData || participantsData.length === 0) return [];
+    
+    // 2. Pobierz szczegóły konwersacji na podstawie ID
+    const conversationIds = participantsData.map(p => p.conversation_id);
+    const { data: conversationsData, error: conversationsError } = await supabase
+      .from('conversations')
+      .select('*')
+      .in('id', conversationIds);
+    
+    if (conversationsError) throw conversationsError;
+    if (!conversationsData) return [];
+    
+    // 3. Przygotuj mapę liczników nieprzeczytanych wiadomości
+    const unreadCountMap = participantsData.reduce((map, item) => {
+      map[item.conversation_id] = item.unread_count;
+      return map;
+    }, {} as Record<string, number>);
+    
+    // 4. Uzupełnij konwersacje o dodatkowe dane (inni uczestnicy, produkty)
+    const conversationsWithDetails = await Promise.all(
+      conversationsData.map(async (conv) => {
+        // 4.1 Pobierz innych uczestników konwersacji
+        const { data: participants, error: participantsError } = await supabase
+          .from('conversation_participants')
+          .select('user_id')
+          .eq('conversation_id', conv.id)
+          .neq('user_id', userId);
+        
+        if (participantsError) throw participantsError;
+        
+        // 4.2 Pobierz dane profilu drugiego uczestnika
+        let otherUser = null;
+        if (participants && participants.length > 0) {
+          const { data: userData, error: userError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', participants[0].user_id)
+            .single();
+            
+          if (!userError && userData) {
+            otherUser = userData;
+          }
+        }
+        
+        // 4.3 Jeśli to konwersacja marketplace, pobierz informacje o produkcie
+        let product = null;
+        if (conv.type === 'marketplace' && conv.product_id) {
+          const { data: productData, error: productError } = await supabase
+            .from('products')
+            .select('id, title, price, image_url')
+            .eq('id', conv.product_id)
+            .single();
+            
+          if (!productError && productData) {
+            product = productData;
+          }
+        }
+        
+        // 4.4 Zwróć kompletny obiekt konwersacji
+        return {
+          ...conv,
+          otherUser,
+          product,
+          unread_count: unreadCountMap[conv.id] || 0
+        } as Conversation;
+      })
+    );
+    
+    // 5. Sortuj konwersacje według ostatniej wiadomości
+    return conversationsWithDetails.sort((a, b) => {
+      if (!a.last_message_time) return 1;
+      if (!b.last_message_time) return -1;
+      return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
+    });
+  } catch (error) {
+    console.error('Błąd podczas pobierania szczegółów konwersacji:', error);
+    throw error;
+  }
+};
+
+// Hook do zarządzania wiadomościami
 export function useMessages() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<string | null>(null);
@@ -20,81 +111,8 @@ export function useMessages() {
     
     try {
       setLoadingConversations(true);
-      
-      // Pobierz uczestników konwersacji
-      const { data: participantsData, error: participantsError } = await supabase
-        .from('conversation_participants')
-        .select('*, conversation:conversations(id, type, created_at, updated_at, product_id, last_message_text, last_message_time)')
-        .eq('user_id', user.id);
-      
-      if (participantsError) throw participantsError;
-      
-      if (!participantsData) {
-        setConversations([]);
-        return;
-      }
-      
-      // Konwersacje bez informacji o drugim użytkowniku
-      const rawConversations = participantsData.map(p => ({
-        ...p.conversation,
-        unread_count: p.unread_count
-      })) as Conversation[];
-      
-      // Pobierz informacje o innych uczestnikach każdej konwersacji
-      const conversationsWithUsers = await Promise.all(
-        rawConversations.map(async (conv) => {
-          // Pobierz uczestników
-          const { data: participants, error: participantsError } = await supabase
-            .from('conversation_participants')
-            .select('user_id')
-            .eq('conversation_id', conv.id)
-            .neq('user_id', user.id);
-          
-          if (participantsError) throw participantsError;
-          
-          let otherUser = null;
-          if (participants && participants.length > 0) {
-            const { data: userData, error: userError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', participants[0].user_id)
-              .single();
-              
-            if (!userError && userData) {
-              otherUser = userData;
-            }
-          }
-          
-          // Jeśli to konwersacja marketplace, pobierz informacje o produkcie
-          let product = null;
-          if (conv.type === 'marketplace' && conv.product_id) {
-            const { data: productData, error: productError } = await supabase
-              .from('products')
-              .select('id, title, price, image_url')
-              .eq('id', conv.product_id)
-              .single();
-              
-            if (!productError && productData) {
-              product = productData;
-            }
-          }
-          
-          return {
-            ...conv,
-            otherUser,
-            product
-          } as Conversation;
-        })
-      );
-      
-      // Sortuj konwersacje według ostatniej wiadomości
-      const sortedConversations = conversationsWithUsers.sort((a, b) => {
-        if (!a.last_message_time) return 1;
-        if (!b.last_message_time) return -1;
-        return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
-      });
-      
-      setConversations(sortedConversations);
+      const conversations = await fetchConversationDetails(user.id);
+      setConversations(conversations);
     } catch (error: any) {
       console.error('Błąd podczas pobierania konwersacji:', error);
       toast({
@@ -109,7 +127,7 @@ export function useMessages() {
 
   // Pobieranie wiadomości dla wybranej konwersacji
   const fetchMessages = useCallback(async (conversationId: string) => {
-    if (!conversationId) return;
+    if (!conversationId || !user) return;
     
     try {
       setLoadingMessages(true);
@@ -127,9 +145,10 @@ export function useMessages() {
         
         // Oznacz wiadomości jako przeczytane
         if (data.length > 0) {
-          const unreadMessages = data.filter(m => !m.is_read && m.sender_id !== user?.id);
+          const unreadMessages = data.filter(m => !m.is_read && m.sender_id !== user.id);
           
           if (unreadMessages.length > 0) {
+            // Aktualizuj status wiadomości na przeczytane
             await Promise.all(
               unreadMessages.map(msg => 
                 supabase
@@ -144,7 +163,7 @@ export function useMessages() {
               .from('conversation_participants')
               .update({ unread_count: 0 })
               .eq('conversation_id', conversationId)
-              .eq('user_id', user?.id);
+              .eq('user_id', user.id);
               
             // Aktualizuj lokalny stan konwersacji
             setConversations(prevConversations => 
@@ -212,20 +231,100 @@ export function useMessages() {
     if (!user) return null;
     
     try {
-      // Wywołaj funkcję find_or_create_conversation
-      const { data, error } = await supabase
-        .rpc('find_or_create_conversation', { 
-          p_user_id1: user.id,
-          p_user_id2: otherUserId,
-          p_type: type,
-          p_product_id: productId
-        });
+      // Sprawdź, czy istnieje już konwersacja między tymi użytkownikami
+      let existingConversationId: string | null = null;
       
-      if (error) throw error;
+      if (type === 'private') {
+        // Szukaj prywatnej konwersacji między użytkownikami
+        const { data: myParticipations } = await supabase
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('user_id', user.id);
+        
+        if (myParticipations && myParticipations.length > 0) {
+          const myConversationIds = myParticipations.map(p => p.conversation_id);
+          
+          const { data: theirParticipations } = await supabase
+            .from('conversation_participants')
+            .select('conversation_id')
+            .eq('user_id', otherUserId)
+            .in('conversation_id', myConversationIds);
+          
+          if (theirParticipations && theirParticipations.length > 0) {
+            // Znajdź konwersację typu 'private' bez product_id
+            const { data: conversations } = await supabase
+              .from('conversations')
+              .select('id')
+              .eq('type', 'private')
+              .is('product_id', null)
+              .in('id', theirParticipations.map(p => p.conversation_id));
+            
+            if (conversations && conversations.length > 0) {
+              existingConversationId = conversations[0].id;
+            }
+          }
+        }
+      } else if (type === 'marketplace' && productId) {
+        // Szukaj konwersacji marketplace dla danego produktu
+        const { data: myParticipations } = await supabase
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('user_id', user.id);
+        
+        if (myParticipations && myParticipations.length > 0) {
+          const myConversationIds = myParticipations.map(p => p.conversation_id);
+          
+          const { data: theirParticipations } = await supabase
+            .from('conversation_participants')
+            .select('conversation_id')
+            .eq('user_id', otherUserId)
+            .in('conversation_id', myConversationIds);
+          
+          if (theirParticipations && theirParticipations.length > 0) {
+            const { data: conversations } = await supabase
+              .from('conversations')
+              .select('id')
+              .eq('type', 'marketplace')
+              .eq('product_id', productId)
+              .in('id', theirParticipations.map(p => p.conversation_id));
+            
+            if (conversations && conversations.length > 0) {
+              existingConversationId = conversations[0].id;
+            }
+          }
+        }
+      }
       
-      // Odśwież listę konwersacji i zwróć ID
-      await fetchConversations();
-      return data;
+      // Jeśli znaleziono istniejącą konwersację, zwróć jej ID
+      if (existingConversationId) {
+        return existingConversationId;
+      }
+      
+      // W przeciwnym razie utwórz nową konwersację
+      const { data: newConversation, error: conversationError } = await supabase
+        .from('conversations')
+        .insert({ type, product_id: productId })
+        .select('id')
+        .single();
+      
+      if (conversationError) throw conversationError;
+      
+      // Dodaj uczestników do nowej konwersacji
+      const participantsToInsert = [
+        { conversation_id: newConversation.id, user_id: user.id },
+        { conversation_id: newConversation.id, user_id: otherUserId }
+      ];
+      
+      const { error: participantsError } = await supabase
+        .from('conversation_participants')
+        .insert(participantsToInsert);
+      
+      if (participantsError) throw participantsError;
+      
+      // Odśwież listę konwersacji
+      fetchConversations();
+      
+      return newConversation.id;
     } catch (error: any) {
       console.error('Błąd podczas tworzenia konwersacji:', error);
       toast({
@@ -250,9 +349,11 @@ export function useMessages() {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `conversation_id=eq.${currentConversation}`
+          filter: currentConversation ? `conversation_id=eq.${currentConversation}` : undefined
         },
         async (payload) => {
+          if (!currentConversation || payload.new.conversation_id !== currentConversation) return;
+          
           // Pobierz informacje o nadawcy
           const { data: senderData } = await supabase
             .from('profiles')
