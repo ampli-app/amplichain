@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) {
           console.error('Error getting auth session:', error);
           toast({
-            title: 'Authentication Error',
+            title: "Authentication Error",
             description: 'There was a problem retrieving your session.',
             variant: 'destructive',
           });
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         toast({
-          title: 'Logowanie nieudane',
+          title: "Logowanie nieudane",
           description: error.message,
           variant: 'destructive',
         });
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       console.error('Unexpected login error:', err);
       toast({
-        title: 'Błąd logowania',
+        title: "Błąd logowania",
         description: 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie.',
         variant: 'destructive',
       });
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Error checking existing user:', checkError);
       } else if (existingUsers && existingUsers.length > 0) {
         toast({
-          title: 'Rejestracja nieudana',
+          title: "Rejestracja nieudana",
           description: 'Użytkownik z tym adresem email już istnieje.',
           variant: 'destructive',
         });
@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         toast({
-          title: 'Rejestracja nieudana',
+          title: "Rejestracja nieudana",
           description: error.message,
           variant: 'destructive',
         });
@@ -142,14 +142,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // If signUp is successful but email confirmation is required
       if (data.user && !data.session) {
         toast({
-          title: 'Email weryfikacyjny wysłany',
+          title: "Email weryfikacyjny wysłany",
           description: 'Sprawdź swoją skrzynkę odbiorczą, aby potwierdzić rejestrację.',
         });
       } else if (data.session) {
         setSession(data.session);
         setUser(data.user);
         toast({
-          title: 'Konto utworzone',
+          title: "Konto utworzone",
           description: 'Rejestracja zakończona sukcesem!',
         });
       }
@@ -158,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       console.error('Unexpected signup error:', err);
       toast({
-        title: 'Błąd rejestracji',
+        title: "Błąd rejestracji",
         description: 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie.',
         variant: 'destructive',
       });
@@ -176,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (error) {
         toast({
-          title: 'Błąd wylogowania',
+          title: "Błąd wylogowania",
           description: error.message,
           variant: 'destructive',
         });
@@ -185,14 +185,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(null);
         setUser(null);
         toast({
-          title: 'Wylogowano',
+          title: "Wylogowano",
           description: 'Zostałeś pomyślnie wylogowany.',
         });
       }
     } catch (err) {
       console.error('Unexpected logout error:', err);
       toast({
-        title: 'Błąd wylogowania',
+        title: "Błąd wylogowania",
         description: 'Wystąpił nieoczekiwany błąd podczas wylogowania.',
         variant: 'destructive',
       });

@@ -35,7 +35,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/mentorship" element={<Mentorship />} />
             <Route path="/connections" element={<Connections />} />
-            <Route path="/discover" element={<Discovery />} />
+            <Route path="/discovery" element={<Discovery />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/marketplace/:id" element={<ProductDetail />} />
