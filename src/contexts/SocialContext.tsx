@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -86,7 +85,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
   
   const unreadNotifications = notifications.filter(notif => !notif.read).length;
   
-  // Załaduj profil aktualnego użytkownika oraz innych użytkowników
   useEffect(() => {
     if (isLoggedIn && user) {
       loadCurrentUserProfile();
@@ -97,7 +95,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [isLoggedIn, user]);
   
-  // Pobierz profil aktualnego zalogowanego użytkownika
   const loadCurrentUserProfile = async () => {
     try {
       setLoading(true);
@@ -133,14 +130,12 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Pobierz innych użytkowników i ich status połączenia z bieżącym użytkownikiem
   const loadUsers = async () => {
     try {
       setLoading(true);
       
       if (!user) return;
       
-      // Pobierz wszystkie profile z wyjątkiem bieżącego użytkownika
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -151,7 +146,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Pobierz informacje o obserwowaniach
       const { data: followingsData, error: followingsError } = await supabase
         .from('followings')
         .select('*')
@@ -161,7 +155,15 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         console.error('Error loading followings:', followingsError);
       }
 
-      // Pobierz informacje o połączeniach
+      const { data: followersData, error: followersError } = await supabase
+        .from('followings')
+        .select('*')
+        .eq('following_id', user.id);
+
+      if (followersError) {
+        console.error('Error loading followers:', followersError);
+      }
+
       const { data: connectionsData, error: connectionsError } = await supabase
         .from('connections')
         .select('*')
@@ -171,7 +173,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         console.error('Error loading connections:', connectionsError);
       }
 
-      // Pobierz informacje o wysłanych zaproszeniach do połączenia
       const { data: sentRequestsData, error: sentRequestsError } = await supabase
         .from('connection_requests')
         .select('*')
@@ -182,7 +183,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         console.error('Error loading sent connection requests:', sentRequestsError);
       }
 
-      // Pobierz informacje o otrzymanych zaproszeniach do połączenia
       const { data: receivedRequestsData, error: receivedRequestsError } = await supabase
         .from('connection_requests')
         .select('*')
@@ -193,11 +193,17 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         console.error('Error loading received connection requests:', receivedRequestsError);
       }
 
-      // Zbuduj mapę użytkowników ze statusami połączeń
       const followingIds = new Set((followingsData || []).map(f => f.following_id));
+      const followerIds = new Set((followersData || []).map(f => f.follower_id));
+      
       const connectionIds = new Set(
-        (connectionsData || []).flatMap(c => [c.user_id1, c.user_id2]).filter(id => id !== user.id)
+        (connectionsData || []).flatMap(c => {
+          if (c.user_id1 === user.id) return [c.user_id2];
+          if (c.user_id2 === user.id) return [c.user_id1];
+          return [];
+        })
       );
+      
       const sentRequestIds = new Set((sentRequestsData || []).map(r => r.receiver_id));
       const receivedRequestIds = new Set((receivedRequestsData || []).map(r => r.sender_id));
 
@@ -222,6 +228,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
           role: profile.role || '',
           bio: profile.bio,
           connectionStatus,
+          isFollower: followerIds.has(profile.id),
           followersCount: profile.followers || 0,
           followingCount: profile.following || 0,
           connectionsCount: profile.connections || 0
@@ -236,14 +243,11 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Pobierz profil konkretnego użytkownika
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Sprawdź, czy już mamy tego użytkownika w pamięci
       const cachedUser = users.find(u => u.id === userId);
       if (cachedUser) return cachedUser;
 
-      // Jeśli nie, pobierz z bazy
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -257,11 +261,9 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
 
       if (!data) return null;
 
-      // Określ status połączenia
       let connectionStatus: UserConnectionStatus = 'none';
       
       if (user) {
-        // Sprawdź, czy jest w połączeniach
         const { data: connectionData } = await supabase
           .from('connections')
           .select('*')
@@ -271,7 +273,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         if (connectionData) {
           connectionStatus = 'connected';
         } else {
-          // Sprawdź wysłane zaproszenia
           const { data: sentRequest } = await supabase
             .from('connection_requests')
             .select('*')
@@ -283,7 +284,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
           if (sentRequest) {
             connectionStatus = 'pending_sent';
           } else {
-            // Sprawdź otrzymane zaproszenia
             const { data: receivedRequest } = await supabase
               .from('connection_requests')
               .select('*')
@@ -295,7 +295,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
             if (receivedRequest) {
               connectionStatus = 'pending_received';
             } else {
-              // Sprawdź obserwowanie
               const { data: followingData } = await supabase
                 .from('followings')
                 .select('*')
@@ -331,7 +330,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Wyszukiwanie użytkowników
   const searchUsers = async (query: string): Promise<SocialUser[]> => {
     try {
       if (!query.trim()) return [];
@@ -351,7 +349,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
 
       if (!data || data.length === 0) return [];
 
-      // Określ status połączenia dla każdego użytkownika
       const userProfiles = await Promise.all(
         data.map(async (profile) => {
           const userProfile = await fetchUserProfile(profile.id);
@@ -366,7 +363,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Obserwuj użytkownika
   const followUser = async (userId: string) => {
     try {
       if (!user) {
@@ -378,7 +374,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Dodaj wpis do tabeli followings
       const { error } = await supabase
         .from('followings')
         .insert({
@@ -396,7 +391,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Aktualizuj stan lokalny
       setUsers(prevUsers => 
         prevUsers.map(u => 
           u.id === userId 
@@ -405,7 +399,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         )
       );
 
-      // Aktualizuj licznik obserwowanych dla currentUser
       if (currentUser) {
         setCurrentUser({
           ...currentUser,
@@ -418,7 +411,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         description: "Pomyślnie obserwujesz użytkownika.",
       });
 
-      // Odśwież dane
       loadUsers();
     } catch (err) {
       console.error('Unexpected error following user:', err);
@@ -430,7 +422,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Przestań obserwować użytkownika
   const unfollowUser = async (userId: string) => {
     try {
       if (!user) {
@@ -442,7 +433,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Najpierw sprawdź, czy istnieje połączenie między użytkownikami
       const { data: connectionData } = await supabase
         .from('connections')
         .select('*')
@@ -458,7 +448,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Usuń wpis z tabeli followings
       const { error } = await supabase
         .from('followings')
         .delete()
@@ -475,7 +464,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Aktualizuj stan lokalny
       setUsers(prevUsers => 
         prevUsers.map(u => 
           u.id === userId 
@@ -484,7 +472,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         )
       );
 
-      // Aktualizuj licznik obserwowanych dla currentUser
       if (currentUser) {
         setCurrentUser({
           ...currentUser,
@@ -497,7 +484,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         description: "Pomyślnie przestałeś obserwować użytkownika.",
       });
 
-      // Odśwież dane
       loadUsers();
     } catch (err) {
       console.error('Unexpected error unfollowing user:', err);
@@ -509,7 +495,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Wyślij zaproszenie do połączenia
   const sendConnectionRequest = async (userId: string) => {
     try {
       if (!user) {
@@ -521,7 +506,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Sprawdź, czy zaproszenie już istnieje
       const { data: existingRequest, error: checkError } = await supabase
         .from('connection_requests')
         .select('*')
@@ -537,7 +521,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Sprawdź, czy osoba już obserwuje użytkownika - jeśli nie, najpierw obserwuj
       const { data: followingData } = await supabase
         .from('followings')
         .select('*')
@@ -546,7 +529,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (!followingData) {
-        // Najpierw dodaj obserwowanie
         const { error: followError } = await supabase
           .from('followings')
           .insert({
@@ -559,7 +541,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // Dodaj wpis do tabeli connection_requests
       const { error } = await supabase
         .from('connection_requests')
         .insert({
@@ -578,7 +559,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Aktualizuj stan lokalny
       setUsers(prevUsers => 
         prevUsers.map(u => 
           u.id === userId 
@@ -587,7 +567,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         )
       );
 
-      // Aktualizuj licznik obserwowanych dla currentUser jeśli auto-obserwowanie było potrzebne
       if (!followingData && currentUser) {
         setCurrentUser({
           ...currentUser,
@@ -600,7 +579,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         description: "Zaproszenie do połączenia zostało wysłane.",
       });
 
-      // Odśwież dane
       loadUsers();
     } catch (err) {
       console.error('Unexpected error sending connection request:', err);
@@ -609,11 +587,10 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         description: "Wystąpił nieoczekiwany błąd.",
         variant: "destructive",
       });
-      throw err; // Rzucamy błąd, aby obsłużyć go w komponencie
+      throw err;
     }
   };
 
-  // Akceptuj zaproszenie do połączenia
   const acceptConnectionRequest = async (userId: string) => {
     try {
       if (!user) {
@@ -625,7 +602,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Znajdź zaproszenie
       const { data: requestData, error: findError } = await supabase
         .from('connection_requests')
         .select('*')
@@ -644,7 +620,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // 1. Zaktualizuj status zaproszenia
       const { error: updateError } = await supabase
         .from('connection_requests')
         .update({ status: 'accepted' })
@@ -660,16 +635,11 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // 2. Utwórz nowe połączenie
-      // Upewnij się, że user_id1 < user_id2 (zgodnie z naszym ograniczeniem)
-      const user_id1 = user.id < userId ? user.id : userId;
-      const user_id2 = user.id < userId ? userId : user.id;
-      
       const { error: connectionError } = await supabase
         .from('connections')
         .insert({
-          user_id1,
-          user_id2
+          user_id1: user.id < userId ? user.id : userId,
+          user_id2: user.id < userId ? userId : user.id
         });
 
       if (connectionError) {
@@ -682,7 +652,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Aktualizuj stan lokalny
       setUsers(prevUsers => 
         prevUsers.map(u => 
           u.id === userId 
@@ -691,7 +660,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         )
       );
 
-      // Aktualizuj licznik połączeń dla currentUser
       if (currentUser) {
         setCurrentUser({
           ...currentUser,
@@ -704,7 +672,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         description: "Zaproszenie zostało zaakceptowane, połączenie utworzone.",
       });
 
-      // Odśwież dane
       loadUsers();
     } catch (err) {
       console.error('Unexpected error accepting connection request:', err);
@@ -716,7 +683,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Odrzuć zaproszenie do połączenia
   const declineConnectionRequest = async (userId: string) => {
     try {
       if (!user) {
@@ -728,7 +694,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Znajdź i odrzuć zaproszenie
       const { error } = await supabase
         .from('connection_requests')
         .update({ status: 'rejected' })
@@ -746,7 +711,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Aktualizuj stan lokalny
       setUsers(prevUsers => 
         prevUsers.map(u => 
           u.id === userId 
@@ -760,7 +724,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         description: "Zaproszenie zostało odrzucone.",
       });
 
-      // Odśwież dane
       loadUsers();
     } catch (err) {
       console.error('Unexpected error declining connection request:', err);
@@ -772,7 +735,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Usuń połączenie
   const removeConnection = async (userId: string) => {
     try {
       if (!user) {
@@ -784,7 +746,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Znajdź i usuń połączenie
       const { error } = await supabase
         .from('connections')
         .delete()
@@ -800,7 +761,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Po usunięciu połączenia, zaktualizuj status - teraz jesteśmy tylko obserwującymi
       setUsers(prevUsers => 
         prevUsers.map(u => 
           u.id === userId 
@@ -809,7 +769,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         )
       );
 
-      // Aktualizuj licznik połączeń dla currentUser
       if (currentUser) {
         setCurrentUser({
           ...currentUser,
@@ -819,10 +778,9 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
 
       toast({
         title: "Sukces",
-        description: "Połączenie zostało usunięte. Nadal obserwujesz tego użytkownika.",
+        description: "Połączenie zostało usunięte. Nadal obserwujesz tego użytkownika i on nadal Cię obserwuje.",
       });
 
-      // Odśwież dane
       loadUsers();
     } catch (err) {
       console.error('Unexpected error removing connection:', err);
@@ -834,31 +792,30 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Tymczasowe puste funkcje, mogłyby być zaimplementowane w przyszłości
   const createPost = (content: string, mediaUrl?: string, mediaType?: 'image' | 'video') => {
     console.log('Create post functionality not implemented');
   };
-  
+
   const likePost = (postId: string) => {
     console.log('Like post functionality not implemented');
   };
-  
+
   const unlikePost = (postId: string) => {
     console.log('Unlike post functionality not implemented');
   };
-  
+
   const commentOnPost = (postId: string, comment: string) => {
     console.log('Comment post functionality not implemented');
   };
-  
+
   const markNotificationAsRead = (notificationId: string) => {
     console.log('Mark notification as read functionality not implemented');
   };
-  
+
   const markAllNotificationsAsRead = () => {
     console.log('Mark all notifications as read functionality not implemented');
   };
-  
+
   return (
     <SocialContext.Provider value={{
       currentUser,
