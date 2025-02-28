@@ -41,7 +41,7 @@ interface Product {
   price: number;
   image_url: string;
   category: string | null;
-  category_id: string | null; // Dodane pole category_id
+  category_id: string | null;
   rating: number | null;
   review_count: number | null;
   sale?: boolean | null;
@@ -492,14 +492,18 @@ export default function Marketplace() {
       
       <main className="flex-1 pt-24 pb-16">
         <div className="container px-4 mx-auto">
-          <div className="flex flex-col items-center text-center mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">Rynek Sprzętu</h1>
-            <p className="text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl">
-              Odkryj wysokiej jakości sprzęt muzyczny od zaufanych sprzedawców w naszym wyselekcjonowanym sklepie.
-            </p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+            <div className="text-center md:text-left mb-4 md:mb-0">
+              <h1 className="text-3xl md:text-4xl font-bold">Rynek Sprzętu</h1>
+              <p className="text-lg text-zinc-600 dark:text-zinc-400 mt-2 max-w-2xl">
+                Odkryj wysokiej jakości sprzęt muzyczny od zaufanych sprzedawców.
+              </p>
+            </div>
+            
             <Button 
-              className="mt-6 gap-2"
+              className="self-center md:self-auto gap-2"
               onClick={handleAddProductClick}
+              size="lg"
             >
               <PlusCircle className="h-4 w-4" />
               Dodaj produkt

@@ -7,14 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { Loader2, X, Image as ImageIcon, Plus } from 'lucide-react';
+import { Loader2, X, Image as ImageIcon, Plus, Upload, AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AddProductDialogProps {
   open: boolean;
@@ -55,8 +55,6 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
   
   const [isForTesting, setIsForTesting] = useState(false);
   const [testingPrice, setTestingPrice] = useState('');
-  const [isOnSale, setIsOnSale] = useState(false);
-  const [salePercentage, setSalePercentage] = useState('');
   
   // Fetch categories from Supabase
   useEffect(() => {
@@ -150,8 +148,6 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         
         setIsForTesting(data.for_testing || false);
         setTestingPrice(data.testing_price ? data.testing_price.toString() : '');
-        setIsOnSale(data.sale || false);
-        setSalePercentage(data.sale_percentage ? data.sale_percentage.toString() : '');
         
         // Handle images - we need to adapt this based on whether image_url is a string or something else
         let imageUrlsArray: string[] = [];
@@ -186,8 +182,47 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     setProductImages([{ file: null, preview: null }]);
     setIsForTesting(false);
     setTestingPrice('');
-    setIsOnSale(false);
-    setSalePercentage('');
+  };
+  
+  const handleMultipleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      const maxImages = 8;
+      
+      // Limit number of images
+      const filesToProcess = files.slice(0, maxImages - productImages.length + 1);
+      
+      if (files.length > maxImages - productImages.length + 1) {
+        toast({
+          title: "Limit zdjęć",
+          description: `Możesz dodać maksymalnie ${maxImages} zdjęć. Wybrano tylko pierwsze ${filesToProcess.length}.`,
+          variant: "destructive",
+        });
+      }
+      
+      // Remove the empty placeholder if it exists
+      let updatedImages = [...productImages];
+      if (updatedImages.length === 1 && !updatedImages[0].file && !updatedImages[0].preview) {
+        updatedImages = [];
+      }
+      
+      // Process each file
+      filesToProcess.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          updatedImages.push({
+            file,
+            preview: reader.result as string
+          });
+          
+          // Update state after processing all files
+          if (updatedImages.length <= maxImages) {
+            setProductImages([...updatedImages]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
   };
   
   const handleImageChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -223,14 +258,18 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
   };
   
   const removeImageField = (index: number) => {
-    if (productImages.length > 1) {
-      const updatedImages = [...productImages];
-      updatedImages.splice(index, 1);
-      setProductImages(updatedImages);
+    const updatedImages = [...productImages];
+    updatedImages.splice(index, 1);
+    
+    // If we're removing the last image, add an empty one
+    if (updatedImages.length === 0) {
+      updatedImages.push({ file: null, preview: null });
     }
+    
+    setProductImages(updatedImages);
   };
   
-  const uploadImages = async (): Promise<string> => {
+  const uploadImages = async (): Promise<string[]> => {
     const uploadedUrls: string[] = [];
     
     // First, include any existing URLs that weren't changed
@@ -282,9 +321,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
       }
     }
     
-    // Join multiple images with a delimiter that can be parsed later
-    // For now, we'll just use the first image since the schema expects a string
-    return uploadedUrls.length > 0 ? uploadedUrls[0] : '';
+    return uploadedUrls;
   };
   
   const validateForm = () => {
@@ -335,15 +372,6 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
       return false;
     }
     
-    if (isOnSale && (!salePercentage.trim() || isNaN(parseFloat(salePercentage)) || parseFloat(salePercentage) <= 0 || parseFloat(salePercentage) >= 100)) {
-      toast({
-        title: "Nieprawidłowy procent zniżki",
-        description: "Podaj procent zniżki między 1 a 99.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
     return true;
   };
   
@@ -361,7 +389,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     
     try {
       // Upload images
-      const imageUrl = await uploadImages();
+      const imageUrls = await uploadImages();
       
       // Find selected category name
       const selectedCategory = categories.find(cat => cat.id === categoryId);
@@ -372,11 +400,12 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         price: parseFloat(price),
         category: selectedCategory?.name, // Keep for backward compatibility
         category_id: categoryId, // Store the category ID
-        image_url: imageUrl, // Now this is a string, as required by the schema
+        image_url: imageUrls.length > 0 ? imageUrls[0] : '', // First image as main (for backward compatibility)
+        image_urls: imageUrls, // Store all image URLs in an array
         for_testing: isForTesting,
         testing_price: isForTesting ? parseFloat(testingPrice) : null,
-        sale: isOnSale,
-        sale_percentage: isOnSale ? parseFloat(salePercentage) : null,
+        sale: false, // Always set to false as we removed the feature
+        sale_percentage: null, // Always set to null as we removed the feature
         user_id: user.id
       };
       
@@ -521,124 +550,101 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
               
               <div className="grid gap-3">
                 <div className="flex justify-between items-center">
-                  <Label>Zdjęcia produktu ({productImages.length}/8)</Label>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={addImageField}
-                    disabled={productImages.length >= 8}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Dodaj zdjęcie
-                  </Button>
+                  <Label className="text-base font-medium">Zdjęcia produktu ({productImages.filter(img => img.file || img.preview).length}/8)</Label>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {productImages.map((image, index) => (
-                    <Card key={index} className="relative">
-                      <CardContent className="p-3 flex flex-col gap-2">
-                        {index > 0 && (
-                          <Button 
-                            type="button" 
-                            variant="destructive" 
-                            size="icon" 
-                            className="absolute -top-2 -right-2 h-6 w-6 z-10"
-                            onClick={() => removeImageField(index)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        )}
-                        
-                        <div className="flex items-center gap-2">
-                          <Label className="text-xs" htmlFor={`image-${index}`}>
-                            Zdjęcie {index + 1}
-                          </Label>
-                          <Input 
-                            id={`image-${index}`} 
-                            type="file" 
-                            accept="image/*"
-                            onChange={(e) => handleImageChange(index, e)}
-                            className="text-xs"
-                          />
-                        </div>
-                        
-                        {image.preview ? (
-                          <div className="rounded-md overflow-hidden border bg-muted/50 aspect-square">
+                {/* Multiple image upload button */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 cursor-pointer hover:border-primary transition-colors">
+                    <input
+                      type="file"
+                      id="multiple-images"
+                      multiple
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleMultipleImageUpload}
+                    />
+                    <label htmlFor="multiple-images" className="cursor-pointer flex flex-col items-center">
+                      <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                      <span className="text-sm font-medium">Przeciągnij zdjęcia tutaj lub kliknij, aby wybrać</span>
+                      <span className="text-xs text-gray-500 mt-1">Możesz dodać do 8 zdjęć naraz</span>
+                    </label>
+                  </div>
+                  
+                  {/* Image previews grid */}
+                  {productImages.some(img => img.file || img.preview) && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                      {productImages.map((image, index) => (
+                        image.preview && (
+                          <div key={index} className="relative group aspect-square rounded-md overflow-hidden border bg-muted/50">
                             <img 
                               src={image.preview} 
                               alt={`Product preview ${index + 1}`} 
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-cover"
                             />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Button 
+                                variant="destructive" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => removeImageField(index)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                        ) : (
-                          <div className="flex items-center justify-center rounded-md border bg-muted/20 aspect-square">
-                            <ImageIcon className="h-10 w-10 text-muted-foreground opacity-50" />
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
+                        )
+                      ))}
+                    </div>
+                  )}
                 </div>
-                
-                <p className="text-sm text-muted-foreground">
-                  Dodaj do 8 zdjęć produktu. Zalecany format: JPG lub PNG, wymiary min. 800x800px.
-                </p>
               </div>
               
               <Separator />
               
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="forTesting" 
-                    checked={isForTesting}
-                    onCheckedChange={(checked) => setIsForTesting(checked as boolean)}
-                  />
-                  <Label htmlFor="forTesting">Dostępny do testów przez tydzień</Label>
+              {/* Testing option with improved UI */}
+              <div className="space-y-4 bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex justify-between">
+                  <div className="flex items-start space-x-2">
+                    <Checkbox 
+                      id="forTesting" 
+                      checked={isForTesting}
+                      onCheckedChange={(checked) => setIsForTesting(checked as boolean)}
+                      className="mt-1"
+                    />
+                    <div>
+                      <Label htmlFor="forTesting" className="text-base font-medium">Udostępnij do testów przed zakupem</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Umożliwia potencjalnym kupującym wypożyczenie produktu na tydzień w niższej cenie.
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 
                 {isForTesting && (
-                  <div className="grid gap-3 pl-6">
+                  <div className="pl-6 pt-2">
                     <Label htmlFor="testingPrice">Cena tygodniowego testu (PLN)</Label>
-                    <Input 
-                      id="testingPrice" 
-                      type="number"
-                      placeholder="0.00"
-                      min="0"
-                      step="0.01"
-                      value={testingPrice}
-                      onChange={(e) => setTestingPrice(e.target.value)}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Ustaw cenę za tygodniowy test produktu. Powinno to być 10-20% wartości produktu.
-                    </p>
-                  </div>
-                )}
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="saleSwitch"
-                    checked={isOnSale}
-                    onCheckedChange={setIsOnSale}
-                  />
-                  <Label htmlFor="saleSwitch">Produkt w promocji</Label>
-                </div>
-                
-                {isOnSale && (
-                  <div className="grid gap-3 pl-6">
-                    <Label htmlFor="salePercentage">Procent zniżki (%)</Label>
-                    <Input 
-                      id="salePercentage" 
-                      type="number"
-                      placeholder="0"
-                      min="1"
-                      max="99"
-                      value={salePercentage}
-                      onChange={(e) => setSalePercentage(e.target.value)}
-                    />
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input 
+                        id="testingPrice" 
+                        type="number"
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                        value={testingPrice}
+                        onChange={(e) => setTestingPrice(e.target.value)}
+                        className="max-w-xs"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        Sugerowane: {price ? `${Math.round(Number(price) * 0.15)} PLN` : 'obliczane na podstawie ceny'}
+                      </span>
+                    </div>
+                    <Alert className="mt-3 bg-blue-100/50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Produkty z opcją testów są częściej wybierane przez kupujących. Zalecana cena testu to 10-20% wartości produktu.
+                      </AlertDescription>
+                    </Alert>
                   </div>
                 )}
               </div>
