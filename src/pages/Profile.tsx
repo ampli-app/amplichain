@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -63,7 +64,7 @@ export default function Profile() {
                     variant="ghost" 
                     size="sm" 
                     className="h-8 w-8 p-0"
-                    onClick={() => loadProductForEditing(product.id)}
+                    onClick={() => navigate(`/edit-product/${product.id}`)}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
