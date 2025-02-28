@@ -31,6 +31,8 @@ export default function CheckoutSuccess() {
   
   // Dane produktu
   const [product, setProduct] = useState<any>(null);
+  // Dane profilu użytkownika
+  const [userProfile, setUserProfile] = useState<any>(null);
   
   useEffect(() => {
     if (!isLoggedIn) {
@@ -44,6 +46,9 @@ export default function CheckoutSuccess() {
     }
     
     fetchProductData();
+    if (user) {
+      fetchUserProfile(user.id);
+    }
   }, [id, isLoggedIn, user]);
   
   const fetchProductData = async () => {
@@ -71,6 +76,25 @@ export default function CheckoutSuccess() {
       console.error('Unexpected error:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return;
+      }
+      
+      setUserProfile(data);
+    } catch (err) {
+      console.error('Error fetching user profile:', err);
     }
   };
   
@@ -111,6 +135,9 @@ export default function CheckoutSuccess() {
   const orderNumber = `ORD${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`;
   const estimatedDelivery = formatDate(3); // 3 dni na dostawę
   const testEndDate = formatDate(7); // 7 dni testu
+  
+  // Ustalamy nazwę użytkownika
+  const userName = userProfile?.full_name || "Użytkownik";
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -234,7 +261,7 @@ export default function CheckoutSuccess() {
                     <div className="flex items-start gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                       <Home className="h-4 w-4 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p>{user?.full_name || "Użytkownik"}</p>
+                        <p>{userName}</p>
                         <p>ul. Przykładowa 123</p>
                         <p>00-000 Warszawa</p>
                       </div>
