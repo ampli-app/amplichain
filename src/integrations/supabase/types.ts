@@ -36,6 +36,30 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_options: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          price: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          price?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          price?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       education: {
         Row: {
           created_at: string | null
@@ -106,6 +130,42 @@ export type Database = {
           },
         ]
       }
+      product_delivery_options: {
+        Row: {
+          created_at: string | null
+          delivery_option_id: string
+          id: string
+          product_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_option_id: string
+          id?: string
+          product_id: string
+        }
+        Update: {
+          created_at?: string | null
+          delivery_option_id?: string
+          id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_delivery_options_delivery_option_id_fkey"
+            columns: ["delivery_option_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_delivery_options_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string | null
@@ -116,6 +176,7 @@ export type Database = {
           for_testing: boolean | null
           id: string
           image_url: string | null
+          location: string | null
           price: number
           rating: number | null
           review_count: number | null
@@ -135,6 +196,7 @@ export type Database = {
           for_testing?: boolean | null
           id?: string
           image_url?: string | null
+          location?: string | null
           price: number
           rating?: number | null
           review_count?: number | null
@@ -154,6 +216,7 @@ export type Database = {
           for_testing?: boolean | null
           id?: string
           image_url?: string | null
+          location?: string | null
           price?: number
           rating?: number | null
           review_count?: number | null

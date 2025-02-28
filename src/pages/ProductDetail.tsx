@@ -19,7 +19,9 @@ import {
   Heart,
   Share,
   Pencil,
-  Trash2
+  Trash2,
+  MapPin,
+  Package
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,6 +43,13 @@ interface ProductDetailProps {
   sale: boolean | null;
   sale_percentage: number | null;
   created_at: string;
+  location: string | null;
+}
+
+interface DeliveryOption {
+  id: string;
+  name: string;
+  price: number;
 }
 
 const getImageUrls = (imageData: string | string[] | null): string[] => {
@@ -71,6 +80,7 @@ export default function ProductDetail() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [product, setProduct] = useState<ProductDetailProps | null>(null);
+  const [deliveryOptions, setDeliveryOptions] = useState<DeliveryOption[]>([]);
   const [isUserProduct, setIsUserProduct] = useState(false);
   const [sellerInfo, setSellerInfo] = useState({
     name: "Sprzedawca",
@@ -116,6 +126,9 @@ export default function ProductDetail() {
           if (data.user_id) {
             fetchSellerInfo(data.user_id);
           }
+          
+          // Pobierz opcje dostawy dla produktu
+          fetchDeliveryOptions(data.id);
         } else {
           console.error('No product data found');
           toast({
@@ -138,6 +151,45 @@ export default function ProductDetail() {
     
     fetchProduct();
   }, [id, user]);
+
+  const fetchDeliveryOptions = async (productId: string) => {
+    try {
+      console.log("Fetching delivery options for product ID:", productId);
+      
+      // Pobierz opcje dostawy dla produktu
+      const { data: productDeliveryData, error: productDeliveryError } = await supabase
+        .from('product_delivery_options')
+        .select('delivery_option_id')
+        .eq('product_id', productId);
+      
+      if (productDeliveryError) {
+        console.error('Error fetching product delivery options:', productDeliveryError);
+        return;
+      }
+      
+      // Pobierz szczegóły opcji dostawy
+      if (productDeliveryData && productDeliveryData.length > 0) {
+        const deliveryOptionIds = productDeliveryData.map(option => option.delivery_option_id);
+        
+        const { data: optionsData, error: optionsError } = await supabase
+          .from('delivery_options')
+          .select('*')
+          .in('id', deliveryOptionIds);
+        
+        if (optionsError) {
+          console.error('Error fetching delivery option details:', optionsError);
+          return;
+        }
+        
+        if (optionsData) {
+          console.log("Received delivery options:", optionsData);
+          setDeliveryOptions(optionsData);
+        }
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching delivery options:', err);
+    }
+  };
 
   const fetchSellerInfo = async (userId: string) => {
     try {
@@ -326,12 +378,16 @@ export default function ProductDetail() {
         currency: 'PLN'
       }).format(originalPrice)
     : undefined;
+  
+  // Przygotuj opcje dostawy do wyświetlenia
+  const hasPickupOption = deliveryOptions.some(option => option.name === 'Odbiór osobisty');
 
   const specifications: Record<string, string> = {
     "Kategoria": product.category || "Nie określono",
     "Stan": "Nowy",
     "Dostępny do testów": product.for_testing ? "Tak" : "Nie",
-    "Cena testowa (tydzień)": formattedTestPrice || "Niedostępne"
+    "Cena testowa (tydzień)": formattedTestPrice || "Niedostępne",
+    "Lokalizacja": product.location || "Nie określono"
   };
 
   const features = [
@@ -419,6 +475,13 @@ export default function ProductDetail() {
                 
                 <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
                 
+                {product.location && (
+                  <div className="flex items-center gap-1 text-rhythm-600 mb-2">
+                    <MapPin className="h-4 w-4" />
+                    <span>{product.location}</span>
+                  </div>
+                )}
+                
                 <p className="text-rhythm-700 dark:text-rhythm-300 mb-6">
                   {product.description || "Brak opisu produktu."}
                 </p>
@@ -445,6 +508,34 @@ export default function ProductDetail() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Opcje dostawy */}
+                {deliveryOptions.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="font-medium mb-2">Dostępne metody dostawy:</h3>
+                    <div className="space-y-2">
+                      {deliveryOptions.map(option => (
+                        <div 
+                          key={option.id} 
+                          className="flex items-center justify-between p-2 bg-muted/30 rounded-md"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Package className="h-4 w-4 text-primary" />
+                            <span>{option.name}</span>
+                            {option.name === 'Odbiór osobisty' && product.location && (
+                              <span className="text-sm text-muted-foreground">({product.location})</span>
+                            )}
+                          </div>
+                          <Badge variant="outline">
+                            {option.price > 0 
+                              ? new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(option.price) 
+                              : 'Darmowa'}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
                 {!isUserProduct && product.for_testing && (
                   <div className="mb-6">

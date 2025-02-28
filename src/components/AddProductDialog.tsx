@@ -13,9 +13,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { Loader2, X, Upload, Plus, PlusCircle, AlertCircle } from 'lucide-react';
+import { Loader2, X, Upload, Plus, PlusCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 
 interface AddProductDialogProps {
   open: boolean;
@@ -34,6 +35,13 @@ interface ProductImage {
   file: File | null;
   preview: string | null;
   existingUrl?: string;
+}
+
+interface DeliveryOption {
+  id: string;
+  name: string;
+  price: number;
+  isSelected?: boolean;
 }
 
 // Definicja stanów produktu
@@ -65,6 +73,11 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
   const [category, setCategory] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [condition, setCondition] = useState<string>("new");
+  const [location, setLocation] = useState('');
+  
+  // Delivery options
+  const [deliveryOptions, setDeliveryOptions] = useState<DeliveryOption[]>([]);
+  const [selectedDeliveryOptions, setSelectedDeliveryOptions] = useState<string[]>([]);
   
   // Multi-image support
   const [productImages, setProductImages] = useState<ProductImage[]>([]);
@@ -104,6 +117,33 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     fetchCategories();
   }, []);
   
+  // Fetch delivery options
+  useEffect(() => {
+    async function fetchDeliveryOptions() {
+      try {
+        const { data, error } = await supabase
+          .from('delivery_options')
+          .select('*')
+          .order('name');
+        
+        if (error) {
+          console.error('Błąd podczas pobierania opcji dostawy:', error);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się pobrać opcji dostawy. Spróbuj ponownie później.",
+            variant: "destructive",
+          });
+        } else if (data) {
+          setDeliveryOptions(data);
+        }
+      } catch (err) {
+        console.error('Nieoczekiwany błąd:', err);
+      }
+    }
+    
+    fetchDeliveryOptions();
+  }, []);
+  
   useEffect(() => {
     if (open && !isLoggedIn) {
       onOpenChange(false);
@@ -126,6 +166,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
   const fetchProductData = async (id: string) => {
     setIsLoading(true);
     try {
+      // Pobierz dane produktu
       const { data, error } = await supabase
         .from('products')
         .select('*, categories(*)')
@@ -142,12 +183,29 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         return;
       }
       
+      // Pobierz opcje dostawy produktu
+      const { data: productDeliveryData, error: productDeliveryError } = await supabase
+        .from('product_delivery_options')
+        .select('delivery_option_id')
+        .eq('product_id', id);
+      
+      if (productDeliveryError) {
+        console.error('Error fetching product delivery options:', productDeliveryError);
+      }
+      
+      // Przygotuj wybrane opcje dostawy
+      const selectedOptions = productDeliveryData 
+        ? productDeliveryData.map(option => option.delivery_option_id) 
+        : [];
+      
       if (data) {
         // Set form state with product data
         setTitle(data.title);
         setDescription(data.description || '');
         setPrice(data.price.toString());
         setCondition(data.condition || 'new');
+        setLocation(data.location || '');
+        setSelectedDeliveryOptions(selectedOptions);
         
         // Handle category selection
         if (data.category_id && data.categories) {
@@ -177,12 +235,32 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
             }));
             setProductImages(imagesWithPreviews);
           } else {
-            // Pojedyncze zdjęcie
-            setProductImages([{
-              file: null,
-              preview: data.image_url,
-              existingUrl: data.image_url
-            }]);
+            try {
+              // Sprawdź, czy to string JSON
+              const parsed = JSON.parse(data.image_url);
+              if (Array.isArray(parsed)) {
+                const imagesWithPreviews = parsed.map(url => ({
+                  file: null,
+                  preview: url,
+                  existingUrl: url
+                }));
+                setProductImages(imagesWithPreviews);
+              } else {
+                // Pojedyncze zdjęcie
+                setProductImages([{
+                  file: null,
+                  preview: data.image_url,
+                  existingUrl: data.image_url
+                }]);
+              }
+            } catch (e) {
+              // Jeśli to nie JSON, traktujemy jako pojedynczy URL
+              setProductImages([{
+                file: null,
+                preview: data.image_url,
+                existingUrl: data.image_url
+              }]);
+            }
           }
         } else {
           // Brak zdjęć
@@ -203,9 +281,11 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     setCategory('');
     setCategoryId('');
     setCondition('new');
+    setLocation('');
     setProductImages([]);
     setIsForTesting(false);
     setTestingPrice('');
+    setSelectedDeliveryOptions([]);
   };
   
   const handleMultipleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -270,6 +350,16 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     const updatedImages = [...productImages];
     updatedImages.splice(index, 1);
     setProductImages(updatedImages);
+  };
+  
+  const toggleDeliveryOption = (optionId: string) => {
+    if (selectedDeliveryOptions.includes(optionId)) {
+      // Usuń opcję jeśli jest już wybrana
+      setSelectedDeliveryOptions(prev => prev.filter(id => id !== optionId));
+    } else {
+      // Dodaj opcję jeśli nie jest wybrana
+      setSelectedDeliveryOptions(prev => [...prev, optionId]);
+    }
   };
   
   const uploadImages = async (): Promise<string[]> => {
@@ -369,6 +459,61 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
       return false;
     }
     
+    // Sprawdź czy wybrano przynajmniej jedną opcję dostawy
+    if (selectedDeliveryOptions.length === 0) {
+      toast({
+        title: "Brak opcji dostawy",
+        description: "Wybierz przynajmniej jedną opcję dostawy.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    // Sprawdź czy dla opcji "Odbiór osobisty" podano lokalizację
+    const hasPickupOption = selectedDeliveryOptions.some(optionId => {
+      const option = deliveryOptions.find(o => o.id === optionId);
+      return option && option.name === 'Odbiór osobisty';
+    });
+    
+    if (hasPickupOption && !location.trim()) {
+      toast({
+        title: "Brak lokalizacji",
+        description: "Podaj lokalizację dla opcji odbioru osobistego.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    return true;
+  };
+  
+  const saveProductDeliveryOptions = async (productId: string) => {
+    // Usuń wszystkie istniejące opcje dostawy dla produktu
+    const { error: deleteError } = await supabase
+      .from('product_delivery_options')
+      .delete()
+      .eq('product_id', productId);
+    
+    if (deleteError) {
+      console.error('Error deleting existing delivery options:', deleteError);
+      return false;
+    }
+    
+    // Dodaj nowe opcje dostawy
+    const deliveryOptionsToInsert = selectedDeliveryOptions.map(optionId => ({
+      product_id: productId,
+      delivery_option_id: optionId
+    }));
+    
+    const { error: insertError } = await supabase
+      .from('product_delivery_options')
+      .insert(deliveryOptionsToInsert);
+    
+    if (insertError) {
+      console.error('Error inserting delivery options:', insertError);
+      return false;
+    }
+    
     return true;
   };
   
@@ -406,24 +551,36 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         sale: false, // Always set to false as we removed the feature
         sale_percentage: null, // Always set to null as we removed the feature
         condition: condition, // Stan produktu
+        location: location, // Lokalizacja produktu
         user_id: user.id
       };
       
       console.log("Dane produktu do zapisania:", productData);
       
       let result;
+      let productId = isEditMode ? this.productId : null;
       
-      if (isEditMode && productId) {
+      if (isEditMode && this.productId) {
         // Update existing product
         result = await supabase
           .from('products')
           .update(productData)
-          .eq('id', productId);
+          .eq('id', this.productId);
+        
+        productId = this.productId;
       } else {
         // Insert new product
-        result = await supabase
+        const { data, error } = await supabase
           .from('products')
-          .insert(productData);
+          .insert(productData)
+          .select('id')
+          .single();
+        
+        result = { error };
+        
+        if (data) {
+          productId = data.id;
+        }
       }
       
       const { error } = result;
@@ -436,6 +593,19 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
           variant: "destructive",
         });
         return;
+      }
+      
+      // Zapisz opcje dostawy dla produktu
+      if (productId) {
+        const deliveryOptionsSaved = await saveProductDeliveryOptions(productId);
+        
+        if (!deliveryOptionsSaved) {
+          toast({
+            title: "Ostrzeżenie",
+            description: "Produkt został zapisany, ale wystąpił problem z zapisem opcji dostawy.",
+            variant: "destructive",
+          });
+        }
       }
       
       toast({
@@ -568,6 +738,64 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
                 <p className="text-sm text-muted-foreground">
                   Wybierz stan, który najlepiej opisuje Twój produkt.
                 </p>
+              </div>
+              
+              {/* Lokalizacja produktu */}
+              <div className="grid gap-3">
+                <Label htmlFor="location">Lokalizacja produktu</Label>
+                <Input 
+                  id="location" 
+                  placeholder="np. Warszawa, Kraków, itp."
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Podaj lokalizację produktu, szczególnie ważne dla opcji odbioru osobistego.
+                </p>
+              </div>
+              
+              {/* Opcje dostawy */}
+              <div className="grid gap-3">
+                <Label>Dostępne opcje dostawy</Label>
+                <div className="space-y-2">
+                  {deliveryOptions.map((option) => (
+                    <div key={option.id} className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-muted/20 transition-colors">
+                      <Checkbox 
+                        id={`delivery-${option.id}`} 
+                        checked={selectedDeliveryOptions.includes(option.id)}
+                        onCheckedChange={() => toggleDeliveryOption(option.id)}
+                      />
+                      <Label 
+                        htmlFor={`delivery-${option.id}`} 
+                        className="flex-1 flex justify-between items-center cursor-pointer"
+                      >
+                        <span>{option.name}</span>
+                        <Badge variant="outline">
+                          {option.price > 0 ? new Intl.NumberFormat('pl-PL', {
+                            style: 'currency',
+                            currency: 'PLN'
+                          }).format(option.price) : 'Darmowa'}
+                        </Badge>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Wybierz co najmniej jedną opcję dostawy dla swojego produktu.
+                </p>
+                
+                {/* Informacja dla odbiorów osobistych */}
+                {selectedDeliveryOptions.some(optionId => {
+                  const option = deliveryOptions.find(o => o.id === optionId);
+                  return option && option.name === 'Odbiór osobisty';
+                }) && !location && (
+                  <Alert className="mt-2 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Dla opcji odbioru osobistego zalecamy podanie dokładnej lokalizacji w polu "Lokalizacja produktu".
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
               
               {/* Multi-image upload */}
