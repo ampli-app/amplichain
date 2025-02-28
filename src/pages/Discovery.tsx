@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -31,7 +32,7 @@ import { motion } from 'framer-motion';
 // Mock data
 const recommendedProducts = [
   {
-    id: 1,
+    id: "1",
     title: "Neumann U87 Condenser Microphone",
     price: 2999.99,
     image: "https://images.unsplash.com/photo-1520116468816-95b69f847357?q=80&w=2000&auto=format&fit=crop",
@@ -40,7 +41,7 @@ const recommendedProducts = [
     reviewCount: 124
   },
   {
-    id: 2,
+    id: "2",
     title: "Universal Audio Apollo Twin X Duo",
     price: 899.00,
     image: "https://images.unsplash.com/photo-1558612846-ec0107aaf552?q=80&w=2000&auto=format&fit=crop",
@@ -60,7 +61,7 @@ const recommendedProducts = [
     reviewCount: 102
   },
   {
-    id: 4,
+    id: "4",
     title: "Yamaha HS8 Studio Monitors (Pair)",
     price: 699.99,
     image: "https://images.unsplash.com/photo-1609587312208-cea54be969e7?q=80&w=2000&auto=format&fit=crop",
@@ -74,7 +75,7 @@ const recommendedProducts = [
 
 const mentors = [
   {
-    id: 1,
+    id: "1",
     name: "David Wilson",
     image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fHByb2Zlc3Npb25hbCUyMG1hbnxlbnwwfHwwfHx8MA%3D%3D",
     title: "Senior Producer",
@@ -89,7 +90,7 @@ const mentors = [
     availability: "Available now"
   },
   {
-    id: 2,
+    id: "2",
     name: "Sarah Johnson",
     image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1974&auto=format&fit=crop",
     title: "A&R Executive",
@@ -104,7 +105,7 @@ const mentors = [
     availability: "Available in 2h"
   },
   {
-    id: 3,
+    id: "3",
     name: "Michael Chen",
     image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop",
     title: "Mixing Engineer",
@@ -121,7 +122,7 @@ const mentors = [
 
 const personalizedRecommendations = [
   {
-    id: 1,
+    id: "1",
     type: "marketplace",
     title: "Universal Audio Apollo Twin X Duo",
     description: "Perfect for your home studio setup",
@@ -129,7 +130,7 @@ const personalizedRecommendations = [
     link: "/marketplace"
   },
   {
-    id: 2,
+    id: "2",
     type: "mentor",
     title: "Mixing Workshop with Michael Chen",
     description: "Learn advanced mixing techniques",
@@ -137,7 +138,7 @@ const personalizedRecommendations = [
     link: "/mentorship"
   },
   {
-    id: 3,
+    id: "3",
     type: "social",
     title: "Music Production Community",
     description: "Connect with 1,200+ producers worldwide",
@@ -145,7 +146,7 @@ const personalizedRecommendations = [
     link: "/feed"
   },
   {
-    id: 4,
+    id: "4",
     type: "marketplace",
     title: "Ableton Live 12 Suite",
     description: "Special discount for our platform users",
