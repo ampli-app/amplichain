@@ -36,6 +36,84 @@ export type Database = {
         }
         Relationships: []
       }
+      connection_requests: {
+        Row: {
+          created_at: string | null
+          id: string
+          receiver_id: string
+          sender_id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          receiver_id: string
+          sender_id: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          receiver_id?: string
+          sender_id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connection_requests_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connection_requests_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      connections: {
+        Row: {
+          created_at: string | null
+          id: string
+          user_id1: string
+          user_id2: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          user_id1: string
+          user_id2: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          user_id1?: string
+          user_id2?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connections_user_id1_fkey"
+            columns: ["user_id1"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_user_id2_fkey"
+            columns: ["user_id2"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delivery_options: {
         Row: {
           created_at: string | null
@@ -124,6 +202,42 @@ export type Database = {
           {
             foreignKeyName: "experience_profile_id_fkey"
             columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followings: {
+        Row: {
+          created_at: string | null
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followings_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followings_following_id_fkey"
+            columns: ["following_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -241,6 +355,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          connections: number | null
           followers: number | null
           following: number | null
           full_name: string | null
@@ -256,6 +371,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          connections?: number | null
           followers?: number | null
           following?: number | null
           full_name?: string | null
@@ -271,6 +387,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          connections?: number | null
           followers?: number | null
           following?: number | null
           full_name?: string | null

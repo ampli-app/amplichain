@@ -36,15 +36,42 @@ export default function Connections() {
     sendConnectionRequest,
     acceptConnectionRequest,
     declineConnectionRequest,
-    removeConnection
+    removeConnection,
+    searchUsers,
+    loading
   } = useSocial();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'following' | 'connections' | 'pending'>('all');
+  const [searchResults, setSearchResults] = useState<typeof users>([]);
+  const [isSearching, setIsSearching] = useState(false);
   
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Wykonaj wyszukiwanie z opóźnieniem
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    const delaySearch = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await searchUsers(searchQuery);
+        setSearchResults(results);
+      } catch (error) {
+        console.error('Search error:', error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delaySearch);
+  }, [searchQuery, searchUsers]);
 
   // If user is not logged in, show a prompt to log in
   if (!isLoggedIn) {
@@ -229,31 +256,39 @@ export default function Connections() {
     }
   };
 
-  // Filter users based on search query and active tab
-  const filteredUsers = users.filter(user => {
-    // Don't show current user
-    if (user.isCurrentUser) return false;
-    
-    // Filter by search query
-    const matchesSearch = 
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (!matchesSearch) return false;
-    
-    // Filter by connection status
-    switch (activeTab) {
-      case 'following':
-        return user.connectionStatus === 'following';
-      case 'connections':
-        return user.connectionStatus === 'connected';
-      case 'pending':
-        return user.connectionStatus === 'pending_sent' || user.connectionStatus === 'pending_received';
-      default:
-        return true;
-    }
-  });
+  // Display users based on search or filtered by tab
+  const displayUsers = searchQuery.trim() ? searchResults : 
+    users.filter(user => {
+      // Wykluczenie obecnego użytkownika i filtracja według zakładki
+      if (user.isCurrentUser) return false;
+      
+      switch (activeTab) {
+        case 'following':
+          return user.connectionStatus === 'following';
+        case 'connections':
+          return user.connectionStatus === 'connected';
+        case 'pending':
+          return user.connectionStatus === 'pending_sent' || user.connectionStatus === 'pending_received';
+        default:
+          return true;
+      }
+    });
+
+  // Stan ładowania dla całej strony
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 pt-24 pb-16 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-lg">Ładowanie danych...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -271,7 +306,7 @@ export default function Connections() {
             
             <div className="flex flex-col md:flex-row gap-4 mb-6">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-rhythm-500 h-4 w-4" />
+                <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isSearching ? 'text-primary animate-pulse' : 'text-rhythm-500'} h-4 w-4`} />
                 <Input 
                   placeholder="Search for people by name, role or username..." 
                   className="pl-10"
@@ -306,19 +341,19 @@ export default function Connections() {
               </TabsList>
               
               <TabsContent value="all">
-                {renderUserList(filteredUsers)}
+                {renderUserList(displayUsers)}
               </TabsContent>
               
               <TabsContent value="following">
-                {renderUserList(filteredUsers)}
+                {renderUserList(displayUsers)}
               </TabsContent>
               
               <TabsContent value="connections">
-                {renderUserList(filteredUsers)}
+                {renderUserList(displayUsers)}
               </TabsContent>
               
               <TabsContent value="pending">
-                {renderUserList(filteredUsers)}
+                {renderUserList(displayUsers)}
               </TabsContent>
             </Tabs>
           </div>
@@ -329,15 +364,38 @@ export default function Connections() {
     </div>
   );
   
-  function renderUserList(users: typeof filteredUsers) {
+  function renderUserList(users: typeof displayUsers) {
+    // Stan ładowania dla samego wyszukiwania
+    if (isSearching) {
+      return (
+        <Card className="border-dashed">
+          <CardContent className="pt-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+            <p className="text-rhythm-500">Wyszukiwanie użytkowników...</p>
+          </CardContent>
+        </Card>
+      );
+    }
+    
     if (users.length === 0) {
       return (
         <Card className="border-dashed">
           <CardContent className="pt-6 text-center">
-            <p className="text-rhythm-500 mb-2">No users found</p>
+            <p className="text-rhythm-500 mb-2">
+              {searchQuery.trim() 
+                ? "Nie znaleziono użytkowników pasujących do zapytania" 
+                : activeTab === 'all'
+                  ? "Nie znaleziono żadnych użytkowników"
+                  : activeTab === 'following'
+                    ? "Nie obserwujesz jeszcze nikogo"
+                    : activeTab === 'connections'
+                      ? "Nie masz jeszcze żadnych połączeń"
+                      : "Nie masz żadnych oczekujących zaproszeń"
+              }
+            </p>
             {searchQuery && (
               <Button variant="link" onClick={() => setSearchQuery('')}>
-                Clear search
+                Wyczyść wyszukiwanie
               </Button>
             )}
           </CardContent>
