@@ -1,101 +1,143 @@
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { toast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { 
-  CheckCircle, 
-  ArrowRight, 
-  Calendar, 
-  Phone, 
-  Mail, 
-  Home, 
-  Loader2,
-  Package,
-  Clock
+  CheckCircle2, 
+  Copy, 
+  Clock, 
+  Package, 
+  ArrowLeft,
+  Calendar,
+  MapPin,
+  Loader2
 } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
+import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function CheckoutSuccess() {
   const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
-  const mode = searchParams.get('mode') || 'buy';
+  const location = useLocation();
+  const isTestMode = location.search.includes('mode=test');
   
-  const navigate = useNavigate();
-  const { isLoggedIn, user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Dane produktu
   const [product, setProduct] = useState<any>(null);
-  // Dane profilu użytkownika
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [sellerInfo, setSellerInfo] = useState({
+    name: "Sprzedawca",
+    email: "kontakt@example.com",
+    phone: "123-456-789",
+    location: ""
+  });
+  
+  // Generujemy losowy numer zamówienia
+  const orderNumber = `ORD-${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
+  
+  // Symulujemy czas dostawy
+  const estimatedDeliveryDate = new Date();
+  estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 3);
+  
+  const testEndDate = new Date();
+  testEndDate.setDate(testEndDate.getDate() + 7);
   
   useEffect(() => {
-    if (!isLoggedIn) {
-      navigate('/login');
-      return;
-    }
+    if (!id) return;
     
-    if (!id) {
-      navigate('/marketplace');
-      return;
-    }
+    const fetchProductData = async () => {
+      setIsLoading(true);
+      
+      try {
+        // Fetch product data
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching product:', error);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się pobrać danych produktu.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        if (data) {
+          setProduct(data);
+          
+          // Fetch seller info
+          if (data.user_id) {
+            fetchSellerInfo(data.user_id);
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
     fetchProductData();
-    if (user) {
-      fetchUserProfile(user.id);
-    }
-  }, [id, isLoggedIn, user]);
+  }, [id]);
   
-  const fetchProductData = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching product:', error);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się pobrać danych produktu.",
-          variant: "destructive",
-        });
-        navigate('/marketplace');
-        return;
-      }
-      
-      setProduct(data);
-    } catch (err) {
-      console.error('Unexpected error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const fetchUserProfile = async (userId: string) => {
+  const fetchSellerInfo = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('full_name, email, avatar_url')
         .eq('id', userId)
         .single();
       
       if (error) {
-        console.error('Error fetching user profile:', error);
+        console.error('Error fetching seller info:', error);
         return;
       }
       
-      setUserProfile(data);
+      if (data) {
+        setSellerInfo(prev => ({
+          ...prev,
+          name: data.full_name || "Sprzedawca",
+          email: data.email || "kontakt@example.com",
+          location: product?.location || ""
+        }));
+      }
     } catch (err) {
-      console.error('Error fetching user profile:', err);
+      console.error('Unexpected error fetching seller info:', err);
     }
+  };
+  
+  const handleCopyOrderNumber = () => {
+    navigator.clipboard.writeText(orderNumber).then(
+      () => {
+        toast({
+          title: "Skopiowano",
+          description: "Numer zamówienia został skopiowany do schowka.",
+        });
+      },
+      (err) => {
+        console.error('Could not copy text: ', err);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się skopiować numeru zamówienia.",
+          variant: "destructive",
+        });
+      }
+    );
+  };
+  
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('pl-PL', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(date);
   };
   
   if (isLoading) {
@@ -107,7 +149,7 @@ export default function CheckoutSuccess() {
             <div className="mb-4">
               <Loader2 className="animate-spin h-10 w-10 text-primary mx-auto" />
             </div>
-            <p className="text-rhythm-600 dark:text-rhythm-400">Ładowanie danych zamówienia...</p>
+            <p className="text-rhythm-600 dark:text-rhythm-400">Ładowanie potwierdzenia zamówienia...</p>
           </div>
         </main>
         <Footer />
@@ -115,29 +157,69 @@ export default function CheckoutSuccess() {
     );
   }
   
-  // Format daty
-  const formatDate = (days: number) => {
-    const date = new Date();
-    date.setDate(date.getDate() + days);
-    return date.toLocaleDateString('pl-PL');
+  if (!product) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 pt-24 pb-16 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">Nie znaleziono danych zamówienia</h2>
+            <p className="text-rhythm-600 dark:text-rhythm-400 mb-6">
+              Nie udało się znaleźć informacji o zamówieniu. Spróbuj ponownie później.
+            </p>
+            <Button asChild>
+              <Link to="/marketplace">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Wróć do Rynku
+              </Link>
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('pl-PL', {
+      style: 'currency',
+      currency: 'PLN'
+    }).format(amount);
   };
   
-  // Określ treści w zależności od trybu zakupu
-  const pageTitle = mode === 'buy' 
-    ? 'Dziękujemy za zakup!' 
-    : 'Rezerwacja testowa potwierdzona!';
+  const productPrice = isTestMode && product.testing_price 
+    ? parseFloat(product.testing_price) 
+    : parseFloat(product.price);
   
-  const pageDescription = mode === 'buy'
-    ? 'Twoje zamówienie zostało przyjęte do realizacji'
-    : 'Twoja rezerwacja testowa została potwierdzona';
+  // Zakładamy że wybraliśmy pierwszą opcję dostawy
+  const deliveryCost = 15.99;
+  const totalCost = productPrice + deliveryCost;
   
-  // Przykładowe dane zamówienia
-  const orderNumber = `ORD${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`;
-  const estimatedDelivery = formatDate(3); // 3 dni na dostawę
-  const testEndDate = formatDate(7); // 7 dni testu
-  
-  // Ustalamy nazwę użytkownika
-  const userName = userProfile?.full_name || "Użytkownik";
+  // Przygotowanie URL obrazka produktu
+  const getProductImageUrl = () => {
+    if (!product.image_url) return '/placeholder.svg';
+    
+    try {
+      if (typeof product.image_url === 'string') {
+        // Spróbuj sparsować jako JSON
+        try {
+          const images = JSON.parse(product.image_url);
+          if (Array.isArray(images) && images.length > 0) {
+            return images[0];
+          }
+        } catch (e) {
+          // To nie jest JSON, więc traktujemy jako zwykły string
+          return product.image_url;
+        }
+      } else if (Array.isArray(product.image_url) && product.image_url.length > 0) {
+        return product.image_url[0];
+      }
+    } catch (e) {
+      console.error("Error parsing image URL:", e);
+    }
+    
+    return '/placeholder.svg';
+  };
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -145,151 +227,193 @@ export default function CheckoutSuccess() {
       
       <main className="flex-1 pt-24 pb-16">
         <div className="container px-4 mx-auto">
-          <div className="max-w-3xl mx-auto text-center mb-8">
-            <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 mb-6">
-              <CheckCircle className="h-10 w-10" />
-            </div>
-            <h1 className="text-3xl font-bold mb-3">{pageTitle}</h1>
-            <p className="text-zinc-600 dark:text-zinc-400 text-lg">
-              {pageDescription}
-            </p>
+          <div className="mb-8">
+            <Link 
+              to="/marketplace" 
+              className="inline-flex items-center gap-2 text-rhythm-600 hover:text-primary transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Wróć do Rynku
+            </Link>
           </div>
           
           <div className="max-w-3xl mx-auto">
-            <Card className="mb-8">
-              <CardHeader className="bg-zinc-50 dark:bg-zinc-900/50 border-b px-6 py-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm text-zinc-500">Numer zamówienia</p>
-                    <p className="font-medium">{orderNumber}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-zinc-500">Data zamówienia</p>
-                    <p className="font-medium">{new Date().toLocaleDateString('pl-PL')}</p>
-                  </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="text-center mb-12"
+            >
+              <div className="flex justify-center mb-4">
+                <div className="rounded-full bg-green-100 dark:bg-green-900/30 p-4">
+                  <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400" />
                 </div>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                {mode === 'buy' ? (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start gap-4">
-                    <Package className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1" />
+              </div>
+              <h1 className="text-3xl font-bold mb-2">
+                {isTestMode ? 'Rezerwacja testowa potwierdzona!' : 'Zamówienie złożone!'}
+              </h1>
+              <p className="text-rhythm-600 dark:text-rhythm-400 mb-6">
+                {isTestMode 
+                  ? 'Twoja rezerwacja testowa została pomyślnie potwierdzona. Szczegóły znajdziesz poniżej.' 
+                  : 'Twoje zamówienie zostało pomyślnie złożone. Dziękujemy za zakup!'}
+              </p>
+              
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <span className="text-sm font-medium">Numer zamówienia: <span className="font-bold">{orderNumber}</span></span>
+                <button 
+                  onClick={handleCopyOrderNumber} 
+                  className="text-primary hover:text-primary/80"
+                  aria-label="Kopiuj numer zamówienia"
+                >
+                  <Copy className="h-4 w-4" />
+                </button>
+              </div>
+              
+              <p className="text-sm text-rhythm-500">
+                Szczegóły zostały wysłane na Twój adres email.
+              </p>
+            </motion.div>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Card className="mb-8">
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-semibold mb-4">Podsumowanie zamówienia</h2>
+                  
+                  <div className="flex gap-4 border-b pb-4 mb-4">
+                    <div className="h-24 w-24 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                      <img 
+                        src={getProductImageUrl()} 
+                        alt={product.title}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
                     <div>
-                      <p className="font-medium text-blue-800 dark:text-blue-300">Status zamówienia: Opłacone</p>
-                      <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-                        Sprzedawca został powiadomiony o Twoim zakupie. Przygotuje i wyśle produkt najszybciej jak to możliwe.
+                      <h3 className="font-medium text-lg">{product.title}</h3>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {isTestMode ? 'Test przez 7 dni' : 'Zakup produktu'}
                       </p>
-                      <p className="text-sm mt-2">
-                        <span className="font-medium">Przewidywana dostawa:</span> {estimatedDelivery}
+                      <p className="font-medium">
+                        {formatCurrency(productPrice)}
                       </p>
                     </div>
                   </div>
-                ) : (
-                  <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800 flex items-start gap-4">
-                    <Clock className="h-6 w-6 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-1" />
-                    <div>
-                      <p className="font-medium text-purple-800 dark:text-purple-300">Status rezerwacji: Potwierdzona</p>
-                      <p className="text-sm text-purple-600 dark:text-purple-400 mt-1">
-                        Sprzedawca został powiadomiony o Twojej rezerwacji testowej. Produkt zostanie dostarczony w ciągu kilku dni.
-                      </p>
-                      <p className="text-sm mt-2">
-                        <span className="font-medium">Przewidywana dostawa:</span> {estimatedDelivery}
-                      </p>
-                      <p className="text-sm mt-1">
-                        <span className="font-medium">Koniec okresu testowego:</span> {testEndDate}
-                      </p>
+                  
+                  <div className="space-y-2 mb-6">
+                    <div className="flex justify-between py-1">
+                      <span className="text-muted-foreground">Cena produktu</span>
+                      <span>{formatCurrency(productPrice)}</span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-muted-foreground">Dostawa</span>
+                      <span>{formatCurrency(deliveryCost)}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between py-2 font-bold">
+                      <span>Razem</span>
+                      <span>{formatCurrency(totalCost)}</span>
                     </div>
                   </div>
-                )}
-                
-                {product && (
-                  <div className="border rounded-lg p-4">
-                    <div className="flex gap-4">
-                      <div className="h-20 w-20 rounded-md overflow-hidden bg-zinc-100 dark:bg-zinc-800 flex-shrink-0">
-                        {product.image_url && (
-                          <img 
-                            src={typeof product.image_url === 'string' 
-                              ? (product.image_url.startsWith('[') 
-                                ? JSON.parse(product.image_url)[0] 
-                                : product.image_url)
-                              : (Array.isArray(product.image_url) 
-                                ? product.image_url[0] 
-                                : '/placeholder.svg')
-                            } 
-                            alt={product.title}
-                            className="h-full w-full object-cover"
-                          />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="font-medium mb-2 flex items-center gap-1">
+                        {product.location ? (
+                          <>
+                            <MapPin className="h-4 w-4 text-primary" />
+                            Dane sprzedawcy
+                          </>
+                        ) : (
+                          <>
+                            <Package className="h-4 w-4 text-primary" />
+                            Dostawa
+                          </>
                         )}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-lg">{product.title}</h3>
-                        <p className="text-sm text-zinc-500">{product.category}</p>
-                        <div className="flex justify-between items-end mt-2">
-                          <div className="text-sm">
-                            <span className="text-zinc-500">
-                              {mode === 'buy' ? 'Zakup produktu' : 'Test przez 7 dni'}
-                            </span>
-                          </div>
-                          <span className="font-medium">
-                            {new Intl.NumberFormat('pl-PL', {
-                              style: 'currency',
-                              currency: 'PLN'
-                            }).format(mode === 'buy' ? product.price : product.testing_price)}
-                          </span>
+                      </h3>
+                      {product.location ? (
+                        <div className="text-sm space-y-1">
+                          <p>{sellerInfo.name}</p>
+                          <p>Lokalizacja: {product.location}</p>
+                          <p>Email: {sellerInfo.email}</p>
+                          <p>Telefon: {sellerInfo.phone}</p>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="text-sm space-y-1">
+                          <p>Kurier</p>
+                          <p>Szacowany czas dostawy: 1-2 dni robocze</p>
+                          <p>Przewidywana data dostawy: {formatDate(estimatedDeliveryDate)}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <h3 className="font-medium mb-2 flex items-center gap-1">
+                        <Clock className="h-4 w-4 text-primary" />
+                        {isTestMode ? 'Informacje o teście' : 'Podsumowanie płatności'}
+                      </h3>
+                      {isTestMode ? (
+                        <div className="text-sm space-y-1">
+                          <p>Okres testu: 7 dni</p>
+                          <p>Rozpoczęcie: {formatDate(new Date())}</p>
+                          <p>Zakończenie: {formatDate(testEndDate)}</p>
+                        </div>
+                      ) : (
+                        <div className="text-sm space-y-1">
+                          <p>Metoda płatności: Karta płatnicza</p>
+                          <p>Status: Opłacone</p>
+                          <p>Data płatności: {formatDate(new Date())}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <p className="font-medium">Dane kontaktowe</p>
-                    <div className="text-sm space-y-1 text-zinc-600 dark:text-zinc-400">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        <span>{user?.email}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4" />
-                        <span>+48 xxx xxx xxx</span>
+                </CardContent>
+              </Card>
+              
+              {isTestMode && (
+                <Card className="mb-8 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                  <CardContent className="p-6">
+                    <h2 className="text-xl font-semibold mb-4 text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                      <Calendar className="h-5 w-5" />
+                      Co dalej z Twoim testem?
+                    </h2>
+                    
+                    <div className="space-y-4 text-blue-800 dark:text-blue-300">
+                      <p>
+                        Otrzymasz produkt na 7-dniowy okres testowy. W tym czasie możesz go przetestować i zdecydować:
+                      </p>
+                      
+                      <ul className="list-disc pl-5 space-y-2">
+                        <li>Jeśli zdecydujesz się zatrzymać produkt, możesz dokonać pełnej płatności w dowolnym momencie.</li>
+                        <li>Jeśli chcesz zwrócić produkt, musisz to zrobić przed upływem 7 dni.</li>
+                        <li>Na 2 dni przed końcem testu otrzymasz przypomnienie.</li>
+                      </ul>
+                      
+                      <div className="flex gap-4 flex-col sm:flex-row mt-6">
+                        <Button className="gap-2" variant="outline">
+                          <ArrowLeft className="h-4 w-4" />
+                          Moje zamówienia
+                        </Button>
+                        <Button className="gap-2">
+                          <ShoppingCart className="h-4 w-4" />
+                          Kup teraz
+                        </Button>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <p className="font-medium">Adres dostawy</p>
-                    <div className="flex items-start gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-                      <Home className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p>{userName}</p>
-                        <p>ul. Przykładowa 123</p>
-                        <p>00-000 Warszawa</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="pt-4 space-y-4">
-                  <div className="pt-2 border-t grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button asChild>
-                      <Link to="/marketplace">
-                        Kontynuuj zakupy
-                      </Link>
-                    </Button>
-                    <Button variant="outline" asChild>
-                      <a href="#" className="flex items-center justify-center gap-2">
-                        Śledź status zamówienia
-                        <ArrowRight className="h-4 w-4" />
-                      </a>
-                    </Button>
-                  </div>
-                  
-                  <p className="text-center text-sm text-zinc-500">
-                    Masz pytania dotyczące Twojego {mode === 'buy' ? 'zamówienia' : 'testu'}? <a href="#" className="text-primary underline">Skontaktuj się z nami</a>
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              )}
+              
+              <div className="text-center">
+                <Button asChild size="lg">
+                  <Link to="/marketplace">
+                    Kontynuuj zakupy
+                  </Link>
+                </Button>
+              </div>
+            </motion.div>
           </div>
         </div>
       </main>

@@ -16,6 +16,7 @@ import {
   CreditCard, 
   Banknote, 
   Package, 
+  MapPin,
   Clock, 
   Info, 
   Calendar, 
@@ -25,6 +26,12 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+
+interface DeliveryOption {
+  id: string;
+  name: string;
+  price: number;
+}
 
 export default function Checkout() {
   const { id } = useParams<{ id: string }>();
@@ -37,7 +44,9 @@ export default function Checkout() {
   
   const [product, setProduct] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState('card');
-  const [deliveryMethod, setDeliveryMethod] = useState('courier');
+  const [deliveryMethod, setDeliveryMethod] = useState('');
+  const [deliveryOptions, setDeliveryOptions] = useState<DeliveryOption[]>([]);
+  const [selectedDeliveryOption, setSelectedDeliveryOption] = useState<DeliveryOption | null>(null);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -84,6 +93,7 @@ export default function Checkout() {
     try {
       console.log("Fetching product with ID:", id);
       
+      // Pobierz dane produktu
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -97,8 +107,6 @@ export default function Checkout() {
           description: "Nie udało się pobrać danych produktu.",
           variant: "destructive",
         });
-        // Dajemy użytkownikowi szansę na powrót
-        // navigate('/marketplace');
         setIsLoading(false);
         return;
       }
@@ -106,6 +114,9 @@ export default function Checkout() {
       if (data) {
         console.log("Received product data:", data);
         setProduct(data);
+        
+        // Pobierz opcje dostawy dla produktu
+        await fetchDeliveryOptions(data.id);
       } else {
         console.error("No product data returned");
         toast({
@@ -123,6 +134,58 @@ export default function Checkout() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const fetchDeliveryOptions = async (productId: string) => {
+    try {
+      console.log("Fetching delivery options for product ID:", productId);
+      
+      // Pobierz opcje dostawy dla produktu
+      const { data: productDeliveryData, error: productDeliveryError } = await supabase
+        .from('product_delivery_options')
+        .select('delivery_option_id')
+        .eq('product_id', productId);
+      
+      if (productDeliveryError) {
+        console.error('Error fetching product delivery options:', productDeliveryError);
+        return;
+      }
+      
+      // Pobierz szczegóły opcji dostawy
+      if (productDeliveryData && productDeliveryData.length > 0) {
+        const deliveryOptionIds = productDeliveryData.map(option => option.delivery_option_id);
+        
+        const { data: optionsData, error: optionsError } = await supabase
+          .from('delivery_options')
+          .select('*')
+          .in('id', deliveryOptionIds);
+        
+        if (optionsError) {
+          console.error('Error fetching delivery option details:', optionsError);
+          return;
+        }
+        
+        if (optionsData && optionsData.length > 0) {
+          console.log("Received delivery options:", optionsData);
+          setDeliveryOptions(optionsData);
+          
+          // Ustaw pierwszą opcję dostawy jako domyślną (z wyjątkiem odbioru osobistego)
+          const defaultOption = optionsData.find(opt => opt.name !== 'Odbiór osobisty') || optionsData[0];
+          setDeliveryMethod(defaultOption.id);
+          setSelectedDeliveryOption(defaultOption);
+        }
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching delivery options:', err);
+    }
+  };
+  
+  const handleDeliveryMethodChange = (value: string) => {
+    setDeliveryMethod(value);
+    const selected = deliveryOptions.find(option => option.id === value);
+    if (selected) {
+      setSelectedDeliveryOption(selected);
     }
   };
   
@@ -149,10 +212,25 @@ export default function Checkout() {
       return false;
     }
     
-    // Walidacja podstawowych pól formularza
-    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'postalCode'];
+    // Sprawdź czy wybrana metoda dostawy
+    if (!deliveryMethod) {
+      toast({
+        title: "Błąd",
+        description: "Wybierz metodę dostawy.",
+        variant: "destructive",
+      });
+      return false;
+    }
     
-    for (const field of requiredFields) {
+    // Dla odbioru osobistego nie potrzebujemy adresu
+    const isPickupDelivery = selectedDeliveryOption?.name === 'Odbiór osobisty';
+    
+    // Walidacja podstawowych pól formularza
+    const requiredFields = ['firstName', 'lastName', 'email', 'phone'];
+    const addressFields = isPickupDelivery ? [] : ['address', 'city', 'postalCode'];
+    const allRequiredFields = [...requiredFields, ...addressFields];
+    
+    for (const field of allRequiredFields) {
       if (!formData[field as keyof typeof formData]) {
         toast({
           title: "Błąd",
@@ -240,12 +318,35 @@ export default function Checkout() {
     );
   }
   
+  if (deliveryOptions.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 pt-24 pb-16 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">Brak opcji dostawy</h2>
+            <p className="text-rhythm-600 dark:text-rhythm-400 mb-6">
+              Dla tego produktu nie skonfigurowano opcji dostawy. Skontaktuj się ze sprzedawcą.
+            </p>
+            <Button asChild>
+              <Link to={`/marketplace/${id}`}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Wróć do produktu
+              </Link>
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
   // Obliczenia cenowe
   const price = isTestMode && product.testing_price 
     ? parseFloat(product.testing_price) 
     : parseFloat(product.price);
   
-  const deliveryCost = 15.99;
+  const deliveryCost = selectedDeliveryOption ? selectedDeliveryOption.price : 0;
   const totalCost = price + deliveryCost;
   
   // Formatowanie walutowe
@@ -282,6 +383,9 @@ export default function Checkout() {
     return '/placeholder.svg';
   };
   
+  // Sprawdź czy wybrany jest odbiór osobisty
+  const isPickupDelivery = selectedDeliveryOption?.name === 'Odbiór osobisty';
+  
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -308,7 +412,7 @@ export default function Checkout() {
               <form onSubmit={handleSubmit}>
                 <Card className="mb-8">
                   <CardHeader className="border-b bg-muted/40">
-                    <h2 className="text-xl font-semibold">Dane do wysyłki</h2>
+                    <h2 className="text-xl font-semibold">Dane kontaktowe</h2>
                   </CardHeader>
                   
                   <CardContent className="p-6 space-y-4">
@@ -364,44 +468,6 @@ export default function Checkout() {
                         />
                       </div>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="address">Adres</Label>
-                      <Input 
-                        id="address"
-                        name="address"
-                        placeholder="ul. Przykładowa 123/45"
-                        value={formData.address}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="city">Miasto</Label>
-                        <Input 
-                          id="city"
-                          name="city"
-                          placeholder="Warszawa"
-                          value={formData.city}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="postalCode">Kod pocztowy</Label>
-                        <Input 
-                          id="postalCode"
-                          name="postalCode"
-                          placeholder="00-000"
-                          value={formData.postalCode}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
                 
@@ -411,37 +477,95 @@ export default function Checkout() {
                   </CardHeader>
                   
                   <CardContent className="p-6">
-                    <RadioGroup value={deliveryMethod} onValueChange={setDeliveryMethod}>
-                      <div className="flex items-center space-x-2 border rounded-lg p-4 mb-3 cursor-pointer hover:bg-muted/20 transition-colors">
-                        <RadioGroupItem value="courier" id="courier" />
-                        <Label htmlFor="courier" className="flex-1 cursor-pointer">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                              <Package className="h-5 w-5 text-primary" />
-                              <span>Kurier</span>
+                    <RadioGroup value={deliveryMethod} onValueChange={handleDeliveryMethodChange}>
+                      {deliveryOptions.map(option => (
+                        <div 
+                          key={option.id} 
+                          className="flex items-center space-x-2 border rounded-lg p-4 mb-3 cursor-pointer hover:bg-muted/20 transition-colors"
+                        >
+                          <RadioGroupItem value={option.id} id={`delivery-${option.id}`} />
+                          <Label 
+                            htmlFor={`delivery-${option.id}`} 
+                            className="flex-1 cursor-pointer"
+                          >
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                {option.name === 'Odbiór osobisty' ? (
+                                  <MapPin className="h-5 w-5 text-primary" />
+                                ) : (
+                                  <Package className="h-5 w-5 text-primary" />
+                                )}
+                                <span>{option.name}</span>
+                                {option.name === 'Odbiór osobisty' && product.location && (
+                                  <span className="text-sm text-muted-foreground">({product.location})</span>
+                                )}
+                              </div>
+                              <span className="font-medium">
+                                {option.price > 0 
+                                  ? formatCurrency(option.price) 
+                                  : 'Darmowa'}
+                              </span>
                             </div>
-                            <span className="font-medium">{formatCurrency(deliveryCost)}</span>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">Dostawa w ciągu 1-2 dni roboczych</p>
-                        </Label>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-muted/20 transition-colors">
-                        <RadioGroupItem value="inpost" id="inpost" />
-                        <Label htmlFor="inpost" className="flex-1 cursor-pointer">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                              <Package className="h-5 w-5 text-primary" />
-                              <span>Paczkomat InPost</span>
-                            </div>
-                            <span className="font-medium">{formatCurrency(deliveryCost)}</span>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">Dostawa do paczkomatu w ciągu 1-2 dni roboczych</p>
-                        </Label>
-                      </div>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {option.name === 'Kurier' && 'Dostawa w ciągu 1-2 dni roboczych'}
+                              {option.name === 'Paczkomat InPost' && 'Dostawa do paczkomatu w ciągu 1-2 dni roboczych'}
+                              {option.name === 'Odbiór osobisty' && 'Odbiór osobisty w lokalizacji sprzedawcy'}
+                            </p>
+                          </Label>
+                        </div>
+                      ))}
                     </RadioGroup>
                   </CardContent>
                 </Card>
+                
+                {/* Dane adresowe - tylko jeśli nie wybrano odbioru osobistego */}
+                {!isPickupDelivery && (
+                  <Card className="mb-8">
+                    <CardHeader className="border-b bg-muted/40">
+                      <h2 className="text-xl font-semibold">Dane do wysyłki</h2>
+                    </CardHeader>
+                    
+                    <CardContent className="p-6 space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="address">Adres</Label>
+                        <Input 
+                          id="address"
+                          name="address"
+                          placeholder="ul. Przykładowa 123/45"
+                          value={formData.address}
+                          onChange={handleInputChange}
+                          required={!isPickupDelivery}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="city">Miasto</Label>
+                          <Input 
+                            id="city"
+                            name="city"
+                            placeholder="Warszawa"
+                            value={formData.city}
+                            onChange={handleInputChange}
+                            required={!isPickupDelivery}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="postalCode">Kod pocztowy</Label>
+                          <Input 
+                            id="postalCode"
+                            name="postalCode"
+                            placeholder="00-000"
+                            value={formData.postalCode}
+                            onChange={handleInputChange}
+                            required={!isPickupDelivery}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
                 
                 <Card className="mb-8">
                   <CardHeader className="border-b bg-muted/40">
