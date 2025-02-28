@@ -112,6 +112,21 @@ export function EditProfileModal({ isOpen, onClose, onProfileUpdated, currentPro
 
   const handleAvatarChanged = (newAvatarUrl: string) => {
     setAvatarUrl(newAvatarUrl);
+    // Dodajemy natychmiastową aktualizację profilu w Supabase po zmianie avatara
+    if (user) {
+      supabase
+        .from('profiles')
+        .update({ avatar_url: newAvatarUrl })
+        .eq('id', user.id)
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error updating avatar in profile:', error);
+          } else {
+            // Powiadamiamy rodzica o aktualizacji, aby odświeżyć widok
+            onProfileUpdated();
+          }
+        });
+    }
   };
 
   return (

@@ -32,7 +32,11 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isLoggedIn, logout } = useAuth();
+  const { isLoggedIn, logout, user } = useAuth();
+  const { usersMap } = useSocial();
+  
+  // Pobierz dane profilu użytkownika
+  const userProfile = user ? usersMap[user.id] : null;
   
   useEffect(() => {
     const handleScroll = () => {
@@ -83,8 +87,8 @@ export function Navbar() {
             />
           </div>
           
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          {/* Desktop Navigation - Ustaw ją na stałą wysokość i szerokość */}
+          <nav className="hidden md:flex items-center gap-1 h-14">
             <NavItem to="/feed" label="Aktualności" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
             <NavItem to="/marketplace" label="Produkty" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
             <NavItem to="/mentorship" label="Mentorzy" icon={<GraduationCap className="h-4 w-4" />} active={isActive('/mentorship')} />
@@ -103,7 +107,7 @@ export function Navbar() {
                   </Link>
                 </Button>
                 
-                <UserMenu />
+                <UserMenu avatarUrl={userProfile?.avatar_url} />
               </>
             ) : (
               <>
@@ -129,7 +133,7 @@ export function Navbar() {
         </div>
       </div>
       
-      {/* Mobile Navigation */}
+      {/* Mobile Navigation - Dodajemy stałą wysokość przyciskom */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-background border-t">
           <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
@@ -155,7 +159,7 @@ function NavItem({ to, label, icon, active }: { to: string; label: string; icon?
     <Button 
       asChild 
       variant={active ? "default" : "ghost"} 
-      className={`gap-1.5 ${active ? '' : 'hover:bg-accent/50'}`}
+      className={`gap-1.5 h-10 ${active ? '' : 'hover:bg-accent/50'}`}
     >
       <Link to={to}>
         {icon}
@@ -170,7 +174,7 @@ function MobileNavItem({ to, label, icon, active }: { to: string; label: string;
     <Button 
       asChild 
       variant={active ? "default" : "ghost"} 
-      className={`w-full justify-start gap-1.5 ${active ? '' : ''}`}
+      className={`w-full justify-start gap-1.5 h-12 ${active ? '' : ''}`}
     >
       <Link to={to}>
         {icon}
@@ -180,7 +184,7 @@ function MobileNavItem({ to, label, icon, active }: { to: string; label: string;
   );
 }
 
-function UserMenu() {
+function UserMenu({ avatarUrl }: { avatarUrl?: string }) {
   const { logout } = useAuth();
   
   return (
@@ -188,7 +192,7 @@ function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src="/placeholder.svg" alt="User" />
+            <AvatarImage src={avatarUrl || "/placeholder.svg"} alt="User" />
             <AvatarFallback>
               <User className="h-4 w-4" />
             </AvatarFallback>

@@ -1,37 +1,55 @@
 
-import { useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { User, Upload, Image, Loader2, XCircle } from 'lucide-react';
+import { Image, Loader2, Trash2, UploadCloud } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ChangeAvatarModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAvatarChanged: (newAvatarUrl: string) => void;
-  currentAvatarUrl?: string;
+  currentAvatarUrl: string;
 }
 
 export function ChangeAvatarModal({ isOpen, onClose, onAvatarChanged, currentAvatarUrl }: ChangeAvatarModalProps) {
   const { user } = useAuth();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string>(currentAvatarUrl);
+  const [uploading, setUploading] = useState<boolean>(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Sprawdź, czy używane jest domyślne zdjęcie profilowe
+  const isDefaultAvatar = avatarUrl === '/placeholder.svg';
+
+  useEffect(() => {
+    setAvatarUrl(currentAvatarUrl);
+  }, [currentAvatarUrl]);
+
+  useEffect(() => {
+    if (imageFile) {
+      const objectUrl = URL.createObjectURL(imageFile);
+      setPreviewUrl(objectUrl);
+      
+      return () => {
+        URL.revokeObjectURL(objectUrl);
+      };
+    }
+  }, [imageFile]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
+    if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
-      // Sprawdź typ pliku (akceptujemy tylko obrazy)
+      // Sprawdź typ pliku
       if (!file.type.startsWith('image/')) {
         toast({
-          title: "Błąd",
-          description: "Proszę wybrać plik obrazu (jpg, png, gif, itp.)",
+          title: "Nieprawidłowy typ pliku",
+          description: "Proszę wybrać plik graficzny (JPG, PNG, itp.)",
           variant: "destructive",
         });
         return;
@@ -41,135 +59,145 @@ export function ChangeAvatarModal({ isOpen, onClose, onAvatarChanged, currentAva
       if (file.size > 2 * 1024 * 1024) {
         toast({
           title: "Plik jest za duży",
-          description: "Maksymalny rozmiar zdjęcia to 2MB",
+          description: "Maksymalny rozmiar pliku to 2MB",
           variant: "destructive",
         });
         return;
       }
       
-      setSelectedFile(file);
-      
-      // Utwórz podgląd wybranego zdjęcia
-      const fileReader = new FileReader();
-      fileReader.onload = () => {
-        setPreviewUrl(fileReader.result as string);
-      };
-      fileReader.readAsDataURL(file);
+      setImageFile(file);
     }
   };
 
-  const triggerFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  const resetSelection = () => {
-    setSelectedFile(null);
-    setPreviewUrl(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFile || !user) return;
+  const uploadAvatar = async () => {
+    if (!user || !imageFile) return;
     
-    setIsUploading(true);
+    setUploading(true);
     
     try {
-      // Przygotuj ścieżkę pliku: userId/randomUUID.rozszerzenie
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
+      // Przygotowanie nazwy pliku z ID użytkownika jako prefiks
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
       
-      // Uploaduj plik do bucketu profile_avatars
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      // Usuń poprzednie zdjęcie jeśli istnieje i nie jest domyślne
+      if (avatarUrl && !avatarUrl.includes('placeholder.svg') && avatarUrl.includes('profile_avatars')) {
+        const oldPath = avatarUrl.split('/').slice(-1)[0];
+        if (oldPath) {
+          const { error: deleteError } = await supabase
+            .storage
+            .from('profile_avatars')
+            .remove([`${user.id}/${oldPath}`]);
+            
+          if (deleteError) {
+            console.error('Błąd usuwania poprzedniego zdjęcia:', deleteError);
+          }
+        }
+      }
+      
+      // Wyślij plik do Supabase Storage
+      const { error: uploadError } = await supabase
+        .storage
         .from('profile_avatars')
-        .upload(fileName, selectedFile, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-      
+        .upload(filePath, imageFile);
+        
       if (uploadError) {
         throw uploadError;
       }
       
-      // Pobierz publiczny URL do pliku
-      const { data: urlData } = await supabase.storage
+      // Uzyskaj publiczny URL dla przesłanego zdjęcia
+      const { data } = await supabase
+        .storage
         .from('profile_avatars')
-        .getPublicUrl(fileName);
+        .getPublicUrl(filePath);
+        
+      const publicUrl = data.publicUrl;
       
-      if (!urlData || !urlData.publicUrl) {
-        throw new Error('Nie udało się uzyskać publicznego URL do zdjęcia');
-      }
-      
-      // Zaktualizuj pole avatar_url w profilu użytkownika
+      // Aktualizuj profil użytkownika z nowym URL zdjęcia
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: urlData.publicUrl })
+        .update({ avatar_url: publicUrl })
         .eq('id', user.id);
-      
+        
       if (updateError) {
         throw updateError;
       }
       
-      // Powiadom o sukcesie
+      // Zaktualizuj stan i powiadom rodzica
+      setAvatarUrl(publicUrl);
+      onAvatarChanged(publicUrl);
+      
       toast({
-        title: "Sukces",
-        description: "Zdjęcie profilowe zostało zaktualizowane",
+        title: "Zdjęcie zaktualizowane",
+        description: "Twoje zdjęcie profilowe zostało pomyślnie zaktualizowane.",
       });
       
-      // Przekaż nowy URL avatara
-      onAvatarChanged(urlData.publicUrl);
       onClose();
-      
     } catch (error: any) {
-      console.error('Błąd podczas aktualizacji zdjęcia profilowego:', error);
+      console.error('Błąd aktualizacji zdjęcia:', error);
       toast({
         title: "Błąd",
-        description: error.message || "Nie udało się zaktualizować zdjęcia profilowego",
+        description: "Nie udało się zaktualizować zdjęcia profilowego. Spróbuj ponownie.",
         variant: "destructive",
       });
     } finally {
-      setIsUploading(false);
+      setUploading(false);
+      setImageFile(null);
+      setPreviewUrl(null);
     }
   };
 
-  const handleDeleteAvatar = async () => {
-    if (!user) return;
+  const removeAvatar = async () => {
+    if (!user || isDefaultAvatar) return;
     
-    setIsUploading(true);
+    setUploading(true);
     
     try {
-      // Zaktualizuj pole avatar_url w profilu użytkownika na null lub domyślną wartość
+      // Usuń zdjęcie ze storage, jeśli nie jest domyślne
+      if (avatarUrl && !avatarUrl.includes('placeholder.svg') && avatarUrl.includes('profile_avatars')) {
+        const pathParts = avatarUrl.split('/');
+        const filename = pathParts[pathParts.length - 1];
+        const filePath = `${user.id}/${filename}`;
+        
+        const { error: deleteError } = await supabase
+          .storage
+          .from('profile_avatars')
+          .remove([filePath]);
+          
+        if (deleteError) {
+          console.error('Błąd usuwania zdjęcia:', deleteError);
+        }
+      }
+      
+      // Ustaw domyślne zdjęcie w profilu
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: null })
+        .update({ avatar_url: '/placeholder.svg' })
         .eq('id', user.id);
-      
+        
       if (updateError) {
         throw updateError;
       }
       
-      // Powiadom o sukcesie
+      // Zaktualizuj stan i powiadom rodzica
+      setAvatarUrl('/placeholder.svg');
+      onAvatarChanged('/placeholder.svg');
+      
       toast({
-        title: "Sukces",
-        description: "Zdjęcie profilowe zostało usunięte",
+        title: "Zdjęcie usunięte",
+        description: "Twoje zdjęcie profilowe zostało usunięte.",
       });
       
-      // Przekaż pusty URL avatara
-      onAvatarChanged('/placeholder.svg');
       onClose();
-      
     } catch (error: any) {
-      console.error('Błąd podczas usuwania zdjęcia profilowego:', error);
+      console.error('Błąd usuwania zdjęcia:', error);
       toast({
         title: "Błąd",
-        description: error.message || "Nie udało się usunąć zdjęcia profilowego",
+        description: "Nie udało się usunąć zdjęcia profilowego. Spróbuj ponownie.",
         variant: "destructive",
       });
     } finally {
-      setIsUploading(false);
+      setUploading(false);
     }
   };
 
@@ -178,101 +206,89 @@ export function ChangeAvatarModal({ isOpen, onClose, onAvatarChanged, currentAva
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Zmień zdjęcie profilowe</DialogTitle>
+          <DialogDescription>
+            Wybierz nowe zdjęcie profilowe lub usuń obecne.
+          </DialogDescription>
         </DialogHeader>
         
-        <div className="py-6">
-          <div className="flex items-center justify-center mb-4">
-            {previewUrl ? (
-              <div className="relative">
-                <Avatar className="h-32 w-32 rounded-full border-4 border-background">
-                  <AvatarImage src={previewUrl} alt="Podgląd" className="object-cover" />
-                </Avatar>
-                <button 
-                  onClick={resetSelection}
-                  className="absolute -top-2 -right-2 bg-background rounded-full shadow-sm hover:text-destructive"
-                  aria-label="Usuń wybrane zdjęcie"
-                >
-                  <XCircle className="h-6 w-6" />
-                </button>
-              </div>
-            ) : (
-              <Avatar className="h-32 w-32 rounded-full border-4 border-background">
-                <AvatarImage src={currentAvatarUrl} alt="Obecne zdjęcie" className="object-cover" />
-                <AvatarFallback className="text-4xl">
-                  <User className="h-12 w-12" />
-                </AvatarFallback>
-              </Avatar>
-            )}
+        <div className="space-y-4 py-4">
+          <div className="flex justify-center">
+            <Avatar className="h-32 w-32 border-4 border-background">
+              <AvatarImage src={previewUrl || avatarUrl} alt="Podgląd" />
+              <AvatarFallback>
+                <Image className="h-8 w-8" />
+              </AvatarFallback>
+            </Avatar>
           </div>
           
-          <div className="space-y-4">
-            <div className="flex flex-col items-center gap-3">
-              <input
-                type="file"
-                ref={fileInputRef}
+          <div className="space-y-2">
+            <label 
+              htmlFor="avatar-upload" 
+              className="flex cursor-pointer justify-center rounded-lg border border-dashed p-6 hover:border-primary"
+            >
+              <div className="flex flex-col items-center gap-1 text-center">
+                <UploadCloud className="h-10 w-10 text-muted-foreground" />
+                <span className="text-sm font-medium">
+                  Przeciągnij i upuść lub kliknij, aby przesłać
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  JPG, PNG (maks. 2MB)
+                </span>
+              </div>
+              <Input 
+                id="avatar-upload" 
+                type="file" 
+                accept="image/*" 
+                className="sr-only" 
                 onChange={handleFileChange}
-                className="hidden"
-                accept="image/*"
+                disabled={uploading}
               />
-              
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={triggerFileInput}
-                className="w-full max-w-xs"
-                disabled={isUploading}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Wybierz zdjęcie
-              </Button>
-              
-              {currentAvatarUrl && currentAvatarUrl !== '/placeholder.svg' && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={handleDeleteAvatar}
-                  className="w-full max-w-xs text-destructive hover:text-destructive"
-                  disabled={isUploading}
-                >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Usuń obecne zdjęcie
-                </Button>
-              )}
-            </div>
-            
-            <div className="text-center text-sm text-muted-foreground">
-              <p>Dozwolone formaty: JPG, PNG, GIF</p>
-              <p>Maksymalny rozmiar: 2MB</p>
-            </div>
+            </label>
           </div>
         </div>
         
-        <DialogFooter>
-          <Button 
-            type="button" 
-            variant="secondary" 
-            onClick={onClose}
-            disabled={isUploading}
+        <DialogFooter className="flex-col sm:flex-row sm:justify-between sm:space-x-2">
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={removeAvatar}
+            disabled={uploading || isDefaultAvatar} // Blokujemy usuwanie domyślnej ikony
+            className="order-1 sm:order-none"
           >
-            Anuluj
-          </Button>
-          <Button 
-            type="button" 
-            onClick={handleUpload}
-            disabled={!selectedFile || isUploading}
-          >
-            {isUploading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Zapisywanie...
-              </>
+            {isDefaultAvatar ? (
+              "Nie można usunąć domyślnego zdjęcia"
             ) : (
               <>
-                <Image className="mr-2 h-4 w-4" />
-                Zapisz zdjęcie
+                <Trash2 className="mr-2 h-4 w-4" />
+                Usuń zdjęcie
               </>
             )}
           </Button>
+          
+          <div className="flex gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              disabled={uploading}
+            >
+              Anuluj
+            </Button>
+            <Button 
+              type="button" 
+              onClick={uploadAvatar} 
+              disabled={!imageFile || uploading}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Przesyłanie...
+                </>
+              ) : (
+                "Zapisz zmiany"
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

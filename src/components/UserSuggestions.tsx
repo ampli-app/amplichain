@@ -65,7 +65,7 @@ export function UserSuggestions() {
         {suggestedUsers.map((user) => (
           <div key={user.id} className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
               <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">

@@ -62,11 +62,17 @@ export function MentorCard({
           <div className="p-6 grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6">
             <div className="space-y-4">
               <div className="aspect-square overflow-hidden rounded-md">
-                <img 
-                  src={image} 
-                  alt={name}
-                  className="w-full h-full object-cover"
-                />
+                {/* Użyj komponentu Avatar dla lepszej obsługi zdjęć profilowych */}
+                <Avatar className="w-full h-full rounded-md">
+                  <AvatarImage 
+                    src={image} 
+                    alt={name}
+                    className="w-full h-full object-cover"
+                  />
+                  <AvatarFallback className="w-full h-full">
+                    {name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
               </div>
               
               <div className="text-center">
