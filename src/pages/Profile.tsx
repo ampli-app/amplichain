@@ -6,7 +6,7 @@ import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,9 +26,12 @@ import {
   Music,
   Share2,
   ExternalLink,
-  Plus
+  Plus,
+  Camera,
+  User
 } from 'lucide-react';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
+import { ChangeAvatarModal } from '@/components/profile/ChangeAvatarModal';
 
 interface ProfileData {
   id: string;
@@ -87,6 +90,7 @@ export default function Profile() {
   const [userExperience, setUserExperience] = useState<Experience[]>([]);
   const [userProjects, setUserProjects] = useState<Project[]>([]);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isChangeAvatarOpen, setIsChangeAvatarOpen] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'following' | 'connected' | 'pending_sent' | 'pending_received'>('none');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -290,6 +294,22 @@ export default function Profile() {
     }
   };
 
+  const handleAvatarClick = () => {
+    if (isOwnProfile) {
+      setIsChangeAvatarOpen(true);
+    }
+  };
+
+  const handleAvatarChanged = (newAvatarUrl: string) => {
+    if (profileData) {
+      setProfileData({
+        ...profileData,
+        avatar_url: newAvatarUrl
+      });
+    }
+    handleProfileUpdated();
+  };
+
   const loadProductForEditing = (productId: string) => {
     navigate(`/edit-product/${productId}`);
   };
@@ -337,13 +357,23 @@ export default function Profile() {
           <div className="bg-card border rounded-xl p-6 mb-8">
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-shrink-0">
-                <Avatar className="h-24 w-24 md:h-32 md:w-32 rounded-xl">
-                  <img 
-                    src={profileData?.avatar_url || '/placeholder.svg'} 
-                    alt={profileData?.full_name || 'User'} 
-                    className="object-cover"
-                  />
-                </Avatar>
+                <div className={`relative group ${isOwnProfile ? 'cursor-pointer' : ''}`} onClick={isOwnProfile ? handleAvatarClick : undefined}>
+                  <Avatar className="h-24 w-24 md:h-32 md:w-32 rounded-xl">
+                    <AvatarImage 
+                      src={profileData?.avatar_url || '/placeholder.svg'} 
+                      alt={profileData?.full_name || 'User'} 
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="text-4xl">
+                      <User className="h-12 w-12" />
+                    </AvatarFallback>
+                  </Avatar>
+                  {isOwnProfile && (
+                    <div className="absolute inset-0 bg-black/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Camera className="h-8 w-8 text-white" />
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="flex-1">
@@ -734,6 +764,16 @@ export default function Profile() {
           onClose={() => setIsEditProfileOpen(false)}
           onProfileUpdated={handleProfileUpdated}
           currentProfile={profileData}
+        />
+      )}
+      
+      {/* Change Avatar Modal */}
+      {isOwnProfile && (
+        <ChangeAvatarModal
+          isOpen={isChangeAvatarOpen}
+          onClose={() => setIsChangeAvatarOpen(false)}
+          onAvatarChanged={handleAvatarChanged}
+          currentAvatarUrl={profileData?.avatar_url || '/placeholder.svg'}
         />
       )}
     </div>
