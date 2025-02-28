@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useSocial, SocialUser } from '@/contexts/SocialContext';
 import { UserPlus, User, Users } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 
 export function UserSuggestions() {
   const { users, followUser, sendConnectionRequest, loading } = useSocial();
@@ -17,6 +18,19 @@ export function UserSuggestions() {
     
     setSuggestedUsers(nonConnectedUsers);
   }, [users]);
+  
+  const handleSendConnectionRequest = async (userId: string) => {
+    try {
+      await sendConnectionRequest(userId);
+    } catch (error) {
+      console.error("Błąd podczas wysyłania zaproszenia:", error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się wysłać zaproszenia do połączenia. Spróbuj ponownie później.",
+        variant: "destructive",
+      });
+    }
+  };
   
   if (loading) {
     return (
@@ -72,7 +86,7 @@ export function UserSuggestions() {
                 variant="default" 
                 size="sm" 
                 className="flex-shrink-0 gap-1.5"
-                onClick={() => sendConnectionRequest(user.id)}
+                onClick={() => handleSendConnectionRequest(user.id)}
               >
                 <Users className="h-4 w-4" />
                 Połącz

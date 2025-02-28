@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -520,6 +519,22 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      // Sprawdź, czy zaproszenie już istnieje
+      const { data: existingRequest, error: checkError } = await supabase
+        .from('connection_requests')
+        .select('*')
+        .eq('sender_id', user.id)
+        .eq('receiver_id', userId)
+        .maybeSingle();
+
+      if (existingRequest) {
+        toast({
+          title: "Informacja",
+          description: "Zaproszenie do tego użytkownika zostało już wysłane.",
+        });
+        return;
+      }
+
       // Sprawdź, czy osoba już obserwuje użytkownika - jeśli nie, najpierw obserwuj
       const { data: followingData } = await supabase
         .from('followings')
@@ -592,6 +607,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         description: "Wystąpił nieoczekiwany błąd.",
         variant: "destructive",
       });
+      throw err; // Rzucamy błąd, aby obsłużyć go w komponencie
     }
   };
 

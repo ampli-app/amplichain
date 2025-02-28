@@ -25,6 +25,7 @@ import {
   UserCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { toast } from '@/components/ui/use-toast';
 
 export default function Connections() {
   const { isLoggedIn } = useAuth();
@@ -64,7 +65,7 @@ export default function Connections() {
         const results = await searchUsers(searchQuery);
         setSearchResults(results);
       } catch (error) {
-        console.error('Search error:', error);
+        console.error('Błąd wyszukiwania:', error);
       } finally {
         setIsSearching(false);
       }
@@ -72,6 +73,19 @@ export default function Connections() {
 
     return () => clearTimeout(delaySearch);
   }, [searchQuery, searchUsers]);
+
+  const handleSendConnectionRequest = async (userId: string) => {
+    try {
+      await sendConnectionRequest(userId);
+    } catch (error) {
+      console.error("Błąd podczas wysyłania zaproszenia:", error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się wysłać zaproszenia do połączenia. Spróbuj ponownie później.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // If user is not logged in, show a prompt to log in
   if (!isLoggedIn) {
@@ -86,19 +100,19 @@ export default function Connections() {
                 <div className="mb-6 p-3 w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
                   <UserCircle className="w-8 h-8 text-primary" />
                 </div>
-                <h1 className="text-2xl font-bold mb-2">Connect with Industry Professionals</h1>
+                <h1 className="text-2xl font-bold mb-2">Łącz się z profesjonalistami z branży</h1>
                 <p className="text-rhythm-600 mb-6">
-                  Sign in to view your network, follow industry professionals, and connect with peers.
+                  Zaloguj się, aby zobaczyć swoją sieć, obserwować profesjonalistów z branży i łączyć się z rówieśnikami.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button asChild>
                     <Link to="/login" className="flex items-center gap-2">
                       <LogIn className="h-4 w-4" />
-                      Sign In
+                      Zaloguj się
                     </Link>
                   </Button>
                   <Button asChild variant="outline">
-                    <Link to="/signup">Create Account</Link>
+                    <Link to="/signup">Utwórz konto</Link>
                   </Button>
                 </div>
               </div>
@@ -123,15 +137,15 @@ export default function Connections() {
               onClick={() => followUser(userId)}
             >
               <UserPlus className="h-4 w-4" />
-              Follow
+              Obserwuj
             </Button>
             <Button 
               size="sm" 
               className="gap-1"
-              onClick={() => sendConnectionRequest(userId)}
+              onClick={() => handleSendConnectionRequest(userId)}
             >
               <Users className="h-4 w-4" />
-              Connect
+              Połącz
             </Button>
           </div>
         );
@@ -145,15 +159,15 @@ export default function Connections() {
               onClick={() => unfollowUser(userId)}
             >
               <UserMinus className="h-4 w-4" />
-              Unfollow
+              Przestań obserwować
             </Button>
             <Button 
               size="sm" 
               className="gap-1"
-              onClick={() => sendConnectionRequest(userId)}
+              onClick={() => handleSendConnectionRequest(userId)}
             >
               <Users className="h-4 w-4" />
-              Connect
+              Połącz
             </Button>
           </div>
         );
@@ -169,7 +183,7 @@ export default function Connections() {
               }}
             >
               <MessageSquare className="h-4 w-4" />
-              Message
+              Wiadomość
             </Button>
             <Button 
               variant="outline" 
@@ -178,7 +192,7 @@ export default function Connections() {
               onClick={() => removeConnection(userId)}
             >
               <UserMinus className="h-4 w-4" />
-              Remove
+              Usuń
             </Button>
           </div>
         );
@@ -191,7 +205,7 @@ export default function Connections() {
             className="gap-1"
           >
             <Bell className="h-4 w-4" />
-            Request Sent
+            Zaproszenie wysłane
           </Button>
         );
       case 'pending_received':
@@ -203,7 +217,7 @@ export default function Connections() {
               onClick={() => acceptConnectionRequest(userId)}
             >
               <Check className="h-4 w-4" />
-              Accept
+              Akceptuj
             </Button>
             <Button 
               variant="outline" 
@@ -212,7 +226,7 @@ export default function Connections() {
               onClick={() => declineConnectionRequest(userId)}
             >
               <X className="h-4 w-4" />
-              Decline
+              Odrzuć
             </Button>
           </div>
         );
@@ -227,28 +241,28 @@ export default function Connections() {
         return (
           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
             <UserPlus className="mr-1 h-3 w-3" />
-            Following
+            Obserwujesz
           </Badge>
         );
       case 'connected':
         return (
           <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
             <UserCheck className="mr-1 h-3 w-3" />
-            Connected
+            Połączeni
           </Badge>
         );
       case 'pending_sent':
         return (
           <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
             <Bell className="mr-1 h-3 w-3" />
-            Request Sent
+            Zaproszenie wysłane
           </Badge>
         );
       case 'pending_received':
         return (
           <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
             <Bell className="mr-1 h-3 w-3" />
-            Request Received
+            Zaproszenie otrzymane
           </Badge>
         );
       default:
@@ -298,9 +312,9 @@ export default function Connections() {
         <div className="container px-4 mx-auto">
           <div className="max-w-5xl mx-auto">
             <div className="mb-8">
-              <h1 className="text-2xl md:text-3xl font-bold mb-2">My Network</h1>
+              <h1 className="text-2xl md:text-3xl font-bold mb-2">Moja sieć</h1>
               <p className="text-rhythm-600">
-                Build your professional network by connecting with industry peers
+                Buduj swoją sieć zawodową, łącząc się ze specjalistami z branży
               </p>
             </div>
             
@@ -308,7 +322,7 @@ export default function Connections() {
               <div className="relative flex-1">
                 <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isSearching ? 'text-primary animate-pulse' : 'text-rhythm-500'} h-4 w-4`} />
                 <Input 
-                  placeholder="Search for people by name, role or username..." 
+                  placeholder="Szukaj osób według imienia, stanowiska lub nazwy użytkownika..." 
                   className="pl-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -324,19 +338,19 @@ export default function Connections() {
               <TabsList className="grid grid-cols-4 w-full">
                 <TabsTrigger value="all" className="flex items-center gap-1.5">
                   <Users className="h-4 w-4" />
-                  All People
+                  Wszyscy
                 </TabsTrigger>
                 <TabsTrigger value="following" className="flex items-center gap-1.5">
                   <UserPlus className="h-4 w-4" />
-                  Following
+                  Obserwowani
                 </TabsTrigger>
                 <TabsTrigger value="connections" className="flex items-center gap-1.5">
                   <UserCheck className="h-4 w-4" />
-                  Connections
+                  Połączenia
                 </TabsTrigger>
                 <TabsTrigger value="pending" className="flex items-center gap-1.5">
                   <Bell className="h-4 w-4" />
-                  Pending
+                  Oczekujące
                 </TabsTrigger>
               </TabsList>
               
@@ -438,10 +452,10 @@ export default function Connections() {
                 
                 <div className="flex gap-4 text-sm">
                   <span className="text-rhythm-600">
-                    <strong>{user.followersCount}</strong> followers
+                    <strong>{user.followersCount}</strong> obserwujących
                   </span>
                   <span className="text-rhythm-600">
-                    <strong>{user.connectionsCount}</strong> connections
+                    <strong>{user.connectionsCount}</strong> połączeń
                   </span>
                 </div>
               </div>
