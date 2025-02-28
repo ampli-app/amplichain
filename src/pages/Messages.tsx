@@ -40,7 +40,9 @@ export default function Messages() {
     sendMessage,
     findOrCreateConversation,
     activeTab,
-    setActiveTab
+    setActiveTab,
+    error,
+    retryFetchConversations
   } = useMessages();
 
   // Sprawdź czy widok jest mobilny
@@ -179,6 +181,14 @@ export default function Messages() {
                           <div className="p-8 text-center">
                             <p className="text-gray-500">Ładowanie konwersacji...</p>
                           </div>
+                        ) : error ? (
+                          <EmptyState 
+                            title="Błąd"
+                            description={error}
+                            error={true}
+                            onRetry={retryFetchConversations}
+                            isLoading={loadingConversations}
+                          />
                         ) : displayedConversations.length > 0 ? (
                           displayedConversations.map((conv) => (
                             <ConversationItem 
@@ -259,10 +269,21 @@ export default function Messages() {
                 </AnimatePresence>
                 
                 {/* Pusty stan */}
-                {!activeConversationData && !isMobileView && (
+                {!activeConversationData && !isMobileView && !error && (
                   <EmptyState 
                     title="Twoje wiadomości"
                     description="Wybierz konwersację lub rozpocznij nową, aby pisać wiadomości"
+                  />
+                )}
+                
+                {/* Stan błędu w obszarze głównym */}
+                {!activeConversationData && !isMobileView && error && (
+                  <EmptyState 
+                    title="Błąd"
+                    description={error}
+                    error={true}
+                    onRetry={retryFetchConversations}
+                    isLoading={loadingConversations}
                   />
                 )}
               </div>
