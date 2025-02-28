@@ -248,116 +248,57 @@ export function useMessages() {
       setError(null);
       setCreatingConversation(true);
       
-      // Sprawdź, czy konwersacja już istnieje
-      let existingConversationId: string | null = null;
+      // Sprawdź, czy istnieją już konwersacje z tym użytkownikiem
+      let existingConversation: Conversation | null = null;
       
-      if (type === 'private') {
-        // Wyszukaj prywatną konwersację między dwoma użytkownikami
-        const { data: userParticipations } = await supabase
-          .from('conversation_participants')
-          .select('conversation_id')
-          .eq('user_id', user.id);
-        
-        if (userParticipations && userParticipations.length > 0) {
-          const userConversationIds = userParticipations.map(p => p.conversation_id);
-          
-          // Znajdź konwersacje, w których uczestniczy drugi użytkownik
-          const { data: otherUserParticipations } = await supabase
-            .from('conversation_participants')
-            .select('conversation_id')
-            .eq('user_id', otherUserId)
-            .in('conversation_id', userConversationIds);
-            
-          if (otherUserParticipations && otherUserParticipations.length > 0) {
-            // Sprawdź, czy któraś z tych konwersacji jest prywatna i nie dotyczy produktu
-            const { data: privateConversations } = await supabase
-              .from('conversations')
-              .select('id')
-              .eq('type', 'private')
-              .is('product_id', null)
-              .in('id', otherUserParticipations.map(p => p.conversation_id));
-              
-            if (privateConversations && privateConversations.length > 0) {
-              existingConversationId = privateConversations[0].id;
-            }
-          }
-        }
-      } else if (type === 'marketplace' && productId) {
-        // Wyszukaj konwersację marketplace dotyczącą konkretnego produktu
-        const { data: userParticipations } = await supabase
-          .from('conversation_participants')
-          .select('conversation_id')
-          .eq('user_id', user.id);
-        
-        if (userParticipations && userParticipations.length > 0) {
-          const userConversationIds = userParticipations.map(p => p.conversation_id);
-          
-          // Znajdź konwersacje, w których uczestniczy drugi użytkownik
-          const { data: otherUserParticipations } = await supabase
-            .from('conversation_participants')
-            .select('conversation_id')
-            .eq('user_id', otherUserId)
-            .in('conversation_id', userConversationIds);
-            
-          if (otherUserParticipations && otherUserParticipations.length > 0) {
-            // Sprawdź, czy któraś z tych konwersacji dotyczy tego produktu
-            const { data: marketplaceConversations } = await supabase
-              .from('conversations')
-              .select('id')
-              .eq('type', 'marketplace')
-              .eq('product_id', productId)
-              .in('id', otherUserParticipations.map(p => p.conversation_id));
-              
-            if (marketplaceConversations && marketplaceConversations.length > 0) {
-              existingConversationId = marketplaceConversations[0].id;
-            }
-          }
-        }
+      // Filtruj konwersacje lokalne
+      const existingConversations = conversations.filter(conv => {
+        if (conv.type !== type) return false;
+        if (type === 'marketplace' && conv.product_id !== productId) return false;
+        return conv.otherUser?.id === otherUserId;
+      });
+      
+      if (existingConversations.length > 0) {
+        existingConversation = existingConversations[0];
+        setCurrentConversation(existingConversation.id);
+        return existingConversation.id;
       }
       
-      // Jeśli znaleziono istniejącą konwersację, użyj jej
-      if (existingConversationId) {
-        setCurrentConversation(existingConversationId);
-        return existingConversationId;
-      }
-      
-      // W przeciwnym razie utwórz nową konwersację
-      // 1. Utwórz nową konwersację
-      const { data: conversationData, error: conversationError } = await supabase
-        .from('conversations')
-        .insert({
-          type: type,
-          product_id: productId
-        })
-        .select()
-        .single();
+      // Użyj funkcji SQL zamiast bezpośredniego tworzenia konwersacji
+      // aby obejść problemy z rekurencją w politykach RLS
+      const { data, error } = await supabase
+        .rpc('find_or_create_conversation', {
+          p_user_id1: user.id,
+          p_user_id2: otherUserId,
+          p_type: type,
+          p_product_id: productId
+        });
         
-      if (conversationError) throw conversationError;
+      if (error) throw error;
       
-      if (!conversationData) {
+      if (!data) {
         throw new Error('Nie udało się utworzyć konwersacji');
       }
       
-      // 2. Dodaj uczestników
-      const { error: participantsError } = await supabase
-        .from('conversation_participants')
-        .insert([
-          { conversation_id: conversationData.id, user_id: user.id },
-          { conversation_id: conversationData.id, user_id: otherUserId }
-        ]);
+      // Pobierz pełne dane nowo utworzonej konwersacji
+      const { data: newConversation, error: convError } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('id', data)
+        .single();
         
-      if (participantsError) throw participantsError;
+      if (convError) throw convError;
       
-      // 3. Pobierz pełne dane konwersacji
-      const conversationWithDetails = await fetchConversationDetails(conversationData);
+      // Pobierz szczegóły konwersacji
+      const conversationWithDetails = await fetchConversationDetails(newConversation);
       
-      // 4. Dodaj nową konwersację do stanu
+      // Dodaj nową konwersację do stanu
       setConversations(prev => [conversationWithDetails, ...prev]);
       
-      // 5. Ustaw nową konwersację jako aktywną
-      setCurrentConversation(conversationData.id);
+      // Ustaw nową konwersację jako aktywną
+      setCurrentConversation(data);
       
-      return conversationData.id;
+      return data;
     } catch (error: any) {
       console.error('Błąd podczas tworzenia konwersacji:', error);
       setError('Nie udało się utworzyć konwersacji. Spróbuj ponownie później.');
@@ -370,7 +311,7 @@ export function useMessages() {
     } finally {
       setCreatingConversation(false);
     }
-  }, [user, fetchConversationDetails]);
+  }, [user, fetchConversationDetails, conversations]);
 
   // Obsługa subskrypcji na zmiany w wiadomościach w czasie rzeczywistym
   useEffect(() => {

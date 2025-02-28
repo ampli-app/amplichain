@@ -6,7 +6,8 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle,
-  DialogTrigger
+  DialogTrigger,
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -52,6 +53,9 @@ export function NewMessageButton({ onSelectUser, isLoading = false }: NewMessage
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Nowa wiadomość</DialogTitle>
+          <DialogDescription>
+            Wybierz użytkownika, aby rozpocząć konwersację
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-2">
           <div>
