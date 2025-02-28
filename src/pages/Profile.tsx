@@ -91,13 +91,20 @@ export default function Profile() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Add console logs for debugging
+    console.log("Profile page loaded, auth state:", { isLoggedIn, user, userId });
+
+    // Modified redirect logic - only redirect if not logged in AND explicitly checking own profile
     if (!isLoggedIn && !userId) {
+      console.log("Not logged in and no userId provided, redirecting to login");
       navigate('/login');
       return;
     }
     
     // Determine if we're looking at our own profile or someone else's
     const targetUserId = userId || (user && user.id);
+    console.log("Target user ID:", targetUserId);
+    
     if (user && targetUserId === user.id) {
       setIsOwnProfile(true);
     } else {
@@ -106,10 +113,14 @@ export default function Profile() {
     
     if (targetUserId) {
       fetchProfileData(targetUserId);
+    } else {
+      // Set loading to false if we don't have a target user ID
+      setIsLoading(false);
     }
   }, [isLoggedIn, navigate, userId, user]);
 
   const fetchProfileData = async (profileId: string) => {
+    console.log("Fetching profile data for:", profileId);
     setIsLoading(true);
     try {
       // Fetch profile data
@@ -127,6 +138,7 @@ export default function Profile() {
           variant: "destructive",
         });
       } else if (data) {
+        console.log("Profile data fetched successfully:", data);
         setProfileData(data);
         
         // Try to get connection status via Social Context
@@ -164,6 +176,7 @@ export default function Profile() {
     if (error) {
       console.error('Error fetching user products:', error);
     } else {
+      console.log("User products fetched:", data?.length || 0);
       setUserProducts(data || []);
     }
   };
@@ -177,6 +190,7 @@ export default function Profile() {
     if (error) {
       console.error('Error fetching education:', error);
     } else {
+      console.log("Education records fetched:", data?.length || 0);
       setUserEducation(data || []);
     }
   };
@@ -190,6 +204,7 @@ export default function Profile() {
     if (error) {
       console.error('Error fetching experience:', error);
     } else {
+      console.log("Experience records fetched:", data?.length || 0);
       setUserExperience(data || []);
     }
   };
@@ -203,6 +218,7 @@ export default function Profile() {
     if (error) {
       console.error('Error fetching projects:', error);
     } else {
+      console.log("Projects fetched:", data?.length || 0);
       setUserProjects(data || []);
     }
   };
@@ -273,6 +289,25 @@ export default function Profile() {
   const loadProductForEditing = (productId: string) => {
     navigate(`/edit-product/${productId}`);
   };
+
+  // Add a fallback if no data is loaded yet but loading is complete
+  if (!isLoading && !profileData && !userId && !user) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 pt-24 pb-16 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold mb-4">Musisz się zalogować</h2>
+            <p className="mb-6">Aby zobaczyć profil, musisz się najpierw zalogować.</p>
+            <Button onClick={() => navigate('/login')}>
+              Zaloguj się
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
