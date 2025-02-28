@@ -37,6 +37,8 @@ function App() {
             <Route path="/connections" element={<Connections />} />
             <Route path="/discovery" element={<Discovery />} />
             <Route path="/messages" element={<Messages />} />
+            <Route path="/messages/product/:id" element={<Messages />} />
+            <Route path="/messages/user/:id" element={<Messages />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/marketplace/:id" element={<ProductDetail />} />
             <Route path="/edit-product/:id" element={<EditProduct />} />
