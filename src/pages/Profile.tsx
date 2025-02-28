@@ -25,7 +25,8 @@ import {
   Users,
   Music,
   Share2,
-  ExternalLink
+  ExternalLink,
+  Plus
 } from 'lucide-react';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 
