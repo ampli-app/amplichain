@@ -33,10 +33,10 @@ export function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isLoggedIn, logout, user } = useAuth();
-  const { usersMap } = useSocial();
+  const { users } = useSocial();
   
   // Pobierz dane profilu użytkownika
-  const userProfile = user ? usersMap[user.id] : null;
+  const userProfile = user ? users.find(u => u.id === user.id) : null;
   
   useEffect(() => {
     const handleScroll = () => {
@@ -107,7 +107,7 @@ export function Navbar() {
                   </Link>
                 </Button>
                 
-                <UserMenu avatarUrl={userProfile?.avatar_url} />
+                <UserMenu avatarUrl={userProfile?.avatar} />
               </>
             ) : (
               <>
