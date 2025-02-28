@@ -143,9 +143,13 @@ export default function Profile() {
         
         // Try to get connection status via Social Context
         if (!isOwnProfile && currentUser) {
-          const socialProfile = fetchUserProfile(profileId);
-          if (socialProfile) {
-            setConnectionStatus(socialProfile.connectionStatus || 'none');
+          try {
+            const socialProfile = await fetchUserProfile(profileId);
+            if (socialProfile) {
+              setConnectionStatus(socialProfile.connectionStatus || 'none');
+            }
+          } catch (err) {
+            console.error('Error fetching social profile:', err);
           }
         }
       }
