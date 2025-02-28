@@ -218,7 +218,7 @@ export function AddProductDialog({ open, onOpenChange }: AddProductDialogProps) 
       }
       
       // Insert product into database
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('products')
         .insert({
           title,
