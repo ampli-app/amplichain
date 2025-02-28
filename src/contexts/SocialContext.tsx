@@ -441,6 +441,22 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      // Najpierw sprawdź, czy istnieje połączenie między użytkownikami
+      const { data: connectionData } = await supabase
+        .from('connections')
+        .select('*')
+        .or(`and(user_id1.eq.${user.id},user_id2.eq.${userId}),and(user_id1.eq.${userId},user_id2.eq.${user.id})`)
+        .single();
+
+      if (connectionData) {
+        toast({
+          title: "Nie można przestać obserwować",
+          description: "Nie możesz przestać obserwować użytkownika, z którym masz połączenie. Najpierw usuń połączenie.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Usuń wpis z tabeli followings
       const { error } = await supabase
         .from('followings')
@@ -504,6 +520,28 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      // Sprawdź, czy osoba już obserwuje użytkownika - jeśli nie, najpierw obserwuj
+      const { data: followingData } = await supabase
+        .from('followings')
+        .select('*')
+        .eq('follower_id', user.id)
+        .eq('following_id', userId)
+        .single();
+
+      if (!followingData) {
+        // Najpierw dodaj obserwowanie
+        const { error: followError } = await supabase
+          .from('followings')
+          .insert({
+            follower_id: user.id,
+            following_id: userId
+          });
+
+        if (followError) {
+          console.error('Error auto-following before connection request:', followError);
+        }
+      }
+
       // Dodaj wpis do tabeli connection_requests
       const { error } = await supabase
         .from('connection_requests')
@@ -527,10 +565,18 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
       setUsers(prevUsers => 
         prevUsers.map(u => 
           u.id === userId 
-            ? { ...u, connectionStatus: 'pending_sent' } 
+            ? { ...u, connectionStatus: 'pending_sent', followersCount: u.followersCount + (!followingData ? 1 : 0) } 
             : u
         )
       );
+
+      // Aktualizuj licznik obserwowanych dla currentUser jeśli auto-obserwowanie było potrzebne
+      if (!followingData && currentUser) {
+        setCurrentUser({
+          ...currentUser,
+          followingCount: currentUser.followingCount + 1
+        });
+      }
 
       toast({
         title: "Sukces",
@@ -580,7 +626,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Transakcja realizowana poprzez sekwencję zapytań
       // 1. Zaktualizuj status zaproszenia
       const { error: updateError } = await supabase
         .from('connection_requests')
@@ -737,11 +782,11 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Aktualizuj stan lokalny
+      // Po usunięciu połączenia, zaktualizuj status - teraz jesteśmy tylko obserwującymi
       setUsers(prevUsers => 
         prevUsers.map(u => 
           u.id === userId 
-            ? { ...u, connectionStatus: 'none', connectionsCount: Math.max(0, u.connectionsCount - 1) } 
+            ? { ...u, connectionStatus: 'following', connectionsCount: Math.max(0, u.connectionsCount - 1) } 
             : u
         )
       );
@@ -756,7 +801,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
 
       toast({
         title: "Sukces",
-        description: "Połączenie zostało usunięte.",
+        description: "Połączenie zostało usunięte. Nadal obserwujesz tego użytkownika.",
       });
 
       // Odśwież dane

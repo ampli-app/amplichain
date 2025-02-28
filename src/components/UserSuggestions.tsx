@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useSocial, SocialUser } from '@/contexts/SocialContext';
-import { UserPlus, User } from 'lucide-react';
+import { UserPlus, User, Users } from 'lucide-react';
 
 export function UserSuggestions() {
-  const { users, followUser, loading } = useSocial();
+  const { users, followUser, sendConnectionRequest, loading } = useSocial();
   const [suggestedUsers, setSuggestedUsers] = useState<SocialUser[]>([]);
   
   useEffect(() => {
@@ -58,15 +58,26 @@ export function UserSuggestions() {
               <p className="font-medium truncate">{user.name}</p>
               <p className="text-sm text-rhythm-500 truncate">{user.role}</p>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-shrink-0 gap-1.5"
-              onClick={() => followUser(user.id)}
-            >
-              <UserPlus className="h-4 w-4" />
-              Obserwuj
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-shrink-0 gap-1.5"
+                onClick={() => followUser(user.id)}
+              >
+                <UserPlus className="h-4 w-4" />
+                Obserwuj
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="flex-shrink-0 gap-1.5"
+                onClick={() => sendConnectionRequest(user.id)}
+              >
+                <Users className="h-4 w-4" />
+                Połącz
+              </Button>
+            </div>
           </div>
         ))}
       </div>
