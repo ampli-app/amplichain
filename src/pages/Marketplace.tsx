@@ -14,7 +14,16 @@ import {
   Calendar, 
   PlusCircle, 
   ArrowLeft, 
-  ArrowRight 
+  ArrowRight,
+  Music,
+  Mic,
+  Headphones,
+  Monitor,
+  Gamepad2,
+  Package,
+  Laptop,
+  Music2,
+  ListFilter
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddProductDialog } from '@/components/AddProductDialog';
@@ -22,6 +31,9 @@ import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Product {
   id: string;
@@ -39,17 +51,12 @@ interface Product {
   user_id?: string;
 }
 
-const categories = [
-  "All Categories",
-  "Mikrofony",
-  "Interfejsy Audio",
-  "Monitory",
-  "Słuchawki",
-  "Kontrolery",
-  "Instrumenty",
-  "Oprogramowanie",
-  "Akcesoria"
-];
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+}
 
 const productConditions = [
   "Nowy",
@@ -59,6 +66,29 @@ const productConditions = [
   "Zadowalający"
 ];
 
+const getCategoryIcon = (categoryName: string) => {
+  switch(categoryName.toLowerCase()) {
+    case 'mikrofony':
+      return <Mic className="h-5 w-5" />;
+    case 'interfejsy audio':
+      return <Music2 className="h-5 w-5" />;
+    case 'monitory':
+      return <Monitor className="h-5 w-5" />;
+    case 'słuchawki':
+      return <Headphones className="h-5 w-5" />;
+    case 'kontrolery':
+      return <Gamepad2 className="h-5 w-5" />;
+    case 'instrumenty':
+      return <Music className="h-5 w-5" />;
+    case 'oprogramowanie':
+      return <Laptop className="h-5 w-5" />;
+    case 'akcesoria':
+      return <Package className="h-5 w-5" />;
+    default:
+      return <ListFilter className="h-5 w-5" />;
+  }
+};
+
 export default function Marketplace() {
   // Auth state
   const { isLoggedIn } = useAuth();
@@ -67,9 +97,11 @@ export default function Marketplace() {
   const [showTestingOnly, setShowTestingOnly] = useState(false);
   const [showAddProductDialog, setShowAddProductDialog] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'filters'>('grid');
   
   // Filter state
-  const [selectedCategory, setSelectedCategory] = useState("All Categories");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50000]);
   const [minPrice, setMinPrice] = useState<string>('0');
@@ -92,6 +124,7 @@ export default function Marketplace() {
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchProducts();
+    fetchCategories();
   }, []);
 
   // Apply filters when relevant state changes
@@ -103,6 +136,30 @@ export default function Marketplace() {
   useEffect(() => {
     updateDisplayedProducts();
   }, [filteredProducts, currentPage]);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+      
+      if (error) {
+        console.error('Error fetching categories:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się pobrać kategorii produktów.",
+          variant: "destructive",
+        });
+      } else {
+        // Filter out "Wszystkie kategorie" if it exists
+        const filteredCategories = data?.filter(cat => cat.slug !== 'all-categories') || [];
+        setCategories(filteredCategories);
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+    }
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -145,8 +202,8 @@ export default function Marketplace() {
     let filtered = [...products];
     
     // Filter by category
-    if (selectedCategory !== "All Categories") {
-      filtered = filtered.filter(item => item.category === selectedCategory);
+    if (selectedCategory) {
+      filtered = filtered.filter(item => item.category_id === selectedCategory);
     }
     
     // Filter by testing availability
@@ -243,6 +300,11 @@ export default function Marketplace() {
       title: "Filtry zastosowane",
       description: `Znaleziono ${filteredProducts.length} produktów.`,
     });
+    
+    // On mobile, switch to grid view after applying filters
+    if (window.innerWidth < 768) {
+      setViewMode('grid');
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -303,6 +365,126 @@ export default function Marketplace() {
     );
   };
 
+  const renderFilters = () => (
+    <div className="space-y-6">
+      {/* Price Range Filter */}
+      <div className="glass-card rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm">
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <SlidersHorizontal className="h-4 w-4" />
+          Zakres cenowy
+        </h3>
+        <div className="pt-2 pb-2 px-1">
+          <Slider
+            defaultValue={[0, maxProductPrice]}
+            value={priceRange}
+            min={0}
+            max={maxProductPrice}
+            step={100}
+            onValueChange={(value) => {
+              setPriceRange(value as [number, number]);
+              setMinPrice(value[0].toString());
+              setMaxPrice(value[1].toString());
+            }}
+            className="my-6"
+          />
+          <div className="flex justify-between text-sm text-zinc-500 dark:text-zinc-400">
+            <span>{new Intl.NumberFormat('pl-PL', {
+              style: 'currency',
+              currency: 'PLN',
+              maximumFractionDigits: 0
+            }).format(priceRange[0])}</span>
+            <span>{new Intl.NumberFormat('pl-PL', {
+              style: 'currency',
+              currency: 'PLN',
+              maximumFractionDigits: 0
+            }).format(priceRange[1])}</span>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-3">
+          <div className="flex-1">
+            <Label htmlFor="minPrice">Min</Label>
+            <Input
+              id="minPrice"
+              placeholder="Min"
+              className="text-sm"
+              value={minPrice}
+              onChange={(e) => setMinPrice(e.target.value)}
+              onBlur={handlePriceInputChange}
+              type="number"
+              min="0"
+              max={maxProductPrice}
+            />
+          </div>
+          <div className="flex-1">
+            <Label htmlFor="maxPrice">Max</Label>
+            <Input
+              id="maxPrice"
+              placeholder="Max"
+              className="text-sm"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              onBlur={handlePriceInputChange}
+              type="number"
+              min="0"
+              max={maxProductPrice}
+            />
+          </div>
+        </div>
+      </div>
+      
+      {/* Product Condition Filter */}
+      <div className="glass-card rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm">
+        <h3 className="font-semibold mb-3">Stan</h3>
+        <div className="space-y-2">
+          {productConditions.map((condition) => (
+            <div key={condition} className="flex items-center">
+              <label className="flex items-center w-full cursor-pointer hover:text-primary transition-colors">
+                <input 
+                  type="checkbox" 
+                  className="mr-2 accent-primary"
+                  checked={selectedConditions.includes(condition)}
+                  onChange={(e) => handleConditionChange(condition, e.target.checked)}
+                />
+                {condition}
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Testing Filter */}
+      <div className="glass-card rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm">
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <Calendar className="h-4 w-4" />
+          Wypróbuj przed zakupem
+        </h3>
+        <div className="space-y-4">
+          <div className="flex items-center">
+            <label className="flex items-center w-full cursor-pointer hover:text-primary transition-colors">
+              <input 
+                type="checkbox" 
+                className="mr-2 accent-primary"
+                checked={showTestingOnly}
+                onChange={(e) => setShowTestingOnly(e.target.checked)}
+              />
+              Dostępne do testów
+            </label>
+          </div>
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+            <p>Wypróbuj sprzęt przez tydzień przed podjęciem decyzji o zakupie.</p>
+            <div className="flex items-center mt-2">
+              <Badge variant="outline" className="bg-primary/10 text-primary text-xs">
+                Wynajem tygodniowy
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <Button className="w-full" onClick={handleApplyFilters}>Zastosuj filtry</Button>
+    </div>
+  );
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -311,7 +493,7 @@ export default function Marketplace() {
         <div className="container px-4 mx-auto">
           <div className="flex flex-col items-center text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold mb-4">Rynek Sprzętu</h1>
-            <p className="text-lg text-rhythm-600 max-w-2xl">
+            <p className="text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl">
               Odkryj wysokiej jakości sprzęt muzyczny od zaufanych sprzedawców w naszym wyselekcjonowanym sklepie.
             </p>
             <Button 
@@ -323,154 +505,70 @@ export default function Marketplace() {
             </Button>
           </div>
           
+          {/* Categories as Tabs */}
+          <div className="mb-8">
+            <Tabs defaultValue="all" className="w-full" onValueChange={(value) => setSelectedCategory(value !== 'all' ? value : '')}>
+              <div className="mb-6 relative">
+                <ScrollArea className="pb-4">
+                  <TabsList className="flex w-full h-auto p-1 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1 overflow-x-auto">
+                    <TabsTrigger 
+                      value="all" 
+                      className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800"
+                    >
+                      <ListFilter className="h-5 w-5" />
+                      <span>Wszystkie</span>
+                    </TabsTrigger>
+                    
+                    {categories.map((category) => (
+                      <TabsTrigger 
+                        key={category.id}
+                        value={category.id}
+                        className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800"
+                      >
+                        {getCategoryIcon(category.name)}
+                        <span>{category.name}</span>
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </ScrollArea>
+              </div>
+            </Tabs>
+          </div>
+          
           <div className="flex flex-col lg:flex-row gap-8 mb-8">
-            <div className="lg:w-64 space-y-6">
-              {/* Category Filter */}
-              <div className="glass-card rounded-xl p-5 border">
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  Kategorie
-                </h3>
-                <div className="space-y-2">
-                  {categories.map((category) => (
-                    <div key={category} className="flex items-center">
-                      <label className="flex items-center w-full cursor-pointer hover:text-primary transition-colors">
-                        <input 
-                          type="radio" 
-                          name="category" 
-                          className="mr-2 accent-primary"
-                          checked={selectedCategory === category}
-                          onChange={() => setSelectedCategory(category)}
-                        />
-                        {category}
-                      </label>
-                    </div>
-                  ))}
-                </div>
+            {/* Mobile Filters Toggle */}
+            <div className="lg:hidden mb-4">
+              <div className="flex gap-2">
+                <Button 
+                  variant={viewMode === 'filters' ? 'default' : 'outline'} 
+                  className="flex-1" 
+                  onClick={() => setViewMode('filters')}
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filtry
+                </Button>
+                <Button 
+                  variant={viewMode === 'grid' ? 'default' : 'outline'} 
+                  className="flex-1" 
+                  onClick={() => setViewMode('grid')}
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  Przeglądaj
+                </Button>
               </div>
-              
-              {/* Price Range Filter */}
-              <div className="glass-card rounded-xl p-5 border">
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <SlidersHorizontal className="h-4 w-4" />
-                  Zakres cenowy
-                </h3>
-                <div className="pt-2 pb-2 px-1">
-                  <Slider
-                    defaultValue={[0, maxProductPrice]}
-                    value={priceRange}
-                    min={0}
-                    max={maxProductPrice}
-                    step={100}
-                    onValueChange={(value) => {
-                      setPriceRange(value as [number, number]);
-                      setMinPrice(value[0].toString());
-                      setMaxPrice(value[1].toString());
-                    }}
-                    className="my-6"
-                  />
-                  <div className="flex justify-between text-sm text-rhythm-500">
-                    <span>{new Intl.NumberFormat('pl-PL', {
-                      style: 'currency',
-                      currency: 'PLN',
-                      maximumFractionDigits: 0
-                    }).format(priceRange[0])}</span>
-                    <span>{new Intl.NumberFormat('pl-PL', {
-                      style: 'currency',
-                      currency: 'PLN',
-                      maximumFractionDigits: 0
-                    }).format(priceRange[1])}</span>
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <div className="flex-1">
-                    <Label htmlFor="minPrice">Min</Label>
-                    <Input
-                      id="minPrice"
-                      placeholder="Min"
-                      className="text-sm"
-                      value={minPrice}
-                      onChange={(e) => setMinPrice(e.target.value)}
-                      onBlur={handlePriceInputChange}
-                      type="number"
-                      min="0"
-                      max={maxProductPrice}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <Label htmlFor="maxPrice">Max</Label>
-                    <Input
-                      id="maxPrice"
-                      placeholder="Max"
-                      className="text-sm"
-                      value={maxPrice}
-                      onChange={(e) => setMaxPrice(e.target.value)}
-                      onBlur={handlePriceInputChange}
-                      type="number"
-                      min="0"
-                      max={maxProductPrice}
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              {/* Product Condition Filter */}
-              <div className="glass-card rounded-xl p-5 border">
-                <h3 className="font-semibold mb-3">Stan</h3>
-                <div className="space-y-2">
-                  {productConditions.map((condition) => (
-                    <div key={condition} className="flex items-center">
-                      <label className="flex items-center w-full cursor-pointer hover:text-primary transition-colors">
-                        <input 
-                          type="checkbox" 
-                          className="mr-2 accent-primary"
-                          checked={selectedConditions.includes(condition)}
-                          onChange={(e) => handleConditionChange(condition, e.target.checked)}
-                        />
-                        {condition}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Testing Filter */}
-              <div className="glass-card rounded-xl p-5 border">
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Wypróbuj przed zakupem
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <label className="flex items-center w-full cursor-pointer hover:text-primary transition-colors">
-                      <input 
-                        type="checkbox" 
-                        className="mr-2 accent-primary"
-                        checked={showTestingOnly}
-                        onChange={(e) => setShowTestingOnly(e.target.checked)}
-                      />
-                      Dostępne do testów
-                    </label>
-                  </div>
-                  <div className="text-sm text-rhythm-600">
-                    <p>Wypróbuj sprzęt przez tydzień przed podjęciem decyzji o zakupie.</p>
-                    <div className="flex items-center mt-2">
-                      <Badge variant="outline" className="bg-primary/10 text-primary text-xs">
-                        Wynajem tygodniowy
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <Button className="w-full" onClick={handleApplyFilters}>Zastosuj filtry</Button>
             </div>
             
-            <div className="flex-1">
+            {/* Filters Sidebar - Hidden on Mobile when in Grid View */}
+            <div className={`lg:w-64 space-y-6 ${viewMode === 'filters' ? 'block' : 'hidden lg:block'}`}>
+              {renderFilters()}
+            </div>
+            
+            {/* Products Grid - Hidden on Mobile when in Filters View */}
+            <div className={`flex-1 ${viewMode === 'grid' ? 'block' : 'hidden lg:block'}`}>
               {/* Search and Sort Controls */}
               <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
                 <div className="relative w-full sm:max-w-sm">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-rhythm-500 h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 h-4 w-4" />
                   <Input 
                     placeholder="Szukaj produktów..." 
                     className="pl-10"
@@ -479,9 +577,9 @@ export default function Marketplace() {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-rhythm-500">Sortuj według:</span>
+                  <span className="text-sm text-zinc-500">Sortuj według:</span>
                   <select 
-                    className="py-2 px-3 rounded-md border bg-background"
+                    className="py-2 px-3 rounded-md border border-zinc-200 dark:border-zinc-800 bg-background"
                     value={sortOption}
                     onChange={(e) => setSortOption(e.target.value)}
                   >
@@ -494,16 +592,37 @@ export default function Marketplace() {
                 </div>
               </div>
               
+              {/* Category selected info */}
+              {selectedCategory && (
+                <div className="mb-6">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="px-3 py-1">
+                      {categories.find(c => c.id === selectedCategory)?.name || 'Wybrana kategoria'}
+                      <button 
+                        className="ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
+                        onClick={() => setSelectedCategory('')}
+                      >
+                        &times;
+                      </button>
+                    </Badge>
+                    <Separator orientation="vertical" className="h-6" />
+                    <span className="text-sm text-zinc-500">
+                      {filteredProducts.length} produktów
+                    </span>
+                  </div>
+                </div>
+              )}
+              
               {/* Products List */}
               {loading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[...Array(6)].map((_, index) => (
                     <div key={index} className="rounded-xl border bg-card overflow-hidden hover:shadow-md transition-all duration-300 animate-pulse">
-                      <div className="aspect-square bg-rhythm-200 dark:bg-rhythm-800"></div>
+                      <div className="aspect-square bg-zinc-200 dark:bg-zinc-800"></div>
                       <div className="p-5 space-y-3">
-                        <div className="h-5 bg-rhythm-200 dark:bg-rhythm-800 rounded-md w-2/3"></div>
-                        <div className="h-4 bg-rhythm-200 dark:bg-rhythm-800 rounded-md w-1/3"></div>
-                        <div className="h-9 bg-rhythm-200 dark:bg-rhythm-800 rounded-md w-full mt-4"></div>
+                        <div className="h-5 bg-zinc-200 dark:bg-zinc-800 rounded-md w-2/3"></div>
+                        <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded-md w-1/3"></div>
+                        <div className="h-9 bg-zinc-200 dark:bg-zinc-800 rounded-md w-full mt-4"></div>
                       </div>
                     </div>
                   ))}
@@ -536,7 +655,7 @@ export default function Marketplace() {
               ) : (
                 <div className="text-center py-12">
                   <h3 className="text-xl font-medium mb-2">Nie znaleziono produktów</h3>
-                  <p className="text-rhythm-600 mb-6">
+                  <p className="text-zinc-600 mb-6">
                     {filteredProducts.length === 0 && products.length > 0 
                       ? "Spróbuj zmienić filtry aby zobaczyć więcej produktów." 
                       : "Nie ma jeszcze żadnych produktów. Dodaj pierwszy produkt!"}
