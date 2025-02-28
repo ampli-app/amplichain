@@ -24,7 +24,7 @@ export function useMessages() {
       // Pobierz uczestników konwersacji
       const { data: participantsData, error: participantsError } = await supabase
         .from('conversation_participants')
-        .select('*, conversation:conversations(*)')
+        .select('*, conversation:conversations(id, type, created_at, updated_at, product_id, last_message_text, last_message_time)')
         .eq('user_id', user.id);
       
       if (participantsError) throw participantsError;
@@ -38,7 +38,7 @@ export function useMessages() {
       const rawConversations = participantsData.map(p => ({
         ...p.conversation,
         unread_count: p.unread_count
-      }));
+      })) as Conversation[];
       
       // Pobierz informacje o innych uczestnikach każdej konwersacji
       const conversationsWithUsers = await Promise.all(
@@ -46,11 +46,24 @@ export function useMessages() {
           // Pobierz uczestników
           const { data: participants, error: participantsError } = await supabase
             .from('conversation_participants')
-            .select('*, user:profiles(*)')
+            .select('user_id')
             .eq('conversation_id', conv.id)
             .neq('user_id', user.id);
           
           if (participantsError) throw participantsError;
+          
+          let otherUser = null;
+          if (participants && participants.length > 0) {
+            const { data: userData, error: userError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', participants[0].user_id)
+              .single();
+              
+            if (!userError && userData) {
+              otherUser = userData;
+            }
+          }
           
           // Jeśli to konwersacja marketplace, pobierz informacje o produkcie
           let product = null;
@@ -68,9 +81,9 @@ export function useMessages() {
           
           return {
             ...conv,
-            otherUser: participants && participants[0] ? participants[0].user : null,
+            otherUser,
             product
-          };
+          } as Conversation;
         })
       );
       
