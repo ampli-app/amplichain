@@ -2,37 +2,28 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Notifications } from '@/components/Notifications';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSocial } from '@/contexts/SocialContext';
 import { 
   Menu, 
   X, 
-  User, 
-  LogOut, 
-  Settings, 
-  MessageSquare, 
   Rss, 
   Users,
   ShoppingBag,
-  GraduationCap
+  GraduationCap,
+  MessageSquare
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSocial } from '@/contexts/SocialContext';
+import { NavItem } from '@/components/navigation/NavItem';
+import { MobileNavItem } from '@/components/navigation/MobileNavItem';
+import { UserMenu } from '@/components/navigation/UserMenu';
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isLoggedIn, logout, user } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   const { users } = useSocial();
   
   // Pobierz dane profilu użytkownika
@@ -87,7 +78,7 @@ export function Navbar() {
             />
           </div>
           
-          {/* Desktop Navigation - Ustaw ją na stałą wysokość i szerokość */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1 h-14">
             <NavItem to="/feed" label="Aktualności" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
             <NavItem to="/marketplace" label="Produkty" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
@@ -107,7 +98,7 @@ export function Navbar() {
                   </Link>
                 </Button>
                 
-                <UserMenu avatarUrl={userProfile?.avatar_url} />
+                <UserMenu avatarUrl={userProfile?.avatar} />
               </>
             ) : (
               <>
@@ -133,7 +124,7 @@ export function Navbar() {
         </div>
       </div>
       
-      {/* Mobile Navigation - Dodajemy stałą wysokość przyciskom */}
+      {/* Mobile Navigation */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-background border-t">
           <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
@@ -151,90 +142,5 @@ export function Navbar() {
         </div>
       )}
     </header>
-  );
-}
-
-function NavItem({ to, label, icon, active }: { to: string; label: string; icon?: React.ReactNode; active: boolean }) {
-  return (
-    <Button 
-      asChild 
-      variant={active ? "default" : "ghost"} 
-      className={`gap-1.5 h-10 ${active ? '' : 'hover:bg-accent/50'}`}
-    >
-      <Link to={to}>
-        {icon}
-        {label}
-      </Link>
-    </Button>
-  );
-}
-
-function MobileNavItem({ to, label, icon, active }: { to: string; label: string; icon?: React.ReactNode; active: boolean }) {
-  return (
-    <Button 
-      asChild 
-      variant={active ? "default" : "ghost"} 
-      className={`w-full justify-start gap-1.5 h-12 ${active ? '' : ''}`}
-    >
-      <Link to={to}>
-        {icon}
-        {label}
-      </Link>
-    </Button>
-  );
-}
-
-function UserMenu({ avatarUrl }: { avatarUrl?: string }) {
-  const { logout } = useAuth();
-  
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={avatarUrl || "/placeholder.svg"} alt="User" />
-            <AvatarFallback>
-              <User className="h-4 w-4" />
-            </AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Moje konto</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/profile" className="flex items-center cursor-pointer">
-            <User className="mr-2 h-4 w-4" />
-            Profil
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/messages" className="flex items-center cursor-pointer">
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Wiadomości
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/discovery" className="flex items-center cursor-pointer">
-            <User className="mr-2 h-4 w-4" />
-            Odkrywaj
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/settings" className="flex items-center cursor-pointer">
-            <Settings className="mr-2 h-4 w-4" />
-            Ustawienia
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={logout}
-          className="flex items-center cursor-pointer text-red-500 focus:text-red-500"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Wyloguj się
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }
