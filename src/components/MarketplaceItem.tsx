@@ -64,7 +64,7 @@ export function MarketplaceItem({
       e.preventDefault();
       setShowAuthDialog(true);
     } else {
-      navigate(`/product/${id}`);
+      navigate(`/marketplace/${id}`);
     }
   };
   

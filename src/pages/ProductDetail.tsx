@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -19,92 +19,167 @@ import {
   Heart,
   Share,
   Bookmark,
-  PlayCircle
+  PlayCircle,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
-// This would typically be fetched from an API with the product ID
 interface ProductDetailProps {
-  id: number;
+  id: string;
   title: string;
-  description: string;
+  description: string | null;
   price: number;
-  images: string[];
-  category: string;
-  rating: number;
-  reviewCount: number;
-  seller: {
-    name: string;
-    image: string;
-    rating: number;
-  };
-  features: string[];
-  specifications: Record<string, string>;
-  forTesting?: boolean;
-  testingPrice?: number;
-  sale?: boolean;
-  salePercentage?: number;
+  image_url: string;
+  category: string | null;
+  rating: number | null;
+  review_count: number | null;
+  user_id: string;
+  for_testing: boolean | null;
+  testing_price: number | null;
+  sale: boolean | null;
+  sale_percentage: number | null;
+  created_at: string;
 }
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { isLoggedIn, user } = useAuth();
   const [purchaseType, setPurchaseType] = useState<'buy' | 'test'>('buy');
   const [selectedImage, setSelectedImage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [product, setProduct] = useState<ProductDetailProps | null>(null);
+  const [isUserProduct, setIsUserProduct] = useState(false);
+  const [sellerInfo, setSellerInfo] = useState({
+    name: "Sprzedawca",
+    image: "/placeholder.svg",
+    rating: 4.5
+  });
 
-  // Simulating product fetch
+  // Fetch product data
   useEffect(() => {
-    // In a real app, this would fetch product data from an API
-    setTimeout(() => {
-      setProduct({
-        id: 1,
-        title: "Neumann U87 Condenser Microphone",
-        description: "The Neumann U87 is a professional studio microphone known for its warm, balanced sound. This legendary microphone has been the standard in studios for decades, capturing vocals and instruments with exceptional clarity and detail. The U87 features three polar patterns: cardioid, omnidirectional, and figure-8, making it versatile for various recording scenarios.",
-        price: 2999.99,
-        images: [
-          "https://images.unsplash.com/photo-1520116468816-95b69f847357?q=80&w=2000&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=2000&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1665618553583-d556cad726bd?q=80&w=2000&auto=format&fit=crop",
-        ],
-        category: "Microphones",
-        rating: 5.0,
-        reviewCount: 124,
-        seller: {
-          name: "Pro Audio Store",
-          image: "/placeholder.svg",
-          rating: 4.9
-        },
-        features: [
-          "Three polar patterns: cardioid, omnidirectional, and figure-8",
-          "Pressure gradient transducer with large diaphragm capsule",
-          "Includes shock mount and wooden box",
-          "Frequency response: 20 Hz to 20 kHz",
-          "Exceptional transient response"
-        ],
-        specifications: {
-          "Type": "Condenser Microphone",
-          "Polar Pattern": "Cardioid, Omnidirectional, Figure-8",
-          "Frequency Response": "20 Hz to 20 kHz",
-          "Impedance": "200 Ohms",
-          "Sensitivity": "28 mV/Pa",
-          "Max SPL": "117 dB",
-          "Dimensions": "56 x 200 mm",
-          "Weight": "500g"
-        },
-        forTesting: true,
-        testingPrice: 149.99,
-        sale: false
-      });
-      setIsLoading(false);
-    }, 800);
-  }, [id]);
+    if (!id) return;
+    
+    const fetchProduct = async () => {
+      setIsLoading(true);
+      
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching product:', error);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się pobrać informacji o produkcie.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        if (data) {
+          setProduct(data);
+          
+          // Check if this is the user's product
+          if (user && data.user_id === user.id) {
+            setIsUserProduct(true);
+          }
+          
+          // Set initial purchase type based on testing availability
+          if (data.for_testing) {
+            setPurchaseType('test');
+          }
+          
+          // Fetch seller info if available
+          if (data.user_id) {
+            fetchSellerInfo(data.user_id);
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProduct();
+  }, [id, user]);
+
+  const fetchSellerInfo = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching seller info:', error);
+        return;
+      }
+      
+      if (data) {
+        setSellerInfo({
+          name: data.full_name || "Sprzedawca",
+          image: data.avatar_url || "/placeholder.svg",
+          rating: 4.5 // Example rating, could be added to profiles later
+        });
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching seller info:', err);
+    }
+  };
 
   const handleAddToCart = () => {
     toast({
-      title: purchaseType === 'buy' ? "Added to cart" : "Test rental added to cart",
-      description: `${product?.title} has been ${purchaseType === 'buy' ? 'added to your cart' : 'scheduled for a 1-week test rental'}.`,
+      title: purchaseType === 'buy' ? "Dodano do koszyka" : "Dodano wynajem testowy",
+      description: `${product?.title} został ${purchaseType === 'buy' ? 'dodany do koszyka' : 'zaplanowany do tygodniowego testu'}.`,
     });
+  };
+
+  const handleDelete = async () => {
+    if (!product || !isUserProduct) return;
+    
+    const confirmed = window.confirm("Czy na pewno chcesz usunąć ten produkt?");
+    if (!confirmed) return;
+    
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', product.id);
+      
+      if (error) {
+        console.error('Error deleting product:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się usunąć produktu.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      toast({
+        title: "Sukces",
+        description: "Produkt został usunięty.",
+      });
+      
+      navigate('/marketplace');
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił nieoczekiwany błąd.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -119,7 +194,7 @@ export default function ProductDetail() {
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
             </div>
-            <p className="text-rhythm-600 dark:text-rhythm-400">Loading product information...</p>
+            <p className="text-rhythm-600 dark:text-rhythm-400">Ładowanie informacji o produkcie...</p>
           </div>
         </main>
         <Footer />
@@ -133,12 +208,12 @@ export default function ProductDetail() {
         <Navbar />
         <main className="flex-1 pt-24 pb-16 flex items-center justify-center">
           <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">Product Not Found</h2>
-            <p className="text-rhythm-600 dark:text-rhythm-400 mb-6">The product you're looking for doesn't exist or has been removed.</p>
+            <h2 className="text-2xl font-bold mb-4">Produkt nie został znaleziony</h2>
+            <p className="text-rhythm-600 dark:text-rhythm-400 mb-6">Produkt, którego szukasz, nie istnieje lub został usunięty.</p>
             <Button asChild>
               <Link to="/marketplace">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Marketplace
+                Wróć do Rynku
               </Link>
             </Button>
           </div>
@@ -148,21 +223,50 @@ export default function ProductDetail() {
     );
   }
 
-  const formattedPrice = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(purchaseType === 'buy' ? product.price : (product.testingPrice || 0));
+  // Prepare the display data
+  const generateProductImages = (imageUrl: string) => {
+    // If we have one image, duplicate it for the gallery
+    return [imageUrl, imageUrl, imageUrl];
+  };
+
+  const productImages = generateProductImages(product.image_url || '/placeholder.svg');
   
-  const originalPrice = product.sale && product.salePercentage 
-    ? product.price / (1 - product.salePercentage / 100)
+  const formattedPrice = new Intl.NumberFormat('pl-PL', {
+    style: 'currency',
+    currency: 'PLN'
+  }).format(purchaseType === 'buy' ? product.price : (product.testing_price || 0));
+  
+  const originalPrice = product.sale && product.sale_percentage 
+    ? product.price / (1 - product.sale_percentage / 100)
     : undefined;
     
   const formattedOriginalPrice = originalPrice 
-    ? new Intl.NumberFormat('en-US', {
+    ? new Intl.NumberFormat('pl-PL', {
         style: 'currency',
-        currency: 'USD'
+        currency: 'PLN'
       }).format(originalPrice)
     : undefined;
+
+  // Generate specification items from the product data
+  const specifications: Record<string, string> = {
+    "Kategoria": product.category || "Nie określono",
+    "Stan": "Nowy", // Example value, could be added to products later
+    "Ocena": product.rating ? `${product.rating}/5` : "Brak ocen",
+    "Liczba ocen": product.review_count ? product.review_count.toString() : "0",
+    "Dostępny do testów": product.for_testing ? "Tak" : "Nie",
+    "Cena testowa (tydzień)": product.testing_price ? 
+      new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(product.testing_price) : 
+      "Niedostępne"
+  };
+
+  // Example features, could be added to products table later
+  const features = [
+    "Produkt wysokiej jakości",
+    "Szybka wysyłka",
+    "Gwarancja satysfakcji",
+    "Wsparcie przed i po zakupie",
+    "Bezpieczne płatności"
+  ];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -176,7 +280,7 @@ export default function ProductDetail() {
               className="inline-flex items-center gap-2 text-rhythm-600 hover:text-primary transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Marketplace
+              Wróć do Rynku
             </Link>
           </div>
           
@@ -190,14 +294,14 @@ export default function ProductDetail() {
             >
               <div className="bg-rhythm-100/50 dark:bg-rhythm-800/20 rounded-lg border overflow-hidden aspect-[4/3]">
                 <img 
-                  src={product.images[selectedImage]} 
+                  src={productImages[selectedImage]} 
                   alt={product.title}
                   className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal p-4"
                 />
               </div>
               
               <div className="flex gap-4 overflow-x-auto pb-2">
-                {product.images.map((image, index) => (
+                {productImages.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
@@ -205,7 +309,7 @@ export default function ProductDetail() {
                   >
                     <img 
                       src={image} 
-                      alt={`${product.title} view ${index + 1}`}
+                      alt={`${product.title} widok ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
                   </button>
@@ -215,16 +319,18 @@ export default function ProductDetail() {
               <div className="flex gap-2 justify-center mt-2">
                 <Button variant="outline" size="sm" className="gap-1">
                   <Heart className="h-4 w-4" />
-                  Favorite
+                  Ulubione
                 </Button>
                 <Button variant="outline" size="sm" className="gap-1">
                   <Share className="h-4 w-4" />
-                  Share
+                  Udostępnij
                 </Button>
-                <Button variant="outline" size="sm" className="gap-1">
-                  <PlayCircle className="h-4 w-4" />
-                  Watch Demo
-                </Button>
+                {product.for_testing && (
+                  <Button variant="outline" size="sm" className="gap-1">
+                    <PlayCircle className="h-4 w-4" />
+                    Zobacz Demo
+                  </Button>
+                )}
               </div>
             </motion.div>
             
@@ -237,16 +343,21 @@ export default function ProductDetail() {
             >
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="outline">{product.category}</Badge>
-                  {product.forTesting && (
+                  <Badge variant="outline">{product.category || "Inne"}</Badge>
+                  {product.for_testing && (
                     <Badge className="bg-primary/10 text-primary border-primary/20">
                       <Calendar className="mr-1 h-3 w-3" />
-                      Available for Testing
+                      Dostępne do testów
                     </Badge>
                   )}
-                  {product.sale && product.salePercentage && (
+                  {product.sale && product.sale_percentage && (
                     <Badge className="bg-red-500">
-                      {product.salePercentage}% OFF
+                      {product.sale_percentage}% ZNIŻKI
+                    </Badge>
+                  )}
+                  {isUserProduct && (
+                    <Badge className="bg-green-500">
+                      Twój produkt
                     </Badge>
                   )}
                 </div>
@@ -256,36 +367,36 @@ export default function ProductDetail() {
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-                    <span className="font-medium">{product.rating}</span>
-                    <span className="text-rhythm-500">({product.reviewCount} reviews)</span>
+                    <span className="font-medium">{product.rating || "0"}</span>
+                    <span className="text-rhythm-500">({product.review_count || 0} opinii)</span>
                   </div>
                 </div>
                 
                 <p className="text-rhythm-700 dark:text-rhythm-300 mb-6">
-                  {product.description}
+                  {product.description || "Brak opisu produktu."}
                 </p>
                 
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-2">
                     <img 
-                      src={product.seller.image} 
-                      alt={product.seller.name}
+                      src={sellerInfo.image} 
+                      alt={sellerInfo.name}
                       className="h-8 w-8 rounded-full border"
                     />
                     <div>
-                      <p className="text-sm font-medium">Sold by: {product.seller.name}</p>
+                      <p className="text-sm font-medium">Sprzedawca: {sellerInfo.name}</p>
                       <div className="flex items-center gap-1 text-xs text-rhythm-500">
                         <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
-                        <span>{product.seller.rating}</span>
+                        <span>{sellerInfo.rating}</span>
                       </div>
                     </div>
                   </div>
                 </div>
                 
-                {product.forTesting && (
+                {product.for_testing && (
                   <div className="mb-6">
                     <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-medium">Purchase Options</h3>
+                      <h3 className="font-medium">Opcje zakupu</h3>
                     </div>
                     
                     <div className="bg-muted/30 p-4 rounded-lg border">
@@ -297,11 +408,11 @@ export default function ProductDetail() {
                           }`}
                         >
                           <DollarSign className="h-5 w-5 mx-auto mb-1" />
-                          <span className="text-sm font-medium">Buy Now</span>
+                          <span className="text-sm font-medium">Kup teraz</span>
                           <p className="text-xs mt-1">
-                            {new Intl.NumberFormat('en-US', {
+                            {new Intl.NumberFormat('pl-PL', {
                               style: 'currency',
-                              currency: 'USD'
+                              currency: 'PLN'
                             }).format(product.price)}
                           </p>
                         </button>
@@ -313,20 +424,20 @@ export default function ProductDetail() {
                           }`}
                         >
                           <Calendar className="h-5 w-5 mx-auto mb-1" />
-                          <span className="text-sm font-medium">Test 1 Week</span>
+                          <span className="text-sm font-medium">Testuj przez tydzień</span>
                           <p className="text-xs mt-1">
-                            {new Intl.NumberFormat('en-US', {
+                            {new Intl.NumberFormat('pl-PL', {
                               style: 'currency',
-                              currency: 'USD'
-                            }).format(product.testingPrice || 0)}
+                              currency: 'PLN'
+                            }).format(product.testing_price || 0)}
                           </p>
                         </button>
                       </div>
                       
                       <p className="text-xs text-rhythm-500">
                         {purchaseType === 'test' ? 
-                          "Try before you buy! Test for 1 week, then decide if you want to purchase." : 
-                          "Buy new with full warranty and our 30-day satisfaction guarantee."
+                          "Wypróbuj przed zakupem! Testuj przez tydzień, a potem zdecyduj czy chcesz kupić." : 
+                          "Kup nowy produkt z pełną gwarancją i naszą 30-dniową gwarancją satysfakcji."
                         }
                       </p>
                     </div>
@@ -341,27 +452,48 @@ export default function ProductDetail() {
                         <p className="text-rhythm-500 line-through">{formattedOriginalPrice}</p>
                       )}
                       {purchaseType === 'test' && (
-                        <p className="text-sm text-rhythm-600">for 1-week testing period</p>
+                        <p className="text-sm text-rhythm-600">za okres 1 tygodnia</p>
                       )}
                     </div>
                     
                     <div className="flex items-center gap-2 text-sm">
                       <ShieldCheck className="h-4 w-4 text-green-600" />
-                      <span>{purchaseType === 'buy' ? 'Secure Purchase' : 'Insured Testing'}</span>
+                      <span>{purchaseType === 'buy' ? 'Bezpieczny zakup' : 'Ubezpieczony test'}</span>
                     </div>
                   </div>
                   
-                  <Button 
-                    className="w-full gap-2 py-6 text-base"
-                    onClick={handleAddToCart}
-                  >
-                    <ShoppingCart className="h-5 w-5" />
-                    {purchaseType === 'buy' ? 'Add to Cart' : 'Add Testing Rental to Cart'}
-                  </Button>
+                  {isUserProduct ? (
+                    <div className="flex gap-2">
+                      <Button 
+                        className="flex-1 gap-2"
+                        variant="outline"
+                        onClick={() => navigate(`/profile/edit-product/${product.id}`)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Edytuj produkt
+                      </Button>
+                      <Button 
+                        className="flex-1 gap-2"
+                        variant="destructive"
+                        onClick={handleDelete}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Usuń produkt
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button 
+                      className="w-full gap-2 py-6 text-base"
+                      onClick={handleAddToCart}
+                    >
+                      <ShoppingCart className="h-5 w-5" />
+                      {purchaseType === 'buy' ? 'Dodaj do koszyka' : 'Dodaj wynajem testowy do koszyka'}
+                    </Button>
+                  )}
                   
                   <div className="flex items-center justify-center gap-2 text-sm text-rhythm-600">
                     <TruckIcon className="h-4 w-4" />
-                    <span>Free shipping • In stock • Ships in 1-2 business days</span>
+                    <span>Darmowa dostawa • W magazynie • Wysyłka w ciągu 1-2 dni roboczych</span>
                   </div>
                 </div>
               </div>
@@ -369,17 +501,16 @@ export default function ProductDetail() {
           </div>
           
           <Tabs defaultValue="features" className="mb-16">
-            <TabsList className="grid grid-cols-3 max-w-lg mx-auto">
-              <TabsTrigger value="features">Features</TabsTrigger>
-              <TabsTrigger value="specifications">Specifications</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            <TabsList className="grid grid-cols-2 max-w-md mx-auto">
+              <TabsTrigger value="features">Funkcje</TabsTrigger>
+              <TabsTrigger value="specifications">Specyfikacja</TabsTrigger>
             </TabsList>
             
             <TabsContent value="features" className="mt-6">
               <div className="max-w-3xl mx-auto glass-card rounded-xl border p-6">
-                <h3 className="text-xl font-semibold mb-4">Product Features</h3>
+                <h3 className="text-xl font-semibold mb-4">Cechy produktu</h3>
                 <ul className="space-y-3">
-                  {product.features.map((feature, index) => (
+                  {features.map((feature, index) => (
                     <li key={index} className="flex items-start gap-2">
                       <ShieldCheck className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                       <span>{feature}</span>
@@ -391,10 +522,10 @@ export default function ProductDetail() {
             
             <TabsContent value="specifications" className="mt-6">
               <div className="max-w-3xl mx-auto glass-card rounded-xl border p-6">
-                <h3 className="text-xl font-semibold mb-4">Technical Specifications</h3>
+                <h3 className="text-xl font-semibold mb-4">Specyfikacja techniczna</h3>
                 <div className="space-y-2">
-                  {Object.entries(product.specifications).map(([key, value], index) => (
-                    <div key={index} className="flex">
+                  {Object.entries(specifications).map(([key, value], index) => (
+                    <div key={index} className="flex py-1 border-b border-muted last:border-0">
                       <div className="w-1/3 font-medium text-rhythm-700">{key}</div>
                       <div className="w-2/3 text-rhythm-600">{value}</div>
                     </div>
@@ -402,36 +533,7 @@ export default function ProductDetail() {
                 </div>
               </div>
             </TabsContent>
-            
-            <TabsContent value="reviews" className="mt-6">
-              <div className="max-w-3xl mx-auto glass-card rounded-xl border p-6">
-                <h3 className="text-xl font-semibold mb-4">Customer Reviews</h3>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star 
-                        key={i} 
-                        className={`h-5 w-5 ${i < Math.floor(product.rating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`} 
-                      />
-                    ))}
-                  </div>
-                  <span className="font-medium">{product.rating}</span>
-                  <span className="text-rhythm-500">({product.reviewCount} reviews)</span>
-                </div>
-                
-                <Separator className="my-4" />
-                
-                <p className="text-center text-rhythm-500 py-4">Review content would go here in a complete implementation.</p>
-              </div>
-            </TabsContent>
           </Tabs>
-          
-          <div className="mb-16">
-            <h2 className="text-2xl font-bold mb-6 text-center">Related Products</h2>
-            <div className="text-center text-rhythm-500 py-8">
-              <p>Related products would be displayed here in a complete implementation.</p>
-            </div>
-          </div>
         </div>
       </main>
       
