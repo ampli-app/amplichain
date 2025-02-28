@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -52,7 +51,6 @@ export default function Connections() {
     window.scrollTo(0, 0);
   }, []);
 
-  // Wykonaj wyszukiwanie z opóźnieniem
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
@@ -88,7 +86,6 @@ export default function Connections() {
     }
   };
 
-  // If user is not logged in, show a prompt to log in
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -126,7 +123,76 @@ export default function Connections() {
     );
   }
 
+  const getStatusBadge = (status: UserConnectionStatus | undefined, isFollower?: boolean) => {
+    const badges = [];
+    
+    if (status && activeTab !== 'following') {
+      switch (status) {
+        case 'following':
+          if (activeTab !== 'following') {
+            badges.push(
+              <Badge key="following" variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                <UserPlus className="mr-1 h-3 w-3" />
+                Obserwujesz
+              </Badge>
+            );
+          }
+          break;
+        case 'connected':
+          badges.push(
+            <Badge key="connected" variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+              <UserCheck className="mr-1 h-3 w-3" />
+              Połączeni
+            </Badge>
+          );
+          break;
+        case 'pending_sent':
+          badges.push(
+            <Badge key="pending_sent" variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+              <Bell className="mr-1 h-3 w-3" />
+              Zaproszenie wysłane
+            </Badge>
+          );
+          break;
+        case 'pending_received':
+          badges.push(
+            <Badge key="pending_received" variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+              <Bell className="mr-1 h-3 w-3" />
+              Zaproszenie otrzymane
+            </Badge>
+          );
+          break;
+      }
+    }
+    
+    if (isFollower && activeTab !== 'followers') {
+      badges.push(
+        <Badge key="follower" variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/20">
+          <Heart className="mr-1 h-3 w-3" />
+          Obserwuje Cię
+        </Badge>
+      );
+    }
+    
+    return badges.length > 0 ? <div className="flex flex-wrap gap-1.5">{badges}</div> : null;
+  };
+
   const getConnectionAction = (status: UserConnectionStatus | undefined, userId: string) => {
+    if (activeTab === 'followers' && status !== 'connected' && status !== 'pending_sent' && status !== 'pending_received') {
+      return (
+        <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            className="gap-1"
+            onClick={() => handleSendConnectionRequest(userId)}
+          >
+            <Users className="h-4 w-4" />
+            Połącz
+          </Button>
+        </div>
+      );
+    }
+
     switch (status) {
       case 'none':
         return (
@@ -151,6 +217,19 @@ export default function Connections() {
           </div>
         );
       case 'following':
+        if (activeTab === 'followers') {
+          return (
+            <Button 
+              size="sm" 
+              className="gap-1"
+              onClick={() => handleSendConnectionRequest(userId)}
+            >
+              <Users className="h-4 w-4" />
+              Połącz
+            </Button>
+          );
+        }
+        
         return (
           <div className="flex gap-2">
             <Button 
@@ -236,62 +315,8 @@ export default function Connections() {
     }
   };
 
-  const getStatusBadge = (status: UserConnectionStatus | undefined, isFollower?: boolean) => {
-    const badges = [];
-    
-    if (status) {
-      switch (status) {
-        case 'following':
-          badges.push(
-            <Badge key="following" variant="outline" className="bg-primary/10 text-primary border-primary/20">
-              <UserPlus className="mr-1 h-3 w-3" />
-              Obserwujesz
-            </Badge>
-          );
-          break;
-        case 'connected':
-          badges.push(
-            <Badge key="connected" variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
-              <UserCheck className="mr-1 h-3 w-3" />
-              Połączeni
-            </Badge>
-          );
-          break;
-        case 'pending_sent':
-          badges.push(
-            <Badge key="pending_sent" variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
-              <Bell className="mr-1 h-3 w-3" />
-              Zaproszenie wysłane
-            </Badge>
-          );
-          break;
-        case 'pending_received':
-          badges.push(
-            <Badge key="pending_received" variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
-              <Bell className="mr-1 h-3 w-3" />
-              Zaproszenie otrzymane
-            </Badge>
-          );
-          break;
-      }
-    }
-    
-    if (isFollower) {
-      badges.push(
-        <Badge key="follower" variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/20">
-          <Heart className="mr-1 h-3 w-3" />
-          Obserwuje Cię
-        </Badge>
-      );
-    }
-    
-    return badges.length > 0 ? <div className="flex flex-wrap gap-1.5">{badges}</div> : null;
-  };
-
-  // Display users based on search or filtered by tab
   const displayUsers = searchQuery.trim() ? searchResults : 
     users.filter(user => {
-      // Wykluczenie obecnego użytkownika i filtracja według zakładki
       if (user.isCurrentUser) return false;
       
       switch (activeTab) {
@@ -308,7 +333,6 @@ export default function Connections() {
       }
     });
 
-  // Stan ładowania dla całej strony
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -407,7 +431,6 @@ export default function Connections() {
   );
   
   function renderUserList(users: typeof displayUsers) {
-    // Stan ładowania dla samego wyszukiwania
     if (isSearching) {
       return (
         <Card className="border-dashed">

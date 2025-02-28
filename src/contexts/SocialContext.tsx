@@ -521,73 +521,102 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const { data: existingRequest, error: checkError } = await supabase
+      // Sprawdź, czy istnieją poprzednie zaproszenia (odrzucone lub anulowane)
+      const { data: existingRequests, error: checkHistoryError } = await supabase
         .from('connection_requests')
         .select('*')
         .eq('sender_id', user.id)
         .eq('receiver_id', userId)
+        .or('status.eq.rejected,status.eq.cancelled');
+
+      // Sprawdź aktywne zaproszenie
+      const { data: pendingRequest, error: checkPendingError } = await supabase
+        .from('connection_requests')
+        .select('*')
+        .eq('sender_id', user.id)
+        .eq('receiver_id', userId)
+        .eq('status', 'pending')
         .maybeSingle();
 
-      if (existingRequest) {
+      if (pendingRequest) {
         toast({
           title: "Informacja",
-          description: "Zaproszenie do tego użytkownika zostało już wysłane.",
+          description: "Zaproszenie do tego użytkownika jest już aktywne.",
         });
         return;
       }
 
-      const { data: followingData } = await supabase
-        .from('followings')
-        .select('*')
-        .eq('follower_id', user.id)
-        .eq('following_id', userId)
-        .single();
+      // Jeśli istnieją poprzednie odrzucone/anulowane zaproszenia,
+      // zaktualizujemy ich status na 'pending'
+      if (existingRequests && existingRequests.length > 0) {
+        const latestRequest = existingRequests[0];
+        
+        const { error: updateError } = await supabase
+          .from('connection_requests')
+          .update({ 
+            status: 'pending',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', latestRequest.id);
 
-      if (!followingData) {
-        const { error: followError } = await supabase
+        if (updateError) {
+          console.error('Error updating connection request:', updateError);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się zaktualizować zaproszenia.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } else {
+        // Sprawdź czy użytkownik już obserwuje osobę, do której wysyła zaproszenie
+        const { data: followingData } = await supabase
           .from('followings')
+          .select('*')
+          .eq('follower_id', user.id)
+          .eq('following_id', userId)
+          .single();
+
+        if (!followingData) {
+          const { error: followError } = await supabase
+            .from('followings')
+            .insert({
+              follower_id: user.id,
+              following_id: userId
+            });
+
+          if (followError) {
+            console.error('Error auto-following before connection request:', followError);
+          }
+        }
+
+        // Utwórz nowe zaproszenie
+        const { error } = await supabase
+          .from('connection_requests')
           .insert({
-            follower_id: user.id,
-            following_id: userId
+            sender_id: user.id,
+            receiver_id: userId,
+            status: 'pending'
           });
 
-        if (followError) {
-          console.error('Error auto-following before connection request:', followError);
+        if (error) {
+          console.error('Error sending connection request:', error);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się wysłać zaproszenia do połączenia.",
+            variant: "destructive",
+          });
+          return;
         }
-      }
-
-      const { error } = await supabase
-        .from('connection_requests')
-        .insert({
-          sender_id: user.id,
-          receiver_id: userId,
-          status: 'pending'
-        });
-
-      if (error) {
-        console.error('Error sending connection request:', error);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się wysłać zaproszenia do połączenia.",
-          variant: "destructive",
-        });
-        return;
       }
 
       setUsers(prevUsers => 
         prevUsers.map(u => 
           u.id === userId 
-            ? { ...u, connectionStatus: 'pending_sent', followersCount: u.followersCount + (!followingData ? 1 : 0) } 
+            ? { ...u, connectionStatus: 'pending_sent' } 
             : u
         )
       );
-
-      if (!followingData && currentUser) {
-        setCurrentUser({
-          ...currentUser,
-          followingCount: currentUser.followingCount + 1
-        });
-      }
 
       toast({
         title: "Sukces",
