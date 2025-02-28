@@ -521,15 +521,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Sprawdź, czy istnieją poprzednie zaproszenia (odrzucone lub anulowane)
-      const { data: existingRequests, error: checkHistoryError } = await supabase
-        .from('connection_requests')
-        .select('*')
-        .eq('sender_id', user.id)
-        .eq('receiver_id', userId)
-        .or('status.eq.rejected,status.eq.cancelled');
-
-      // Sprawdź aktywne zaproszenie
+      // Sprawdź, czy istnieje aktywne zaproszenie
       const { data: pendingRequest, error: checkPendingError } = await supabase
         .from('connection_requests')
         .select('*')
@@ -538,12 +530,66 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         .eq('status', 'pending')
         .maybeSingle();
 
+      if (checkPendingError) {
+        console.error('Error checking pending request:', checkPendingError);
+      }
+
+      // Sprawdź, czy istnieje aktywne zaproszenie od odbiorcy
+      const { data: incomingRequest, error: checkIncomingError } = await supabase
+        .from('connection_requests')
+        .select('*')
+        .eq('sender_id', userId)
+        .eq('receiver_id', user.id)
+        .eq('status', 'pending')
+        .maybeSingle();
+
+      if (checkIncomingError) {
+        console.error('Error checking incoming request:', checkIncomingError);
+      }
+
+      // Jeśli już mamy aktywne zaproszenie, powiadom użytkownika
       if (pendingRequest) {
         toast({
           title: "Informacja",
           description: "Zaproszenie do tego użytkownika jest już aktywne.",
         });
         return;
+      }
+
+      // Jeśli jest aktywne zaproszenie od odbiorcy, zaproponuj jego akceptację
+      if (incomingRequest) {
+        toast({
+          title: "Informacja",
+          description: "Ten użytkownik już wysłał Ci zaproszenie. Możesz je zaakceptować w zakładce 'Oczekujące'.",
+        });
+        return;
+      }
+
+      // Sprawdź, czy już jesteśmy połączeni z tym użytkownikiem
+      const { data: existingConnection } = await supabase
+        .from('connections')
+        .select('*')
+        .or(`and(user_id1.eq.${user.id},user_id2.eq.${userId}),and(user_id1.eq.${userId},user_id2.eq.${user.id})`)
+        .maybeSingle();
+
+      if (existingConnection) {
+        toast({
+          title: "Informacja",
+          description: "Jesteś już połączony z tym użytkownikiem.",
+        });
+        return;
+      }
+
+      // Sprawdź, czy istnieją poprzednie zaproszenia (odrzucone lub anulowane)
+      const { data: existingRequests, error: checkHistoryError } = await supabase
+        .from('connection_requests')
+        .select('*')
+        .eq('sender_id', user.id)
+        .eq('receiver_id', userId)
+        .or('status.eq.rejected,status.eq.cancelled');
+
+      if (checkHistoryError) {
+        console.error('Error checking request history:', checkHistoryError);
       }
 
       // Jeśli istnieją poprzednie odrzucone/anulowane zaproszenia,
@@ -600,13 +646,22 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
           });
 
         if (error) {
-          console.error('Error sending connection request:', error);
-          toast({
-            title: "Błąd",
-            description: "Nie udało się wysłać zaproszenia do połączenia.",
-            variant: "destructive",
-          });
-          return;
+          // Jeśli błąd ma kod 23505, to znaczy że mamy duplikat klucza
+          if (error.code === '23505') {
+            toast({
+              title: "Informacja",
+              description: "Zaproszenie do tego użytkownika już istnieje.",
+            });
+            return;
+          } else {
+            console.error('Error sending connection request:', error);
+            toast({
+              title: "Błąd",
+              description: "Nie udało się wysłać zaproszenia do połączenia.",
+              variant: "destructive",
+            });
+            return;
+          }
         }
       }
 
