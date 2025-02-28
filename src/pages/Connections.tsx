@@ -205,8 +205,8 @@ export default function Connections() {
     if (activeTab === 'followers' && status !== 'connected' && status !== 'pending_sent' && status !== 'pending_received') {
       return (
         <div className="flex gap-2">
-          {/* Tutaj była linia z błędem. Zmieniamy warunek na sprawdzanie, czy status nie jest 'following' lub 'connected' */}
-          {status !== 'following' && status !== 'connected' && (
+          {/* Używamy bezpiecznego sprawdzenia typów */}
+          {(status === 'none' || status === undefined) && (
             <Button 
               variant="outline" 
               size="sm" 
