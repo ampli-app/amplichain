@@ -18,14 +18,13 @@ import {
   ArrowLeft,
   Heart,
   Share,
-  Bookmark,
-  PlayCircle,
   Pencil,
   Trash2
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
 
 interface ProductDetailProps {
   id: string;
@@ -58,6 +57,7 @@ export default function ProductDetail() {
     image: "/placeholder.svg",
     rating: 4.5
   });
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   // Fetch product data
   useEffect(() => {
@@ -90,11 +90,6 @@ export default function ProductDetail() {
           // Check if this is the user's product
           if (user && data.user_id === user.id) {
             setIsUserProduct(true);
-          }
-          
-          // Set initial purchase type based on testing availability
-          if (data.for_testing) {
-            setPurchaseType('test');
           }
           
           // Fetch seller info if available
@@ -138,6 +133,11 @@ export default function ProductDetail() {
   };
 
   const handleAddToCart = () => {
+    if (!isLoggedIn) {
+      setShowAuthDialog(true);
+      return;
+    }
+    
     toast({
       title: purchaseType === 'buy' ? "Dodano do koszyka" : "Dodano wynajem testowy",
       description: `${product?.title} został ${purchaseType === 'buy' ? 'dodany do koszyka' : 'zaplanowany do tygodniowego testu'}.`,
@@ -180,13 +180,6 @@ export default function ProductDetail() {
         variant: "destructive",
       });
     }
-  };
-
-  const handleEditProduct = () => {
-    if (!product || !isUserProduct) return;
-    
-    // Navigate to profile page with a query parameter for editing
-    navigate(`/profile?editProduct=${product.id}`);
   };
 
   if (isLoading) {
@@ -241,7 +234,14 @@ export default function ProductDetail() {
   const formattedPrice = new Intl.NumberFormat('pl-PL', {
     style: 'currency',
     currency: 'PLN'
-  }).format(purchaseType === 'buy' ? product.price : (product.testing_price || 0));
+  }).format(product.price);
+  
+  const formattedTestPrice = product.testing_price ? 
+    new Intl.NumberFormat('pl-PL', {
+      style: 'currency',
+      currency: 'PLN'
+    }).format(product.testing_price) : 
+    null;
   
   const originalPrice = product.sale && product.sale_percentage 
     ? product.price / (1 - product.sale_percentage / 100)
@@ -259,9 +259,7 @@ export default function ProductDetail() {
     "Kategoria": product.category || "Nie określono",
     "Stan": "Nowy", // Example value, could be added to products later
     "Dostępny do testów": product.for_testing ? "Tak" : "Nie",
-    "Cena testowa (tydzień)": product.testing_price ? 
-      new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(product.testing_price) : 
-      "Niedostępne"
+    "Cena testowa (tydzień)": formattedTestPrice || "Niedostępne"
   };
 
   // Example features, could be added to products table later
@@ -330,12 +328,6 @@ export default function ProductDetail() {
                   <Share className="h-4 w-4" />
                   Udostępnij
                 </Button>
-                {product.for_testing && (
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <PlayCircle className="h-4 w-4" />
-                    Zobacz Demo
-                  </Button>
-                )}
               </div>
             </motion.div>
             
@@ -412,12 +404,7 @@ export default function ProductDetail() {
                         >
                           <DollarSign className="h-5 w-5 mx-auto mb-1" />
                           <span className="text-sm font-medium">Kup teraz</span>
-                          <p className="text-xs mt-1">
-                            {new Intl.NumberFormat('pl-PL', {
-                              style: 'currency',
-                              currency: 'PLN'
-                            }).format(product.price)}
-                          </p>
+                          <p className="text-xs mt-1">{formattedPrice}</p>
                         </button>
                         
                         <button
@@ -428,12 +415,7 @@ export default function ProductDetail() {
                         >
                           <Calendar className="h-5 w-5 mx-auto mb-1" />
                           <span className="text-sm font-medium">Testuj przez tydzień</span>
-                          <p className="text-xs mt-1">
-                            {new Intl.NumberFormat('pl-PL', {
-                              style: 'currency',
-                              currency: 'PLN'
-                            }).format(product.testing_price || 0)}
-                          </p>
+                          <p className="text-xs mt-1">{formattedTestPrice}</p>
                         </button>
                       </div>
                       
@@ -448,29 +430,26 @@ export default function ProductDetail() {
                 )}
                 
                 <div className="space-y-4 mb-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-2xl font-bold text-primary">{formattedPrice}</h3>
-                      {formattedOriginalPrice && !isUserProduct && (
-                        <p className="text-rhythm-500 line-through">{formattedOriginalPrice}</p>
-                      )}
-                      {purchaseType === 'test' && (
-                        <p className="text-sm text-rhythm-600">za okres 1 tygodnia</p>
-                      )}
-                    </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-primary">{formattedPrice}</h3>
+                    {formattedOriginalPrice && !isUserProduct && (
+                      <p className="text-rhythm-500 line-through mb-1">{formattedOriginalPrice}</p>
+                    )}
                     
-                    <div className="flex items-center gap-2 text-sm">
-                      <ShieldCheck className="h-4 w-4 text-green-600" />
-                      <span>{purchaseType === 'buy' ? 'Bezpieczny zakup' : 'Ubezpieczony test'}</span>
-                    </div>
+                    {formattedTestPrice && (
+                      <p className="text-sm text-rhythm-600">
+                        {isUserProduct ? 'Cena testowa: ' : 'Możliwość testu: '}
+                        {formattedTestPrice} za tydzień
+                      </p>
+                    )}
                   </div>
                   
                   {isUserProduct ? (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mt-4">
                       <Button 
                         className="flex-1 gap-2"
                         variant="outline"
-                        onClick={handleEditProduct}
+                        onClick={() => navigate(`/edit-product/${product.id}`)}
                       >
                         <Pencil className="h-4 w-4" />
                         Edytuj produkt
@@ -486,7 +465,7 @@ export default function ProductDetail() {
                     </div>
                   ) : (
                     <Button 
-                      className="w-full gap-2 py-6 text-base"
+                      className="w-full gap-2 py-6 text-base mt-4"
                       onClick={handleAddToCart}
                     >
                       <ShoppingCart className="h-5 w-5" />
@@ -543,6 +522,13 @@ export default function ProductDetail() {
       </main>
       
       <Footer />
+      
+      <AuthRequiredDialog 
+        open={showAuthDialog} 
+        onOpenChange={setShowAuthDialog} 
+        title="Wymagane logowanie"
+        description="Aby dokonać zakupu, musisz być zalogowany."
+      />
     </div>
   );
 }

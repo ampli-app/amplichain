@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         toast({
-          title: 'Login Failed',
+          title: 'Logowanie nieudane',
           description: error.message,
           variant: 'destructive',
         });
@@ -86,8 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       console.error('Unexpected login error:', err);
       toast({
-        title: 'Login Error',
-        description: 'An unexpected error occurred. Please try again.',
+        title: 'Błąd logowania',
+        description: 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie.',
         variant: 'destructive',
       });
       return { error: err };
@@ -100,6 +100,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (email: string, password: string, fullName: string) => {
     try {
       setLoading(true);
+      
+      // First check if a user with this email already exists
+      const { data: existingUsers, error: checkError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('username', email.split('@')[0].toLowerCase());
+      
+      if (checkError) {
+        console.error('Error checking existing user:', checkError);
+      } else if (existingUsers && existingUsers.length > 0) {
+        toast({
+          title: 'Rejestracja nieudana',
+          description: 'Użytkownik z tym adresem email już istnieje.',
+          variant: 'destructive',
+        });
+        return { error: new Error('User with this email already exists') };
+      }
+      
+      // If no existing user, proceed with signup
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -112,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         toast({
-          title: 'Signup Failed',
+          title: 'Rejestracja nieudana',
           description: error.message,
           variant: 'destructive',
         });
@@ -123,15 +142,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // If signUp is successful but email confirmation is required
       if (data.user && !data.session) {
         toast({
-          title: 'Verification Email Sent',
-          description: 'Please check your email to confirm your account.',
+          title: 'Email weryfikacyjny wysłany',
+          description: 'Sprawdź swoją skrzynkę odbiorczą, aby potwierdzić rejestrację.',
         });
       } else if (data.session) {
         setSession(data.session);
         setUser(data.user);
         toast({
-          title: 'Account Created',
-          description: 'You have successfully signed up!',
+          title: 'Konto utworzone',
+          description: 'Rejestracja zakończona sukcesem!',
         });
       }
 
@@ -139,8 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       console.error('Unexpected signup error:', err);
       toast({
-        title: 'Signup Error',
-        description: 'An unexpected error occurred. Please try again.',
+        title: 'Błąd rejestracji',
+        description: 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie.',
         variant: 'destructive',
       });
       return { error: err };
@@ -157,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (error) {
         toast({
-          title: 'Logout Error',
+          title: 'Błąd wylogowania',
           description: error.message,
           variant: 'destructive',
         });
@@ -166,15 +185,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(null);
         setUser(null);
         toast({
-          title: 'Logged Out',
-          description: 'You have been logged out successfully.',
+          title: 'Wylogowano',
+          description: 'Zostałeś pomyślnie wylogowany.',
         });
       }
     } catch (err) {
       console.error('Unexpected logout error:', err);
       toast({
-        title: 'Logout Error',
-        description: 'An unexpected error occurred during logout.',
+        title: 'Błąd wylogowania',
+        description: 'Wystąpił nieoczekiwany błąd podczas wylogowania.',
         variant: 'destructive',
       });
     } finally {

@@ -64,11 +64,17 @@ export function MarketplaceItem({
       }).format(originalPrice)
     : undefined;
   
-  const handleProductClick = (e: React.MouseEvent) => {
+  const handleProductClick = () => {
+    // Allow all users to view products, no auth check needed
+    navigate(`/marketplace/${id}`);
+  };
+  
+  const handlePurchaseClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!isLoggedIn) {
-      e.preventDefault();
       setShowAuthDialog(true);
     } else {
+      // Navigate to product page when user is logged in
       navigate(`/marketplace/${id}`);
     }
   };
@@ -128,41 +134,29 @@ export function MarketplaceItem({
           
           <div className="mt-auto">
             {!isUserProduct && forTesting ? (
-              <Tabs 
-                defaultValue={purchaseType} 
-                onValueChange={(value) => setPurchaseType(value as 'buy' | 'test')}
-                className="mb-3"
-              >
-                <TabsList className="grid w-full grid-cols-2 mb-2">
-                  <TabsTrigger value="buy">Kup</TabsTrigger>
-                  <TabsTrigger value="test">Testuj przez tydzień</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="buy" className="mt-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-lg">{new Intl.NumberFormat('pl-PL', {
+              <>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-semibold text-lg">
+                    {new Intl.NumberFormat('pl-PL', {
                       style: 'currency',
                       currency: 'PLN'
-                    }).format(price)}</span>
-                    
-                    {sale && formattedOriginalPrice && (
-                      <span className="text-rhythm-500 line-through text-sm">
-                        {formattedOriginalPrice}
-                      </span>
-                    )}
-                  </div>
-                </TabsContent>
+                    }).format(price)}
+                  </span>
+                  
+                  {sale && formattedOriginalPrice && (
+                    <span className="text-rhythm-500 line-through text-sm">
+                      {formattedOriginalPrice}
+                    </span>
+                  )}
+                </div>
                 
-                <TabsContent value="test" className="mt-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-lg">{new Intl.NumberFormat('pl-PL', {
-                      style: 'currency',
-                      currency: 'PLN'
-                    }).format(testingPrice || 0)}</span>
-                    <span className="text-rhythm-500 text-sm">za tydzień</span>
-                  </div>
-                </TabsContent>
-              </Tabs>
+                <div className="text-sm text-rhythm-500 mb-3">
+                  Możliwość testu: {new Intl.NumberFormat('pl-PL', {
+                    style: 'currency',
+                    currency: 'PLN'
+                  }).format(testingPrice || 0)} / tydzień
+                </div>
+              </>
             ) : (
               <div className="flex items-center gap-2 mb-3">
                 <span className="font-semibold text-lg">{formattedPrice}</span>
@@ -170,6 +164,14 @@ export function MarketplaceItem({
                   <span className="text-rhythm-500 line-through text-sm">
                     {formattedOriginalPrice}
                   </span>
+                )}
+                {forTesting && isUserProduct && (
+                  <div className="text-sm text-rhythm-500 ml-auto">
+                    Test: {new Intl.NumberFormat('pl-PL', {
+                      style: 'currency',
+                      currency: 'PLN'
+                    }).format(testingPrice || 0)}
+                  </div>
                 )}
               </div>
             )}
@@ -195,10 +197,10 @@ export function MarketplaceItem({
             ) : (
               <Button 
                 className="w-full gap-2" 
-                onClick={handleProductClick}
+                onClick={handlePurchaseClick}
               >
                 <ShoppingCart className="h-4 w-4" /> 
-                {purchaseType === 'buy' ? 'Zobacz produkt' : 'Wypożycz do testów'}
+                Zobacz produkt
               </Button>
             )}
           </div>
@@ -209,7 +211,7 @@ export function MarketplaceItem({
         open={showAuthDialog} 
         onOpenChange={setShowAuthDialog} 
         title="Wymagane logowanie"
-        description="Aby zobaczyć szczegóły produktu i dokonać zakupu, musisz być zalogowany."
+        description="Aby dokonać zakupu, musisz być zalogowany."
       />
     </>
   );

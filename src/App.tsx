@@ -10,6 +10,7 @@ import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
 import Marketplace from '@/pages/Marketplace';
 import ProductDetail from '@/pages/ProductDetail';
+import EditProduct from '@/pages/EditProduct';
 import Feed from '@/pages/Feed';
 import SocialFeed from '@/pages/SocialFeed';
 import Connections from '@/pages/Connections';
@@ -30,6 +31,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/marketplace/:id" element={<ProductDetail />} />
+            <Route path="/edit-product/:id" element={<EditProduct />} />
             <Route path="/feed" element={<Feed />} />
             <Route path="/social" element={<SocialFeed />} />
             <Route path="/connections" element={<Connections />} />
