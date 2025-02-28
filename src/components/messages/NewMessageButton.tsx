@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Plus, Search, User, Loader2 } from 'lucide-react';
 import { useSocial } from '@/contexts/SocialContext';
+import { toast } from '@/components/ui/use-toast';
 
 interface NewMessageButtonProps {
   onSelectUser: (userId: string) => void;
@@ -23,6 +24,7 @@ interface NewMessageButtonProps {
 export function NewMessageButton({ onSelectUser, isLoading = false }: NewMessageButtonProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectingUser, setSelectingUser] = useState(false);
   const { users } = useSocial();
   
   // Filtruj użytkowników na podstawie wyszukiwania
@@ -32,14 +34,30 @@ export function NewMessageButton({ onSelectUser, isLoading = false }: NewMessage
      (user.role && user.role.toLowerCase().includes(searchTerm.toLowerCase())))
   );
   
-  const handleSelectUser = (userId: string) => {
-    onSelectUser(userId);
-    setOpen(false);
-    setSearchTerm('');
+  const handleSelectUser = async (userId: string) => {
+    try {
+      setSelectingUser(true); // Ustawienie stanu ładowania dla konkretnego użytkownika
+      await onSelectUser(userId);
+      setOpen(false);
+      setSearchTerm('');
+    } catch (error: any) {
+      console.error('Błąd podczas wybierania użytkownika:', error);
+      toast({
+        title: 'Błąd',
+        description: `Nie udało się rozpocząć konwersacji: ${error.message || 'Nieznany błąd'}`,
+        variant: 'destructive',
+      });
+    } finally {
+      setSelectingUser(false);
+    }
   };
   
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      if (!isLoading) { // Nie pozwalaj na zamknięcie, jeśli trwa ładowanie
+        setOpen(newOpen);
+      }
+    }}>
       <DialogTrigger asChild>
         <Button className="w-full" size="sm" disabled={isLoading}>
           {isLoading ? (
@@ -68,6 +86,7 @@ export function NewMessageButton({ onSelectUser, isLoading = false }: NewMessage
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                disabled={selectingUser || isLoading}
               />
             </div>
           </div>
@@ -80,18 +99,21 @@ export function NewMessageButton({ onSelectUser, isLoading = false }: NewMessage
                     key={user.id}
                     className="w-full flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
                     onClick={() => handleSelectUser(user.id)}
-                    disabled={isLoading}
+                    disabled={selectingUser || isLoading}
                   >
                     <Avatar className="h-9 w-9 mr-3">
                       <AvatarImage src={user.avatar || undefined} alt={user.name} />
                       <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
                     </Avatar>
-                    <div className="text-left">
+                    <div className="text-left flex-1">
                       <p className="font-medium">{user.name}</p>
                       {user.role && (
                         <p className="text-sm text-gray-500">{user.role}</p>
                       )}
                     </div>
+                    {selectingUser && (
+                      <Loader2 className="h-4 w-4 ml-2 animate-spin text-gray-400" />
+                    )}
                   </button>
                 ))}
               </div>
