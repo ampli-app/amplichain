@@ -23,6 +23,15 @@ interface Category {
   description: string | null;
 }
 
+// Definicja stanów produktu
+const productConditions = [
+  { value: "new", label: "Nowy" },
+  { value: "like_new", label: "Jak nowy" },
+  { value: "very_good", label: "Bardzo dobry" },
+  { value: "good", label: "Dobry" },
+  { value: "fair", label: "Zadowalający" }
+];
+
 export default function EditProduct() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -41,6 +50,7 @@ export default function EditProduct() {
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
+  const [condition, setCondition] = useState<string>("new");
   const [imageUrl, setImageUrl] = useState('');
   const [isForTesting, setIsForTesting] = useState(false);
   const [testingPrice, setTestingPrice] = useState('');
@@ -147,6 +157,7 @@ export default function EditProduct() {
       setTitle(data.title);
       setDescription(data.description || '');
       setPrice(data.price.toString());
+      setCondition(data.condition || 'new');
       
       // Handle category selection
       if (data.category_id && data.categories) {
@@ -328,6 +339,7 @@ export default function EditProduct() {
         testing_price: isForTesting ? parseFloat(testingPrice) : null,
         sale: isOnSale,
         sale_percentage: isOnSale ? parseFloat(salePercentage) : null,
+        condition: condition, // Stan produktu
       };
       
       const { error } = await supabase
@@ -517,6 +529,26 @@ export default function EditProduct() {
                   </div>
                 </div>
                 
+                {/* Stan produktu */}
+                <div className="grid gap-3">
+                  <Label htmlFor="condition">Stan produktu</Label>
+                  <Select value={condition} onValueChange={setCondition}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Wybierz stan produktu" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {productConditions.map((condition) => (
+                        <SelectItem key={condition.value} value={condition.value}>
+                          {condition.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    Wybierz stan, który najlepiej opisuje Twój produkt.
+                  </p>
+                </div>
+                
                 <div className="grid gap-3">
                   <Label htmlFor="image">Zdjęcie produktu</Label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
@@ -542,7 +574,7 @@ export default function EditProduct() {
                   </p>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-4 bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                   <div className="flex items-center space-x-2">
                     <Checkbox 
                       id="forTesting" 
@@ -567,32 +599,6 @@ export default function EditProduct() {
                       <p className="text-sm text-muted-foreground">
                         Ustaw cenę za tygodniowy test produktu. Powinno to być 10-20% wartości produktu.
                       </p>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="saleSwitch"
-                      checked={isOnSale}
-                      onCheckedChange={setIsOnSale}
-                    />
-                    <Label htmlFor="saleSwitch">Produkt w promocji</Label>
-                  </div>
-                  
-                  {isOnSale && (
-                    <div className="grid gap-3 pl-6">
-                      <Label htmlFor="salePercentage">Procent zniżki (%)</Label>
-                      <Input 
-                        id="salePercentage" 
-                        type="number"
-                        placeholder="0"
-                        min="1"
-                        max="99"
-                        value={salePercentage}
-                        onChange={(e) => setSalePercentage(e.target.value)}
-                      />
                     </div>
                   )}
                 </div>

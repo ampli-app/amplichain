@@ -23,7 +23,8 @@ import {
   Package,
   Laptop,
   Music2,
-  ListFilter
+  ListFilter,
+  ChevronDown
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddProductDialog } from '@/components/AddProductDialog';
@@ -34,6 +35,13 @@ import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  DialogTrigger
+} from "@/components/ui/dialog";
 
 interface Product {
   id: string;
@@ -50,6 +58,7 @@ interface Product {
   testing_price?: number | null;
   created_at?: string;
   user_id?: string;
+  condition?: string;
 }
 
 interface Category {
@@ -66,6 +75,24 @@ const productConditions = [
   "Dobry",
   "Zadowalający"
 ];
+
+// Mapowanie polskich nazw na angielskie (potrzebne do filtrowania)
+const conditionMap: Record<string, string> = {
+  "Nowy": "new",
+  "Jak nowy": "like_new",
+  "Bardzo dobry": "very_good",
+  "Dobry": "good",
+  "Zadowalający": "fair"
+};
+
+// Mapowanie angielskich nazw na polskie (do wyświetlania)
+const conditionDisplayMap: Record<string, string> = {
+  "new": "Nowy",
+  "like_new": "Jak nowy",
+  "very_good": "Bardzo dobry",
+  "good": "Dobry",
+  "fair": "Zadowalający"
+};
 
 const getCategoryIcon = (categoryName: string) => {
   switch(categoryName.toLowerCase()) {
@@ -99,14 +126,15 @@ export default function Marketplace() {
   const [showAddProductDialog, setShowAddProductDialog] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'filters'>('grid');
+  const [showCategoriesDialog, setShowCategoriesDialog] = useState(false);
   
   // Filter state
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 50000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 999999]);
   const [minPrice, setMinPrice] = useState<string>('0');
-  const [maxPrice, setMaxPrice] = useState<string>('50000');
+  const [maxPrice, setMaxPrice] = useState<string>('999999');
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
   const [sortOption, setSortOption] = useState<string>("featured");
   
@@ -120,7 +148,7 @@ export default function Marketplace() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [maxProductPrice, setMaxProductPrice] = useState(50000);
+  const [maxProductPrice, setMaxProductPrice] = useState(999999);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -183,8 +211,8 @@ export default function Marketplace() {
         // Find the maximum price for the slider
         if (data && data.length > 0) {
           const highestPrice = Math.max(...data.map(product => product.price)) || 10000;
-          // Round to nearest thousand and add 50% extra space
-          const roundedMax = Math.ceil(highestPrice / 1000) * 1000 * 1.5;
+          // Round to nearest thousand and add margin
+          const roundedMax = Math.min(Math.ceil(highestPrice / 1000) * 1000 * 1.5, 999999);
           setMaxProductPrice(roundedMax);
           setPriceRange([0, roundedMax]);
           setMaxPrice(roundedMax.toString());
@@ -217,10 +245,13 @@ export default function Marketplace() {
       item => item.price >= priceRange[0] && item.price <= priceRange[1]
     );
     
-    // Filter by conditions (to be implemented with condition field)
+    // Filter by conditions
     if (selectedConditions.length > 0) {
-      // This is a placeholder for when condition field is added to products
-      // filtered = filtered.filter(item => selectedConditions.includes(item.condition));
+      // Convert Polish condition names to English for filtering
+      const englishConditions = selectedConditions.map(condition => conditionMap[condition]);
+      filtered = filtered.filter(item => 
+        item.condition && englishConditions.includes(item.condition)
+      );
     }
     
     // Filter by search query
@@ -283,7 +314,14 @@ export default function Marketplace() {
   const handlePriceInputChange = () => {
     const min = parseFloat(minPrice) || 0;
     const max = parseFloat(maxPrice) || maxProductPrice;
-    setPriceRange([min, max]);
+    
+    // Limit max price to 999999
+    const limitedMax = Math.min(max, 999999);
+    
+    setPriceRange([min, limitedMax]);
+    if (limitedMax !== max) {
+      setMaxPrice(limitedMax.toString());
+    }
   };
 
   const handleConditionChange = (condition: string, checked: boolean) => {
@@ -292,6 +330,11 @@ export default function Marketplace() {
     } else {
       setSelectedConditions(prev => prev.filter(c => c !== condition));
     }
+  };
+
+  const handleCategorySelect = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    setShowCategoriesDialog(false);
   };
 
   const handleApplyFilters = () => {
@@ -379,8 +422,8 @@ export default function Marketplace() {
             defaultValue={[0, maxProductPrice]}
             value={priceRange}
             min={0}
-            max={maxProductPrice}
-            step={100}
+            max={999999}
+            step={1000}
             onValueChange={(value) => {
               setPriceRange(value as [number, number]);
               setMinPrice(value[0].toString());
@@ -394,11 +437,16 @@ export default function Marketplace() {
               currency: 'PLN',
               maximumFractionDigits: 0
             }).format(priceRange[0])}</span>
-            <span>{new Intl.NumberFormat('pl-PL', {
-              style: 'currency',
-              currency: 'PLN',
-              maximumFractionDigits: 0
-            }).format(priceRange[1])}</span>
+            <span>
+              {priceRange[1] >= 999999 
+                ? "999 999+ PLN" 
+                : new Intl.NumberFormat('pl-PL', {
+                    style: 'currency',
+                    currency: 'PLN',
+                    maximumFractionDigits: 0
+                  }).format(priceRange[1])
+              }
+            </span>
           </div>
         </div>
         <div className="flex gap-2 mt-3">
@@ -413,7 +461,7 @@ export default function Marketplace() {
               onBlur={handlePriceInputChange}
               type="number"
               min="0"
-              max={maxProductPrice}
+              max="999999"
             />
           </div>
           <div className="flex-1">
@@ -427,7 +475,7 @@ export default function Marketplace() {
               onBlur={handlePriceInputChange}
               type="number"
               min="0"
-              max={maxProductPrice}
+              max="999999"
             />
           </div>
         </div>
@@ -510,34 +558,88 @@ export default function Marketplace() {
             </Button>
           </div>
           
-          {/* Categories as Tabs */}
+          {/* Categories as Tabs with All Categories Button */}
           <div className="mb-8">
-            <Tabs defaultValue="all" className="w-full" onValueChange={(value) => setSelectedCategory(value !== 'all' ? value : '')}>
-              <div className="mb-6 relative">
-                <ScrollArea className="pb-4">
-                  <TabsList className="flex w-full h-auto p-1 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1 overflow-x-auto">
-                    <TabsTrigger 
-                      value="all" 
-                      className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800"
+            <div className="flex items-center space-x-2 mb-4">
+              <TabsList className="flex-1 overflow-x-auto p-1 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1">
+                <TabsTrigger
+                  value=""
+                  className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800"
+                  onClick={() => setSelectedCategory("")}
+                  data-state={selectedCategory === "" ? "active" : "inactive"}
+                >
+                  <ListFilter className="h-5 w-5" />
+                  <span>Wszystkie</span>
+                </TabsTrigger>
+                
+                {categories.slice(0, 6).map((category) => (
+                  <TabsTrigger 
+                    key={category.id}
+                    value={category.id}
+                    className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800"
+                    onClick={() => setSelectedCategory(category.id)}
+                    data-state={selectedCategory === category.id ? "active" : "inactive"}
+                  >
+                    {getCategoryIcon(category.name)}
+                    <span>{category.name}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              
+              {categories.length > 6 && (
+                <Dialog open={showCategoriesDialog} onOpenChange={setShowCategoriesDialog}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="flex-shrink-0 h-10 px-3"
                     >
-                      <ListFilter className="h-5 w-5" />
-                      <span>Wszystkie</span>
-                    </TabsTrigger>
-                    
-                    {categories.map((category) => (
-                      <TabsTrigger 
-                        key={category.id}
-                        value={category.id}
-                        className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800"
+                      <span className="hidden sm:inline mr-2">Wszystkie kategorie</span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Wszystkie kategorie</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
+                      <div 
+                        className={`rounded-lg border p-4 cursor-pointer transition-all 
+                        ${selectedCategory === "" 
+                          ? "bg-primary text-primary-foreground" 
+                          : "hover:border-primary hover:text-primary"}
+                        `}
+                        onClick={() => handleCategorySelect("")}
                       >
-                        {getCategoryIcon(category.name)}
-                        <span>{category.name}</span>
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </ScrollArea>
-              </div>
-            </Tabs>
+                        <div className="flex items-center gap-2">
+                          <ListFilter className="h-5 w-5" />
+                          <span className="font-medium">Wszystkie</span>
+                        </div>
+                      </div>
+                      
+                      {categories.map((category) => (
+                        <div 
+                          key={category.id}
+                          className={`rounded-lg border p-4 cursor-pointer transition-all 
+                          ${selectedCategory === category.id 
+                            ? "bg-primary text-primary-foreground" 
+                            : "hover:border-primary hover:text-primary"}
+                          `}
+                          onClick={() => handleCategorySelect(category.id)}
+                        >
+                          <div className="flex items-center gap-2">
+                            {getCategoryIcon(category.name)}
+                            <span className="font-medium">{category.name}</span>
+                          </div>
+                          {category.description && (
+                            <p className="text-xs mt-1 opacity-80">{category.description}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
           </div>
           
           <div className="flex flex-col lg:flex-row gap-8 mb-8">

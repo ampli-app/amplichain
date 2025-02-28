@@ -110,6 +110,7 @@ export type Database = {
         Row: {
           category: string | null
           category_id: string | null
+          condition: string | null
           created_at: string
           description: string | null
           for_testing: boolean | null
@@ -128,6 +129,7 @@ export type Database = {
         Insert: {
           category?: string | null
           category_id?: string | null
+          condition?: string | null
           created_at?: string
           description?: string | null
           for_testing?: boolean | null
@@ -146,6 +148,7 @@ export type Database = {
         Update: {
           category?: string | null
           category_id?: string | null
+          condition?: string | null
           created_at?: string
           description?: string | null
           for_testing?: boolean | null

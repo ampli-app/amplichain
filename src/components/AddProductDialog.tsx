@@ -29,6 +29,15 @@ interface Category {
   description: string | null;
 }
 
+// Definicja stanów produktu
+const productConditions = [
+  { value: "new", label: "Nowy" },
+  { value: "like_new", label: "Jak nowy" },
+  { value: "very_good", label: "Bardzo dobry" },
+  { value: "good", label: "Dobry" },
+  { value: "fair", label: "Zadowalający" }
+];
+
 export function AddProductDialog({ open, onOpenChange, productId }: AddProductDialogProps) {
   const { isLoggedIn, user } = useAuth();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
@@ -45,6 +54,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
+  const [condition, setCondition] = useState<string>("new");
   
   // Multi-image support
   const [productImages, setProductImages] = useState<{
@@ -131,6 +141,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         setTitle(data.title);
         setDescription(data.description || '');
         setPrice(data.price.toString());
+        setCondition(data.condition || 'new');
         
         // Handle category selection
         if (data.category_id && data.categories) {
@@ -179,6 +190,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     setPrice('');
     setCategory('');
     setCategoryId('');
+    setCondition('new');
     setProductImages([{ file: null, preview: null }]);
     setIsForTesting(false);
     setTestingPrice('');
@@ -406,6 +418,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         testing_price: isForTesting ? parseFloat(testingPrice) : null,
         sale: false, // Always set to false as we removed the feature
         sale_percentage: null, // Always set to null as we removed the feature
+        condition: condition, // Stan produktu
         user_id: user.id
       };
       
@@ -546,6 +559,26 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              
+              {/* Stan produktu */}
+              <div className="grid gap-3">
+                <Label htmlFor="condition">Stan produktu</Label>
+                <Select value={condition} onValueChange={setCondition}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Wybierz stan produktu" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productConditions.map((condition) => (
+                      <SelectItem key={condition.value} value={condition.value}>
+                        {condition.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  Wybierz stan, który najlepiej opisuje Twój produkt.
+                </p>
               </div>
               
               <div className="grid gap-3">
