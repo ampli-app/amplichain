@@ -521,17 +521,62 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Sprawdź, czy istnieje aktywne zaproszenie
-      const { data: pendingRequest, error: checkPendingError } = await supabase
+      // Najpierw sprawdzamy, czy istnieje już jakiekolwiek zaproszenie, niezależnie od statusu
+      const { data: anyRequest, error: anyRequestError } = await supabase
         .from('connection_requests')
         .select('*')
         .eq('sender_id', user.id)
         .eq('receiver_id', userId)
-        .eq('status', 'pending')
         .maybeSingle();
 
-      if (checkPendingError) {
-        console.error('Error checking pending request:', checkPendingError);
+      if (anyRequestError) {
+        console.error('Error checking any connection request:', anyRequestError);
+      }
+
+      // Jeśli już istnieje jakiekolwiek zaproszenie, sprawdzamy jego status
+      if (anyRequest) {
+        if (anyRequest.status === 'pending') {
+          toast({
+            title: "Informacja",
+            description: "Zaproszenie do tego użytkownika jest już aktywne.",
+          });
+          return;
+        } else if (anyRequest.status === 'rejected') {
+          // Aktualizujemy istniejące odrzucone zaproszenie
+          const { error: updateError } = await supabase
+            .from('connection_requests')
+            .update({ 
+              status: 'pending',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', anyRequest.id);
+
+          if (updateError) {
+            console.error('Error updating connection request:', updateError);
+            toast({
+              title: "Błąd",
+              description: "Nie udało się zaktualizować zaproszenia.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          setUsers(prevUsers => 
+            prevUsers.map(u => 
+              u.id === userId 
+                ? { ...u, connectionStatus: 'pending_sent' } 
+                : u
+            )
+          );
+
+          toast({
+            title: "Sukces",
+            description: "Zaproszenie do połączenia zostało wysłane.",
+          });
+
+          loadUsers();
+          return;
+        }
       }
 
       // Sprawdź, czy istnieje aktywne zaproszenie od odbiorcy
@@ -545,15 +590,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
 
       if (checkIncomingError) {
         console.error('Error checking incoming request:', checkIncomingError);
-      }
-
-      // Jeśli już mamy aktywne zaproszenie, powiadom użytkownika
-      if (pendingRequest) {
-        toast({
-          title: "Informacja",
-          description: "Zaproszenie do tego użytkownika jest już aktywne.",
-        });
-        return;
       }
 
       // Jeśli jest aktywne zaproszenie od odbiorcy, zaproponuj jego akceptację
@@ -580,63 +616,29 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Sprawdź, czy istnieją poprzednie zaproszenia (odrzucone lub anulowane)
-      const { data: existingRequests, error: checkHistoryError } = await supabase
-        .from('connection_requests')
+      // Sprawdź czy użytkownik już obserwuje osobę, do której wysyła zaproszenie
+      const { data: followingData } = await supabase
+        .from('followings')
         .select('*')
-        .eq('sender_id', user.id)
-        .eq('receiver_id', userId)
-        .or('status.eq.rejected,status.eq.cancelled');
+        .eq('follower_id', user.id)
+        .eq('following_id', userId)
+        .single();
 
-      if (checkHistoryError) {
-        console.error('Error checking request history:', checkHistoryError);
+      if (!followingData) {
+        const { error: followError } = await supabase
+          .from('followings')
+          .insert({
+            follower_id: user.id,
+            following_id: userId
+          });
+
+        if (followError) {
+          console.error('Error auto-following before connection request:', followError);
+        }
       }
 
-      // Jeśli istnieją poprzednie odrzucone/anulowane zaproszenia,
-      // zaktualizujemy ich status na 'pending'
-      if (existingRequests && existingRequests.length > 0) {
-        const latestRequest = existingRequests[0];
-        
-        const { error: updateError } = await supabase
-          .from('connection_requests')
-          .update({ 
-            status: 'pending',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', latestRequest.id);
-
-        if (updateError) {
-          console.error('Error updating connection request:', updateError);
-          toast({
-            title: "Błąd",
-            description: "Nie udało się zaktualizować zaproszenia.",
-            variant: "destructive",
-          });
-          return;
-        }
-      } else {
-        // Sprawdź czy użytkownik już obserwuje osobę, do której wysyła zaproszenie
-        const { data: followingData } = await supabase
-          .from('followings')
-          .select('*')
-          .eq('follower_id', user.id)
-          .eq('following_id', userId)
-          .single();
-
-        if (!followingData) {
-          const { error: followError } = await supabase
-            .from('followings')
-            .insert({
-              follower_id: user.id,
-              following_id: userId
-            });
-
-          if (followError) {
-            console.error('Error auto-following before connection request:', followError);
-          }
-        }
-
-        // Utwórz nowe zaproszenie
+      // Utwórz nowe zaproszenie
+      try {
         const { error } = await supabase
           .from('connection_requests')
           .insert({
@@ -646,7 +648,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
           });
 
         if (error) {
-          // Jeśli błąd ma kod 23505, to znaczy że mamy duplikat klucza
           if (error.code === '23505') {
             toast({
               title: "Informacja",
@@ -663,6 +664,14 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
         }
+      } catch (insertError) {
+        console.error('Unexpected error during insert:', insertError);
+        toast({
+          title: "Błąd",
+          description: "Wystąpił problem podczas wysyłania zaproszenia. Spróbuj ponownie.",
+          variant: "destructive",
+        });
+        return;
       }
 
       setUsers(prevUsers => 
@@ -686,7 +695,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         description: "Wystąpił nieoczekiwany błąd.",
         variant: "destructive",
       });
-      throw err;
     }
   };
 
