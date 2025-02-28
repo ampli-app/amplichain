@@ -391,13 +391,16 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
       // Find selected category name
       const selectedCategory = categories.find(cat => cat.id === categoryId);
       
+      // Konwertujemy tablicę adresów URL obrazów na string JSON
+      const imageUrlsJson = JSON.stringify(imageUrls);
+      
       const productData = {
         title,
         description,
         price: parseFloat(price),
         category: selectedCategory?.name, // Keep for backward compatibility
         category_id: categoryId, // Store the category ID
-        image_url: imageUrls, // Store array of image URLs
+        image_url: imageUrlsJson, // Store JSON string of image URLs
         for_testing: isForTesting,
         testing_price: isForTesting ? parseFloat(testingPrice) : null,
         sale: false, // Always set to false as we removed the feature

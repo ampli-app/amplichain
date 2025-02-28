@@ -191,23 +191,36 @@ export default function EditProduct() {
       
       // Obsługa zdjęć produktu
       if (data.image_url) {
-        // Sprawdź czy jest to tablica zdjęć lub pojedyncze zdjęcie
-        if (Array.isArray(data.image_url)) {
-          // Ustaw istniejące zdjęcia
-          const imagesWithPreviews = data.image_url.map(url => ({
-            file: null,
-            preview: url,
-            existingUrl: url
-          }));
-          setProductImages(imagesWithPreviews);
-        } else {
-          // Pojedyncze zdjęcie jako string
-          setProductImages([{
-            file: null,
-            preview: data.image_url,
-            existingUrl: data.image_url
-          }]);
+        let imagesArray: string[] = [];
+        
+        // Sprawdź, czy image_url jest ciągiem znaków JSON
+        if (typeof data.image_url === 'string') {
+          try {
+            // Spróbuj sparsować jako JSON
+            const parsed = JSON.parse(data.image_url);
+            if (Array.isArray(parsed)) {
+              imagesArray = parsed;
+            } else {
+              // Jeśli to pojedynczy string, ale nie tablica
+              imagesArray = [data.image_url];
+            }
+          } catch (e) {
+            // Jeśli nie można sparsować jako JSON, to potraktuj jako pojedynczy URL
+            imagesArray = [data.image_url];
+          }
+        } else if (Array.isArray(data.image_url)) {
+          // Jeśli to już tablica
+          imagesArray = data.image_url;
         }
+        
+        // Przekształć listę URL w obiekty ProductImage
+        const imagesWithPreviews = imagesArray.map(url => ({
+          file: null,
+          preview: url,
+          existingUrl: url
+        }));
+        
+        setProductImages(imagesWithPreviews);
       } else {
         // Brak zdjęć
         setProductImages([]);
@@ -422,13 +435,16 @@ export default function EditProduct() {
       // Znajdź wybraną kategorię
       const selectedCategory = categories.find(cat => cat.id === categoryId);
       
+      // Konwertujemy tablicę adresów URL obrazów na string JSON
+      const imageUrlsJson = JSON.stringify(imageUrls);
+      
       const productData = {
         title,
         description,
         price: parseFloat(price),
         category: selectedCategory?.name, // Zachowaj dla wstecznej kompatybilności
         category_id: categoryId, // Zapisz ID kategorii
-        image_url: imageUrls, // Zapisz tablicę adresów URL zdjęć
+        image_url: imageUrlsJson, // Zapisz jako JSON string
         for_testing: isForTesting,
         testing_price: isForTesting ? parseFloat(testingPrice) : null,
         sale: isOnSale,

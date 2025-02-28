@@ -42,6 +42,26 @@ interface ProductDetailProps {
   created_at: string;
 }
 
+const getImageUrls = (imageData: string | string[] | null): string[] => {
+  if (!imageData) return ['/placeholder.svg'];
+  
+  if (typeof imageData === 'string') {
+    try {
+      const parsed = JSON.parse(imageData);
+      if (Array.isArray(parsed)) {
+        return parsed.length > 0 ? parsed : ['/placeholder.svg'];
+      }
+      return [imageData];
+    } catch (e) {
+      return [imageData];
+    }
+  } else if (Array.isArray(imageData)) {
+    return imageData.length > 0 ? imageData : ['/placeholder.svg'];
+  }
+  
+  return ['/placeholder.svg'];
+};
+
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -240,12 +260,8 @@ export default function ProductDetail() {
     );
   }
 
-  const generateProductImages = (imageUrl: string) => {
-    return [imageUrl, imageUrl, imageUrl];
-  };
+  const productImages = getImageUrls(product.image_url);
 
-  const productImages = generateProductImages(product.image_url || '/placeholder.svg');
-  
   const formattedPrice = new Intl.NumberFormat('pl-PL', {
     style: 'currency',
     currency: 'PLN'

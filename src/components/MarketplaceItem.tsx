@@ -70,8 +70,27 @@ export function MarketplaceItem({
       }).format(originalPrice)
     : undefined;
   
-  // Obsługa tablicy zdjęć lub pojedynczego zdjęcia
-  const mainImage = Array.isArray(image) ? (image.length > 0 ? image[0] : '/placeholder.svg') : (image || '/placeholder.svg');
+  // Obsługa różnych formatów zdjęć
+  let imageToShow: string | string[] = '/placeholder.svg';
+  
+  if (typeof image === 'string') {
+    try {
+      // Próbujemy sprawdzić, czy to string JSON
+      const parsed = JSON.parse(image);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        imageToShow = parsed[0]; // Bierzemy pierwszy obraz z tablicy
+      } else {
+        // Jeśli to nie tablica lub pusta, używamy oryginalnego stringa
+        imageToShow = image;
+      }
+    } catch (e) {
+      // Jeśli to nie JSON, używamy oryginalnego stringa
+      imageToShow = image;
+    }
+  } else if (Array.isArray(image) && image.length > 0) {
+    // Jeśli to już tablica, użyj pierwszego elementu
+    imageToShow = image[0];
+  }
   
   const handleProductClick = () => {
     // Allow all users to view products, no auth check needed
@@ -146,7 +165,7 @@ export function MarketplaceItem({
           )}
           
           <img
-            src={mainImage}
+            src={imageToShow}
             alt={title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
