@@ -13,7 +13,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X, Image as ImageIcon, Plus } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface AddProductDialogProps {
   open: boolean;
@@ -44,13 +45,18 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState<string>('');
-  const [imageUrl, setImageUrl] = useState('');
+  
+  // Multi-image support
+  const [productImages, setProductImages] = useState<{
+    file: File | null;
+    preview: string | null;
+    existingUrl?: string;
+  }[]>([{ file: null, preview: null }]);
+  
   const [isForTesting, setIsForTesting] = useState(false);
   const [testingPrice, setTestingPrice] = useState('');
   const [isOnSale, setIsOnSale] = useState(false);
   const [salePercentage, setSalePercentage] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   useEffect(() => {
     if (open && !isLoggedIn) {
@@ -96,15 +102,22 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         setDescription(data.description || '');
         setPrice(data.price.toString());
         setCategory(data.category || '');
-        setImageUrl(data.image_url || '');
         setIsForTesting(data.for_testing || false);
         setTestingPrice(data.testing_price ? data.testing_price.toString() : '');
         setIsOnSale(data.sale || false);
         setSalePercentage(data.sale_percentage ? data.sale_percentage.toString() : '');
         
-        // Set image preview
-        if (data.image_url) {
-          setImagePreview(data.image_url);
+        // Handle images (store as an array now)
+        const imageUrls = Array.isArray(data.image_url) 
+          ? data.image_url 
+          : data.image_url ? [data.image_url] : [];
+        
+        if (imageUrls.length > 0) {
+          setProductImages(
+            imageUrls.map(url => ({ file: null, preview: url, existingUrl: url }))
+          );
+        } else {
+          setProductImages([{ file: null, preview: null }]);
         }
       }
     } catch (err) {
@@ -119,57 +132,106 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     setDescription('');
     setPrice('');
     setCategory('');
-    setImageUrl('');
+    setProductImages([{ file: null, preview: null }]);
     setIsForTesting(false);
     setTestingPrice('');
     setIsOnSale(false);
     setSalePercentage('');
-    setImageFile(null);
-    setImagePreview(null);
   };
   
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setImageFile(file);
+      
+      // Create a copy of the current images array
+      const updatedImages = [...productImages];
       
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        updatedImages[index] = {
+          file,
+          preview: reader.result as string
+        };
+        setProductImages(updatedImages);
       };
       reader.readAsDataURL(file);
     }
   };
   
-  const uploadImage = async (): Promise<string> => {
-    if (!imageFile) {
-      // If there's no new image but there is an existing image URL, return it
-      if (imageUrl) return imageUrl;
-      
-      return '';
+  const addImageField = () => {
+    if (productImages.length < 8) {
+      setProductImages([...productImages, { file: null, preview: null }]);
+    } else {
+      toast({
+        title: "Limit zdjęć",
+        description: "Możesz dodać maksymalnie 8 zdjęć produktu.",
+        variant: "warning",
+      });
+    }
+  };
+  
+  const removeImageField = (index: number) => {
+    if (productImages.length > 1) {
+      const updatedImages = [...productImages];
+      updatedImages.splice(index, 1);
+      setProductImages(updatedImages);
+    }
+  };
+  
+  const uploadImages = async (): Promise<string[]> => {
+    const uploadedUrls: string[] = [];
+    
+    // First, include any existing URLs that weren't changed
+    for (const image of productImages) {
+      if (!image.file && image.existingUrl) {
+        uploadedUrls.push(image.existingUrl);
+      }
     }
     
-    // Generate a unique file name
-    const fileExt = imageFile.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `product-images/${fileName}`;
-    
-    const { data, error } = await supabase.storage
-      .from('products')
-      .upload(filePath, imageFile);
-    
-    if (error) {
-      console.error('Error uploading image:', error);
-      throw new Error('Failed to upload image');
+    // Then upload any new files
+    for (const image of productImages) {
+      if (image.file) {
+        // Generate a unique file name
+        const fileExt = image.file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+        const filePath = `product-images/${fileName}`;
+        
+        try {
+          // Ensure the bucket exists
+          const { data: buckets } = await supabase.storage.listBuckets();
+          const productsBucketExists = buckets?.some(bucket => bucket.name === 'products');
+          
+          if (!productsBucketExists) {
+            await supabase.storage.createBucket('products', {
+              public: true,
+              fileSizeLimit: 10485760 // 10MB limit
+            });
+          }
+          
+          const { data, error } = await supabase.storage
+            .from('products')
+            .upload(filePath, image.file);
+          
+          if (error) {
+            console.error('Error uploading image:', error);
+            throw new Error('Failed to upload image');
+          }
+          
+          // Get the public URL
+          const { data: urlData } = supabase.storage
+            .from('products')
+            .getPublicUrl(filePath);
+          
+          uploadedUrls.push(urlData.publicUrl);
+        } catch (err) {
+          console.error('Error in image upload:', err);
+          // Continue with other images even if one fails
+        }
+      }
     }
     
-    // Get the public URL
-    const { data: urlData } = supabase.storage
-      .from('products')
-      .getPublicUrl(filePath);
-    
-    return urlData.publicUrl;
+    return uploadedUrls;
   };
   
   const validateForm = () => {
@@ -195,6 +257,17 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
       toast({
         title: "Brak kategorii",
         description: "Wybierz kategorię produktu.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    // Check if at least one image is selected
+    const hasImage = productImages.some(img => img.file || img.existingUrl);
+    if (!hasImage) {
+      toast({
+        title: "Brak zdjęcia",
+        description: "Dodaj przynajmniej jedno zdjęcie produktu.",
         variant: "destructive",
       });
       return false;
@@ -234,18 +307,15 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     setIsLoading(true);
     
     try {
-      // Upload image if there's a new one
-      let imageUrlToUse = imageUrl;
-      if (imageFile) {
-        imageUrlToUse = await uploadImage();
-      }
+      // Upload images
+      const imageUrls = await uploadImages();
       
       const productData = {
         title,
         description,
         price: parseFloat(price),
         category,
-        image_url: imageUrlToUse,
+        image_url: imageUrls.length === 1 ? imageUrls[0] : imageUrls, // Store as array if multiple
         for_testing: isForTesting,
         testing_price: isForTesting ? parseFloat(testingPrice) : null,
         sale: isOnSale,
@@ -377,27 +447,69 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
               </div>
               
               <div className="grid gap-3">
-                <Label htmlFor="image">Zdjęcie produktu</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                  <Input 
-                    id="image" 
-                    type="file" 
-                    accept="image/*"
-                    onChange={handleImageChange}
-                  />
-                  
-                  {imagePreview && (
-                    <div className="rounded-md overflow-hidden border bg-muted/50 aspect-square">
-                      <img 
-                        src={imagePreview} 
-                        alt="Product preview" 
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                  )}
+                <div className="flex justify-between items-center">
+                  <Label>Zdjęcia produktu ({productImages.length}/8)</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={addImageField}
+                    disabled={productImages.length >= 8}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Dodaj zdjęcie
+                  </Button>
                 </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {productImages.map((image, index) => (
+                    <Card key={index} className="relative">
+                      <CardContent className="p-3 flex flex-col gap-2">
+                        {index > 0 && (
+                          <Button 
+                            type="button" 
+                            variant="destructive" 
+                            size="icon" 
+                            className="absolute -top-2 -right-2 h-6 w-6 z-10"
+                            onClick={() => removeImageField(index)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                        
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs" htmlFor={`image-${index}`}>
+                            Zdjęcie {index + 1}
+                          </Label>
+                          <Input 
+                            id={`image-${index}`} 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => handleImageChange(index, e)}
+                            className="text-xs"
+                          />
+                        </div>
+                        
+                        {image.preview ? (
+                          <div className="rounded-md overflow-hidden border bg-muted/50 aspect-square">
+                            <img 
+                              src={image.preview} 
+                              alt={`Product preview ${index + 1}`} 
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center rounded-md border bg-muted/20 aspect-square">
+                            <ImageIcon className="h-10 w-10 text-muted-foreground opacity-50" />
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                
                 <p className="text-sm text-muted-foreground">
-                  Dodaj zdjęcie produktu. Zalecany format: JPG lub PNG, wymiary min. 800x800px.
+                  Dodaj do 8 zdjęć produktu. Zalecany format: JPG lub PNG, wymiary min. 800x800px.
                 </p>
               </div>
               

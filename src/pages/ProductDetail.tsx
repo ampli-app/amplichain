@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -59,7 +58,6 @@ export default function ProductDetail() {
   });
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-  // Fetch product data
   useEffect(() => {
     if (!id) return;
     
@@ -87,12 +85,10 @@ export default function ProductDetail() {
         if (data) {
           setProduct(data);
           
-          // Check if this is the user's product
           if (user && data.user_id === user.id) {
             setIsUserProduct(true);
           }
           
-          // Fetch seller info if available
           if (data.user_id) {
             fetchSellerInfo(data.user_id);
           }
@@ -124,7 +120,7 @@ export default function ProductDetail() {
         setSellerInfo({
           name: data.full_name || "Sprzedawca",
           image: data.avatar_url || "/placeholder.svg",
-          rating: 4.5 // Example rating, could be added to profiles later
+          rating: 4.5
         });
       }
     } catch (err) {
@@ -182,6 +178,27 @@ export default function ProductDetail() {
     }
   };
 
+  const handleShareClick = () => {
+    const productUrl = `${window.location.origin}/marketplace/${id}`;
+    
+    navigator.clipboard.writeText(productUrl).then(
+      () => {
+        toast({
+          title: "Link skopiowany",
+          description: "Link do produktu został skopiowany do schowka.",
+        });
+      },
+      (err) => {
+        console.error('Could not copy text: ', err);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się skopiować linku.",
+          variant: "destructive",
+        });
+      }
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -223,9 +240,7 @@ export default function ProductDetail() {
     );
   }
 
-  // Prepare the display data
   const generateProductImages = (imageUrl: string) => {
-    // If we have one image, duplicate it for the gallery
     return [imageUrl, imageUrl, imageUrl];
   };
 
@@ -254,15 +269,13 @@ export default function ProductDetail() {
       }).format(originalPrice)
     : undefined;
 
-  // Generate specification items from the product data
   const specifications: Record<string, string> = {
     "Kategoria": product.category || "Nie określono",
-    "Stan": "Nowy", // Example value, could be added to products later
+    "Stan": "Nowy",
     "Dostępny do testów": product.for_testing ? "Tak" : "Nie",
     "Cena testowa (tydzień)": formattedTestPrice || "Niedostępne"
   };
 
-  // Example features, could be added to products table later
   const features = [
     "Produkt wysokiej jakości",
     "Szybka wysyłka",
@@ -288,7 +301,6 @@ export default function ProductDetail() {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-            {/* Product Images */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -318,20 +330,8 @@ export default function ProductDetail() {
                   </button>
                 ))}
               </div>
-              
-              <div className="flex gap-2 justify-center mt-2">
-                <Button variant="outline" size="sm" className="gap-1">
-                  <Heart className="h-4 w-4" />
-                  Ulubione
-                </Button>
-                <Button variant="outline" size="sm" className="gap-1">
-                  <Share className="h-4 w-4" />
-                  Udostępnij
-                </Button>
-              </div>
             </motion.div>
             
-            {/* Product Info */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -471,13 +471,6 @@ export default function ProductDetail() {
                       <ShoppingCart className="h-5 w-5" />
                       {purchaseType === 'buy' ? 'Dodaj do koszyka' : 'Dodaj wynajem testowy do koszyka'}
                     </Button>
-                  )}
-                  
-                  {!isUserProduct && (
-                    <div className="flex items-center justify-center gap-2 text-sm text-rhythm-600">
-                      <TruckIcon className="h-4 w-4" />
-                      <span>Darmowa dostawa • W magazynie • Wysyłka w ciągu 1-2 dni roboczych</span>
-                    </div>
                   )}
                 </div>
               </div>

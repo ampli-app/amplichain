@@ -1,13 +1,13 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Tag, Calendar, Eye, Pencil } from 'lucide-react';
+import { ShoppingCart, Tag, Calendar, Eye, Pencil, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
+import { toast } from '@/components/ui/use-toast';
 
 interface MarketplaceItemProps {
   id: string;
@@ -42,7 +42,6 @@ export function MarketplaceItem({
 }: MarketplaceItemProps) {
   const { isLoggedIn, user } = useAuth();
   const navigate = useNavigate();
-  const [purchaseType, setPurchaseType] = useState<'buy' | 'test'>(forTesting ? 'test' : 'buy');
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   
   // Check if this product belongs to the current user
@@ -51,7 +50,14 @@ export function MarketplaceItem({
   const formattedPrice = new Intl.NumberFormat('pl-PL', {
     style: 'currency',
     currency: 'PLN'
-  }).format(purchaseType === 'buy' ? price : (testingPrice || 0));
+  }).format(price);
+  
+  const formattedTestPrice = testingPrice 
+    ? new Intl.NumberFormat('pl-PL', {
+        style: 'currency',
+        currency: 'PLN'
+      }).format(testingPrice)
+    : null;
   
   const originalPrice = sale && salePercentage 
     ? price / (1 - salePercentage / 100) 
@@ -77,6 +83,32 @@ export function MarketplaceItem({
       // Navigate to product page when user is logged in
       navigate(`/marketplace/${id}`);
     }
+  };
+  
+  const handleShareClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // Create the full URL to the product
+    const productUrl = `${window.location.origin}/marketplace/${id}`;
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(productUrl).then(
+      () => {
+        toast({
+          title: "Link skopiowany",
+          description: "Link do produktu został skopiowany do schowka.",
+        });
+      },
+      (err) => {
+        console.error('Could not copy text: ', err);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się skopiować linku.",
+          variant: "destructive",
+        });
+      }
+    );
   };
   
   return (
@@ -115,6 +147,15 @@ export function MarketplaceItem({
             alt={title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
+          
+          <Button 
+            variant="secondary" 
+            size="icon" 
+            className="absolute bottom-3 right-3 opacity-70 hover:opacity-100"
+            onClick={handleShareClick}
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
         </div>
         
         <div className="p-5 flex-1 flex flex-col">
@@ -136,11 +177,8 @@ export function MarketplaceItem({
             {!isUserProduct && forTesting ? (
               <>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="font-semibold text-lg">
-                    {new Intl.NumberFormat('pl-PL', {
-                      style: 'currency',
-                      currency: 'PLN'
-                    }).format(price)}
+                  <span className="font-semibold text-lg bg-primary/10 px-2 py-1 rounded text-primary">
+                    {formattedPrice}
                   </span>
                   
                   {sale && formattedOriginalPrice && (
@@ -151,26 +189,24 @@ export function MarketplaceItem({
                 </div>
                 
                 <div className="text-sm text-rhythm-500 mb-3">
-                  Możliwość testu: {new Intl.NumberFormat('pl-PL', {
-                    style: 'currency',
-                    currency: 'PLN'
-                  }).format(testingPrice || 0)} / tydzień
+                  Możliwość testu: <span className="font-medium">{formattedTestPrice}</span> / tydzień
                 </div>
               </>
             ) : (
               <div className="flex items-center gap-2 mb-3">
-                <span className="font-semibold text-lg">{formattedPrice}</span>
+                <span className="font-semibold text-lg bg-primary/10 px-2 py-1 rounded text-primary">
+                  {formattedPrice}
+                </span>
                 {sale && formattedOriginalPrice && !isUserProduct && (
                   <span className="text-rhythm-500 line-through text-sm">
                     {formattedOriginalPrice}
                   </span>
                 )}
-                {forTesting && isUserProduct && (
+                {forTesting && (
                   <div className="text-sm text-rhythm-500 ml-auto">
-                    Test: {new Intl.NumberFormat('pl-PL', {
-                      style: 'currency',
-                      currency: 'PLN'
-                    }).format(testingPrice || 0)}
+                    {testingPrice ? (
+                      <span>Test: <span className="font-medium">{formattedTestPrice}</span></span>
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -188,7 +224,7 @@ export function MarketplaceItem({
                 </Button>
                 <Button 
                   className="flex-1 gap-2" 
-                  onClick={() => navigate(`/profile?editProduct=${id}`)}
+                  onClick={() => navigate(`/edit-product/${id}`)}
                 >
                   <Pencil className="h-4 w-4" /> 
                   Edytuj
@@ -196,7 +232,7 @@ export function MarketplaceItem({
               </div>
             ) : (
               <Button 
-                className="w-full gap-2" 
+                className="w-full gap-2 font-bold text-base"
                 onClick={handlePurchaseClick}
               >
                 <ShoppingCart className="h-4 w-4" /> 

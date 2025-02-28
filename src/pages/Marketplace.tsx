@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -70,9 +71,9 @@ export default function Marketplace() {
   // Filter state
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [searchQuery, setSearchQuery] = useState("");
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 50000]);
   const [minPrice, setMinPrice] = useState<string>('0');
-  const [maxPrice, setMaxPrice] = useState<string>('10000');
+  const [maxPrice, setMaxPrice] = useState<string>('50000');
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
   const [sortOption, setSortOption] = useState<string>("featured");
   
@@ -86,7 +87,7 @@ export default function Marketplace() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [maxProductPrice, setMaxProductPrice] = useState(10000);
+  const [maxProductPrice, setMaxProductPrice] = useState(50000);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -124,7 +125,8 @@ export default function Marketplace() {
         // Find the maximum price for the slider
         if (data && data.length > 0) {
           const highestPrice = Math.max(...data.map(product => product.price)) || 10000;
-          const roundedMax = Math.ceil(highestPrice / 1000) * 1000;
+          // Round to nearest thousand and add 50% extra space
+          const roundedMax = Math.ceil(highestPrice / 1000) * 1000 * 1.5;
           setMaxProductPrice(roundedMax);
           setPriceRange([0, roundedMax]);
           setMaxPrice(roundedMax.toString());
@@ -515,7 +517,7 @@ export default function Marketplace() {
                         id={item.id}
                         title={item.title}
                         price={item.price}
-                        image={item.image_url}
+                        image={Array.isArray(item.image_url) ? item.image_url[0] : item.image_url}
                         category={item.category || "Inne"}
                         userId={item.user_id}
                         rating={item.rating || 0}
