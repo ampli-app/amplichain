@@ -62,20 +62,39 @@ export default function Marketplace() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
+      // We use a direct query instead of .from('products')
       const { data, error } = await supabase
-        .from('products')
-        .select('*')
+        .rpc('fetch_products')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching products:', error);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się pobrać produktów. Spróbuj odświeżyć stronę.",
-          variant: "destructive",
-        });
+        if (error.message.includes('function "fetch_products" does not exist')) {
+          // If the function doesn't exist yet, use SQL query instead
+          const { data: productsData, error: productsError } = await supabase
+            .from('products')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (productsError) {
+            console.error('Error fetching products:', productsError);
+            toast({
+              title: "Błąd",
+              description: "Nie udało się pobrać produktów. Spróbuj odświeżyć stronę.",
+              variant: "destructive",
+            });
+          } else {
+            setProducts(productsData as Product[] || []);
+          }
+        } else {
+          console.error('Error fetching products:', error);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się pobrać produktów. Spróbuj odświeżyć stronę.",
+            variant: "destructive",
+          });
+        }
       } else {
-        setProducts(data || []);
+        setProducts(data as Product[] || []);
       }
     } catch (err) {
       console.error('Unexpected error:', err);
@@ -271,8 +290,8 @@ export default function Marketplace() {
                       price={item.price}
                       image={item.image_url}
                       category={item.category}
-                      rating={item.rating}
-                      reviewCount={item.review_count}
+                      rating={item.rating || 0}
+                      reviewCount={item.review_count || 0}
                       sale={item.sale}
                       salePercentage={item.sale_percentage}
                       forTesting={item.for_testing}

@@ -79,6 +79,60 @@ export type Database = {
           },
         ]
       }
+      products: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          for_testing: boolean | null
+          id: string
+          image_url: string | null
+          price: number
+          rating: number | null
+          review_count: number | null
+          sale: boolean | null
+          sale_percentage: number | null
+          testing_price: number | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          for_testing?: boolean | null
+          id?: string
+          image_url?: string | null
+          price: number
+          rating?: number | null
+          review_count?: number | null
+          sale?: boolean | null
+          sale_percentage?: number | null
+          testing_price?: number | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          for_testing?: boolean | null
+          id?: string
+          image_url?: string | null
+          price?: number
+          rating?: number | null
+          review_count?: number | null
+          sale?: boolean | null
+          sale_percentage?: number | null
+          testing_price?: number | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

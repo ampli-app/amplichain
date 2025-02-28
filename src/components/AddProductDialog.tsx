@@ -233,8 +233,7 @@ export function AddProductDialog({ open, onOpenChange }: AddProductDialogProps) 
           testing_price: forTesting ? parseFloat(testingPrice) : null,
           rating: 0,
           review_count: 0
-        })
-        .select();
+        });
       
       if (error) {
         console.error('Error creating product:', error);
