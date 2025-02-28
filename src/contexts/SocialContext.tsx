@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -262,6 +263,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
       if (!data) return null;
 
       let connectionStatus: UserConnectionStatus = 'none';
+      let isFollower = false;
       
       if (user) {
         const { data: connectionData } = await supabase
@@ -308,6 +310,18 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
             }
           }
         }
+        
+        // Sprawdź, czy użytkownik obserwuje bieżącego użytkownika
+        const { data: followerData } = await supabase
+          .from('followings')
+          .select('*')
+          .eq('follower_id', userId)
+          .eq('following_id', user.id)
+          .single();
+          
+        if (followerData) {
+          isFollower = true;
+        }
       }
 
       const userProfile: SocialUser = {
@@ -318,6 +332,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         role: data.role || '',
         bio: data.bio,
         connectionStatus,
+        isFollower,
         followersCount: data.followers || 0,
         followingCount: data.following || 0,
         connectionsCount: data.connections || 0
