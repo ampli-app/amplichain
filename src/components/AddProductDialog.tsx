@@ -8,11 +8,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { Loader2, X, Image as ImageIcon, Plus, Upload, AlertCircle } from 'lucide-react';
+import { Loader2, X, Upload, Plus, PlusCircle, AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -27,6 +28,12 @@ interface Category {
   name: string;
   slug: string;
   description: string | null;
+}
+
+interface ProductImage {
+  file: File | null;
+  preview: string | null;
+  existingUrl?: string;
 }
 
 // Definicja stanów produktu
@@ -44,6 +51,9 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
   const [isLoading, setIsLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   
+  // Stałe
+  const MAX_IMAGES = 8;
+  
   // Categories state
   const [categories, setCategories] = useState<Category[]>([]);
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
@@ -57,11 +67,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
   const [condition, setCondition] = useState<string>("new");
   
   // Multi-image support
-  const [productImages, setProductImages] = useState<{
-    file: File | null;
-    preview: string | null;
-    existingUrl?: string;
-  }[]>([{ file: null, preview: null }]);
+  const [productImages, setProductImages] = useState<ProductImage[]>([]);
   
   const [isForTesting, setIsForTesting] = useState(false);
   const [testingPrice, setTestingPrice] = useState('');
@@ -162,9 +168,25 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         
         // Handle images
         if (data.image_url) {
-          setProductImages([{ file: null, preview: data.image_url, existingUrl: data.image_url }]);
+          if (Array.isArray(data.image_url)) {
+            // Tablica zdjęć
+            const imagesWithPreviews = data.image_url.map(url => ({
+              file: null,
+              preview: url,
+              existingUrl: url
+            }));
+            setProductImages(imagesWithPreviews);
+          } else {
+            // Pojedyncze zdjęcie
+            setProductImages([{
+              file: null,
+              preview: data.image_url,
+              existingUrl: data.image_url
+            }]);
+          }
         } else {
-          setProductImages([{ file: null, preview: null }]);
+          // Brak zdjęć
+          setProductImages([]);
         }
       }
     } catch (err) {
@@ -181,7 +203,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     setCategory('');
     setCategoryId('');
     setCondition('new');
-    setProductImages([{ file: null, preview: null }]);
+    setProductImages([]);
     setIsForTesting(false);
     setTestingPrice('');
   };
@@ -189,37 +211,47 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
   const handleMultipleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files);
-      const maxImages = 8;
       
-      // Limit number of images
-      const filesToProcess = files.slice(0, maxImages - productImages.length + 1);
+      // Sprawdź ile jeszcze możemy dodać zdjęć
+      const remainingSlots = MAX_IMAGES - productImages.length;
       
-      if (files.length > maxImages - productImages.length + 1) {
+      if (remainingSlots <= 0) {
         toast({
           title: "Limit zdjęć",
-          description: `Możesz dodać maksymalnie ${maxImages} zdjęć. Wybrano tylko pierwsze ${filesToProcess.length}.`,
+          description: `Możesz dodać maksymalnie ${MAX_IMAGES} zdjęć. Usuń niektóre istniejące zdjęcia przed dodaniem nowych.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Limit liczby zdjęć
+      const filesToProcess = files.slice(0, remainingSlots);
+      
+      if (files.length > remainingSlots) {
+        toast({
+          title: "Limit zdjęć",
+          description: `Możesz dodać jeszcze tylko ${remainingSlots} zdjęć. Wybrano pierwsze ${filesToProcess.length}.`,
           variant: "destructive",
         });
       }
       
-      // Remove the empty placeholder if it exists
-      let updatedImages = [...productImages];
-      if (updatedImages.length === 1 && !updatedImages[0].file && !updatedImages[0].preview) {
-        updatedImages = [];
-      }
+      // Przetwórz każdy plik
+      const newImages: ProductImage[] = [];
+      let processedFiles = 0;
       
-      // Process each file
       filesToProcess.forEach(file => {
         const reader = new FileReader();
         reader.onloadend = () => {
-          updatedImages.push({
+          newImages.push({
             file,
             preview: reader.result as string
           });
           
-          // Update state after processing all files
-          if (updatedImages.length <= maxImages) {
-            setProductImages([...updatedImages]);
+          processedFiles++;
+          
+          // Po przetworzeniu wszystkich plików, zaktualizuj stan
+          if (processedFiles === filesToProcess.length) {
+            setProductImages(prev => [...prev, ...newImages]);
           }
         };
         reader.readAsDataURL(file);
@@ -227,115 +259,67 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     }
   };
   
-  const handleImageChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      
-      // Create a copy of the current images array
-      const updatedImages = [...productImages];
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updatedImages[index] = {
-          file,
-          preview: reader.result as string
-        };
-        setProductImages(updatedImages);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-  
-  const addImageField = () => {
-    if (productImages.length < 8) {
-      setProductImages([...productImages, { file: null, preview: null }]);
-    } else {
-      toast({
-        title: "Limit zdjęć",
-        description: "Możesz dodać maksymalnie 8 zdjęć produktu.",
-        variant: "destructive",
-      });
+  const handleAddImageClick = () => {
+    const fileInput = document.getElementById('add-product-images');
+    if (fileInput) {
+      fileInput.click();
     }
   };
   
   const removeImageField = (index: number) => {
     const updatedImages = [...productImages];
     updatedImages.splice(index, 1);
-    
-    // If we're removing the last image, add an empty one
-    if (updatedImages.length === 0) {
-      updatedImages.push({ file: null, preview: null });
-    }
-    
     setProductImages(updatedImages);
   };
   
-  const uploadImages = async (): Promise<string> => {
-    // Jeśli nie ma nowych zdjęć, ale jest istniejący URL, zwracamy go
-    if (productImages.length > 0 && !productImages[0].file && productImages[0].existingUrl) {
-      return productImages[0].existingUrl;
-    }
+  const uploadImages = async (): Promise<string[]> => {
+    const uploadedUrls: string[] = [];
     
-    // Znajdź pierwsze zdjęcie z plikiem do przesłania
-    const imageToUpload = productImages.find(img => img.file);
-    if (!imageToUpload || !imageToUpload.file) {
-      return ''; // Brak zdjęć do przesłania
-    }
+    // Najpierw dodaj wszystkie istniejące URL
+    productImages.forEach(img => {
+      if (img.existingUrl && !img.file) {
+        uploadedUrls.push(img.existingUrl);
+      }
+    });
     
-    // Generate a unique file name
-    const fileExt = imageToUpload.file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `product-images/${fileName}`;
+    // Następnie prześlij nowe pliki
+    const filesToUpload = productImages.filter(img => img.file);
     
-    try {
-      // Check if the bucket exists
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const productsBucketExists = buckets?.some(bucket => bucket.name === 'products');
+    for (const image of filesToUpload) {
+      if (!image.file) continue;
       
-      if (!productsBucketExists) {
-        // Create the bucket with public access if it doesn't exist
-        try {
-          const { data, error } = await supabase.storage.createBucket('products', {
-            public: true,
-            fileSizeLimit: 10485760 // 10MB limit
+      // Generuj unikalną nazwę pliku
+      const fileExt = image.file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `product-images/${fileName}`;
+      
+      try {
+        const { data, error } = await supabase.storage
+          .from('products')
+          .upload(filePath, image.file);
+        
+        if (error) {
+          console.error('Error uploading image:', error);
+          toast({
+            title: "Błąd",
+            description: `Nie udało się przesłać zdjęcia: ${error.message}`,
+            variant: "destructive",
           });
-          
-          if (error) {
-            console.error('Error creating bucket:', error);
-            throw new Error(`Nie można utworzyć bucketu: ${error.message}`);
-          }
-        } catch (createError) {
-          console.error('Error in bucket creation:', createError);
-          // If we can't create a bucket, try to upload anyway to an existing one
+          continue;
         }
+        
+        // Pobierz publiczny URL
+        const { data: urlData } = supabase.storage
+          .from('products')
+          .getPublicUrl(filePath);
+        
+        uploadedUrls.push(urlData.publicUrl);
+      } catch (err) {
+        console.error('Unexpected error during upload:', err);
       }
-      
-      // Try to upload the image
-      const { data, error } = await supabase.storage
-        .from('products')
-        .upload(filePath, imageToUpload.file);
-      
-      if (error) {
-        console.error('Error uploading image:', error);
-        throw new Error('Nie udało się przesłać zdjęcia: ' + error.message);
-      }
-      
-      // Get the public URL
-      const { data: urlData } = supabase.storage
-        .from('products')
-        .getPublicUrl(filePath);
-      
-      return urlData.publicUrl;
-    } catch (err) {
-      console.error('Error in image upload:', err);
-      toast({
-        title: "Błąd",
-        description: `Problem z przesłaniem zdjęcia: ${err instanceof Error ? err.message : 'Nieznany błąd'}`,
-        variant: "destructive",
-      });
-      return '';
     }
+    
+    return uploadedUrls;
   };
   
   const validateForm = () => {
@@ -367,8 +351,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     }
     
     // Check if at least one image is selected
-    const hasImage = productImages.some(img => img.file || img.existingUrl);
-    if (!hasImage) {
+    if (productImages.length === 0) {
       toast({
         title: "Brak zdjęcia",
         description: "Dodaj przynajmniej jedno zdjęcie produktu.",
@@ -402,8 +385,8 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     setIsLoading(true);
     
     try {
-      // Upload first image only and get URL
-      const imageUrl = await uploadImages();
+      // Upload images and get URLs
+      const imageUrls = await uploadImages();
       
       // Find selected category name
       const selectedCategory = categories.find(cat => cat.id === categoryId);
@@ -414,7 +397,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         price: parseFloat(price),
         category: selectedCategory?.name, // Keep for backward compatibility
         category_id: categoryId, // Store the category ID
-        image_url: imageUrl, // Używamy tylko jednego URL zdjęcia
+        image_url: imageUrls, // Store array of image URLs
         for_testing: isForTesting,
         testing_price: isForTesting ? parseFloat(testingPrice) : null,
         sale: false, // Always set to false as we removed the feature
@@ -584,32 +567,51 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
                 </p>
               </div>
               
+              {/* Multi-image upload */}
               <div className="grid gap-3">
                 <div className="flex justify-between items-center">
-                  <Label className="text-base font-medium">Zdjęcia produktu ({productImages.filter(img => img.file || img.preview).length}/8)</Label>
+                  <Label className="text-base font-medium">Zdjęcia produktu ({productImages.length}/{MAX_IMAGES})</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleAddImageClick}
+                    disabled={productImages.length >= MAX_IMAGES}
+                    className="flex items-center gap-1"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Dodaj zdjęcie
+                  </Button>
                 </div>
                 
-                {/* Multiple image upload button */}
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 cursor-pointer hover:border-primary transition-colors">
-                    <input
-                      type="file"
-                      id="multiple-images"
-                      multiple
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleMultipleImageUpload}
-                    />
-                    <label htmlFor="multiple-images" className="cursor-pointer flex flex-col items-center">
-                      <Upload className="h-10 w-10 text-gray-400 mb-2" />
-                      <span className="text-sm font-medium">Przeciągnij zdjęcia tutaj lub kliknij, aby wybrać</span>
-                      <span className="text-xs text-gray-500 mt-1">Możesz dodać do 8 zdjęć naraz</span>
-                    </label>
+                {/* Hidden input for uploading multiple images */}
+                <input
+                  type="file"
+                  id="add-product-images"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleMultipleImageUpload}
+                />
+                
+                {/* Drop zone for images */}
+                {productImages.length < MAX_IMAGES && (
+                  <div 
+                    className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 cursor-pointer hover:border-primary transition-colors"
+                    onClick={handleAddImageClick}
+                  >
+                    <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                    <span className="text-sm font-medium">Przeciągnij zdjęcia tutaj lub kliknij, aby wybrać</span>
+                    <span className="text-xs text-gray-500 mt-1">
+                      Możesz dodać maksymalnie {MAX_IMAGES} zdjęć (pozostało {MAX_IMAGES - productImages.length})
+                    </span>
                   </div>
-                  
-                  {/* Image previews grid */}
-                  {productImages.some(img => img.file || img.preview) && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                )}
+                
+                {/* Image previews grid */}
+                {productImages.length > 0 && (
+                  <ScrollArea className="h-44 rounded-md border p-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {productImages.map((image, index) => (
                         image.preview && (
                           <div key={index} className="relative group aspect-square rounded-md overflow-hidden border bg-muted/50">
@@ -632,8 +634,8 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
                         )
                       ))}
                     </div>
-                  )}
-                </div>
+                  </ScrollArea>
+                )}
               </div>
               
               <Separator />

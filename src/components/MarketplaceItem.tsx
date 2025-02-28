@@ -13,7 +13,7 @@ interface MarketplaceItemProps {
   id: string;
   title: string;
   price: number;
-  image: string;
+  image: string | string[];
   category: string;
   userId?: string;
   rating?: number;
@@ -69,6 +69,9 @@ export function MarketplaceItem({
         currency: 'PLN'
       }).format(originalPrice)
     : undefined;
+  
+  // Obsługa tablicy zdjęć lub pojedynczego zdjęcia
+  const mainImage = Array.isArray(image) ? (image.length > 0 ? image[0] : '/placeholder.svg') : (image || '/placeholder.svg');
   
   const handleProductClick = () => {
     // Allow all users to view products, no auth check needed
@@ -143,7 +146,7 @@ export function MarketplaceItem({
           )}
           
           <img
-            src={image || '/placeholder.svg'}
+            src={mainImage}
             alt={title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />

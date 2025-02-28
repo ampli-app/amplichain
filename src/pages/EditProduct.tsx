@@ -11,10 +11,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Save, Trash2, Loader2 } from 'lucide-react';
+import { 
+  ArrowLeft, Save, Trash2, Loader2, PlusCircle, X, Upload
+} from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 interface Category {
   id: string;
@@ -31,6 +35,12 @@ const productConditions = [
   { value: "good", label: "Dobry" },
   { value: "fair", label: "Zadowalający" }
 ];
+
+interface ProductImage {
+  file: File | null;
+  preview: string;
+  existingUrl?: string;
+}
 
 export default function EditProduct() {
   const { id } = useParams<{ id: string }>();
@@ -51,13 +61,14 @@ export default function EditProduct() {
   const [category, setCategory] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [condition, setCondition] = useState<string>("new");
-  const [imageUrl, setImageUrl] = useState('');
   const [isForTesting, setIsForTesting] = useState(false);
   const [testingPrice, setTestingPrice] = useState('');
   const [isOnSale, setIsOnSale] = useState(false);
   const [salePercentage, setSalePercentage] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // Multi-image support
+  const [productImages, setProductImages] = useState<ProductImage[]>([]);
+  const MAX_IMAGES = 8;
   
   useEffect(() => {
     // Fetch categories
@@ -173,15 +184,33 @@ export default function EditProduct() {
         }
       }
       
-      setImageUrl(data.image_url || '');
       setIsForTesting(data.for_testing || false);
       setTestingPrice(data.testing_price ? data.testing_price.toString() : '');
       setIsOnSale(data.sale || false);
       setSalePercentage(data.sale_percentage ? data.sale_percentage.toString() : '');
       
-      // Set image preview
+      // Obsługa zdjęć produktu
       if (data.image_url) {
-        setImagePreview(data.image_url);
+        // Sprawdź czy jest to tablica zdjęć lub pojedyncze zdjęcie
+        if (Array.isArray(data.image_url)) {
+          // Ustaw istniejące zdjęcia
+          const imagesWithPreviews = data.image_url.map(url => ({
+            file: null,
+            preview: url,
+            existingUrl: url
+          }));
+          setProductImages(imagesWithPreviews);
+        } else {
+          // Pojedyncze zdjęcie jako string
+          setProductImages([{
+            file: null,
+            preview: data.image_url,
+            existingUrl: data.image_url
+          }]);
+        }
+      } else {
+        // Brak zdjęć
+        setProductImages([]);
       }
       
     } catch (err) {
@@ -196,59 +225,118 @@ export default function EditProduct() {
     }
   };
   
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
+  const handleMultipleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
       
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      // Sprawdź ile jeszcze możemy dodać zdjęć
+      const remainingSlots = MAX_IMAGES - productImages.length;
+      
+      if (remainingSlots <= 0) {
+        toast({
+          title: "Limit zdjęć",
+          description: `Możesz dodać maksymalnie ${MAX_IMAGES} zdjęć. Usuń niektóre istniejące zdjęcia przed dodaniem nowych.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Limit liczby zdjęć
+      const filesToProcess = files.slice(0, remainingSlots);
+      
+      if (files.length > remainingSlots) {
+        toast({
+          title: "Limit zdjęć",
+          description: `Możesz dodać jeszcze tylko ${remainingSlots} zdjęć. Wybrano pierwsze ${filesToProcess.length}.`,
+          variant: "destructive",
+        });
+      }
+      
+      // Przetwórz każdy plik
+      const newImages: ProductImage[] = [];
+      let processedFiles = 0;
+      
+      filesToProcess.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          newImages.push({
+            file,
+            preview: reader.result as string
+          });
+          
+          processedFiles++;
+          
+          // Po przetworzeniu wszystkich plików, zaktualizuj stan
+          if (processedFiles === filesToProcess.length) {
+            setProductImages(prev => [...prev, ...newImages]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
     }
   };
   
-  const uploadImage = async (): Promise<string> => {
-    if (!imageFile) {
-      // If there's no new image but there is an existing image URL, return it
-      if (imageUrl) return imageUrl;
+  const handleAddImageClick = () => {
+    const fileInput = document.getElementById('multiple-images');
+    if (fileInput) {
+      fileInput.click();
+    }
+  };
+  
+  const handleRemoveImage = (index: number) => {
+    const updatedImages = [...productImages];
+    updatedImages.splice(index, 1);
+    setProductImages(updatedImages);
+  };
+  
+  const uploadImages = async (): Promise<string[]> => {
+    const uploadedUrls: string[] = [];
+    
+    // Najpierw dodaj wszystkie istniejące URL
+    productImages.forEach(img => {
+      if (img.existingUrl && !img.file) {
+        uploadedUrls.push(img.existingUrl);
+      }
+    });
+    
+    // Następnie prześlij nowe pliki
+    const filesToUpload = productImages.filter(img => img.file);
+    
+    for (const image of filesToUpload) {
+      if (!image.file) continue;
       
-      return '';
+      // Generuj unikalną nazwę pliku
+      const fileExt = image.file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `product-images/${fileName}`;
+      
+      try {
+        const { data, error } = await supabase.storage
+          .from('products')
+          .upload(filePath, image.file);
+        
+        if (error) {
+          console.error('Error uploading image:', error);
+          toast({
+            title: "Błąd",
+            description: `Nie udało się przesłać zdjęcia: ${error.message}`,
+            variant: "destructive",
+          });
+          continue;
+        }
+        
+        // Pobierz publiczny URL
+        const { data: urlData } = supabase.storage
+          .from('products')
+          .getPublicUrl(filePath);
+        
+        uploadedUrls.push(urlData.publicUrl);
+      } catch (err) {
+        console.error('Unexpected error during upload:', err);
+      }
     }
     
-    // Generate a unique file name
-    const fileExt = imageFile.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `product-images/${fileName}`;
-    
-    // Check if 'products' bucket exists, create if not
-    const { data: buckets } = await supabase.storage.listBuckets();
-    const productsBucketExists = buckets?.some(bucket => bucket.name === 'products');
-    
-    if (!productsBucketExists) {
-      await supabase.storage.createBucket('products', {
-        public: true,
-        fileSizeLimit: 5242880 // 5MB
-      });
-    }
-    
-    const { data, error } = await supabase.storage
-      .from('products')
-      .upload(filePath, imageFile);
-    
-    if (error) {
-      console.error('Error uploading image:', error);
-      throw new Error('Failed to upload image');
-    }
-    
-    // Get the public URL
-    const { data: urlData } = supabase.storage
-      .from('products')
-      .getPublicUrl(filePath);
-    
-    return urlData.publicUrl;
+    return uploadedUrls;
   };
   
   const validateForm = () => {
@@ -274,6 +362,15 @@ export default function EditProduct() {
       toast({
         title: "Brak kategorii",
         description: "Wybierz kategorię produktu.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (productImages.length === 0) {
+      toast({
+        title: "Brak zdjęć",
+        description: "Dodaj przynajmniej jedno zdjęcie produktu.",
         variant: "destructive",
       });
       return false;
@@ -319,27 +416,24 @@ export default function EditProduct() {
     setIsSaving(true);
     
     try {
-      // Upload image if there's a new one
-      let imageUrlToUse = imageUrl;
-      if (imageFile) {
-        imageUrlToUse = await uploadImage();
-      }
+      // Prześlij wszystkie zdjęcia
+      const imageUrls = await uploadImages();
       
-      // Find selected category name
+      // Znajdź wybraną kategorię
       const selectedCategory = categories.find(cat => cat.id === categoryId);
       
       const productData = {
         title,
         description,
         price: parseFloat(price),
-        category: selectedCategory?.name, // Keep for backward compatibility
-        category_id: categoryId, // Store the category ID
-        image_url: imageUrlToUse,
+        category: selectedCategory?.name, // Zachowaj dla wstecznej kompatybilności
+        category_id: categoryId, // Zapisz ID kategorii
+        image_url: imageUrls, // Zapisz tablicę adresów URL zdjęć
         for_testing: isForTesting,
         testing_price: isForTesting ? parseFloat(testingPrice) : null,
         sale: isOnSale,
         sale_percentage: isOnSale ? parseFloat(salePercentage) : null,
-        condition: condition, // Stan produktu
+        condition,
       };
       
       const { error } = await supabase
@@ -362,7 +456,7 @@ export default function EditProduct() {
         description: "Produkt został zaktualizowany.",
       });
       
-      // Navigate back to product page
+      // Powróć do strony produktu
       navigate(`/marketplace/${id}`);
       
     } catch (err) {
@@ -406,7 +500,7 @@ export default function EditProduct() {
         description: "Produkt został usunięty.",
       });
       
-      // Navigate to marketplace
+      // Przejdź do marketplace
       navigate('/marketplace');
       
     } catch (err) {
@@ -423,7 +517,7 @@ export default function EditProduct() {
   
   const handleCategoryChange = (categoryId: string) => {
     setCategoryId(categoryId);
-    // Get category name from id
+    // Pobierz nazwę kategorii z ID
     const selectedCategory = categories.find(cat => cat.id === categoryId);
     if (selectedCategory) {
       setCategory(selectedCategory.name);
@@ -549,30 +643,79 @@ export default function EditProduct() {
                   </p>
                 </div>
                 
+                {/* Multi-image upload component */}
                 <div className="grid gap-3">
-                  <Label htmlFor="image">Zdjęcie produktu</Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                    <Input 
-                      id="image" 
-                      type="file" 
-                      accept="image/*"
-                      onChange={handleImageChange}
-                    />
-                    
-                    {imagePreview && (
-                      <div className="rounded-md overflow-hidden border bg-muted/50 aspect-square">
-                        <img 
-                          src={imagePreview} 
-                          alt="Product preview" 
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                    )}
+                  <div className="flex items-center justify-between mb-2">
+                    <Label htmlFor="images">Zdjęcia produktu ({productImages.length}/{MAX_IMAGES})</Label>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleAddImageClick}
+                      disabled={productImages.length >= MAX_IMAGES}
+                      className="flex items-center gap-1"
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                      Dodaj zdjęcie
+                    </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Dodaj zdjęcie produktu. Zalecany format: JPG lub PNG, wymiary min. 800x800px.
-                  </p>
+                  
+                  {/* Hidden input for uploading multiple images */}
+                  <input
+                    type="file"
+                    id="multiple-images"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleMultipleImageUpload}
+                  />
+                  
+                  {/* Drop zone for images */}
+                  {productImages.length < MAX_IMAGES && (
+                    <div 
+                      className="border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                      onClick={handleAddImageClick}
+                    >
+                      <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm">
+                        Przeciągnij zdjęcia tutaj lub kliknij, aby wybrać
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Możesz dodać maksymalnie {MAX_IMAGES} zdjęć (pozostało {MAX_IMAGES - productImages.length})
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Image previews */}
+                  {productImages.length > 0 && (
+                    <ScrollArea className="h-44 rounded-md border p-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        {productImages.map((image, index) => (
+                          <div key={index} className="relative group">
+                            <div className="aspect-square rounded-md overflow-hidden border bg-gray-100 dark:bg-gray-800">
+                              <img 
+                                src={image.preview} 
+                                alt={`Product preview ${index + 1}`} 
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                            <Button 
+                              type="button"
+                              variant="destructive" 
+                              size="icon" 
+                              className="h-6 w-6 absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => handleRemoveImage(index)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
                 </div>
+                
+                <Separator />
                 
                 <div className="space-y-4 bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                   <div className="flex items-center space-x-2">

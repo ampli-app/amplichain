@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -47,7 +46,7 @@ interface Product {
   id: string;
   title: string;
   price: number;
-  image_url: string;
+  image_url: string | string[];
   category: string | null;
   category_id: string | null;
   rating: number | null;
@@ -76,7 +75,6 @@ const productConditions = [
   "Zadowalający"
 ];
 
-// Mapowanie polskich nazw na angielskie (potrzebne do filtrowania)
 const conditionMap: Record<string, string> = {
   "Nowy": "new",
   "Jak nowy": "like_new",
@@ -85,7 +83,6 @@ const conditionMap: Record<string, string> = {
   "Zadowalający": "fair"
 };
 
-// Mapowanie angielskich nazw na polskie (do wyświetlania)
 const conditionDisplayMap: Record<string, string> = {
   "new": "Nowy",
   "like_new": "Jak nowy",
@@ -156,12 +153,10 @@ export default function Marketplace() {
     fetchCategories();
   }, []);
 
-  // Apply filters when relevant state changes
   useEffect(() => {
     applyFilters();
   }, [products, selectedCategory, showTestingOnly, priceRange, selectedConditions, searchQuery, sortOption]);
 
-  // Update displayed products when page changes or filtered products change
   useEffect(() => {
     updateDisplayedProducts();
   }, [filteredProducts, currentPage]);
@@ -181,7 +176,6 @@ export default function Marketplace() {
           variant: "destructive",
         });
       } else {
-        // Filter out "Wszystkie kategorie" if it exists
         const filteredCategories = data?.filter(cat => cat.slug !== 'all-categories') || [];
         setCategories(filteredCategories);
       }
@@ -208,10 +202,8 @@ export default function Marketplace() {
       } else {
         setProducts(data || []);
         
-        // Find the maximum price for the slider
         if (data && data.length > 0) {
           const highestPrice = Math.max(...data.map(product => product.price)) || 10000;
-          // Round to nearest thousand and add margin
           const roundedMax = Math.min(Math.ceil(highestPrice / 1000) * 1000 * 1.5, 999999);
           setMaxProductPrice(roundedMax);
           setPriceRange([0, roundedMax]);
@@ -230,31 +222,25 @@ export default function Marketplace() {
     
     let filtered = [...products];
     
-    // Filter by category
     if (selectedCategory) {
       filtered = filtered.filter(item => item.category_id === selectedCategory);
     }
     
-    // Filter by testing availability
     if (showTestingOnly) {
       filtered = filtered.filter(item => item.for_testing === true);
     }
     
-    // Filter by price range
     filtered = filtered.filter(
       item => item.price >= priceRange[0] && item.price <= priceRange[1]
     );
     
-    // Filter by conditions
     if (selectedConditions.length > 0) {
-      // Convert Polish condition names to English for filtering
       const englishConditions = selectedConditions.map(condition => conditionMap[condition]);
       filtered = filtered.filter(item => 
         item.condition && englishConditions.includes(item.condition)
       );
     }
     
-    // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -264,7 +250,6 @@ export default function Marketplace() {
       );
     }
     
-    // Sort products
     switch (sortOption) {
       case "price-asc":
         filtered.sort((a, b) => a.price - b.price);
@@ -276,7 +261,6 @@ export default function Marketplace() {
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       case "newest":
-        // Handle the case where created_at might be undefined
         filtered.sort((a, b) => {
           const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
           const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -284,14 +268,12 @@ export default function Marketplace() {
         });
         break;
       default: // "featured" or any other default
-        // No additional sorting needed as it's already sorted by created_at desc
         break;
     }
     
     setFilteredProducts(filtered);
     setTotalPages(Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)));
     
-    // Reset to page 1 when filters change
     if (currentPage !== 1) {
       setCurrentPage(1);
     }
@@ -315,7 +297,6 @@ export default function Marketplace() {
     const min = parseFloat(minPrice) || 0;
     const max = parseFloat(maxPrice) || maxProductPrice;
     
-    // Limit max price to 999999
     const limitedMax = Math.min(max, 999999);
     
     setPriceRange([min, limitedMax]);
@@ -338,14 +319,11 @@ export default function Marketplace() {
   };
 
   const handleApplyFilters = () => {
-    // Filters are already applied through useEffect, 
-    // but this provides visual feedback that something happened
     toast({
       title: "Filtry zastosowane",
       description: `Znaleziono ${filteredProducts.length} produktów.`,
     });
     
-    // On mobile, switch to grid view after applying filters
     if (window.innerWidth < 768) {
       setViewMode('grid');
     }
@@ -411,7 +389,6 @@ export default function Marketplace() {
 
   const renderFilters = () => (
     <div className="space-y-6">
-      {/* Price Range Filter */}
       <div className="glass-card rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm">
         <h3 className="font-semibold mb-3 flex items-center gap-2">
           <SlidersHorizontal className="h-4 w-4" />
@@ -481,7 +458,6 @@ export default function Marketplace() {
         </div>
       </div>
       
-      {/* Product Condition Filter */}
       <div className="glass-card rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm">
         <h3 className="font-semibold mb-3">Stan</h3>
         <div className="space-y-2">
@@ -501,7 +477,6 @@ export default function Marketplace() {
         </div>
       </div>
       
-      {/* Testing Filter */}
       <div className="glass-card rounded-xl p-5 border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm">
         <h3 className="font-semibold mb-3 flex items-center gap-2">
           <Calendar className="h-4 w-4" />
@@ -558,11 +533,9 @@ export default function Marketplace() {
             </Button>
           </div>
           
-          {/* Categories as Buttons with More Categories Button - wyśrodkowane na dużym ekranie */}
           <div className="mb-8">
             <div className="flex items-center justify-center mb-4">
               <div className="flex overflow-x-auto p-1 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1 rounded-md">
-                {/* Wyświetlanie tylko kilku kategorii */}
                 {categories.slice(0, 7).map((category) => (
                   <Button 
                     key={category.id}
@@ -575,7 +548,6 @@ export default function Marketplace() {
                   </Button>
                 ))}
                 
-                {/* Przycisk "Więcej kategorii" */}
                 <Button
                   variant="ghost"
                   className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2"
@@ -586,7 +558,6 @@ export default function Marketplace() {
                 </Button>
               </div>
               
-              {/* Dialog z wszystkimi kategoriami */}
               <Dialog open={showCategoriesDialog} onOpenChange={setShowCategoriesDialog}>
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
@@ -619,7 +590,6 @@ export default function Marketplace() {
           </div>
           
           <div className="flex flex-col lg:flex-row gap-8 mb-8">
-            {/* Mobile Filters Toggle */}
             <div className="lg:hidden mb-4">
               <div className="flex gap-2">
                 <Button 
@@ -641,14 +611,11 @@ export default function Marketplace() {
               </div>
             </div>
             
-            {/* Filters Sidebar - Hidden on Mobile when in Grid View */}
             <div className={`lg:w-64 space-y-6 ${viewMode === 'filters' ? 'block' : 'hidden lg:block'}`}>
               {renderFilters()}
             </div>
             
-            {/* Products Grid - Hidden on Mobile when in Filters View */}
             <div className={`flex-1 ${viewMode === 'grid' ? 'block' : 'hidden lg:block'}`}>
-              {/* Search and Sort Controls */}
               <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
                 <div className="relative w-full sm:max-w-sm">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 h-4 w-4" />
@@ -675,28 +642,24 @@ export default function Marketplace() {
                 </div>
               </div>
               
-              {/* Category selected info */}
-              {selectedCategory && (
-                <div className="mb-6">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="px-3 py-1">
-                      {categories.find(c => c.id === selectedCategory)?.name || 'Wybrana kategoria'}
-                      <button 
-                        className="ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
-                        onClick={() => setSelectedCategory('')}
-                      >
-                        &times;
-                      </button>
-                    </Badge>
-                    <Separator orientation="vertical" className="h-6" />
-                    <span className="text-sm text-zinc-500">
-                      {filteredProducts.length} produktów
-                    </span>
-                  </div>
+              <div className="mb-6">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="px-3 py-1">
+                    {categories.find(c => c.id === selectedCategory)?.name || 'Wybrana kategoria'}
+                    <button 
+                      className="ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
+                      onClick={() => setSelectedCategory('')}
+                    >
+                      &times;
+                    </button>
+                  </Badge>
+                  <Separator orientation="vertical" className="h-6" />
+                  <span className="text-sm text-zinc-500">
+                    {filteredProducts.length} produktów
+                  </span>
                 </div>
-              )}
+              </div>
               
-              {/* Products List */}
               {loading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[...Array(6)].map((_, index) => (
@@ -719,7 +682,7 @@ export default function Marketplace() {
                         id={item.id}
                         title={item.title}
                         price={item.price}
-                        image={Array.isArray(item.image_url) ? item.image_url[0] : item.image_url}
+                        image={item.image_url}
                         category={item.category || "Inne"}
                         userId={item.user_id}
                         rating={item.rating || 0}
@@ -753,13 +716,11 @@ export default function Marketplace() {
       
       <Footer />
       
-      {/* Add Product Dialog */}
       <AddProductDialog 
         open={showAddProductDialog} 
         onOpenChange={setShowAddProductDialog} 
       />
       
-      {/* Auth Required Dialog */}
       <AuthRequiredDialog 
         open={showAuthDialog} 
         onOpenChange={setShowAuthDialog} 
