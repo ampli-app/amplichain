@@ -41,6 +41,7 @@ interface Product {
   price: number;
   image_url: string;
   category: string | null;
+  category_id: string | null; // Dodane pole category_id
   rating: number | null;
   review_count: number | null;
   sale?: boolean | null;
