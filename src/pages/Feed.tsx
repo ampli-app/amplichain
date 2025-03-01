@@ -5,8 +5,11 @@ import { Footer } from '@/components/Footer';
 import { FeedPreview } from '@/components/FeedPreview';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Filter } from 'lucide-react';
+import { CreatePostModal } from '@/components/CreatePostModal';
 
 export default function Feed() {
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -26,9 +29,13 @@ export default function Feed() {
                   <Filter className="h-4 w-4" />
                   Filter
                 </Button>
-                <Button size="sm" className="gap-1">
+                <Button 
+                  size="sm" 
+                  className="gap-1"
+                  onClick={() => setIsCreatePostModalOpen(true)}
+                >
                   <PlusCircle className="h-4 w-4" />
-                  New Post
+                  Nowy Post
                 </Button>
               </div>
             </div>
@@ -41,6 +48,11 @@ export default function Feed() {
           </div>
         </div>
       </main>
+      
+      <CreatePostModal 
+        isOpen={isCreatePostModalOpen}
+        onClose={() => setIsCreatePostModalOpen(false)}
+      />
       
       <Footer />
     </div>

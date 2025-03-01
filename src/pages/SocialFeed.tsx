@@ -10,12 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useSocial } from '@/contexts/SocialContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Globe, Users, Star, Filter, LogIn, Rss } from 'lucide-react';
+import { Globe, Users, Star, Filter, LogIn, Rss, PlusCircle } from 'lucide-react';
+import { CreatePostModal } from '@/components/CreatePostModal';
 
 export default function SocialFeed() {
   const { isLoggedIn } = useAuth();
   const { posts } = useSocial();
   const [feedType, setFeedType] = useState<'all' | 'following' | 'connections'>('all');
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -79,10 +81,20 @@ export default function SocialFeed() {
                 <div className="flex justify-between items-center mb-6">
                   <h1 className="text-2xl md:text-3xl font-bold">Social Feed</h1>
                   
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <Filter className="h-4 w-4" />
-                    Filter
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button variant="outline" size="sm" className="gap-1">
+                      <Filter className="h-4 w-4" />
+                      Filter
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="gap-1"
+                      onClick={() => setIsCreatePostModalOpen(true)}
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                      Nowy Post
+                    </Button>
+                  </div>
                 </div>
                 
                 <Tabs 
@@ -141,6 +153,11 @@ export default function SocialFeed() {
           </div>
         </div>
       </main>
+      
+      <CreatePostModal 
+        isOpen={isCreatePostModalOpen}
+        onClose={() => setIsCreatePostModalOpen(false)}
+      />
       
       <Footer />
     </div>

@@ -1,0 +1,169 @@
+
+import { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Image, X, Send, FileUp } from 'lucide-react';
+import { useSocial } from '@/contexts/SocialContext';
+import { toast } from '@/components/ui/use-toast';
+
+interface CreatePostModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
+  const { createPost } = useSocial();
+  const [content, setContent] = useState('');
+  const [media, setMedia] = useState<{ url: string; type: 'image' | 'video' }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const handleMediaUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // Sprawdź, czy nie przekraczamy limitu 4 plików
+    if (media.length + files.length > 4) {
+      toast({
+        title: "Błąd",
+        description: "Możesz dodać maksymalnie 4 pliki",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    Array.from(files).forEach(file => {
+      // W prawdziwej aplikacji tutaj byłoby wysyłanie pliku do serwera i pobranie URL
+      // Dla potrzeb demonstracji tworzymy tymczasowy URL
+      const type = file.type.startsWith('image/') ? 'image' : 'video';
+      const url = URL.createObjectURL(file);
+      
+      setMedia(prev => [...prev, { url, type }]);
+    });
+    
+    // Resetuj input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
+  const removeMedia = (index: number) => {
+    setMedia(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const handleSubmit = () => {
+    if (!content.trim() && media.length === 0) {
+      toast({
+        title: "Błąd",
+        description: "Post musi zawierać tekst lub media",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // W rzeczywistej aplikacji tutaj wysyłalibyśmy post do API
+    // i czekali na odpowiedź przed zamknięciem modala
+    createPost(content, media[0]?.url, media[0]?.type);
+    
+    // Resetuj formularz
+    setContent('');
+    setMedia([]);
+    
+    // Zamknij modal
+    onClose();
+    
+    toast({
+      title: "Sukces",
+      description: "Post został opublikowany",
+    });
+  };
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md md:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Nowy post</DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4 my-4">
+          <Textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Co chcesz opublikować?"
+            className="resize-none min-h-24"
+          />
+          
+          {media.length > 0 && (
+            <div className="grid grid-cols-2 gap-2">
+              {media.map((item, index) => (
+                <div key={index} className="relative rounded-md overflow-hidden">
+                  <Button 
+                    variant="destructive" 
+                    size="icon" 
+                    className="absolute top-2 right-2 h-7 w-7 opacity-90"
+                    onClick={() => removeMedia(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  {item.type === 'image' ? (
+                    <img 
+                      src={item.url} 
+                      alt={`Załącznik ${index + 1}`} 
+                      className="w-full h-auto max-h-48 object-cover rounded-md" 
+                    />
+                  ) : (
+                    <video 
+                      src={item.url} 
+                      controls 
+                      className="w-full h-auto max-h-48 object-cover rounded-md"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="flex items-center gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              className="gap-1.5 text-rhythm-600"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={media.length >= 4}
+            >
+              <FileUp className="h-4 w-4" />
+              <span>Dodaj pliki ({media.length}/4)</span>
+            </Button>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/*,video/*" 
+              multiple
+              onChange={handleMediaUpload}
+            />
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={onClose}
+          >
+            Anuluj
+          </Button>
+          <Button
+            type="button"
+            className="gap-1.5"
+            onClick={handleSubmit}
+          >
+            <Send className="h-4 w-4" />
+            Opublikuj
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};

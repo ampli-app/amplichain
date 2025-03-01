@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -72,7 +71,7 @@ export function Navbar() {
             className="flex items-center gap-1.5 cursor-pointer"
           >
             <img 
-              src="/lovable-uploads/f8ca029f-1e5e-42c9-ae3a-01ffb67072b4.png"
+              src="/lovable-uploads/aa463c52-7637-4ee5-a553-736e045af0aa.png"
               alt="Amplichain logo" 
               className="h-8"
             />

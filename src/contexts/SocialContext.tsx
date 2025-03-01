@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +17,7 @@ export interface Post {
   content: string;
   mediaUrl?: string;
   mediaType?: 'image' | 'video';
+  mediaFiles?: Array<{url: string, type: 'image' | 'video'}>;
   likes: number;
   comments: number;
   hasLiked?: boolean;
@@ -65,7 +65,7 @@ interface SocialContextType {
   declineConnectionRequest: (userId: string) => Promise<void>;
   removeConnection: (userId: string) => Promise<void>;
   searchUsers: (query: string) => Promise<SocialUser[]>;
-  createPost: (content: string, mediaUrl?: string, mediaType?: 'image' | 'video') => void;
+  createPost: (content: string, mediaUrl?: string, mediaType?: 'image' | 'video', mediaFiles?: Array<{url: string, type: 'image' | 'video'}>) => void;
   likePost: (postId: string) => void;
   unlikePost: (postId: string) => void;
   commentOnPost: (postId: string, comment: string) => void;
@@ -311,7 +311,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
           }
         }
         
-        // Sprawdź, czy użytkownik obserwuje bieżącego użytkownika
         const { data: followerData } = await supabase
           .from('followings')
           .select('*')
@@ -521,7 +520,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Sprawdź, czy już jesteśmy połączeni z tym użytkownikiem
       const { data: existingConnection } = await supabase
         .from('connections')
         .select('*')
@@ -536,7 +534,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Sprawdź, czy istnieje aktywne zaproszenie od odbiorcy
       const { data: incomingRequest, error: checkIncomingError } = await supabase
         .from('connection_requests')
         .select('*')
@@ -549,7 +546,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         console.error('Error checking incoming request:', checkIncomingError);
       }
 
-      // Jeśli jest aktywne zaproszenie od odbiorcy, zaproponuj jego akceptację
       if (incomingRequest) {
         toast({
           title: "Informacja",
@@ -558,7 +554,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Sprawdź, czy istnieje aktywne zaproszenie wysłane przez nas
       const { data: pendingRequest, error: checkPendingError } = await supabase
         .from('connection_requests')
         .select('*')
@@ -579,7 +574,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Sprawdź, czy istnieje rekord zaproszenia o statusie accepted lub rejected
       const { data: existingRequest, error: checkExistingError } = await supabase
         .from('connection_requests')
         .select('*')
@@ -592,8 +586,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         console.error('Error checking existing request:', checkExistingError);
       }
 
-      // Sprawdź czy użytkownik już obserwuje osobę, do której wysyła zaproszenie
-      let needToAutoFollow = false;
       const { data: followingData, error: checkFollowingError } = await supabase
         .from('followings')
         .select('*')
@@ -606,29 +598,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (!followingData) {
-        needToAutoFollow = true;
-      }
-
-      // Jeśli istnieje zaproszenie o statusie accepted lub rejected, usuń je
-      if (existingRequest) {
-        const { error: deleteError } = await supabase
-          .from('connection_requests')
-          .delete()
-          .eq('id', existingRequest.id);
-
-        if (deleteError) {
-          console.error('Error deleting existing request:', deleteError);
-          toast({
-            title: "Błąd",
-            description: "Nie udało się usunąć poprzedniego zaproszenia.",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-
-      // Auto-obserwuj użytkownika jeśli jeszcze go nie obserwujemy
-      if (needToAutoFollow) {
         const { error: followError } = await supabase
           .from('followings')
           .insert({
@@ -641,7 +610,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // Utwórz nowe zaproszenie
       const { error: insertError } = await supabase
         .from('connection_requests')
         .insert({
@@ -885,8 +853,40 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const createPost = (content: string, mediaUrl?: string, mediaType?: 'image' | 'video') => {
-    console.log('Create post functionality not implemented');
+  const createPost = (content: string, mediaUrl?: string, mediaType?: 'image' | 'video', mediaFiles?: Array<{url: string, type: 'image' | 'video'}>) => {
+    try {
+      const newPost: Post = {
+        id: `post-${Date.now()}`,
+        userId: currentUser?.id || 'unknown',
+        author: {
+          name: currentUser?.name || 'Unknown User',
+          avatar: currentUser?.avatar || '/placeholder.svg',
+          role: currentUser?.role || 'User',
+        },
+        timeAgo: 'teraz',
+        content,
+        mediaUrl,
+        mediaType,
+        mediaFiles,
+        likes: 0,
+        comments: 0,
+        hasLiked: false,
+      };
+      
+      setPosts(prev => [newPost, ...prev]);
+      
+      toast({
+        title: "Sukces",
+        description: "Post został opublikowany",
+      });
+    } catch (err) {
+      console.error('Error creating post:', err);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się opublikować posta",
+        variant: "destructive",
+      });
+    }
   };
 
   const likePost = (postId: string) => {
