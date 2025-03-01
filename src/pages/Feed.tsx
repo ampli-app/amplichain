@@ -18,7 +18,7 @@ export default function Feed() {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      <main className="flex-1 pt-24 pb-16">
+      <main className="flex-1 pt-24 pb-16 w-full">
         <div className="container px-4 mx-auto">
           <div className="max-w-3xl mx-auto">
             <div className="flex justify-between items-center mb-8">
@@ -40,7 +40,9 @@ export default function Feed() {
               </div>
             </div>
             
-            <FeedPreview />
+            <div className="w-full">
+              <FeedPreview />
+            </div>
             
             <div className="text-center mt-8">
               <Button variant="outline">Load More</Button>

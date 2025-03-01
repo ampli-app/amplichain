@@ -21,24 +21,24 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
   };
   
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6">
       {posts.map((post, index) => (
         <motion.div
           key={post.id}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: index * 0.1 }}
-          className="glass-card rounded-xl p-6 border"
+          className="glass-card rounded-xl p-6 border w-full"
         >
           <div className="flex items-start gap-4">
-            <Avatar className="h-12 w-12">
+            <Avatar className="h-12 w-12 flex-shrink-0">
               <AvatarImage src={post.author.avatar} alt={post.author.name} />
               <AvatarFallback>
                 <User className="h-6 w-6" />
               </AvatarFallback>
             </Avatar>
             
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-semibold">{post.author.name}</h3>
@@ -51,7 +51,7 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                     </span>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full flex-shrink-0">
                   <span className="sr-only">More options</span>
                   <svg width="16" height="4" viewBox="0 0 16 4" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M8 0.333C9.10457 0.333 10 1.22843 10 2.33299C10 3.43756 9.10457 4.33299 8 4.33299C6.89543 4.33299 6 3.43756 6 2.33299C6 1.22843 6.89543 0.333 8 0.333Z" fill="currentColor"/>
@@ -61,7 +61,7 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                 </Button>
               </div>
               
-              <p className="mt-2 mb-4 text-rhythm-700">{post.content}</p>
+              <p className="mt-2 mb-4 text-rhythm-700 break-words">{post.content}</p>
               
               {post.mediaUrl && (
                 <div className="mb-4 rounded-md overflow-hidden">
