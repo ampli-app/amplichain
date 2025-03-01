@@ -48,6 +48,9 @@ header img {
   width: auto !important;
   max-width: none !important;
   object-fit: contain !important;
+  flex-shrink: 0 !important;
+  max-height: 2rem !important;
+  min-height: 2rem !important;
 }
 
 footer img {
@@ -55,4 +58,7 @@ footer img {
   width: auto !important;
   max-width: none !important;
   object-fit: contain !important;
+  flex-shrink: 0 !important;
+  max-height: 2rem !important;
+  min-height: 2rem !important;
 }

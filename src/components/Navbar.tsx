@@ -25,7 +25,6 @@ export function Navbar() {
   const { isLoggedIn, user } = useAuth();
   const { users } = useSocial();
   
-  // Pobierz dane profilu użytkownika
   const userProfile = user ? users.find(u => u.id === user.id) : null;
   
   useEffect(() => {
@@ -38,14 +37,11 @@ export function Navbar() {
   }, []);
   
   useEffect(() => {
-    // Close mobile menu when route changes
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
   
-  // Check if the current path is active
   const isActive = (path: string) => location.pathname === path;
   
-  // Handle logo click based on login status
   const handleLogoClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (isLoggedIn) {
@@ -65,7 +61,6 @@ export function Navbar() {
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
           <div 
             onClick={handleLogoClick}
             className="flex items-center gap-1.5 cursor-pointer"
@@ -73,11 +68,10 @@ export function Navbar() {
             <img 
               src="/lovable-uploads/aa463c52-7637-4ee5-a553-736e045af0aa.png"
               alt="Amplichain logo" 
-              className="h-8"
+              className="h-8 w-auto object-contain flex-shrink-0"
             />
           </div>
           
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1 h-14">
             <NavItem to="/feed" label="Aktualności" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
             <NavItem to="/marketplace" label="Produkty" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
@@ -85,7 +79,6 @@ export function Navbar() {
             <NavItem to="/connections" label="Kontakty" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
           </nav>
           
-          {/* Auth Buttons / User Menu */}
           <div className="flex items-center gap-2">
             {isLoggedIn ? (
               <>
@@ -110,7 +103,6 @@ export function Navbar() {
               </>
             )}
             
-            {/* Mobile Menu Toggle */}
             <Button
               variant="ghost"
               size="icon"
@@ -123,7 +115,6 @@ export function Navbar() {
         </div>
       </div>
       
-      {/* Mobile Navigation */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-background border-t">
           <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">

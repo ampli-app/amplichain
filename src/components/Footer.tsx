@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { Instagram, Twitter, Linkedin, Github } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
@@ -15,7 +14,7 @@ export function Footer() {
               <img 
                 src="/lovable-uploads/aa463c52-7637-4ee5-a553-736e045af0aa.png"
                 alt="Amplichain logo" 
-                className="h-8 w-auto"
+                className="h-8 w-auto object-contain flex-shrink-0"
               />
             </Link>
             <p className="text-rhythm-600 mb-4 max-w-sm">

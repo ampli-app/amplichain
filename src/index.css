@@ -117,5 +117,15 @@ header [class*="cursor-pointer"] img,
 footer a img {
   height: 2rem !important;
   width: auto !important;
-  flex-shrink: 0;
+  flex-shrink: 0 !important;
+  max-height: 2rem !important;
+  min-height: 2rem !important;
+  min-width: 32px !important;
+  object-position: left !important;
+}
+
+header .cursor-pointer,
+footer a {
+  display: flex !important;
+  align-items: center !important;
 }
