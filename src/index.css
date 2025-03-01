@@ -91,6 +91,13 @@
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
   }
+  
+  /* Amplichain logo consistency */
+  .app-logo {
+    height: 2rem;
+    width: auto;
+    object-fit: contain;
+  }
 }
 
 .text-rhythm-500 {
@@ -103,4 +110,12 @@
 
 .text-rhythm-700 {
   @apply text-gray-700 dark:text-gray-200;
+}
+
+/* Logo consistency fixes */
+header [class*="cursor-pointer"] img,
+footer a img {
+  height: 2rem !important;
+  width: auto !important;
+  flex-shrink: 0;
 }

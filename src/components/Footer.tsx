@@ -13,9 +13,9 @@ export function Footer() {
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center mb-4">
               <img 
-                src="/lovable-uploads/f8ca029f-1e5e-42c9-ae3a-01ffb67072b4.png"
+                src="/lovable-uploads/aa463c52-7637-4ee5-a553-736e045af0aa.png"
                 alt="Amplichain logo" 
-                className="h-8"
+                className="h-8 w-auto"
               />
             </Link>
             <p className="text-rhythm-600 mb-4 max-w-sm">
