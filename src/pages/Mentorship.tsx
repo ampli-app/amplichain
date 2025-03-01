@@ -1,4 +1,4 @@
-<lov-code>
+
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -573,4 +573,259 @@ export default function Mentorship() {
                                   <File className="h-5 w-5 text-gray-600 dark:text-gray-300" />
                                 </div>
                                 <div className="flex-1">
-                                  <h4 className="font-medium
+                                  <h4 className="font-medium">{file.name}</h4>
+                                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                                    <span>{file.size}</span>
+                                    <span>•</span>
+                                    <span>{formatDate(file.date)}</span>
+                                  </div>
+                                </div>
+                                <Button variant="ghost" size="sm" className="text-primary">
+                                  Pobierz
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <File className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                        <h3 className="text-lg font-medium">Brak plików</h3>
+                        <p className="text-gray-500">Dodaj pierwszy plik do tego mentoringu</p>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </div>
+            ) : (
+              // Główny widok mentoringu
+              <div>
+                <h1 className="text-3xl font-bold mb-8">Mentoring</h1>
+                
+                <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="grid grid-cols-3 mb-8">
+                    <TabsTrigger value="groups" className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Grupy Mentorskie
+                    </TabsTrigger>
+                    <TabsTrigger value="mentors" className="flex items-center gap-2">
+                      <UserCog className="h-4 w-4" />
+                      Mentorzy
+                    </TabsTrigger>
+                    <TabsTrigger value="my-mentorings" className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      Moje Mentoringi
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="groups">
+                    <div className="mb-6 flex items-center gap-4">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Szukaj grup mentorskich..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                      <Button variant="outline" className="gap-2">
+                        <Filter className="h-4 w-4" />
+                        Filtry
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {filteredCommunities.map((community, i) => (
+                        <MentorshipCard
+                          key={community.title}
+                          title={community.title}
+                          description={community.description}
+                          image={community.image}
+                          members={community.members}
+                          rating={community.rating}
+                          features={community.features}
+                          popular={community.popular}
+                          delay={i * 0.1}
+                        />
+                      ))}
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="mentors">
+                    <div className="mb-6 flex items-center gap-4">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Szukaj mentorów..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                      <Button variant="outline" className="gap-2">
+                        <Filter className="h-4 w-4" />
+                        Filtry
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-6">
+                      {filteredMentors.map((mentor, i) => (
+                        <MentorCard
+                          key={mentor.id}
+                          {...mentor}
+                          delay={i * 0.1}
+                        />
+                      ))}
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="my-mentorings">
+                    <Tabs defaultValue={activeMyMentoringsTab} onValueChange={setActiveMyMentoringsTab} className="mt-4">
+                      <TabsList className="grid grid-cols-3 mb-6">
+                        <TabsTrigger value="my-mentors" className="flex items-center gap-2">
+                          <Star className="h-4 w-4" />
+                          Moi Mentorzy
+                        </TabsTrigger>
+                        <TabsTrigger value="my-mentees" className="flex items-center gap-2">
+                          <UserPlus className="h-4 w-4" />
+                          Moi Podopieczni
+                        </TabsTrigger>
+                        <TabsTrigger value="my-groups" className="flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Moje Grupy
+                        </TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="my-mentors">
+                        {myMentors.length > 0 ? (
+                          <div className="space-y-4">
+                            {myMentors.map((mentor) => (
+                              <Card 
+                                key={mentor.id} 
+                                className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                                onClick={() => handleMentorClick(`mentor-${mentor.id}`)}
+                              >
+                                <CardContent className="p-0">
+                                  <div className="flex items-center p-4">
+                                    <Avatar className="h-12 w-12 mr-4">
+                                      <AvatarImage src={mentor.image} alt={mentor.name} />
+                                      <AvatarFallback>{mentor.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between">
+                                        <h3 className="font-medium truncate">{mentor.name}</h3>
+                                        <span className="text-xs text-gray-500">{formatDate(mentor.lastMessageDate)}</span>
+                                      </div>
+                                      <p className="text-sm text-gray-600 truncate">{mentor.lastMessage}</p>
+                                    </div>
+                                    {mentor.unreadCount > 0 && (
+                                      <Badge className="ml-2">{mentor.unreadCount}</Badge>
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                            <UserCog className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                            <h3 className="text-xl font-medium mb-2">Nie masz jeszcze mentorów</h3>
+                            <p className="text-gray-500 mb-6">Odkryj doświadczonych mentorów, którzy pomogą Ci rozwinąć Twoje umiejętności.</p>
+                            <Button onClick={() => setActiveTab("mentors")}>Znajdź mentora</Button>
+                          </div>
+                        )}
+                      </TabsContent>
+                      
+                      <TabsContent value="my-mentees">
+                        {myMentees.length > 0 ? (
+                          <div className="space-y-4">
+                            {myMentees.map((mentee) => (
+                              <Card 
+                                key={mentee.id} 
+                                className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                                onClick={() => handleMentorClick(`mentee-${mentee.id}`)}  
+                              >
+                                <CardContent className="p-0">
+                                  <div className="flex items-center p-4">
+                                    <Avatar className="h-12 w-12 mr-4">
+                                      <AvatarImage src={mentee.image} alt={mentee.name} />
+                                      <AvatarFallback>{mentee.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between">
+                                        <h3 className="font-medium truncate">{mentee.name}</h3>
+                                        <span className="text-xs text-gray-500">{formatDate(mentee.lastMessageDate)}</span>
+                                      </div>
+                                      <p className="text-sm text-gray-600 truncate">{mentee.lastMessage}</p>
+                                    </div>
+                                    {mentee.unreadCount > 0 && (
+                                      <Badge className="ml-2">{mentee.unreadCount}</Badge>
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                            <School className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                            <h3 className="text-xl font-medium mb-2">Nie masz jeszcze podopiecznych</h3>
+                            <p className="text-gray-500 mb-6">Zostań mentorem i pomagaj innym rozwijać ich umiejętności.</p>
+                            <Button>Zostań mentorem</Button>
+                          </div>
+                        )}
+                      </TabsContent>
+                      
+                      <TabsContent value="my-groups">
+                        {myGroups.length > 0 ? (
+                          <div className="space-y-4">
+                            {myGroups.map((group) => (
+                              <Card key={group.id} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                                <CardContent className="p-0">
+                                  <div className="flex items-center p-4">
+                                    <div className="h-12 w-12 rounded overflow-hidden mr-4">
+                                      <img 
+                                        src={group.image} 
+                                        alt={group.title}
+                                        className="h-full w-full object-cover" 
+                                      />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between">
+                                        <h3 className="font-medium truncate">{group.title}</h3>
+                                        <span className="text-xs text-gray-500">{formatDate(group.lastActivity)}</span>
+                                      </div>
+                                      <p className="text-sm text-gray-600">{group.members} członków</p>
+                                    </div>
+                                    {group.unreadCount > 0 && (
+                                      <Badge className="ml-2">{group.unreadCount}</Badge>
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                            <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                            <h3 className="text-xl font-medium mb-2">Nie należysz do żadnej grupy mentorskiej</h3>
+                            <p className="text-gray-500 mb-6">Dołącz do społeczności i ucz się razem z innymi!</p>
+                            <Button onClick={() => setActiveTab("groups")}>Przeglądaj grupy</Button>
+                          </div>
+                        )}
+                      </TabsContent>
+                    </Tabs>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+      
+      <Footer />
+    </div>
+  );
+}
