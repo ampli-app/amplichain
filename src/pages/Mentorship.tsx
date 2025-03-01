@@ -1,3 +1,4 @@
+<lov-code>
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -5,6 +6,7 @@ import { MentorshipCard } from '@/components/MentorshipCard';
 import { MentorCard } from '@/components/MentorCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -22,11 +24,14 @@ import {
   BookOpen,
   UserCog,
   School,
-  PlusCircle
+  PlusCircle,
+  ArrowLeft,
+  Paperclip,
+  Send
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { EmptyState } from '@/components/messages/EmptyState';
+import { Separator } from '@/components/ui/separator';
 
 const mentorshipCommunities = [
   {
@@ -261,10 +266,92 @@ const myGroups = [
   }
 ];
 
+// Nowe typy i dane
+interface MentorNote {
+  id: number;
+  title: string;
+  content: string;
+  date: string;
+}
+
+interface MentorFile {
+  id: number;
+  name: string;
+  size: string;
+  type: string;
+  date: string;
+}
+
+interface MentorMessage {
+  id: number;
+  text: string;
+  sender_id: string;
+  is_mentor: boolean;
+  date: string;
+}
+
+// Przykładowe dane dla konwersacji
+const conversationNotes: Record<string, MentorNote[]> = {
+  "mentor-1": [
+    { id: 1, title: "Cele na kwartał", content: "Skupić się na rozwoju umiejętności produkcji.", date: "2024-05-20T14:30:00" },
+    { id: 2, title: "Feedback po sesji", content: "Dobre postępy w miksie, poprawić balans tonalny.", date: "2024-05-15T10:15:00" },
+  ],
+  "mentor-5": [
+    { id: 1, title: "Strategie A&R", content: "Notatki z dyskusji o trendach w branży muzycznej.", date: "2024-05-18T09:45:00" },
+  ],
+  "mentee-101": [
+    { id: 1, title: "Plan rozwoju", content: "Notatki z pierwszej sesji mentorskiej.", date: "2024-05-22T16:00:00" },
+    { id: 2, title: "Feedback dla produkcji", content: "Uwagi do ostatniego utworu.", date: "2024-05-26T11:30:00" },
+  ],
+  "mentee-102": [
+    { id: 1, title: "Ćwiczenia wokalne", content: "Lista ćwiczeń do codziennej praktyki.", date: "2024-05-24T13:20:00" },
+  ]
+};
+
+const conversationFiles: Record<string, MentorFile[]> = {
+  "mentor-1": [
+    { id: 1, name: "track_feedback.mp3", size: "4.2 MB", type: "audio", date: "2024-05-25T15:40:00" },
+    { id: 2, name: "mixing_tips.pdf", size: "1.8 MB", type: "document", date: "2024-05-20T09:15:00" },
+  ],
+  "mentor-5": [
+    { id: 1, name: "industry_report_2024.pdf", size: "3.5 MB", type: "document", date: "2024-05-22T14:30:00" },
+  ],
+  "mentee-101": [
+    { id: 1, name: "beat_demo_v2.wav", size: "8.1 MB", type: "audio", date: "2024-05-27T10:45:00" },
+  ],
+  "mentee-102": [
+    { id: 1, name: "vocal_take_03.mp3", size: "3.7 MB", type: "audio", date: "2024-05-26T18:20:00" },
+    { id: 2, name: "lyrics_draft.docx", size: "0.5 MB", type: "document", date: "2024-05-24T12:10:00" },
+  ]
+};
+
+const conversationMessages: Record<string, MentorMessage[]> = {
+  "mentor-1": [
+    { id: 1, text: "Cześć! Jak postępy z nowym utworem?", sender_id: "mentor", is_mentor: true, date: "2024-05-27T14:30:00" },
+    { id: 2, text: "Pracuję nad nim intensywnie. Przesłałem Ci wersję demo do oceny.", sender_id: "user", is_mentor: false, date: "2024-05-27T14:35:00" },
+    { id: 3, text: "Świetnie! Posłucham i dam Ci znać. Pamiętaj o naszym spotkaniu w środę!", sender_id: "mentor", is_mentor: true, date: "2024-05-27T14:40:00" },
+  ],
+  "mentor-5": [
+    { id: 1, text: "Przesyłam Ci raport o trendach w branży na 2024 rok. Warto się z nim zapoznać.", sender_id: "mentor", is_mentor: true, date: "2024-05-27T11:15:00" },
+    { id: 2, text: "Dziękuję! Przeczytam i chętnie omówię na następnej sesji.", sender_id: "user", is_mentor: false, date: "2024-05-27T11:20:00" },
+  ],
+  "mentee-101": [
+    { id: 1, text: "Cześć, sprawdziłem Twój ostatni beat. Naprawdę dobra robota!", sender_id: "user", is_mentor: true, date: "2024-05-28T09:30:00" },
+    { id: 2, text: "Dziękuję za ostatnie wskazówki! Bardzo mi pomogły.", sender_id: "mentee", is_mentor: false, date: "2024-05-28T09:45:00" },
+  ],
+  "mentee-102": [
+    { id: 1, text: "Jak idzie praca nad techniką wokalną?", sender_id: "user", is_mentor: true, date: "2024-05-26T18:00:00" },
+    { id: 2, text: "Dużo ćwiczę. Przesyłam nagranie, o które prosiłeś.", sender_id: "mentee", is_mentor: false, date: "2024-05-26T18:20:00" },
+  ]
+};
+
 export default function Mentorship() {
   const [activeTab, setActiveTab] = useState("groups");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeMyMentoringsTab, setActiveMyMentoringsTab] = useState("my-mentors");
+  const [selectedMentor, setSelectedMentor] = useState<string | null>(null);
+  const [conversationTab, setConversationTab] = useState<"messages" | "notes" | "files">("messages");
+  const [newMessage, setNewMessage] = useState("");
   
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -299,6 +386,38 @@ export default function Mentorship() {
     }
   };
 
+  const handleMentorClick = (mentorId: string) => {
+    setSelectedMentor(mentorId);
+  };
+
+  const handleBackClick = () => {
+    setSelectedMentor(null);
+  };
+
+  const handleSendMessage = () => {
+    if (newMessage.trim() && selectedMentor) {
+      // W prawdziwej aplikacji tutaj byłoby wysyłanie wiadomości do API
+      console.log("Wysyłanie wiadomości:", newMessage);
+      setNewMessage("");
+    }
+  };
+  
+  const getSelectedMentorName = () => {
+    if (!selectedMentor) return "";
+    
+    if (selectedMentor.startsWith("mentor-")) {
+      const mentorId = parseInt(selectedMentor.split("-")[1]);
+      const mentor = myMentors.find(m => m.id === mentorId);
+      return mentor?.name || "";
+    } else if (selectedMentor.startsWith("mentee-")) {
+      const menteeId = parseInt(selectedMentor.split("-")[1]);
+      const mentee = myMentees.find(m => m.id === menteeId);
+      return mentee?.name || "";
+    }
+    
+    return "";
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -306,462 +425,152 @@ export default function Mentorship() {
       <main className="flex-1 pt-24 pb-16">
         <div className="container px-4 mx-auto">
           <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-10">
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">Mentoring</h1>
-              <p className="text-lg text-rhythm-600 max-w-2xl mx-auto">
-                Połącz się z ekspertami branżowymi, aby przyspieszyć swój rozwój,
-                poszerzyć swoją sieć kontaktów i podnieść swoją karierę na wyższy poziom.
-              </p>
-            </div>
-            
-            <Tabs 
-              value={activeTab} 
-              onValueChange={setActiveTab}
-              className="mb-8"
-            >
-              <div className="flex items-center justify-center">
-                <TabsList className="grid w-full max-w-md grid-cols-3">
-                  <TabsTrigger value="groups" className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Grupy mentorskie
-                  </TabsTrigger>
-                  <TabsTrigger value="individual" className="flex items-center gap-2">
-                    <UserPlus className="h-4 w-4" />
-                    Mentoring 1:1
-                  </TabsTrigger>
-                  <TabsTrigger value="my-mentorings" className="flex items-center gap-2">
-                    <UserCog className="h-4 w-4" />
-                    Moje mentoringe
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-              
-              <div className="flex flex-col md:flex-row gap-4 mt-6 mb-6">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-rhythm-500 h-4 w-4" />
-                  <Input 
-                    placeholder={`Szukaj ${activeTab === 'groups' ? 'grup' : activeTab === 'individual' ? 'mentorów' : 'mentoringów'}...`} 
-                    className="pl-10"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <Button variant="outline" className="gap-2">
-                  <Filter className="h-4 w-4" />
-                  Opcje filtrowania
+            {selectedMentor ? (
+              // Widok konwersacji z mentorem/podopiecznym
+              <div>
+                <Button 
+                  variant="ghost" 
+                  onClick={handleBackClick} 
+                  className="mb-4 gap-2 pl-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Powrót do listy
                 </Button>
-              </div>
-              
-              <TabsContent value="groups">
-                {searchQuery && filteredCommunities.length === 0 ? (
-                  <div className="text-center py-10">
-                    <p className="text-rhythm-500">Nie znaleziono grup pasujących do "{searchQuery}"</p>
-                    <Button 
-                      variant="link" 
-                      onClick={() => setSearchQuery("")}
-                      className="mt-2"
-                    >
-                      Wyczyść wyszukiwanie
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                    {filteredCommunities.map((community, index) => (
-                      <MentorshipCard 
-                        key={community.title}
-                        title={community.title}
-                        description={community.description}
-                        image={community.image}
-                        members={community.members}
-                        rating={community.rating}
-                        features={community.features}
-                        popular={community.popular}
-                        delay={index * 0.1}
-                      />
-                    ))}
-                  </div>
-                )}
                 
-                <div className="flex justify-center mt-10">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setActiveTab("individual")}
-                    className="gap-2"
-                  >
-                    Szukasz mentoringu 1:1?
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="mt-16 p-6 border rounded-xl bg-rhythm-50/50 dark:bg-rhythm-900/50">
-                  <h3 className="text-xl font-semibold mb-4">Utwórz własną grupę mentorską</h3>
-                  <p className="text-rhythm-600 mb-4">
-                    Masz wiedzę, którą chcesz się podzielić? Załóż własną grupę mentorską i pomagaj innym.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="flex items-start gap-3">
-                      <Users className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <Card className="mb-6">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={selectedMentor.startsWith("mentor-") 
+                          ? myMentors.find(m => m.id === parseInt(selectedMentor.split("-")[1]))?.image 
+                          : "/placeholder.svg"} 
+                        />
+                        <AvatarFallback>{getSelectedMentorName().charAt(0)}</AvatarFallback>
+                      </Avatar>
                       <div>
-                        <p className="font-medium">Buduj społeczność</p>
-                        <p className="text-sm text-rhythm-500">Stwórz przestrzeń do wspólnej nauki</p>
+                        <CardTitle>{getSelectedMentorName()}</CardTitle>
+                        <CardDescription>
+                          {selectedMentor.startsWith("mentor-") 
+                            ? myMentors.find(m => m.id === parseInt(selectedMentor.split("-")[1]))?.title
+                            : myMentees.find(m => m.id === parseInt(selectedMentor.split("-")[1]))?.role}
+                        </CardDescription>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <DollarSign className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Zarabiaj na wiedzy</p>
-                        <p className="text-sm text-rhythm-500">Ustal model subskrypcji lub jednorazowych opłat</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Dziel się materiałami</p>
-                        <p className="text-sm text-rhythm-500">Udostępniaj ekskluzywne zasoby</p>
-                      </div>
-                    </div>
-                  </div>
-                  <Button>Utwórz grupę mentorską</Button>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="individual">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-semibold">
-                    {searchQuery ? `${filteredMentors.length} mentorów znalezionych` : '838 dostępnych mentorów'}
-                  </h2>
+                  </CardHeader>
+                </Card>
+                
+                <Tabs defaultValue="messages" value={conversationTab} onValueChange={(value) => setConversationTab(value as "messages" | "notes" | "files")}>
+                  <TabsList className="grid w-full max-w-md grid-cols-3 mb-6">
+                    <TabsTrigger value="messages" className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Wiadomości
+                    </TabsTrigger>
+                    <TabsTrigger value="notes" className="flex items-center gap-2">
+                      <ScrollText className="h-4 w-4" />
+                      Notatki
+                    </TabsTrigger>
+                    <TabsTrigger value="files" className="flex items-center gap-2">
+                      <File className="h-4 w-4" />
+                      Pliki
+                    </TabsTrigger>
+                  </TabsList>
                   
-                  <Button variant="outline" className="gap-2 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20">
-                    <Star className="h-4 w-4" />
-                    Przeglądaj wszystkich mentorów
-                  </Button>
-                </div>
-                
-                {searchQuery && filteredMentors.length === 0 ? (
-                  <div className="text-center py-10">
-                    <p className="text-rhythm-500">Nie znaleziono mentorów pasujących do "{searchQuery}"</p>
-                    <Button 
-                      variant="link" 
-                      onClick={() => setSearchQuery("")}
-                      className="mt-2"
-                    >
-                      Wyczyść wyszukiwanie
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {filteredMentors.map((mentor, index) => (
-                      <MentorCard
-                        key={mentor.id}
-                        id={mentor.id}
-                        name={mentor.name}
-                        image={mentor.image}
-                        title={mentor.title}
-                        company={mentor.company}
-                        experience={mentor.experience}
-                        bio={mentor.bio}
-                        rating={mentor.rating}
-                        reviewCount={mentor.reviewCount}
-                        skills={mentor.skills}
-                        price={mentor.price}
-                        quickResponder={mentor.quickResponder}
-                        availableSpots={mentor.availableSpots}
-                        delay={index * 0.1}
-                      />
-                    ))}
-                  </div>
-                )}
-                
-                <div className="flex justify-center mt-10">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setActiveTab("groups")}
-                    className="gap-2"
-                  >
-                    Szukasz mentoringu grupowego?
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                <div className="mt-16 p-6 border rounded-xl bg-rhythm-50/50 dark:bg-rhythm-900/50">
-                  <h3 className="text-xl font-semibold mb-4">Zostań mentorem</h3>
-                  <p className="text-rhythm-600 mb-4">
-                    Jesteś profesjonalistą w branży? Dziel się swoim doświadczeniem i zarabiaj mentorując innych.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="flex items-start gap-3">
-                      <DollarSign className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Ustal swoje stawki</p>
-                        <p className="text-sm text-rhythm-500">Sam decydujesz ile chcesz zarabiać</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Calendar className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Elastyczny grafik</p>
-                        <p className="text-sm text-rhythm-500">Mentoruj kiedy Ci pasuje</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Users className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Rozwijaj swoją sieć</p>
-                        <p className="text-sm text-rhythm-500">Nawiązuj kontakt z aspirującymi profesjonalistami</p>
-                      </div>
-                    </div>
-                  </div>
-                  <Button>Aplikuj, aby zostać mentorem</Button>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="my-mentorings">
-                <div className="mb-6">
-                  <Tabs 
-                    value={activeMyMentoringsTab} 
-                    onValueChange={setActiveMyMentoringsTab}
-                    className="mb-6"
-                  >
-                    <TabsList className="grid w-full max-w-md grid-cols-3">
-                      <TabsTrigger value="my-mentors" className="flex items-center gap-2">
-                        <School className="h-4 w-4" />
-                        Moi mentorzy
-                      </TabsTrigger>
-                      <TabsTrigger value="my-mentees" className="flex items-center gap-2">
-                        <UserPlus className="h-4 w-4" />
-                        Moi podopieczni
-                      </TabsTrigger>
-                      <TabsTrigger value="my-groups" className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
-                        Moje grupy
-                      </TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="my-mentors">
-                      {myMentors.length > 0 ? (
-                        <div className="space-y-4">
-                          {myMentors.map((mentor) => (
-                            <Card key={mentor.id} className="overflow-hidden hover:border-primary transition-colors">
-                              <CardContent className="p-0">
-                                <div className="flex items-start p-4">
-                                  <Avatar className="h-12 w-12 mr-4 flex-shrink-0">
-                                    <AvatarImage src={mentor.image} alt={mentor.name} />
-                                    <AvatarFallback>
-                                      {mentor.name.charAt(0)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start">
-                                      <div>
-                                        <h3 className="font-semibold text-lg">{mentor.name}</h3>
-                                        <p className="text-sm text-muted-foreground">{mentor.title} w {mentor.company}</p>
-                                      </div>
-                                      <span className="text-sm text-muted-foreground">
-                                        {formatDate(mentor.lastMessageDate)}
-                                      </span>
-                                    </div>
-                                    <p className="mt-1 text-sm line-clamp-1">{mentor.lastMessage}</p>
-                                  </div>
-
-                                  {mentor.unreadCount > 0 && (
-                                    <div className="ml-4 flex-shrink-0">
-                                      <Badge className="bg-primary">{mentor.unreadCount}</Badge>
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                <div className="border-t px-4 py-3 flex justify-between items-center bg-muted/30">
-                                  <div className="flex gap-4">
-                                    <Button size="sm" variant="ghost" className="h-8 gap-1">
-                                      <File className="h-4 w-4" />
-                                      Pliki
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-8 gap-1">
-                                      <ScrollText className="h-4 w-4" />
-                                      Notatki
-                                    </Button>
-                                  </div>
-                                  <Button size="sm" className="h-8 gap-1">
-                                    <MessageSquare className="h-4 w-4" />
-                                    Wiadomość
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      ) : (
-                        <EmptyState
-                          icon={<School className="h-12 w-12 text-muted-foreground/50" />}
-                          title="Nie masz jeszcze mentorów"
-                          description="Znajdź mentora, który pomoże Ci w rozwoju kariery."
-                          action={
-                            <Button onClick={() => setActiveTab("individual")} className="gap-2">
-                              <UserPlus className="h-4 w-4" />
-                              Znajdź mentora
-                            </Button>
-                          }
-                        />
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="my-mentees">
-                      {myMentees.length > 0 ? (
-                        <div className="space-y-4">
-                          {myMentees.map((mentee) => (
-                            <Card key={mentee.id} className="overflow-hidden hover:border-primary transition-colors">
-                              <CardContent className="p-0">
-                                <div className="flex items-start p-4">
-                                  <Avatar className="h-12 w-12 mr-4 flex-shrink-0">
-                                    <AvatarImage src={mentee.image} alt={mentee.name} />
-                                    <AvatarFallback>
-                                      {mentee.name.charAt(0)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start">
-                                      <div>
-                                        <h3 className="font-semibold text-lg">{mentee.name}</h3>
-                                        <p className="text-sm text-muted-foreground">{mentee.role}</p>
-                                      </div>
-                                      <span className="text-sm text-muted-foreground">
-                                        {formatDate(mentee.lastMessageDate)}
-                                      </span>
-                                    </div>
-                                    <p className="mt-1 text-sm line-clamp-1">{mentee.lastMessage}</p>
-                                  </div>
-
-                                  {mentee.unreadCount > 0 && (
-                                    <div className="ml-4 flex-shrink-0">
-                                      <Badge className="bg-primary">{mentee.unreadCount}</Badge>
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                <div className="border-t px-4 py-3 flex justify-between items-center bg-muted/30">
-                                  <div className="flex gap-4">
-                                    <Button size="sm" variant="ghost" className="h-8 gap-1">
-                                      <File className="h-4 w-4" />
-                                      Pliki
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-8 gap-1">
-                                      <ScrollText className="h-4 w-4" />
-                                      Notatki
-                                    </Button>
-                                  </div>
-                                  <Button size="sm" className="h-8 gap-1">
-                                    <MessageSquare className="h-4 w-4" />
-                                    Wiadomość
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      ) : (
-                        <EmptyState
-                          icon={<UserPlus className="h-12 w-12 text-muted-foreground/50" />}
-                          title="Nie masz jeszcze podopiecznych"
-                          description="Zostań mentorem, aby pomagać innym w rozwoju."
-                          action={
-                            <Button className="gap-2">
-                              <UserPlus className="h-4 w-4" />
-                              Zostań mentorem
-                            </Button>
-                          }
-                        />
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="my-groups">
-                      {myGroups.length > 0 ? (
-                        <div className="space-y-4">
-                          {myGroups.map((group) => (
-                            <Card key={group.id} className="overflow-hidden hover:border-primary transition-colors">
-                              <CardContent className="p-0">
-                                <div className="flex items-start p-4">
-                                  <div className="h-12 w-12 mr-4 rounded-md overflow-hidden flex-shrink-0">
-                                    <img 
-                                      src={group.image} 
-                                      alt={group.title} 
-                                      className="h-full w-full object-cover"
-                                    />
-                                  </div>
-                                  
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start">
-                                      <div>
-                                        <h3 className="font-semibold text-lg">{group.title}</h3>
-                                        <p className="text-sm text-muted-foreground">
-                                          {group.members} {group.members === 1 ? 'członek' : 
-                                          group.members < 5 ? 'członków' : 'członków'}
-                                        </p>
-                                      </div>
-                                      <span className="text-sm text-muted-foreground">
-                                        {formatDate(group.lastActivity)}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {group.unreadCount > 0 && (
-                                    <div className="ml-4 flex-shrink-0">
-                                      <Badge className="bg-primary">{group.unreadCount}</Badge>
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                <div className="border-t px-4 py-3 flex justify-between items-center bg-muted/30">
-                                  <div className="flex gap-4">
-                                    <Button size="sm" variant="ghost" className="h-8 gap-1">
-                                      <File className="h-4 w-4" />
-                                      Materiały
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-8 gap-1">
-                                      <Users className="h-4 w-4" />
-                                      Członkowie
-                                    </Button>
-                                  </div>
-                                  <Button size="sm" className="h-8 gap-1">
-                                    <MessageSquare className="h-4 w-4" />
-                                    Dyskusja
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-
-                          <div className="mt-4 flex justify-center">
-                            <Button variant="outline" className="gap-2">
-                              <PlusCircle className="h-4 w-4" />
-                              Dołącz do nowej grupy
-                            </Button>
+                  <TabsContent value="messages" className="space-y-4">
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 min-h-[300px] max-h-[500px] overflow-y-auto space-y-4">
+                      {(conversationMessages[selectedMentor] || []).map((message) => (
+                        <div 
+                          key={message.id} 
+                          className={`flex ${message.is_mentor ? 'justify-start' : 'justify-end'}`}
+                        >
+                          <div 
+                            className={`max-w-[75%] p-3 rounded-lg ${
+                              message.is_mentor 
+                                ? 'bg-white dark:bg-gray-800 border' 
+                                : 'bg-primary text-primary-foreground'
+                            }`}
+                          >
+                            <p>{message.text}</p>
+                            <p className={`text-xs mt-1 ${
+                              message.is_mentor 
+                                ? 'text-gray-500 dark:text-gray-400' 
+                                : 'text-primary-foreground/70'
+                            }`}>
+                              {formatDate(message.date)}
+                            </p>
                           </div>
                         </div>
-                      ) : (
-                        <EmptyState
-                          icon={<Users className="h-12 w-12 text-muted-foreground/50" />}
-                          title="Nie należysz jeszcze do żadnej grupy mentorskiej"
-                          description="Dołącz do grupy, aby uczyć się razem z innymi."
-                          action={
-                            <Button onClick={() => setActiveTab("groups")} className="gap-2">
-                              <Users className="h-4 w-4" />
-                              Przeglądaj grupy
-                            </Button>
-                          }
-                        />
-                      )}
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
-      </main>
-      
-      <Footer />
-    </div>
-  );
-}
+                      ))}
+                    </div>
+                    
+                    <div className="flex gap-2 items-end">
+                      <Button variant="ghost" size="icon" className="text-gray-500">
+                        <Paperclip className="h-5 w-5" />
+                      </Button>
+                      <Textarea 
+                        value={newMessage} 
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Napisz wiadomość..."
+                        className="flex-1 min-h-10"
+                      />
+                      <Button 
+                        onClick={handleSendMessage}
+                        disabled={!newMessage.trim()}
+                        className="rounded-full h-10 w-10 p-0 flex items-center justify-center"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="notes" className="space-y-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-medium">Notatki</h3>
+                      <Button className="gap-2">
+                        <PlusCircle className="h-4 w-4" />
+                        Nowa notatka
+                      </Button>
+                    </div>
+                    
+                    {(conversationNotes[selectedMentor] || []).length > 0 ? (
+                      <div className="space-y-3">
+                        {(conversationNotes[selectedMentor] || []).map((note) => (
+                          <Card key={note.id} className="overflow-hidden">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-base">{note.title}</CardTitle>
+                              <CardDescription>{formatDate(note.date)}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">{note.content}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <ScrollText className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                        <h3 className="text-lg font-medium">Brak notatek</h3>
+                        <p className="text-gray-500">Dodaj pierwszą notatkę do tego mentoringu</p>
+                      </div>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="files" className="space-y-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-medium">Pliki</h3>
+                      <Button className="gap-2">
+                        <PlusCircle className="h-4 w-4" />
+                        Dodaj plik
+                      </Button>
+                    </div>
+                    
+                    {(conversationFiles[selectedMentor] || []).length > 0 ? (
+                      <div className="space-y-2">
+                        {(conversationFiles[selectedMentor] || []).map((file) => (
+                          <Card key={file.id} className="overflow-hidden">
+                            <CardContent className="p-0">
+                              <div className="flex items-center p-4">
+                                <div className="h-10 w-10 bg-gray-100 dark:bg-gray-800 rounded-md flex items-center justify-center mr-3">
+                                  <File className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-medium
