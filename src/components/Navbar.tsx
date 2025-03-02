@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -73,10 +74,10 @@ export function Navbar() {
           </div>
           
           <nav className="hidden md:flex items-center gap-1 h-14">
-            <NavItem to="/feed" label="Aktualności" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
-            <NavItem to="/marketplace" label="Produkty" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
-            <NavItem to="/mentorship" label="Mentorzy" icon={<GraduationCap className="h-4 w-4" />} active={isActive('/mentorship')} />
-            <NavItem to="/connections" label="Kontakty" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
+            <NavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
+            <NavItem to="/marketplace" label="Marketplace" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
+            <NavItem to="/mentorship" label="Mentoring" icon={<GraduationCap className="h-4 w-4" />} active={isActive('/mentorship')} />
+            <NavItem to="/connections" label="Sieć" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
           </nav>
           
           <div className="flex items-center gap-2">
@@ -118,10 +119,10 @@ export function Navbar() {
       {isMobileMenuOpen && (
         <div className="md:hidden bg-background border-t">
           <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
-            <MobileNavItem to="/feed" label="Aktualności" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
-            <MobileNavItem to="/marketplace" label="Produkty" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
-            <MobileNavItem to="/mentorship" label="Mentorzy" icon={<GraduationCap className="h-4 w-4" />} active={isActive('/mentorship')} />
-            <MobileNavItem to="/connections" label="Kontakty" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
+            <MobileNavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
+            <MobileNavItem to="/marketplace" label="Marketplace" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
+            <MobileNavItem to="/mentorship" label="Mentoring" icon={<GraduationCap className="h-4 w-4" />} active={isActive('/mentorship')} />
+            <MobileNavItem to="/connections" label="Sieć" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
             
             {!isLoggedIn && (
               <Button asChild className="mt-4 sm:hidden">
