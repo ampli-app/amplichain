@@ -26,7 +26,7 @@ export function Hero() {
             transition={{ duration: 0.7, delay: 0.1 }}
           >
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 tracking-tight">
-              Połącz się ze społecznością <span className="text-primary">profesjonalistów muzycznych</span>
+              Połącz się ze społecznością <span className="text-primary">profesjonalistów muzycznych</span>!
             </h1>
             
             <p className="text-xl text-rhythm-600 dark:text-rhythm-400 mb-8 max-w-3xl mx-auto">
