@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -50,7 +49,8 @@ export default function Connections() {
   const [activeTab, setActiveTab] = useState<'all' | 'following' | 'followers' | 'connections' | 'pending'>('all');
   const [searchResults, setSearchResults] = useState<typeof users>([]);
   const [isSearching, setIsSearching] = useState(false);
-  
+  const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -76,6 +76,18 @@ export default function Connections() {
 
     return () => clearTimeout(delaySearch);
   }, [searchQuery, searchUsers]);
+
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkIfMobile();
+    
+    window.addEventListener('resize', checkIfMobile);
+    
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
 
   const handleSendConnectionRequest = async (userId: string) => {
     try {
@@ -130,7 +142,6 @@ export default function Connections() {
   const getStatusBadge = (status: UserConnectionStatus | undefined, isFollower?: boolean) => {
     const badges = [];
     
-    // Wyświetl badge dla połączeń tylko gdy nie jesteśmy na zakładce "following"
     if (status && activeTab !== 'following') {
       switch (status) {
         case 'connected':
@@ -160,9 +171,7 @@ export default function Connections() {
       }
     }
     
-    // Badge dla obserwujących tylko gdy nie jesteśmy na zakładce "followers"
     if (activeTab === 'following') {
-      // W zakładce "Obserwowani" pokazujemy, czy dana osoba nas obserwuje czy nie
       if (isFollower) {
         badges.push(
           <Badge key="follower" variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/20">
@@ -179,7 +188,6 @@ export default function Connections() {
         );
       }
     } else if (activeTab === 'followers') {
-      // W zakładce "Obserwujący" pokazujemy, czy my obserwujemy daną osobę czy nie
       if (status === 'following' || status === 'connected') {
         badges.push(
           <Badge key="following" variant="outline" className="bg-primary/10 text-primary border-primary/20">
@@ -201,11 +209,9 @@ export default function Connections() {
   };
 
   const getConnectionAction = (status: UserConnectionStatus | undefined, userId: string) => {
-    // Dla zakładki obserwujących pokaż tylko przyciski do połączenia, bez przycisku do przestania obserwowania
     if (activeTab === 'followers' && status !== 'connected' && status !== 'pending_sent' && status !== 'pending_received') {
       return (
         <div className="flex gap-2">
-          {/* Używamy bezpiecznego sprawdzenia typów */}
           {(status === 'none' || status === undefined) && (
             <Button 
               variant="outline" 
@@ -253,7 +259,6 @@ export default function Connections() {
           </div>
         );
       case 'following':
-        // Nie pokazuj przycisku "przestań obserwować" w zakładce "Obserwujący"
         if (activeTab === 'followers') {
           return (
             <Button 
@@ -354,25 +359,19 @@ export default function Connections() {
 
   const displayUsers = searchQuery.trim() ? searchResults : 
     users.filter(user => {
-      // Najpierw wyklucz bieżącego użytkownika ze wszystkich widoków
       if (currentUser && user.id === currentUser.id) return false;
       
       switch (activeTab) {
         case 'following':
-          // Obserwowani: użytkownicy, których obserwujemy
           return user.connectionStatus === 'following' || user.connectionStatus === 'connected';
         case 'followers':
-          // Obserwujący: użytkownicy, którzy nas obserwują
           return user.isFollower === true;
         case 'connections':
-          // Połączenia: użytkownicy, z którymi jesteśmy połączeni
           return user.connectionStatus === 'connected';
         case 'pending':
-          // Oczekujące: zaproszenia wysłane lub otrzymane
           return user.connectionStatus === 'pending_sent' || user.connectionStatus === 'pending_received';
         case 'all':
         default:
-          // Wszyscy użytkownicy oprócz bieżącego
           return true;
       }
     });
@@ -423,26 +422,31 @@ export default function Connections() {
               onValueChange={(v) => setActiveTab(v as 'all' | 'following' | 'followers' | 'connections' | 'pending')}
               className="mb-8"
             >
-              <TabsList className="grid grid-cols-5 w-full">
+              <TabsList className={`w-full ${isMobile ? 'flex flex-wrap gap-2' : 'grid grid-cols-5'}`}>
                 <TabsTrigger value="all" className="flex items-center gap-1.5">
                   <Users className="h-4 w-4" />
-                  Wszyscy
+                  <span className={isMobile ? "hidden" : ""}>Wszyscy</span>
+                  <span className={isMobile ? "" : "hidden"}>Wszyscy</span>
                 </TabsTrigger>
                 <TabsTrigger value="following" className="flex items-center gap-1.5">
                   <UserPlus className="h-4 w-4" />
-                  Obserwowani
+                  <span className={isMobile ? "hidden" : ""}>Obserwowani</span>
+                  <span className={isMobile ? "" : "hidden"}>Obserwowani</span>
                 </TabsTrigger>
                 <TabsTrigger value="followers" className="flex items-center gap-1.5">
                   <Heart className="h-4 w-4" />
-                  Obserwujący
+                  <span className={isMobile ? "hidden" : ""}>Obserwujący</span>
+                  <span className={isMobile ? "" : "hidden"}>Obserwujący</span>
                 </TabsTrigger>
                 <TabsTrigger value="connections" className="flex items-center gap-1.5">
                   <UserCheck className="h-4 w-4" />
-                  Połączenia
+                  <span className={isMobile ? "hidden" : ""}>Połączenia</span>
+                  <span className={isMobile ? "" : "hidden"}>Połączenia</span>
                 </TabsTrigger>
                 <TabsTrigger value="pending" className="flex items-center gap-1.5">
                   <Bell className="h-4 w-4" />
-                  Oczekujące
+                  <span className={isMobile ? "hidden" : ""}>Oczekujące</span>
+                  <span className={isMobile ? "" : "hidden"}>Oczekujące</span>
                 </TabsTrigger>
               </TabsList>
               
