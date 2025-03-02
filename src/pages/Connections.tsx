@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -49,8 +50,7 @@ export default function Connections() {
   const [activeTab, setActiveTab] = useState<'all' | 'following' | 'followers' | 'connections' | 'pending'>('all');
   const [searchResults, setSearchResults] = useState<typeof users>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
+  
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -76,18 +76,6 @@ export default function Connections() {
 
     return () => clearTimeout(delaySearch);
   }, [searchQuery, searchUsers]);
-
-  useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkIfMobile();
-    
-    window.addEventListener('resize', checkIfMobile);
-    
-    return () => window.removeEventListener('resize', checkIfMobile);
-  }, []);
 
   const handleSendConnectionRequest = async (userId: string) => {
     try {
@@ -142,6 +130,7 @@ export default function Connections() {
   const getStatusBadge = (status: UserConnectionStatus | undefined, isFollower?: boolean) => {
     const badges = [];
     
+    // Wyświetl badge dla połączeń tylko gdy nie jesteśmy na zakładce "following"
     if (status && activeTab !== 'following') {
       switch (status) {
         case 'connected':
@@ -171,7 +160,9 @@ export default function Connections() {
       }
     }
     
+    // Badge dla obserwujących tylko gdy nie jesteśmy na zakładce "followers"
     if (activeTab === 'following') {
+      // W zakładce "Obserwowani" pokazujemy, czy dana osoba nas obserwuje czy nie
       if (isFollower) {
         badges.push(
           <Badge key="follower" variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/20">
@@ -188,6 +179,7 @@ export default function Connections() {
         );
       }
     } else if (activeTab === 'followers') {
+      // W zakładce "Obserwujący" pokazujemy, czy my obserwujemy daną osobę czy nie
       if (status === 'following' || status === 'connected') {
         badges.push(
           <Badge key="following" variant="outline" className="bg-primary/10 text-primary border-primary/20">
@@ -209,9 +201,11 @@ export default function Connections() {
   };
 
   const getConnectionAction = (status: UserConnectionStatus | undefined, userId: string) => {
+    // Dla zakładki obserwujących pokaż tylko przyciski do połączenia, bez przycisku do przestania obserwowania
     if (activeTab === 'followers' && status !== 'connected' && status !== 'pending_sent' && status !== 'pending_received') {
       return (
         <div className="flex gap-2">
+          {/* Używamy bezpiecznego sprawdzenia typów */}
           {(status === 'none' || status === undefined) && (
             <Button 
               variant="outline" 
@@ -259,6 +253,7 @@ export default function Connections() {
           </div>
         );
       case 'following':
+        // Nie pokazuj przycisku "przestań obserwować" w zakładce "Obserwujący"
         if (activeTab === 'followers') {
           return (
             <Button 
@@ -359,19 +354,25 @@ export default function Connections() {
 
   const displayUsers = searchQuery.trim() ? searchResults : 
     users.filter(user => {
+      // Najpierw wyklucz bieżącego użytkownika ze wszystkich widoków
       if (currentUser && user.id === currentUser.id) return false;
       
       switch (activeTab) {
         case 'following':
+          // Obserwowani: użytkownicy, których obserwujemy
           return user.connectionStatus === 'following' || user.connectionStatus === 'connected';
         case 'followers':
+          // Obserwujący: użytkownicy, którzy nas obserwują
           return user.isFollower === true;
         case 'connections':
+          // Połączenia: użytkownicy, z którymi jesteśmy połączeni
           return user.connectionStatus === 'connected';
         case 'pending':
+          // Oczekujące: zaproszenia wysłane lub otrzymane
           return user.connectionStatus === 'pending_sent' || user.connectionStatus === 'pending_received';
         case 'all':
         default:
+          // Wszyscy użytkownicy oprócz bieżącego
           return true;
       }
     });
@@ -422,30 +423,28 @@ export default function Connections() {
               onValueChange={(v) => setActiveTab(v as 'all' | 'following' | 'followers' | 'connections' | 'pending')}
               className="mb-8"
             >
-              <div className="sticky top-16 z-10 bg-background pt-2 pb-2 shadow-sm mb-4">
-                <TabsList className="w-full flex overflow-x-auto md:grid md:grid-cols-5 no-scrollbar">
-                  <TabsTrigger value="all" className="whitespace-nowrap flex-shrink-0 items-center gap-1.5">
-                    <Users className="h-4 w-4" />
-                    <span>Wszyscy</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="following" className="whitespace-nowrap flex-shrink-0 items-center gap-1.5">
-                    <UserPlus className="h-4 w-4" />
-                    <span>Obserwowani</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="followers" className="whitespace-nowrap flex-shrink-0 items-center gap-1.5">
-                    <Heart className="h-4 w-4" />
-                    <span>Obserwujący</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="connections" className="whitespace-nowrap flex-shrink-0 items-center gap-1.5">
-                    <UserCheck className="h-4 w-4" />
-                    <span>Połączenia</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="pending" className="whitespace-nowrap flex-shrink-0 items-center gap-1.5">
-                    <Bell className="h-4 w-4" />
-                    <span>Oczekujące</span>
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+              <TabsList className="grid grid-cols-5 w-full">
+                <TabsTrigger value="all" className="flex items-center gap-1.5">
+                  <Users className="h-4 w-4" />
+                  Wszyscy
+                </TabsTrigger>
+                <TabsTrigger value="following" className="flex items-center gap-1.5">
+                  <UserPlus className="h-4 w-4" />
+                  Obserwowani
+                </TabsTrigger>
+                <TabsTrigger value="followers" className="flex items-center gap-1.5">
+                  <Heart className="h-4 w-4" />
+                  Obserwujący
+                </TabsTrigger>
+                <TabsTrigger value="connections" className="flex items-center gap-1.5">
+                  <UserCheck className="h-4 w-4" />
+                  Połączenia
+                </TabsTrigger>
+                <TabsTrigger value="pending" className="flex items-center gap-1.5">
+                  <Bell className="h-4 w-4" />
+                  Oczekujące
+                </TabsTrigger>
+              </TabsList>
               
               <TabsContent value="all">
                 {renderUserList(displayUsers)}
@@ -516,38 +515,40 @@ export default function Connections() {
     }
     
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         {users.map((user, index) => (
           <motion.div
             key={user.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.05 }}
-            className="glass-card rounded-xl p-5 border shadow-sm"
+            className="glass-card rounded-xl p-5 border"
           >
             <div className="flex flex-col sm:flex-row gap-5">
-              <Avatar className="h-16 w-16 flex-shrink-0">
+              <Avatar className="h-16 w-16">
                 <AvatarImage src={user.avatar} alt={user.name} />
                 <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
               </Avatar>
               
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-lg truncate">{user.name}</h3>
-                    <p className="text-rhythm-500 truncate">@{user.username}</p>
+              <div className="flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-lg">{user.name}</h3>
+                    </div>
+                    <p className="text-rhythm-500">@{user.username}</p>
                   </div>
                   
-                  <div className="sm:self-start flex-shrink-0">
+                  <div className="sm:self-start">
                     {getConnectionAction(user.connectionStatus, user.id)}
                   </div>
                 </div>
                 
-                <div className="my-3">
+                <div className="my-2">
                   {getStatusBadge(user.connectionStatus, user.isFollower)}
                 </div>
                 
-                <p className="my-3 line-clamp-2">{user.role}</p>
+                <p className="my-2">{user.role}</p>
                 
                 <div className="flex gap-4 text-sm">
                   <span className="text-rhythm-600">
