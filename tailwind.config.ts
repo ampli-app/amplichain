@@ -120,7 +120,8 @@ export default {
 				'scale-in': 'scale-in 0.3s ease-out'
 			},
 			fontFamily: {
-				sans: ['Inter', 'sans-serif'],
+				sans: ['Poppins', 'sans-serif'],
+				metrophobic: ['Metrophobic', 'sans-serif'],
 			},
 			boxShadow: {
 				'glass': '0 4px 30px rgba(0, 0, 0, 0.1)',

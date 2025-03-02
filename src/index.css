@@ -1,4 +1,6 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Metrophobic&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -72,7 +74,10 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans font-semibold;
   }
 }
 
@@ -97,6 +102,11 @@
     height: 2rem;
     width: auto;
     object-fit: contain;
+  }
+  
+  /* Typography utilities */
+  .text-metrophobic {
+    font-family: 'Metrophobic', sans-serif;
   }
 }
 
