@@ -422,33 +422,30 @@ export default function Connections() {
               onValueChange={(v) => setActiveTab(v as 'all' | 'following' | 'followers' | 'connections' | 'pending')}
               className="mb-8"
             >
-              <TabsList className={`w-full ${isMobile ? 'flex flex-wrap gap-2' : 'grid grid-cols-5'}`}>
-                <TabsTrigger value="all" className="flex items-center gap-1.5">
-                  <Users className="h-4 w-4" />
-                  <span className={isMobile ? "hidden" : ""}>Wszyscy</span>
-                  <span className={isMobile ? "" : "hidden"}>Wszyscy</span>
-                </TabsTrigger>
-                <TabsTrigger value="following" className="flex items-center gap-1.5">
-                  <UserPlus className="h-4 w-4" />
-                  <span className={isMobile ? "hidden" : ""}>Obserwowani</span>
-                  <span className={isMobile ? "" : "hidden"}>Obserwowani</span>
-                </TabsTrigger>
-                <TabsTrigger value="followers" className="flex items-center gap-1.5">
-                  <Heart className="h-4 w-4" />
-                  <span className={isMobile ? "hidden" : ""}>Obserwujący</span>
-                  <span className={isMobile ? "" : "hidden"}>Obserwujący</span>
-                </TabsTrigger>
-                <TabsTrigger value="connections" className="flex items-center gap-1.5">
-                  <UserCheck className="h-4 w-4" />
-                  <span className={isMobile ? "hidden" : ""}>Połączenia</span>
-                  <span className={isMobile ? "" : "hidden"}>Połączenia</span>
-                </TabsTrigger>
-                <TabsTrigger value="pending" className="flex items-center gap-1.5">
-                  <Bell className="h-4 w-4" />
-                  <span className={isMobile ? "hidden" : ""}>Oczekujące</span>
-                  <span className={isMobile ? "" : "hidden"}>Oczekujące</span>
-                </TabsTrigger>
-              </TabsList>
+              <div className="sticky top-16 z-10 bg-background pt-2 pb-2 shadow-sm mb-4">
+                <TabsList className="w-full flex overflow-x-auto md:grid md:grid-cols-5 no-scrollbar">
+                  <TabsTrigger value="all" className="whitespace-nowrap flex-shrink-0 items-center gap-1.5">
+                    <Users className="h-4 w-4" />
+                    <span>Wszyscy</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="following" className="whitespace-nowrap flex-shrink-0 items-center gap-1.5">
+                    <UserPlus className="h-4 w-4" />
+                    <span>Obserwowani</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="followers" className="whitespace-nowrap flex-shrink-0 items-center gap-1.5">
+                    <Heart className="h-4 w-4" />
+                    <span>Obserwujący</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="connections" className="whitespace-nowrap flex-shrink-0 items-center gap-1.5">
+                    <UserCheck className="h-4 w-4" />
+                    <span>Połączenia</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="pending" className="whitespace-nowrap flex-shrink-0 items-center gap-1.5">
+                    <Bell className="h-4 w-4" />
+                    <span>Oczekujące</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
               
               <TabsContent value="all">
                 {renderUserList(displayUsers)}
