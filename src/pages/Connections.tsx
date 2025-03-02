@@ -519,40 +519,38 @@ export default function Connections() {
     }
     
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         {users.map((user, index) => (
           <motion.div
             key={user.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.05 }}
-            className="glass-card rounded-xl p-5 border"
+            className="glass-card rounded-xl p-5 border shadow-sm"
           >
             <div className="flex flex-col sm:flex-row gap-5">
-              <Avatar className="h-16 w-16">
+              <Avatar className="h-16 w-16 flex-shrink-0">
                 <AvatarImage src={user.avatar} alt={user.name} />
                 <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
               </Avatar>
               
-              <div className="flex-1">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-lg">{user.name}</h3>
-                    </div>
-                    <p className="text-rhythm-500">@{user.username}</p>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-lg truncate">{user.name}</h3>
+                    <p className="text-rhythm-500 truncate">@{user.username}</p>
                   </div>
                   
-                  <div className="sm:self-start">
+                  <div className="sm:self-start flex-shrink-0">
                     {getConnectionAction(user.connectionStatus, user.id)}
                   </div>
                 </div>
                 
-                <div className="my-2">
+                <div className="my-3">
                   {getStatusBadge(user.connectionStatus, user.isFollower)}
                 </div>
                 
-                <p className="my-2">{user.role}</p>
+                <p className="my-3 line-clamp-2">{user.role}</p>
                 
                 <div className="flex gap-4 text-sm">
                   <span className="text-rhythm-600">
