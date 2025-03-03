@@ -41,9 +41,11 @@ export function MarketplaceFilters({
 }: MarketplaceFiltersProps) {
   const handleConditionChange = (condition: string, checked: boolean) => {
     if (checked) {
-      setSelectedConditions(prev => [...prev, condition]);
+      // Create a new array with the condition added
+      setSelectedConditions([...selectedConditions, condition]);
     } else {
-      setSelectedConditions(prev => prev.filter(c => c !== condition));
+      // Create a new array with the condition filtered out
+      setSelectedConditions(selectedConditions.filter(c => c !== condition));
     }
   };
 
