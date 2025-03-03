@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,13 +9,18 @@ import {
   Users,
   ShoppingBag,
   GraduationCap,
-  MessageSquare
+  MessageSquare,
+  User,
+  LogOut,
+  Settings,
+  Compass
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSocial } from '@/contexts/SocialContext';
 import { NavItem } from '@/components/navigation/NavItem';
 import { MobileNavItem } from '@/components/navigation/MobileNavItem';
 import { UserMenu } from '@/components/navigation/UserMenu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -91,7 +95,10 @@ export function Navbar() {
                   </Link>
                 </Button>
                 
-                <UserMenu avatarUrl={userProfile?.avatar} />
+                {/* Ukryj UserMenu w widoku mobilnym */}
+                <div className="hidden md:block">
+                  <UserMenu avatarUrl={userProfile?.avatar} />
+                </div>
               </>
             ) : (
               <>
@@ -119,6 +126,59 @@ export function Navbar() {
       {isMobileMenuOpen && (
         <div className="md:hidden bg-background border-t">
           <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
+            {isLoggedIn && (
+              <div className="pb-4 mb-4 border-b">
+                <div className="flex items-center gap-3 px-2 py-2">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={userProfile?.avatar || "/placeholder.svg"} alt="User" />
+                    <AvatarFallback>
+                      <User className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold">Moje konto</p>
+                  </div>
+                </div>
+                
+                <MobileNavItem 
+                  to="/profile" 
+                  label="Profil" 
+                  icon={<User className="h-4 w-4" />} 
+                  active={isActive('/profile')} 
+                />
+                
+                <MobileNavItem 
+                  to="/messages" 
+                  label="Wiadomości" 
+                  icon={<MessageSquare className="h-4 w-4" />} 
+                  active={isActive('/messages')} 
+                />
+                
+                <MobileNavItem 
+                  to="/discovery" 
+                  label="Odkrywaj" 
+                  icon={<Compass className="h-4 w-4" />} 
+                  active={isActive('/discovery')} 
+                />
+                
+                <MobileNavItem 
+                  to="/settings" 
+                  label="Ustawienia" 
+                  icon={<Settings className="h-4 w-4" />} 
+                  active={isActive('/settings')} 
+                />
+                
+                <Button 
+                  variant="ghost"
+                  className="w-full justify-start gap-1.5 h-12 text-red-500 hover:text-red-500"
+                  onClick={logout}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Wyloguj się
+                </Button>
+              </div>
+            )}
+            
             <MobileNavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
             <MobileNavItem to="/marketplace" label="Marketplace" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
             <MobileNavItem to="/mentorship" label="Mentoring" icon={<GraduationCap className="h-4 w-4" />} active={isActive('/mentorship')} />
