@@ -175,22 +175,24 @@ export default function Marketplace() {
             onValueChange={handleTabChange}
             className="mb-6"
           >
-            <TabsList className="w-full max-w-md mx-auto">
-              <TabsTrigger 
-                value="products" 
-                className="flex-1 gap-2"
-              >
-                <ShoppingBag className="h-4 w-4" />
-                <span>Sprzęt</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="services" 
-                className="flex-1 gap-2"
-              >
-                <Briefcase className="h-4 w-4" />
-                <span>Usługi</span>
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex justify-center mb-4">
+              <TabsList className="w-full max-w-md mx-auto">
+                <TabsTrigger 
+                  value="products" 
+                  className="flex-1 gap-2 font-medium"
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                  <span>Sprzęt</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="services" 
+                  className="flex-1 gap-2 font-medium"
+                >
+                  <Briefcase className="h-5 w-5" />
+                  <span>Usługi</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
             
             <TabsContent value="products" className="mt-6">
               <ProductsTab
