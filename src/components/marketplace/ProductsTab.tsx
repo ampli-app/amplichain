@@ -214,86 +214,90 @@ export function ProductsTab({
         </div>
       </div>
       
-      <CategorySelection
-        categories={categories}
-        selectedCategory={selectedCategory}
-        onCategorySelect={setSelectedCategory}
-      />
-      
-      <div className={`lg:w-64 space-y-6 ${viewMode === 'filters' ? 'block' : 'hidden lg:block'}`}>
-        <MarketplaceFilters
-          priceRange={priceRange}
-          setPriceRange={setPriceRange}
-          minPrice={minPrice}
-          setMinPrice={setMinPrice}
-          maxPrice={maxPrice}
-          setMaxPrice={setMaxPrice}
-          showTestingOnly={showTestingOnly}
-          setShowTestingOnly={setShowTestingOnly}
-          selectedConditions={selectedConditions}
-          setSelectedConditions={setSelectedConditions}
-          maxProductPrice={maxProductPrice}
-          handlePriceInputChange={handlePriceInputChange}
-          handleApplyFilters={handleApplyFilters}
-          productConditions={productConditions}
+      <div className="w-full">
+        <CategorySelection
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onCategorySelect={setSelectedCategory}
         />
-      </div>
-      
-      <div className={`flex-1 ${viewMode === 'grid' ? 'block' : 'hidden lg:block'}`}>
-        <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
-          <div className="relative w-full sm:max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 h-4 w-4" />
-            <Input 
-              placeholder="Szukaj produktów..." 
-              className="pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+        
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className={`lg:w-64 space-y-6 ${viewMode === 'filters' ? 'block' : 'hidden lg:block'}`}>
+            <MarketplaceFilters
+              priceRange={priceRange}
+              setPriceRange={setPriceRange}
+              minPrice={minPrice}
+              setMinPrice={setMinPrice}
+              maxPrice={maxPrice}
+              setMaxPrice={setMaxPrice}
+              showTestingOnly={showTestingOnly}
+              setShowTestingOnly={setShowTestingOnly}
+              selectedConditions={selectedConditions}
+              setSelectedConditions={setSelectedConditions}
+              maxProductPrice={maxProductPrice}
+              handlePriceInputChange={handlePriceInputChange}
+              handleApplyFilters={handleApplyFilters}
+              productConditions={productConditions}
             />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-zinc-500">Sortuj według:</span>
-            <select 
-              className="py-2 px-3 rounded-md border border-zinc-200 dark:border-zinc-800 bg-background"
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value)}
-            >
-              <option value="featured">Wyróżnione</option>
-              <option value="price-asc">Cena: od najniższej</option>
-              <option value="price-desc">Cena: od najwyższej</option>
-              <option value="rating">Ocena</option>
-              <option value="newest">Najnowsze</option>
-            </select>
+          
+          <div className={`flex-1 ${viewMode === 'grid' ? 'block' : 'hidden lg:block'}`}>
+            <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+              <div className="relative w-full sm:max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 h-4 w-4" />
+                <Input 
+                  placeholder="Szukaj produktów..." 
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-zinc-500">Sortuj według:</span>
+                <select 
+                  className="py-2 px-3 rounded-md border border-zinc-200 dark:border-zinc-800 bg-background"
+                  value={sortOption}
+                  onChange={(e) => setSortOption(e.target.value)}
+                >
+                  <option value="featured">Wyróżnione</option>
+                  <option value="price-asc">Cena: od najniższej</option>
+                  <option value="price-desc">Cena: od najwyższej</option>
+                  <option value="rating">Ocena</option>
+                  <option value="newest">Najnowsze</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="px-3 py-1">
+                  {categories.find(c => c.id === selectedCategory)?.name || 'Wybrana kategoria'}
+                  <button 
+                    className="ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
+                    onClick={() => setSelectedCategory('')}
+                  >
+                    &times;
+                  </button>
+                </Badge>
+                <Separator orientation="vertical" className="h-6" />
+                <span className="text-sm text-zinc-500">
+                  {filteredProducts.length} produktów
+                </span>
+              </div>
+            </div>
+            
+            <ProductGrid
+              displayedProducts={displayedProducts}
+              filteredProducts={filteredProducts}
+              loading={loading}
+              products={products}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              handlePageChange={handlePageChange}
+              handleAddProductClick={handleAddProductClick}
+            />
           </div>
         </div>
-        
-        <div className="mb-6">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="px-3 py-1">
-              {categories.find(c => c.id === selectedCategory)?.name || 'Wybrana kategoria'}
-              <button 
-                className="ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
-                onClick={() => setSelectedCategory('')}
-              >
-                &times;
-              </button>
-            </Badge>
-            <Separator orientation="vertical" className="h-6" />
-            <span className="text-sm text-zinc-500">
-              {filteredProducts.length} produktów
-            </span>
-          </div>
-        </div>
-        
-        <ProductGrid
-          displayedProducts={displayedProducts}
-          filteredProducts={filteredProducts}
-          loading={loading}
-          products={products}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          handlePageChange={handlePageChange}
-          handleAddProductClick={handleAddProductClick}
-        />
       </div>
     </div>
   );
