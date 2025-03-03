@@ -38,10 +38,13 @@ function App() {
             <Route path="/discovery" element={<Discovery />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/messages/product/:id" element={<Messages />} />
+            <Route path="/messages/service/:id" element={<Messages />} />
             <Route path="/messages/user/:id" element={<Messages />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/marketplace/:id" element={<ProductDetail />} />
+            <Route path="/services/:id" element={<ProductDetail />} />
             <Route path="/edit-product/:id" element={<EditProduct />} />
+            <Route path="/edit-service/:id" element={<EditProduct />} />
             
             {/* Ścieżki dla finalizacji zamówienia */}
             <Route path="/checkout/:id" element={<Checkout />} />

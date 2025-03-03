@@ -1,7 +1,10 @@
+
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MarketplaceItem } from '@/components/MarketplaceItem';
+import { ServicesMarketplace } from '@/components/ServicesMarketplace';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,7 +26,9 @@ import {
   Laptop,
   Music2,
   ListFilter,
-  ChevronDown
+  ChevronDown,
+  ShoppingBag,
+  Briefcase
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddProductDialog } from '@/components/AddProductDialog';
@@ -31,7 +36,6 @@ import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Slider } from '@/components/ui/slider';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
@@ -124,6 +128,7 @@ export default function Marketplace() {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'filters'>('grid');
   const [showCategoriesDialog, setShowCategoriesDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState("products");
   
   // Filter state
   const [categories, setCategories] = useState<Category[]>([]);
@@ -334,6 +339,13 @@ export default function Marketplace() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSelectedCategory("");
+    setSearchQuery("");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const renderPagination = () => {
     if (totalPages <= 1) return null;
     
@@ -509,17 +521,196 @@ export default function Marketplace() {
     </div>
   );
 
+  const renderProductsTab = () => (
+    <div className="flex flex-col lg:flex-row gap-8 mb-8">
+      <div className="lg:hidden mb-4">
+        <div className="flex gap-2">
+          <Button 
+            variant={viewMode === 'filters' ? 'default' : 'outline'} 
+            className="flex-1" 
+            onClick={() => setViewMode('filters')}
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            Filtry
+          </Button>
+          <Button 
+            variant={viewMode === 'grid' ? 'default' : 'outline'} 
+            className="flex-1" 
+            onClick={() => setViewMode('grid')}
+          >
+            <Search className="h-4 w-4 mr-2" />
+            Przeglądaj
+          </Button>
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-center mb-4">
+        <div className="flex overflow-x-auto p-1 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1 rounded-md">
+          {categories.slice(0, 7).map((category) => (
+            <Button 
+              key={category.id}
+              variant={selectedCategory === category.id ? "default" : "ghost"}
+              className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2"
+              onClick={() => setSelectedCategory(category.id)}
+            >
+              {getCategoryIcon(category.name)}
+              <span>{category.name}</span>
+            </Button>
+          ))}
+          
+          <Button
+            variant="ghost"
+            className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2"
+            onClick={() => setShowCategoriesDialog(true)}
+          >
+            <ChevronDown className="h-5 w-5" />
+            <span>Więcej kategorii</span>
+          </Button>
+        </div>
+        
+        <Dialog open={showCategoriesDialog} onOpenChange={setShowCategoriesDialog}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Wszystkie kategorie</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
+              {categories.map((category) => (
+                <div 
+                  key={category.id}
+                  className={`rounded-lg border p-4 cursor-pointer transition-all 
+                  ${selectedCategory === category.id 
+                    ? "bg-primary text-primary-foreground" 
+                    : "hover:border-primary hover:text-primary"}
+                  `}
+                  onClick={() => handleCategorySelect(category.id)}
+                >
+                  <div className="flex items-center gap-2">
+                    {getCategoryIcon(category.name)}
+                    <span className="font-medium">{category.name}</span>
+                  </div>
+                  {category.description && (
+                    <p className="text-xs mt-1 opacity-80">{category.description}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+      
+      <div className={`lg:w-64 space-y-6 ${viewMode === 'filters' ? 'block' : 'hidden lg:block'}`}>
+        {renderFilters()}
+      </div>
+      
+      <div className={`flex-1 ${viewMode === 'grid' ? 'block' : 'hidden lg:block'}`}>
+        <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+          <div className="relative w-full sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 h-4 w-4" />
+            <Input 
+              placeholder="Szukaj produktów..." 
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-zinc-500">Sortuj według:</span>
+            <select 
+              className="py-2 px-3 rounded-md border border-zinc-200 dark:border-zinc-800 bg-background"
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+            >
+              <option value="featured">Wyróżnione</option>
+              <option value="price-asc">Cena: od najniższej</option>
+              <option value="price-desc">Cena: od najwyższej</option>
+              <option value="rating">Ocena</option>
+              <option value="newest">Najnowsze</option>
+            </select>
+          </div>
+        </div>
+        
+        <div className="mb-6">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="px-3 py-1">
+              {categories.find(c => c.id === selectedCategory)?.name || 'Wybrana kategoria'}
+              <button 
+                className="ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
+                onClick={() => setSelectedCategory('')}
+              >
+                &times;
+              </button>
+            </Badge>
+            <Separator orientation="vertical" className="h-6" />
+            <span className="text-sm text-zinc-500">
+              {filteredProducts.length} produktów
+            </span>
+          </div>
+        </div>
+        
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, index) => (
+              <div key={index} className="rounded-xl border bg-card overflow-hidden hover:shadow-md transition-all duration-300 animate-pulse">
+                <div className="aspect-square bg-zinc-200 dark:bg-zinc-800"></div>
+                <div className="p-5 space-y-3">
+                  <div className="h-5 bg-zinc-200 dark:bg-zinc-800 rounded-md w-2/3"></div>
+                  <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded-md w-1/3"></div>
+                  <div className="h-9 bg-zinc-200 dark:bg-zinc-800 rounded-md w-full mt-4"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : displayedProducts.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {displayedProducts.map((item, index) => (
+                <MarketplaceItem
+                  key={item.id}
+                  id={item.id}
+                  title={item.title}
+                  price={item.price}
+                  image={item.image_url}
+                  category={item.category || "Inne"}
+                  userId={item.user_id}
+                  rating={item.rating || 0}
+                  reviewCount={item.review_count || 0}
+                  sale={item.sale || false}
+                  salePercentage={item.sale_percentage}
+                  forTesting={item.for_testing || false}
+                  testingPrice={item.testing_price}
+                  delay={index * 0.05}
+                />
+              ))}
+            </div>
+            
+            {renderPagination()}
+          </>
+        ) : (
+          <div className="text-center py-12">
+            <h3 className="text-xl font-medium mb-2">Nie znaleziono produktów</h3>
+            <p className="text-zinc-600 mb-6">
+              {filteredProducts.length === 0 && products.length > 0 
+                ? "Spróbuj zmienić filtry aby zobaczyć więcej produktów." 
+                : "Nie ma jeszcze żadnych produktów. Dodaj pierwszy produkt!"}
+            </p>
+            <Button onClick={handleAddProductClick}>Dodaj produkt</Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
       <main className="flex-1 pt-24 pb-16">
         <div className="container px-4 mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
             <div className="text-center md:text-left mb-4 md:mb-0">
-              <h1 className="text-3xl md:text-4xl font-bold">Rynek Sprzętu</h1>
+              <h1 className="text-3xl md:text-4xl font-bold">Marketplace</h1>
               <p className="text-lg text-zinc-600 dark:text-zinc-400 mt-2 max-w-2xl">
-                Odkryj wysokiej jakości sprzęt muzyczny od zaufanych sprzedawców.
+                Znajdź najlepszy sprzęt i usługi muzyczne w jednym miejscu.
               </p>
             </div>
             
@@ -529,188 +720,41 @@ export default function Marketplace() {
               size="lg"
             >
               <PlusCircle className="h-4 w-4" />
-              Dodaj produkt
+              {activeTab === "products" ? "Dodaj produkt" : "Dodaj usługę"}
             </Button>
           </div>
           
-          <div className="mb-8">
-            <div className="flex items-center justify-center mb-4">
-              <div className="flex overflow-x-auto p-1 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1 rounded-md">
-                {categories.slice(0, 7).map((category) => (
-                  <Button 
-                    key={category.id}
-                    variant={selectedCategory === category.id ? "default" : "ghost"}
-                    className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2"
-                    onClick={() => setSelectedCategory(category.id)}
-                  >
-                    {getCategoryIcon(category.name)}
-                    <span>{category.name}</span>
-                  </Button>
-                ))}
-                
-                <Button
-                  variant="ghost"
-                  className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2"
-                  onClick={() => setShowCategoriesDialog(true)}
-                >
-                  <ChevronDown className="h-5 w-5" />
-                  <span>Więcej kategorii</span>
-                </Button>
-              </div>
-              
-              <Dialog open={showCategoriesDialog} onOpenChange={setShowCategoriesDialog}>
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Wszystkie kategorie</DialogTitle>
-                  </DialogHeader>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
-                    {categories.map((category) => (
-                      <div 
-                        key={category.id}
-                        className={`rounded-lg border p-4 cursor-pointer transition-all 
-                        ${selectedCategory === category.id 
-                          ? "bg-primary text-primary-foreground" 
-                          : "hover:border-primary hover:text-primary"}
-                        `}
-                        onClick={() => handleCategorySelect(category.id)}
-                      >
-                        <div className="flex items-center gap-2">
-                          {getCategoryIcon(category.name)}
-                          <span className="font-medium">{category.name}</span>
-                        </div>
-                        {category.description && (
-                          <p className="text-xs mt-1 opacity-80">{category.description}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-          
-          <div className="flex flex-col lg:flex-row gap-8 mb-8">
-            <div className="lg:hidden mb-4">
-              <div className="flex gap-2">
-                <Button 
-                  variant={viewMode === 'filters' ? 'default' : 'outline'} 
-                  className="flex-1" 
-                  onClick={() => setViewMode('filters')}
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filtry
-                </Button>
-                <Button 
-                  variant={viewMode === 'grid' ? 'default' : 'outline'} 
-                  className="flex-1" 
-                  onClick={() => setViewMode('grid')}
-                >
-                  <Search className="h-4 w-4 mr-2" />
-                  Przeglądaj
-                </Button>
-              </div>
-            </div>
+          <Tabs 
+            defaultValue="products" 
+            value={activeTab} 
+            onValueChange={handleTabChange}
+            className="mb-6"
+          >
+            <TabsList className="w-full max-w-md mx-auto">
+              <TabsTrigger 
+                value="products" 
+                className="flex-1 gap-2"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                <span>Sprzęt</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="services" 
+                className="flex-1 gap-2"
+              >
+                <Briefcase className="h-4 w-4" />
+                <span>Usługi</span>
+              </TabsTrigger>
+            </TabsList>
             
-            <div className={`lg:w-64 space-y-6 ${viewMode === 'filters' ? 'block' : 'hidden lg:block'}`}>
-              {renderFilters()}
-            </div>
+            <TabsContent value="products" className="mt-6">
+              {renderProductsTab()}
+            </TabsContent>
             
-            <div className={`flex-1 ${viewMode === 'grid' ? 'block' : 'hidden lg:block'}`}>
-              <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
-                <div className="relative w-full sm:max-w-sm">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-500 h-4 w-4" />
-                  <Input 
-                    placeholder="Szukaj produktów..." 
-                    className="pl-10"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-zinc-500">Sortuj według:</span>
-                  <select 
-                    className="py-2 px-3 rounded-md border border-zinc-200 dark:border-zinc-800 bg-background"
-                    value={sortOption}
-                    onChange={(e) => setSortOption(e.target.value)}
-                  >
-                    <option value="featured">Wyróżnione</option>
-                    <option value="price-asc">Cena: od najniższej</option>
-                    <option value="price-desc">Cena: od najwyższej</option>
-                    <option value="rating">Ocena</option>
-                    <option value="newest">Najnowsze</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="px-3 py-1">
-                    {categories.find(c => c.id === selectedCategory)?.name || 'Wybrana kategoria'}
-                    <button 
-                      className="ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
-                      onClick={() => setSelectedCategory('')}
-                    >
-                      &times;
-                    </button>
-                  </Badge>
-                  <Separator orientation="vertical" className="h-6" />
-                  <span className="text-sm text-zinc-500">
-                    {filteredProducts.length} produktów
-                  </span>
-                </div>
-              </div>
-              
-              {loading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[...Array(6)].map((_, index) => (
-                    <div key={index} className="rounded-xl border bg-card overflow-hidden hover:shadow-md transition-all duration-300 animate-pulse">
-                      <div className="aspect-square bg-zinc-200 dark:bg-zinc-800"></div>
-                      <div className="p-5 space-y-3">
-                        <div className="h-5 bg-zinc-200 dark:bg-zinc-800 rounded-md w-2/3"></div>
-                        <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded-md w-1/3"></div>
-                        <div className="h-9 bg-zinc-200 dark:bg-zinc-800 rounded-md w-full mt-4"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : displayedProducts.length > 0 ? (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {displayedProducts.map((item, index) => (
-                      <MarketplaceItem
-                        key={item.id}
-                        id={item.id}
-                        title={item.title}
-                        price={item.price}
-                        image={item.image_url}
-                        category={item.category || "Inne"}
-                        userId={item.user_id}
-                        rating={item.rating || 0}
-                        reviewCount={item.review_count || 0}
-                        sale={item.sale || false}
-                        salePercentage={item.sale_percentage}
-                        forTesting={item.for_testing || false}
-                        testingPrice={item.testing_price}
-                        delay={index * 0.05}
-                      />
-                    ))}
-                  </div>
-                  
-                  {renderPagination()}
-                </>
-              ) : (
-                <div className="text-center py-12">
-                  <h3 className="text-xl font-medium mb-2">Nie znaleziono produktów</h3>
-                  <p className="text-zinc-600 mb-6">
-                    {filteredProducts.length === 0 && products.length > 0 
-                      ? "Spróbuj zmienić filtry aby zobaczyć więcej produktów." 
-                      : "Nie ma jeszcze żadnych produktów. Dodaj pierwszy produkt!"}
-                  </p>
-                  <Button onClick={handleAddProductClick}>Dodaj produkt</Button>
-                </div>
-              )}
-            </div>
-          </div>
+            <TabsContent value="services" className="mt-6">
+              <ServicesMarketplace />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
       
@@ -725,7 +769,7 @@ export default function Marketplace() {
         open={showAuthDialog} 
         onOpenChange={setShowAuthDialog} 
         title="Wymagane logowanie"
-        description="Aby dodać produkt do rynku, musisz być zalogowany."
+        description="Aby dodać produkt lub usługę do rynku, musisz być zalogowany."
       />
     </div>
   );
