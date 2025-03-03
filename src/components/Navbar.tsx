@@ -27,7 +27,7 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isLoggedIn, user } = useAuth();
+  const { isLoggedIn, user, logout } = useAuth();
   const { users } = useSocial();
   
   const userProfile = user ? users.find(u => u.id === user.id) : null;
@@ -171,7 +171,7 @@ export function Navbar() {
                 <Button 
                   variant="ghost"
                   className="w-full justify-start gap-1.5 h-12 text-red-500 hover:text-red-500"
-                  onClick={logout}
+                  onClick={() => logout()}
                 >
                   <LogOut className="h-4 w-4" />
                   Wyloguj się
