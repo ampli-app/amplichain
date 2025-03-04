@@ -131,12 +131,24 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
             timeAgo = `${Math.floor(diffInSeconds / 86400)} dni temu`;
           }
           
-          // Ensure profileData is properly typed using Profile interface
-          const profileData = comment.profiles as Profile || {
+          // Properly handle the profiles data with proper type casting
+          const profileData = comment.profiles as unknown;
+          
+          // Set default profile if profiles data is not available or invalid
+          const defaultProfile: Profile = {
+            id: comment.user_id,
+            username: '',
             full_name: '',
             avatar_url: '/placeholder.svg',
             role: ''
           };
+          
+          // Now safely convert to Profile type
+          const userProfile = profileData && 
+            typeof profileData === 'object' && 
+            !('error' in profileData) ? 
+            profileData as Profile : 
+            defaultProfile;
           
           return {
             id: comment.id,
@@ -144,9 +156,9 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
             parentId: comment.parent_id,
             userId: comment.user_id,
             author: {
-              name: profileData?.full_name || '',
-              avatar: profileData?.avatar_url || '/placeholder.svg',
-              role: profileData?.role || '',
+              name: userProfile.full_name || '',
+              avatar: userProfile.avatar_url || '/placeholder.svg',
+              role: userProfile.role || '',
             },
             content: comment.content,
             createdAt: comment.created_at,
