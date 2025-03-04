@@ -28,23 +28,23 @@ export function CommentsDialog({ postId, commentsCount }: CommentsDialogProps) {
         <MessageCircle className="h-4 w-4" />
         <span>{commentsCount}</span>
       </Button>
+      
       <AnimatePresence>
         {isOpen && (
-          <>
-            <div className="fixed inset-0 bg-black/20 z-50" onClick={() => setIsOpen(false)} />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100vw-2rem)] max-w-lg bg-background rounded-lg shadow-lg overflow-hidden"
-            >
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="w-full overflow-hidden mt-2"
+          >
+            <div className="border rounded-lg bg-background overflow-hidden">
               <CommentsSection 
                 postId={postId} 
                 onClose={() => setIsOpen(false)} 
               />
-            </motion.div>
-          </>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { useSocial } from '@/contexts/SocialContext';
 import { Comment } from '@/types/social';
 import { CommentItem } from './comments/CommentItem';
-import { Send } from 'lucide-react';
+import { Send, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '@/components/ui/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -101,17 +101,18 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
   };
   
   return (
-    <div className="bg-background rounded-lg max-w-lg w-full mx-auto overflow-hidden flex flex-col">
-      <div className="p-4 border-b flex justify-between items-center">
+    <div className="bg-background w-full overflow-hidden flex flex-col">
+      <div className="p-3 border-b flex justify-between items-center">
         <h3 className="font-semibold text-lg">Komentarze</h3>
         {onClose && (
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            Zamknij
+          <Button variant="ghost" size="sm" onClick={onClose} type="button">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Zamknij</span>
           </Button>
         )}
       </div>
       
-      <div className="p-4 border-b bg-background">
+      <div className="p-3 border-b bg-background">
         <div className="flex items-end gap-2">
           <Textarea
             value={commentContent}
@@ -132,11 +133,11 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto max-h-[400px] p-4 space-y-2">
+      <div className="overflow-y-auto max-h-[400px] p-3 space-y-2">
         {isLoading ? (
           <div className="flex justify-center p-4">Ładowanie komentarzy...</div>
         ) : comments.length === 0 ? (
-          <div className="text-center py-8 text-rhythm-500">
+          <div className="text-center py-6 text-rhythm-500">
             Brak komentarzy. Napisz pierwszy komentarz!
           </div>
         ) : (

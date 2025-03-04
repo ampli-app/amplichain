@@ -185,6 +185,8 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                   <span>{post.hasSaved ? 'Zapisano' : 'Zapisz'}</span>
                 </Button>
               </div>
+              
+              {/* Komentarze są teraz wyświetlane bezpośrednio w komponencie CommentsDialog */}
             </div>
           </div>
         </motion.div>
