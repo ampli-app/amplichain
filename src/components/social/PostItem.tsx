@@ -204,9 +204,9 @@ export function PostItem({ post, index }: PostItemProps) {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2 }}
-                className="mt-4 overflow-hidden"
+                className="mt-4 overflow-hidden w-full"
               >
-                <div className="border rounded-lg bg-background shadow-sm">
+                <div className="border rounded-lg bg-background shadow-sm w-full">
                   <CommentsSection 
                     postId={post.id} 
                     onClose={toggleComments}

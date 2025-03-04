@@ -100,9 +100,9 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
   
   return (
     <div className={level > 0 ? "pl-4" : ""}>      
-      <div className="flex items-start gap-3 py-2">
-        <div className="flex-1 min-w-0">
-          <div className="glass-card rounded-lg p-3 border">
+      <div className="flex items-start gap-3 py-2 w-full">
+        <div className="flex-1 min-w-0 w-full">
+          <div className="glass-card rounded-lg p-3 border w-full">
             <CommentHeader comment={comment} />
             <CommentContent content={comment.content} />
           </div>

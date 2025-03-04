@@ -101,19 +101,19 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
   };
   
   return (
-    <div className="bg-background w-full overflow-hidden flex flex-col">
-      <div className="p-3 border-b flex justify-between items-center">
+    <div className="bg-background w-full overflow-hidden flex flex-col rounded-lg">
+      <div className="px-4 py-3 border-b flex justify-between items-center">
         <h3 className="font-semibold text-sm">Komentarze</h3>
         {onClose && (
-          <Button variant="ghost" size="sm" onClick={onClose} type="button" className="h-7 w-7 p-0">
+          <Button variant="ghost" size="sm" onClick={onClose} type="button" className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
             <X className="h-4 w-4" />
             <span className="sr-only">Zamknij</span>
           </Button>
         )}
       </div>
       
-      <div className="p-3 border-b bg-background">
-        <div className="flex items-end gap-2">
+      <div className="px-4 py-3 border-b bg-background">
+        <div className="flex items-end gap-2 w-full">
           <Textarea
             value={commentContent}
             onChange={(e) => setCommentContent(e.target.value)}
@@ -133,7 +133,7 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
         </div>
       </div>
       
-      <div className="overflow-y-auto max-h-[300px] p-2 space-y-1">
+      <div className="overflow-y-auto max-h-[300px] px-4 py-2 space-y-2">
         {isLoading ? (
           <div className="flex justify-center p-2 text-sm">Ładowanie komentarzy...</div>
         ) : comments.length === 0 ? (
