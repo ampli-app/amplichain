@@ -34,7 +34,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
   const {
     posts,
     setPosts,
-    loading,
+    loading: postsLoading,
     loadPosts,
     getPostsByHashtag,
     getPopularHashtags,
@@ -46,7 +46,8 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     likePost,
     unlikePost,
     savePost,
-    unsavePost
+    unsavePost,
+    loading: postActionLoading
   } = usePostActions(user, setPosts);
   
   const {
@@ -75,6 +76,9 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
       setCurrentUser(null);
     }
   }, [isLoggedIn, user]);
+
+  // Połącz wszystkie stany ładowania w jeden
+  const loading = postsLoading || postActionLoading;
   
   return (
     <SocialContext.Provider value={{

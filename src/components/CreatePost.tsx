@@ -8,12 +8,11 @@ import { Image, Video, Send, X, User } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 export function CreatePost() {
-  const { currentUser, createPost } = useSocial();
+  const { currentUser, createPost, loading } = useSocial();
   const [content, setContent] = useState('');
   const [mediaUrl, setMediaUrl] = useState<string>('');
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const handleSubmit = async () => {
@@ -27,7 +26,12 @@ export function CreatePost() {
     }
     
     try {
-      setIsSubmitting(true);
+      console.log('Tworzenie posta:', {
+        content,
+        mediaUrl,
+        mediaType
+      });
+      
       await createPost(
         content, 
         mediaUrl || undefined, 
@@ -40,10 +44,6 @@ export function CreatePost() {
       setMediaType(null);
       setIsExpanded(false);
       
-      toast({
-        title: "Sukces",
-        description: "Post został utworzony",
-      });
     } catch (error) {
       console.error("Błąd podczas tworzenia posta:", error);
       toast({
@@ -51,8 +51,6 @@ export function CreatePost() {
         description: "Wystąpił problem podczas tworzenia posta",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
   
@@ -150,9 +148,9 @@ export function CreatePost() {
                 size="sm"
                 className="gap-1.5"
                 onClick={handleSubmit}
-                disabled={isSubmitting || (!content.trim() && !mediaUrl)}
+                disabled={loading || (!content.trim() && !mediaUrl)}
               >
-                {isSubmitting ? "Tworzenie..." : (
+                {loading ? "Tworzenie..." : (
                   <>
                     <Send className="h-4 w-4" />
                     Post

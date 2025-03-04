@@ -26,26 +26,33 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
       
       setLoading(true);
       
+      // Przygotuj dane posta
+      const postData = {
+        user_id: user.id,
+        content,
+        media_url: mediaUrl || null
+      };
+      
+      console.log("Tworzenie posta z danymi:", postData);
+      
       const { data, error } = await supabase
         .from('posts')
-        .insert({
-          user_id: user.id,
-          content,
-          media_url: mediaUrl || null
-        })
+        .insert(postData)
         .select();
       
       if (error) {
         console.error('Error creating post:', error);
         toast({
           title: "Błąd",
-          description: "Nie udało się utworzyć posta",
+          description: "Nie udało się utworzyć posta: " + error.message,
           variant: "destructive",
         });
         return;
       }
       
-      // Odśwież posty poprzez callback
+      console.log("Post utworzony pomyślnie:", data);
+      
+      // Pokaż powiadomienie o sukcesie
       toast({
         title: "Sukces",
         description: "Post został utworzony",
@@ -55,13 +62,20 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
       if (data && data.length > 0) {
         const newPost = data[0];
         
+        // Pobierz dane profilu użytkownika
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('full_name, avatar_url, role')
+          .eq('id', user.id)
+          .maybeSingle();
+        
         const formattedPost: Post = {
           id: newPost.id,
           userId: newPost.user_id,
           author: {
-            name: user.user_metadata?.full_name || '',
-            avatar: user.user_metadata?.avatar_url || '/placeholder.svg',
-            role: user.user_metadata?.role || ''
+            name: profileData?.full_name || user.user_metadata?.full_name || '',
+            avatar: profileData?.avatar_url || user.user_metadata?.avatar_url || '/placeholder.svg',
+            role: profileData?.role || user.user_metadata?.role || ''
           },
           timeAgo: 'przed chwilą',
           content: newPost.content,

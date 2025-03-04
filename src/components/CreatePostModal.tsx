@@ -13,10 +13,9 @@ interface CreatePostModalProps {
 }
 
 export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
-  const { createPost } = useSocial();
+  const { createPost, loading } = useSocial();
   const [content, setContent] = useState('');
   const [media, setMedia] = useState<{ url: string; type: 'image' | 'video' }[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const handleMediaUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,7 +35,7 @@ export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
     Array.from(files).forEach(file => {
       // W prawdziwej aplikacji tutaj byłoby wysyłanie pliku do serwera i pobranie URL
       // Dla potrzeb demonstracji tworzymy tymczasowy URL
-      const type = file.type.startsWith('image/') ? 'image' : 'video';
+      const type = file.type.startsWith('image/') ? 'image' as const : 'video' as const;
       const url = URL.createObjectURL(file);
       
       setMedia(prev => [...prev, { url, type }]);
@@ -63,8 +62,18 @@ export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
     }
     
     try {
-      setIsSubmitting(true);
-      await createPost(content, media[0]?.url, media[0]?.type);
+      console.log('Tworzenie posta z modalu:', {
+        content,
+        mediaUrl: media[0]?.url,
+        mediaType: media[0]?.type
+      });
+      
+      await createPost(
+        content,
+        media[0]?.url,
+        media[0]?.type,
+        media.length > 1 ? media : undefined
+      );
       
       // Resetuj formularz
       setContent('');
@@ -79,8 +88,6 @@ export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
         description: "Wystąpił problem podczas tworzenia posta",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
   
@@ -159,7 +166,7 @@ export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
           <Button
             variant="outline"
             onClick={onClose}
-            disabled={isSubmitting}
+            disabled={loading}
           >
             Anuluj
           </Button>
@@ -167,9 +174,9 @@ export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
             type="button"
             className="gap-1.5"
             onClick={handleSubmit}
-            disabled={isSubmitting || (!content.trim() && media.length === 0)}
+            disabled={loading || (!content.trim() && media.length === 0)}
           >
-            {isSubmitting ? "Tworzenie..." : (
+            {loading ? "Tworzenie..." : (
               <>
                 <Send className="h-4 w-4" />
                 Opublikuj
