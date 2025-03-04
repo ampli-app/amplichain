@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle, ShoppingBag, Briefcase, Headphones } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddProductDialog } from '@/components/AddProductDialog';
+import { AddServiceFormDialog } from '@/components/AddServiceFormDialog';
+import { AddConsultationDialog } from '@/components/AddConsultationDialog';
 import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -66,6 +68,8 @@ export default function Marketplace() {
   const { isLoggedIn } = useAuth();
 
   const [showAddProductDialog, setShowAddProductDialog] = useState(false);
+  const [showAddServiceDialog, setShowAddServiceDialog] = useState(false);
+  const [showAddConsultationDialog, setShowAddConsultationDialog] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("products");
   
@@ -127,11 +131,24 @@ export default function Marketplace() {
     }
   };
 
-  const handleAddProductClick = () => {
-    if (isLoggedIn) {
-      setShowAddProductDialog(true);
-    } else {
+  const handleAddButtonClick = () => {
+    if (!isLoggedIn) {
       setShowAuthDialog(true);
+      return;
+    }
+
+    switch(activeTab) {
+      case "products":
+        setShowAddProductDialog(true);
+        break;
+      case "services":
+        setShowAddServiceDialog(true);
+        break;
+      case "consultations":
+        setShowAddConsultationDialog(true);
+        break;
+      default:
+        setShowAddProductDialog(true);
     }
   };
 
@@ -165,7 +182,7 @@ export default function Marketplace() {
             
             <Button 
               className="self-center md:self-auto gap-2"
-              onClick={handleAddProductClick}
+              onClick={handleAddButtonClick}
               size="lg"
             >
               <PlusCircle className="h-4 w-4" />
@@ -211,7 +228,7 @@ export default function Marketplace() {
                 products={products}
                 loading={loading}
                 isLoggedIn={isLoggedIn}
-                handleAddProductClick={handleAddProductClick}
+                handleAddProductClick={handleAddButtonClick}
                 productConditions={productConditions}
                 conditionMap={conditionMap}
               />
@@ -233,6 +250,16 @@ export default function Marketplace() {
       <AddProductDialog 
         open={showAddProductDialog} 
         onOpenChange={setShowAddProductDialog} 
+      />
+      
+      <AddServiceFormDialog
+        open={showAddServiceDialog}
+        onOpenChange={setShowAddServiceDialog}
+      />
+      
+      <AddConsultationDialog
+        open={showAddConsultationDialog}
+        onOpenChange={setShowAddConsultationDialog}
       />
       
       <AuthRequiredDialog 
