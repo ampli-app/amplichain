@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Post, Comment } from '@/types/social';
+import { Profile } from '@/types/messages';
 
 export const useCommentActions = (user: any | null, setPosts: React.Dispatch<React.SetStateAction<Post[]>>) => {
   const [loading, setLoading] = useState(false);
@@ -130,8 +131,12 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
             timeAgo = `${Math.floor(diffInSeconds / 86400)} dni temu`;
           }
           
-          // Ensure profileData is properly extracted and defaulted
-          const profileData = comment.profiles || {};
+          // Ensure profileData is properly typed using Profile interface
+          const profileData = comment.profiles as Profile || {
+            full_name: '',
+            avatar_url: '/placeholder.svg',
+            role: ''
+          };
           
           return {
             id: comment.id,
