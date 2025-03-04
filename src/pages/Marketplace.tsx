@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -79,6 +80,15 @@ export default function Marketplace() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    
+    // Sprawdź czy w URL jest parametr tab i ustaw odpowiednią zakładkę
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    
+    if (tabParam && ['products', 'services', 'consultations'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+    
     fetchProducts();
     fetchCategories();
   }, []);
@@ -155,6 +165,11 @@ export default function Marketplace() {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Aktualizuj URL z parametrem tab
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', value);
+    window.history.pushState({}, '', url);
   };
 
   const getAddButtonText = () => {
