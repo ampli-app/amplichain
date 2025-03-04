@@ -7,6 +7,7 @@ import { CommentContent } from './CommentContent';
 import { CommentActions } from './CommentActions';
 import { CommentReplyForm } from './CommentReplyForm';
 import { CommentReplies } from './CommentReplies';
+import { toast } from '@/components/ui/use-toast';
 
 interface CommentItemProps {
   comment: Comment;
@@ -60,13 +61,24 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
         if (fetchedReplies && Array.isArray(fetchedReplies)) {
           setReplies(fetchedReplies);
           setRepliesLoaded(true);
+          setShowReplies(true); // Automatically show replies after loading
         } else {
           console.error("Invalid replies data received");
           setReplies([]);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się załadować odpowiedzi",
+            variant: "destructive"
+          });
         }
       } catch (err) {
         console.error("Błąd podczas ładowania odpowiedzi:", err);
         setReplies([]);
+        toast({
+          title: "Błąd",
+          description: "Wystąpił błąd podczas ładowania odpowiedzi",
+          variant: "destructive"
+        });
       }
     }
   };
@@ -74,8 +86,9 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
   const toggleReplies = async () => {
     if (!repliesLoaded && !showReplies) {
       await loadReplies();
+    } else {
+      setShowReplies(!showReplies);
     }
-    setShowReplies(!showReplies);
   };
   
   return (
