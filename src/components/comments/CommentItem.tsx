@@ -54,11 +54,19 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
   const loadReplies = async () => {
     if (comment.replies > 0) {
       try {
+        console.log("Loading replies for comment:", comment.id);
         const fetchedReplies = await getPostComments(comment.postId, comment.id);
-        setReplies(fetchedReplies);
-        setRepliesLoaded(true);
+        console.log("Fetched replies:", fetchedReplies);
+        if (fetchedReplies && Array.isArray(fetchedReplies)) {
+          setReplies(fetchedReplies);
+          setRepliesLoaded(true);
+        } else {
+          console.error("Invalid replies data received");
+          setReplies([]);
+        }
       } catch (err) {
         console.error("Błąd podczas ładowania odpowiedzi:", err);
+        setReplies([]);
       }
     }
   };
