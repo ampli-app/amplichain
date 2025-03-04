@@ -155,35 +155,37 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                 </div>
               )}
               
-              <div className="flex items-center gap-2 mt-4">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className={`flex items-center gap-1.5 h-8 px-2.5 ${post.hasLiked ? 'text-red-500' : ''}`}
-                  onClick={() => handleLikeToggle(post)}
-                  disabled={loading}
-                  type="button"
-                >
-                  <Heart className={`h-4 w-4 ${post.hasLiked ? 'fill-red-500' : ''}`} />
-                  <span>{post.likes}</span>
-                </Button>
-                
-                <CommentsDialog 
-                  postId={post.id}
-                  commentsCount={post.comments}
-                />
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className={`flex items-center gap-1.5 h-8 px-2.5 ${post.hasSaved ? 'text-primary' : ''}`}
-                  onClick={() => handleSaveToggle(post)}
-                  disabled={loading}
-                  type="button"
-                >
-                  <Bookmark className={`h-4 w-4 ${post.hasSaved ? 'fill-primary' : ''}`} />
-                  <span>{post.hasSaved ? 'Zapisano' : 'Zapisz'}</span>
-                </Button>
+              <div className="flex items-center justify-between mt-4 border-t pt-3">
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={`flex items-center gap-1.5 h-8 px-2.5 ${post.hasLiked ? 'text-red-500' : ''}`}
+                    onClick={() => handleLikeToggle(post)}
+                    disabled={loading}
+                    type="button"
+                  >
+                    <Heart className={`h-4 w-4 ${post.hasLiked ? 'fill-red-500' : ''}`} />
+                    <span>{post.likes}</span>
+                  </Button>
+                  
+                  <CommentsDialog 
+                    postId={post.id}
+                    commentsCount={post.comments}
+                  />
+                  
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={`flex items-center gap-1.5 h-8 px-2.5 ${post.hasSaved ? 'text-primary' : ''}`}
+                    onClick={() => handleSaveToggle(post)}
+                    disabled={loading}
+                    type="button"
+                  >
+                    <Bookmark className={`h-4 w-4 ${post.hasSaved ? 'fill-primary' : ''}`} />
+                    <span>{post.hasSaved ? 'Zapisano' : 'Zapisz'}</span>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

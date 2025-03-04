@@ -103,9 +103,9 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
   return (
     <div className="bg-background w-full overflow-hidden flex flex-col">
       <div className="p-3 border-b flex justify-between items-center">
-        <h3 className="font-semibold text-lg">Komentarze</h3>
+        <h3 className="font-semibold text-sm">Komentarze</h3>
         {onClose && (
-          <Button variant="ghost" size="sm" onClick={onClose} type="button">
+          <Button variant="ghost" size="sm" onClick={onClose} type="button" className="h-7 w-7 p-0">
             <X className="h-4 w-4" />
             <span className="sr-only">Zamknij</span>
           </Button>
@@ -118,26 +118,26 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
             value={commentContent}
             onChange={(e) => setCommentContent(e.target.value)}
             placeholder="Napisz komentarz..."
-            className="flex-1 min-h-[60px]"
+            className="flex-1 min-h-[50px] text-sm"
             disabled={loading}
           />
           <Button
             onClick={handleSubmitComment}
             disabled={!commentContent.trim() || loading}
             size="icon"
-            className="h-10 w-10 flex-shrink-0"
+            className="h-8 w-8 flex-shrink-0"
             type="button"
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
       
-      <div className="overflow-y-auto max-h-[400px] p-3 space-y-2">
+      <div className="overflow-y-auto max-h-[300px] p-2 space-y-1">
         {isLoading ? (
-          <div className="flex justify-center p-4">Ładowanie komentarzy...</div>
+          <div className="flex justify-center p-2 text-sm">Ładowanie komentarzy...</div>
         ) : comments.length === 0 ? (
-          <div className="text-center py-6 text-rhythm-500">
+          <div className="text-center py-4 text-rhythm-500 text-sm">
             Brak komentarzy. Napisz pierwszy komentarz!
           </div>
         ) : (
@@ -148,10 +148,10 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.2 }}
               >
                 <CommentItem comment={comment} />
-                <Separator className="my-2" />
+                <Separator className="my-1" />
               </motion.div>
             ))}
           </AnimatePresence>

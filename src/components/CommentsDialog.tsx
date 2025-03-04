@@ -49,4 +49,5 @@ export function CommentsDialog({ postId, commentsCount }: CommentsDialogProps) {
       </AnimatePresence>
     </div>
   );
+
 }
