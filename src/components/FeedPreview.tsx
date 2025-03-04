@@ -29,10 +29,7 @@ export function FeedPreview() {
         
         const { data: postsData, error: postsError } = await supabase
           .from('posts')
-          .select(`
-            *,
-            profiles:user_id (*)
-          `)
+          .select('*')
           .order('created_at', { ascending: false })
           .limit(3);
         
@@ -43,6 +40,32 @@ export function FeedPreview() {
         
         const formattedPosts = await Promise.all(
           (postsData || []).map(async (post) => {
+            // Pobierz profil użytkownika
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('full_name, avatar_url, role')
+              .eq('id', post.user_id)
+              .maybeSingle();
+            
+            if (profileError) {
+              console.error('Error fetching user profile:', profileError);
+            }
+            
+            // Bezpiecznie dostępujemy do danych profilu
+            // Tworzymy domyślny pusty profil na wypadek błędu
+            const userProfile = {
+              full_name: '',
+              avatar_url: '/placeholder.svg',
+              role: ''
+            };
+            
+            // Jeśli mamy dane profileData i nie jest to błąd, to używamy tych danych
+            if (profileData && !profileError) {
+              userProfile.full_name = profileData.full_name || '';
+              userProfile.avatar_url = profileData.avatar_url || '/placeholder.svg';
+              userProfile.role = profileData.role || '';
+            }
+            
             // Pobierz liczbę polubień posta
             const { count: likesCount } = await supabase
               .from('post_likes')
@@ -69,7 +92,7 @@ export function FeedPreview() {
               `)
               .eq('post_id', post.id);
             
-            const hashtags = tagData ? tagData.map((t) => t.hashtags.name) : [];
+            const hashtags = tagData ? tagData.map((t) => t.hashtags?.name).filter(Boolean) : [];
             
             // Oblicz czas względny
             const createdDate = new Date(post.created_at);
@@ -87,16 +110,13 @@ export function FeedPreview() {
               timeAgo = `${Math.floor(diffInSeconds / 86400)} dni temu`;
             }
             
-            // Utwórz profil użytkownika z danych
-            const userProfile = post.profiles || { full_name: '', avatar_url: '/placeholder.svg', role: '' };
-            
             return {
               id: post.id,
               userId: post.user_id,
               author: {
-                name: userProfile.full_name || '',
-                avatar: userProfile.avatar_url || '/placeholder.svg',
-                role: userProfile.role || '',
+                name: userProfile.full_name,
+                avatar: userProfile.avatar_url,
+                role: userProfile.role,
               },
               timeAgo,
               content: post.content,
