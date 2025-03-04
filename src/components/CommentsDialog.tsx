@@ -14,7 +14,7 @@ export function CommentsDialog({ postId, commentsCount }: CommentsDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="relative">
+    <div className="w-full">
       <Button 
         variant="ghost" 
         size="sm" 
@@ -36,9 +36,9 @@ export function CommentsDialog({ postId, commentsCount }: CommentsDialogProps) {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="w-full overflow-hidden mt-2"
+            className="mt-3 overflow-hidden"
           >
-            <div className="border rounded-lg bg-background overflow-hidden">
+            <div className="border rounded-lg bg-background shadow-sm">
               <CommentsSection 
                 postId={postId} 
                 onClose={() => setIsOpen(false)} 
