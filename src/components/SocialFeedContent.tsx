@@ -146,6 +146,7 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                       key={tag} 
                       to={`/hashtag/${tag}`}
                       className="text-sm text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()} // Zapobiegaj propagacji zdarzenia
                     >
                       #{tag}
                     </Link>
@@ -160,6 +161,7 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                   className={`flex items-center gap-1 h-8 px-2 ${post.hasLiked ? 'text-red-500' : ''}`}
                   onClick={() => handleLikeToggle(post)}
                   disabled={loading}
+                  type="button"
                 >
                   <Heart className={`h-4 w-4 ${post.hasLiked ? 'fill-red-500' : ''}`} />
                   <span>{post.likes}</span>
@@ -176,6 +178,7 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                   className={`flex items-center gap-1 h-8 px-2 ${post.hasSaved ? 'text-primary' : ''}`}
                   onClick={() => handleSaveToggle(post)}
                   disabled={loading}
+                  type="button"
                 >
                   <Bookmark className={`h-4 w-4 ${post.hasSaved ? 'fill-primary' : ''}`} />
                   <span>{post.hasSaved ? 'Zapisano' : 'Zapisz'}</span>
