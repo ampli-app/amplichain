@@ -35,6 +35,14 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
       const fetchedComments = await getPostComments(postId);
       console.log("Pobrane komentarze:", fetchedComments);
       setComments(fetchedComments);
+      
+      // Only show error toast if no comments were fetched
+      if (fetchedComments.length === 0) {
+        toast({
+          title: "Informacja",
+          description: "Brak komentarzy dla tego posta.",
+        });
+      }
     } catch (err) {
       console.error("Błąd podczas ładowania komentarzy:", err);
       toast({
