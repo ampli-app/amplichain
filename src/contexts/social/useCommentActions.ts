@@ -144,9 +144,9 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
             parentId: comment.parent_id,
             userId: comment.user_id,
             author: {
-              name: profileData.full_name || '',
-              avatar: profileData.avatar_url || '/placeholder.svg',
-              role: profileData.role || '',
+              name: profileData?.full_name || '',
+              avatar: profileData?.avatar_url || '/placeholder.svg',
+              role: profileData?.role || '',
             },
             content: comment.content,
             createdAt: comment.created_at,
