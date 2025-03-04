@@ -1,3 +1,4 @@
+
 export interface Conversation {
   id: string;
   created_at: string;
@@ -46,6 +47,12 @@ export interface Product {
   title: string;
   price: number;
   image_url: string | null;
+  description: string | null;
+  category: string | null;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  location: string | null;
 }
 
 export interface Service {
