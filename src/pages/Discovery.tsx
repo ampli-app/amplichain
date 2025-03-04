@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -36,25 +37,10 @@ import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { useUser } from '@/contexts/UserContext';
 import { useToast } from '@/components/ui/use-toast';
 import { CreatePostModal } from '@/components/CreatePostModal';
 import { SocialFeedContent } from '@/components/social/SocialFeedContent';
-
-interface Post {
-  id: string;
-  content: string;
-  created_at: string;
-  likes: number;
-  user_id: string;
-  media_url: string | null;
-  author: {
-    avatar_url: string | null;
-    full_name: string | null;
-    id: string | null;
-  };
-  comments: number;
-}
+import { Post } from '@/types/social';
 
 interface UserProfile {
   id: string;
@@ -95,6 +81,7 @@ export default function Discovery() {
   const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const { posts: socialPosts } = useSocial();
   
   useEffect(() => {
     const fetchPosts = async () => {
@@ -105,8 +92,26 @@ export default function Discovery() {
           .select('*')
           .order('created_at', { ascending: false });
         if (error) throw error;
-        setPosts(data);
-      } catch (error) {
+        
+        // Transform the raw post data to match Post type
+        const transformedPosts: Post[] = (data || []).map(post => ({
+          id: post.id,
+          userId: post.user_id,
+          author: {
+            name: 'Loading...', // Will be populated later
+            avatar: '/placeholder.svg',
+            role: ''
+          },
+          timeAgo: calculateTimeAgo(post.created_at),
+          content: post.content,
+          mediaUrl: post.media_url || undefined,
+          likes: 0,
+          comments: 0,
+          hashtags: []
+        }));
+        
+        setPosts(transformedPosts);
+      } catch (error: any) {
         setError(error.message);
       } finally {
         setLoading(false);
@@ -123,8 +128,23 @@ export default function Discovery() {
         .select('*');
       if (error) {
         console.error('Error fetching profiles:', error);
-      } else {
-        setProfiles(data);
+      } else if (data) {
+        // Transform the data to match UserProfile type
+        const transformedProfiles: UserProfile[] = data.map(profile => ({
+          id: profile.id,
+          full_name: profile.full_name || '',
+          username: profile.username || '',
+          avatar_url: profile.avatar_url || '',
+          role: profile.role || '',
+          bio: profile.bio || '',
+          website: profile.website || '',
+          location: profile.location || '',
+          created_at: profile.joined_date || '',
+          updated_at: profile.updated_at || '',
+          email: '' // This field might not be in your profiles table, but required by UserProfile
+        }));
+        
+        setProfiles(transformedProfiles);
       }
     };
 
@@ -142,7 +162,13 @@ export default function Discovery() {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
-            <SocialFeedContent />
+            {socialPosts && socialPosts.length > 0 ? (
+              <SocialFeedContent posts={socialPosts} />
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500">Ładowanie postów...</p>
+              </div>
+            )}
           </div>
           
           <div className="space-y-6">

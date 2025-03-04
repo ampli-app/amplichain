@@ -1,7 +1,8 @@
+
 import { Post } from '@/types/social';
 import { PostItem } from './PostItem';
 
-interface SocialFeedContentProps {
+export interface SocialFeedContentProps {
   posts: Post[];
 }
 
