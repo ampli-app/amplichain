@@ -36,6 +36,7 @@ export interface Comment {
   likes: number;
   replies: number;
   hasLiked?: boolean;
+  isOptimistic?: boolean;
 }
 
 export interface Hashtag {

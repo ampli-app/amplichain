@@ -10,6 +10,8 @@ import { Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '@/components/ui/use-toast';
 import { DialogTitle } from '@/components/ui/dialog';
+import { formatDistanceToNow } from 'date-fns';
+import { pl } from 'date-fns/locale';
 
 interface CommentsSectionProps {
   postId: string;
@@ -64,6 +66,7 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
         hasLiked: false,
         replies: 0,
         createdAt: new Date().toISOString(),
+        timeAgo: formatDistanceToNow(new Date(), { addSuffix: true, locale: pl }),
         isOptimistic: true
       };
       

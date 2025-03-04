@@ -1,13 +1,26 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Post, Comment } from '@/types/social';
+import { formatDistanceToNow } from 'date-fns';
+import { pl } from 'date-fns/locale';
 
 export const useCommentActions = (user: any | null, setPosts: React.Dispatch<React.SetStateAction<Post[]>>) => {
   const [loading, setLoading] = useState(false);
 
-  const commentOnPost = async (postId: string, content: string) => {
+  const formatTimeAgo = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), {
+        addSuffix: true,
+        locale: pl
+      });
+    } catch (err) {
+      console.error('Błąd formatowania daty:', err);
+      return 'jakiś czas temu';
+    }
+  };
+
+  const commentOnPost = async (postId: string, content: string, parentId?: string) => {
     try {
       if (!user) {
         toast({
@@ -27,7 +40,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
           post_id: postId,
           user_id: user.id,
           content,
-          parent_id: null, // komentarz najwyższego poziomu
+          parent_id: parentId || null,
         })
         .select();
       
@@ -54,8 +67,6 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         title: "Sukces",
         description: "Komentarz został dodany",
       });
-      
-      return data[0];
     } catch (err) {
       console.error('Unexpected error adding comment:', err);
       toast({
@@ -166,16 +177,16 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
     }
   };
 
-  const getPostComments = async (postId: string): Promise<Comment[]> => {
+  const getPostComments = async (postId: string, parentId?: string): Promise<Comment[]> => {
     try {
       console.log("Fetching comments for post:", postId);
       
-      // Pobierz komentarze główne (parent_id is null)
+      // Pobierz komentarze główne (parent_id is null) lub odpowiedzi do konkretnego komentarza
       const { data: commentsData, error: commentsError } = await supabase
         .from('comments')
         .select('*')
         .eq('post_id', postId)
-        .eq('parent_id', null)
+        .eq('parent_id', parentId)
         .order('created_at', { ascending: true });
       
       if (commentsError) {
@@ -204,7 +215,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
       }
       
       // Utwórz mapę profilów dla szybkiego dostępu
-      const profilesMap = profilesData.reduce((map, profile) => {
+      const profilesMap = profilesData.reduce((map: any, profile: any) => {
         map[profile.id] = profile;
         return map;
       }, {});
@@ -227,7 +238,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
       );
       
       // Utwórz mapę liczby polubień
-      const likesMap = likesCounts.reduce((map, item) => {
+      const likesMap = likesCounts.reduce((map: any, item: any) => {
         map[item.commentId] = item.count;
         return map;
       }, {});
@@ -251,7 +262,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
       ) : [];
       
       // Utwórz mapę polubień użytkownika
-      const userLikesMap = userLikes.reduce((map, item) => {
+      const userLikesMap = userLikes.reduce((map: any, item: any) => {
         map[item.commentId] = item.liked;
         return map;
       }, {});
@@ -274,7 +285,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
       );
       
       // Utwórz mapę liczby odpowiedzi
-      const repliesMap = repliesCounts.reduce((map, item) => {
+      const repliesMap = repliesCounts.reduce((map: any, item: any) => {
         map[item.commentId] = item.count;
         return map;
       }, {});
@@ -294,6 +305,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
           userId: comment.user_id,
           parentId: comment.parent_id,
           createdAt: comment.created_at,
+          timeAgo: formatTimeAgo(comment.created_at),
           author: {
             name: profile.full_name,
             avatar: profile.avatar_url || '/placeholder.svg',
