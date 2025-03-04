@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSocial } from '@/contexts/SocialContext';
 import { CommentsDialog } from '@/components/CommentsDialog';
 import { Link } from 'react-router-dom';
@@ -20,56 +20,101 @@ export function FeedPreview() {
   const { likePost, unlikePost, savePost, unsavePost, loading: socialLoading } = useSocial();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingPostIds, setLoadingPostIds] = useState<Set<string>>(new Set());
   
-  const handleLikeToggle = (post: Post) => {
-    if (socialLoading) return;
+  const isPostLoading = (postId: string) => loadingPostIds.has(postId) || socialLoading;
+  
+  const handleLikeToggle = async (post: Post) => {
+    if (isPostLoading(post.id)) return;
     
-    if (post.hasLiked) {
-      unlikePost(post.id);
-      // Optymistyczna aktualizacja UI
+    // Optymistyczna aktualizacja UI
+    setPosts(prevPosts => 
+      prevPosts.map(p => 
+        p.id === post.id 
+          ? { 
+              ...p, 
+              hasLiked: !p.hasLiked, 
+              likes: p.hasLiked ? Math.max(0, p.likes - 1) : p.likes + 1 
+            } 
+          : p
+      )
+    );
+    
+    setLoadingPostIds(prev => {
+      const newSet = new Set(prev);
+      newSet.add(post.id);
+      return newSet;
+    });
+    
+    try {
+      if (post.hasLiked) {
+        await unlikePost(post.id);
+      } else {
+        await likePost(post.id);
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      // Cofnij optymistyczną aktualizację w przypadku błędu
       setPosts(prevPosts => 
         prevPosts.map(p => 
           p.id === post.id 
-            ? { ...p, hasLiked: false, likes: Math.max(0, p.likes - 1) } 
+            ? { 
+                ...p, 
+                hasLiked: post.hasLiked, 
+                likes: post.hasLiked ? p.likes + 1 : Math.max(0, p.likes - 1) 
+              } 
             : p
         )
       );
-    } else {
-      likePost(post.id);
-      // Optymistyczna aktualizacja UI
-      setPosts(prevPosts => 
-        prevPosts.map(p => 
-          p.id === post.id 
-            ? { ...p, hasLiked: true, likes: p.likes + 1 } 
-            : p
-        )
-      );
+    } finally {
+      setLoadingPostIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(post.id);
+        return newSet;
+      });
     }
   };
   
-  const handleSaveToggle = (post: Post) => {
-    if (socialLoading) return;
+  const handleSaveToggle = async (post: Post) => {
+    if (isPostLoading(post.id)) return;
     
-    if (post.hasSaved) {
-      unsavePost(post.id);
-      // Optymistyczna aktualizacja UI
+    // Optymistyczna aktualizacja UI
+    setPosts(prevPosts => 
+      prevPosts.map(p => 
+        p.id === post.id 
+          ? { ...p, hasSaved: !p.hasSaved } 
+          : p
+      )
+    );
+    
+    setLoadingPostIds(prev => {
+      const newSet = new Set(prev);
+      newSet.add(post.id);
+      return newSet;
+    });
+    
+    try {
+      if (post.hasSaved) {
+        await unsavePost(post.id);
+      } else {
+        await savePost(post.id);
+      }
+    } catch (error) {
+      console.error('Error toggling save:', error);
+      // Cofnij optymistyczną aktualizację w przypadku błędu
       setPosts(prevPosts => 
         prevPosts.map(p => 
           p.id === post.id 
-            ? { ...p, hasSaved: false, saves: Math.max(0, p.saves - 1) } 
+            ? { ...p, hasSaved: post.hasSaved } 
             : p
         )
       );
-    } else {
-      savePost(post.id);
-      // Optymistyczna aktualizacja UI
-      setPosts(prevPosts => 
-        prevPosts.map(p => 
-          p.id === post.id 
-            ? { ...p, hasSaved: true, saves: p.saves + 1 } 
-            : p
-        )
-      );
+    } finally {
+      setLoadingPostIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(post.id);
+        return newSet;
+      });
     }
   };
   
@@ -232,12 +277,13 @@ export function FeedPreview() {
       {loading ? (
         <div className="text-center py-8">Ładowanie postów...</div>
       ) : posts.length > 0 ? (
-        <>
+        <AnimatePresence>
           {posts.map((post, index) => (
             <motion.div
               key={post.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
               className="glass-card rounded-xl p-6 border w-full"
             >
@@ -264,7 +310,7 @@ export function FeedPreview() {
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full flex-shrink-0">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full flex-shrink-0" type="button">
                           <span className="sr-only">Więcej opcji</span>
                           <MoreHorizontal className="h-5 w-5" />
                         </Button>
@@ -300,6 +346,7 @@ export function FeedPreview() {
                           key={tag} 
                           to={`/hashtag/${tag}`}
                           className="text-sm text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           #{tag}
                         </Link>
@@ -311,11 +358,12 @@ export function FeedPreview() {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className={`flex items-center gap-1 h-8 px-2 ${post.hasLiked ? 'text-red-500' : ''}`}
+                      className={`flex items-center gap-1 h-8 px-2 ${post.hasLiked ? 'text-red-500' : ''} ${isPostLoading(post.id) ? 'opacity-50' : ''}`}
                       onClick={() => handleLikeToggle(post)}
-                      disabled={socialLoading}
+                      disabled={isPostLoading(post.id)}
+                      type="button"
                     >
-                      <Heart className={`h-4 w-4 ${post.hasLiked ? 'fill-red-500' : ''}`} />
+                      <Heart className={`h-4 w-4 transition-all ${post.hasLiked ? 'fill-red-500 scale-110' : ''}`} />
                       <span>{post.likes}</span>
                     </Button>
                     
@@ -327,11 +375,12 @@ export function FeedPreview() {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className={`flex items-center gap-1 h-8 px-2 ${post.hasSaved ? 'text-primary' : ''}`}
+                      className={`flex items-center gap-1 h-8 px-2 ${post.hasSaved ? 'text-primary' : ''} ${isPostLoading(post.id) ? 'opacity-50' : ''}`}
                       onClick={() => handleSaveToggle(post)}
-                      disabled={socialLoading}
+                      disabled={isPostLoading(post.id)}
+                      type="button"
                     >
-                      <Bookmark className={`h-4 w-4 ${post.hasSaved ? 'fill-primary' : ''}`} />
+                      <Bookmark className={`h-4 w-4 transition-all ${post.hasSaved ? 'fill-primary scale-110' : ''}`} />
                       <span>{post.hasSaved ? 'Zapisano' : 'Zapisz'}</span>
                     </Button>
                   </div>
@@ -339,7 +388,7 @@ export function FeedPreview() {
               </div>
             </motion.div>
           ))}
-        </>
+        </AnimatePresence>
       ) : (
         <div className="text-center py-8">
           <p className="text-gray-500 mb-4">Nie znaleziono żadnych postów do wyświetlenia</p>

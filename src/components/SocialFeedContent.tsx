@@ -1,4 +1,5 @@
 
+import React, { useState, useEffect } from 'react';
 import { User, Calendar, Heart, MessageCircle, Bookmark, MoreHorizontal } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSocial } from '@/contexts/SocialContext';
 import { CommentsDialog } from '@/components/CommentsDialog';
 import { Link } from 'react-router-dom';

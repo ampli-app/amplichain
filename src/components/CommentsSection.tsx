@@ -7,7 +7,7 @@ import { useSocial } from '@/contexts/SocialContext';
 import { Comment } from '@/types/social';
 import { CommentItem } from './CommentItem';
 import { Send } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '@/components/ui/use-toast';
 import { DialogTitle } from '@/components/ui/dialog';
 
@@ -49,16 +49,37 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
     if (!commentContent.trim() || loading) return;
     
     try {
-      await commentOnPost(postId, commentContent);
+      // Dodanie optymistycznego komentarza do UI
+      const optimisticComment: Comment = {
+        id: 'temp-' + Date.now(),
+        content: commentContent,
+        postId,
+        userId: 'current-user', // będzie zastąpione właściwym ID
+        author: {
+          name: 'Ty',
+          avatar: '/placeholder.svg',
+          role: ''
+        },
+        likes: 0,
+        hasLiked: false,
+        replies: 0,
+        createdAt: new Date().toISOString(),
+        isOptimistic: true
+      };
+      
+      setComments(prev => [optimisticComment, ...prev]);
+      const content = commentContent;
       setCommentContent('');
-      // Odśwież komentarze
+      
+      await commentOnPost(postId, content);
+      // Po udanym dodaniu, odświeżamy listę komentarzy
       await loadComments();
-      toast({
-        title: "Sukces",
-        description: "Komentarz został dodany",
-      });
     } catch (err) {
       console.error("Błąd podczas dodawania komentarza:", err);
+      // Usuwamy optymistyczny komentarz w przypadku błędu
+      setComments(prev => prev.filter(c => !c.isOptimistic));
+      setCommentContent(commentContent);
+      
       toast({
         title: "Błąd",
         description: "Nie udało się dodać komentarza",
@@ -86,17 +107,20 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
             Brak komentarzy. Napisz pierwszy komentarz!
           </div>
         ) : (
-          comments.map((comment) => (
-            <motion.div
-              key={comment.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <CommentItem comment={comment} />
-              <Separator className="my-2" />
-            </motion.div>
-          ))
+          <AnimatePresence>
+            {comments.map((comment) => (
+              <motion.div
+                key={comment.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <CommentItem comment={comment} />
+                <Separator className="my-2" />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         )}
       </div>
       
@@ -114,6 +138,7 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
             disabled={!commentContent.trim() || loading}
             size="icon"
             className="h-10 w-10 flex-shrink-0"
+            type="button"
           >
             <Send className="h-4 w-4" />
           </Button>

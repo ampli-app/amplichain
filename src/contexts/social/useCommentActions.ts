@@ -3,13 +3,11 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Post, Comment } from '@/types/social';
-import { Profile } from '@/types/messages';
 
 export const useCommentActions = (user: any | null, setPosts: React.Dispatch<React.SetStateAction<Post[]>>) => {
   const [loading, setLoading] = useState(false);
 
-  // Funkcja do dodawania komentarza do posta
-  const commentOnPost = async (postId: string, content: string, parentId?: string): Promise<void> => {
+  const commentOnPost = async (postId: string, content: string) => {
     try {
       if (!user) {
         toast({
@@ -22,18 +20,16 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
       
       setLoading(true);
       
-      const commentData = {
-        post_id: postId,
-        user_id: user.id,
-        content,
-        parent_id: parentId || null
-      };
-      
-      console.log("Dodawanie komentarza:", commentData);
-      
-      const { error } = await supabase
+      // Dodaj komentarz do bazy danych
+      const { data, error } = await supabase
         .from('comments')
-        .insert(commentData);
+        .insert({
+          post_id: postId,
+          user_id: user.id,
+          content,
+          parent_id: null, // komentarz najwyższego poziomu
+        })
+        .select();
       
       if (error) {
         console.error('Error adding comment:', error);
@@ -45,19 +41,21 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         return;
       }
       
-      // Aktualizuj stan lokalny - zwiększ licznik komentarzy posta
+      console.log("Komentarz dodany pomyślnie:", data);
+      
+      // Aktualizuj liczbę komentarzy w lokalnym stanie postów
       setPosts(prevPosts => 
         prevPosts.map(post => 
-          post.id === postId 
-            ? { ...post, comments: post.comments + 1 } 
-            : post
+          post.id === postId ? { ...post, comments: post.comments + 1 } : post
         )
       );
       
       toast({
         title: "Sukces",
-        description: parentId ? "Odpowiedź została dodana" : "Komentarz został dodany",
+        description: "Komentarz został dodany",
       });
+      
+      return data[0];
     } catch (err) {
       console.error('Unexpected error adding comment:', err);
       toast({
@@ -70,133 +68,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
     }
   };
 
-  // Funkcja do pobierania komentarzy do posta
-  const getPostComments = async (postId: string, parentId?: string): Promise<Comment[]> => {
-    try {
-      setLoading(true);
-      
-      // Pobierz komentarze
-      let query = supabase
-        .from('comments')
-        .select('*')
-        .eq('post_id', postId)
-        .order('created_at', { ascending: true });
-      
-      if (parentId) {
-        query = query.eq('parent_id', parentId);
-      } else {
-        query = query.is('parent_id', null);
-      }
-      
-      const { data: commentsData, error: commentsError } = await query;
-      
-      if (commentsError) {
-        console.error('Error fetching comments:', commentsError);
-        return [];
-      }
-      
-      console.log("Pobrane surowe komentarze:", commentsData);
-      
-      if (!commentsData || commentsData.length === 0) {
-        return [];
-      }
-      
-      // Pobierz dane profilowe dla wszystkich autorów komentarzy w jednym zapytaniu
-      const userIds = [...new Set(commentsData.map(comment => comment.user_id))];
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url, role')
-        .in('id', userIds);
-      
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-      }
-      
-      // Utwórz mapę profili dla szybkiego dostępu
-      const profilesMap = new Map();
-      profilesData?.forEach(profile => {
-        profilesMap.set(profile.id, profile);
-      });
-      
-      const commentsWithMetadata: Comment[] = await Promise.all(
-        (commentsData || []).map(async (comment) => {
-          // Pobierz liczbę polubień komentarza
-          const { count: likesCount } = await supabase
-            .from('comment_likes')
-            .select('*', { count: 'exact', head: true })
-            .eq('comment_id', comment.id);
-          
-          // Pobierz liczbę odpowiedzi na komentarz
-          const { count: repliesCount } = await supabase
-            .from('comments')
-            .select('*', { count: 'exact', head: true })
-            .eq('parent_id', comment.id);
-          
-          // Sprawdź, czy zalogowany użytkownik polubił komentarz
-          let hasLiked = false;
-          
-          if (user) {
-            const { data: likeData } = await supabase
-              .from('comment_likes')
-              .select('*')
-              .eq('comment_id', comment.id)
-              .eq('user_id', user.id)
-              .maybeSingle();
-            
-            hasLiked = !!likeData;
-          }
-          
-          // Oblicz czas względny
-          const createdDate = new Date(comment.created_at);
-          const now = new Date();
-          const diffInSeconds = Math.floor((now.getTime() - createdDate.getTime()) / 1000);
-          
-          let timeAgo;
-          if (diffInSeconds < 60) {
-            timeAgo = `${diffInSeconds} sek. temu`;
-          } else if (diffInSeconds < 3600) {
-            timeAgo = `${Math.floor(diffInSeconds / 60)} min. temu`;
-          } else if (diffInSeconds < 86400) {
-            timeAgo = `${Math.floor(diffInSeconds / 3600)} godz. temu`;
-          } else {
-            timeAgo = `${Math.floor(diffInSeconds / 86400)} dni temu`;
-          }
-          
-          // Znajdź profil autora komentarza
-          const profile = profilesMap.get(comment.user_id);
-          
-          return {
-            id: comment.id,
-            postId: comment.post_id,
-            parentId: comment.parent_id,
-            userId: comment.user_id,
-            author: {
-              name: profile?.full_name || 'Nieznany użytkownik',
-              avatar: profile?.avatar_url || '/placeholder.svg',
-              role: profile?.role || '',
-            },
-            content: comment.content,
-            createdAt: comment.created_at,
-            timeAgo,
-            likes: likesCount || 0,
-            replies: repliesCount || 0,
-            hasLiked
-          };
-        })
-      );
-      
-      console.log("Przetworzone komentarze:", commentsWithMetadata);
-      return commentsWithMetadata;
-    } catch (err) {
-      console.error('Unexpected error fetching comments:', err);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Funkcja do polubienia komentarza
-  const likeComment = async (commentId: string): Promise<void> => {
+  const likeComment = async (commentId: string) => {
     try {
       if (!user) {
         toast({
@@ -217,7 +89,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         });
       
       if (error) {
-        if (error.code === '23505') { // Naruszenie ograniczenia unique
+        if (error.code === '23505') { // naruszenie unique constraint
           toast({
             title: "Informacja",
             description: "Już polubiłeś ten komentarz",
@@ -249,8 +121,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
     }
   };
 
-  // Funkcja do usunięcia polubienia komentarza
-  const unlikeComment = async (commentId: string): Promise<void> => {
+  const unlikeComment = async (commentId: string) => {
     try {
       if (!user) {
         toast({
@@ -281,7 +152,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
       
       toast({
         title: "Sukces",
-        description: "Polubienie komentarza zostało usunięte",
+        description: "Polubienie zostało usunięte",
       });
     } catch (err) {
       console.error('Unexpected error unliking comment:', err);
@@ -292,6 +163,153 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getPostComments = async (postId: string): Promise<Comment[]> => {
+    try {
+      console.log("Fetching comments for post:", postId);
+      
+      // Pobierz komentarze główne (parent_id is null)
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('post_id', postId)
+        .eq('parent_id', null)
+        .order('created_at', { ascending: true });
+      
+      if (commentsError) {
+        console.error('Error fetching comments:', commentsError);
+        throw commentsError;
+      }
+      
+      console.log("Raw comments data:", commentsData);
+      
+      if (!commentsData || commentsData.length === 0) {
+        return [];
+      }
+      
+      // Pobierz wszystkie ID użytkowników komentarzy
+      const userIds = [...new Set(commentsData.map(comment => comment.user_id))];
+      
+      // Pobierz informacje o profilach tych użytkowników
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, role')
+        .in('id', userIds);
+      
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+      
+      // Utwórz mapę profilów dla szybkiego dostępu
+      const profilesMap = profilesData.reduce((map, profile) => {
+        map[profile.id] = profile;
+        return map;
+      }, {});
+      
+      // Pobierz liczbę polubień dla każdego komentarza
+      const likesCounts = await Promise.all(
+        commentsData.map(async (comment) => {
+          const { count, error } = await supabase
+            .from('comment_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('comment_id', comment.id);
+          
+          if (error) {
+            console.error(`Error fetching likes for comment ${comment.id}:`, error);
+            return { commentId: comment.id, count: 0 };
+          }
+          
+          return { commentId: comment.id, count };
+        })
+      );
+      
+      // Utwórz mapę liczby polubień
+      const likesMap = likesCounts.reduce((map, item) => {
+        map[item.commentId] = item.count;
+        return map;
+      }, {});
+      
+      // Sprawdź, czy użytkownik polubił każdy komentarz
+      const userLikes = user ? await Promise.all(
+        commentsData.map(async (comment) => {
+          const { data, error } = await supabase
+            .from('comment_likes')
+            .select('*')
+            .eq('comment_id', comment.id)
+            .eq('user_id', user.id);
+          
+          if (error) {
+            console.error(`Error checking if user liked comment ${comment.id}:`, error);
+            return { commentId: comment.id, liked: false };
+          }
+          
+          return { commentId: comment.id, liked: data.length > 0 };
+        })
+      ) : [];
+      
+      // Utwórz mapę polubień użytkownika
+      const userLikesMap = userLikes.reduce((map, item) => {
+        map[item.commentId] = item.liked;
+        return map;
+      }, {});
+      
+      // Pobierz liczbę odpowiedzi dla każdego komentarza
+      const repliesCounts = await Promise.all(
+        commentsData.map(async (comment) => {
+          const { count, error } = await supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('parent_id', comment.id);
+          
+          if (error) {
+            console.error(`Error fetching replies for comment ${comment.id}:`, error);
+            return { commentId: comment.id, count: 0 };
+          }
+          
+          return { commentId: comment.id, count };
+        })
+      );
+      
+      // Utwórz mapę liczby odpowiedzi
+      const repliesMap = repliesCounts.reduce((map, item) => {
+        map[item.commentId] = item.count;
+        return map;
+      }, {});
+      
+      // Połącz wszystkie dane w format Comment[]
+      const formattedComments: Comment[] = commentsData.map(comment => {
+        const profile = profilesMap[comment.user_id] || {
+          full_name: 'Użytkownik',
+          avatar_url: '/placeholder.svg',
+          role: ''
+        };
+        
+        return {
+          id: comment.id,
+          content: comment.content,
+          postId: comment.post_id,
+          userId: comment.user_id,
+          parentId: comment.parent_id,
+          createdAt: comment.created_at,
+          author: {
+            name: profile.full_name,
+            avatar: profile.avatar_url || '/placeholder.svg',
+            role: profile.role || ''
+          },
+          likes: likesMap[comment.id] || 0,
+          hasLiked: userLikesMap[comment.id] || false,
+          replies: repliesMap[comment.id] || 0
+        };
+      });
+      
+      console.log("Formatted comments:", formattedComments);
+      return formattedComments;
+    } catch (err) {
+      console.error('Error in getPostComments:', err);
+      throw err;
     }
   };
 
