@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { User, Calendar, Heart, MessageCircle, Bookmark, MoreHorizontal } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ interface SocialFeedContentProps {
 
 export function SocialFeedContent({ posts }: SocialFeedContentProps) {
   const { likePost, unlikePost, savePost, unsavePost, loading } = useSocial();
+  const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
   
   const handleLikeToggle = (post: Post) => {
     if (loading) return;
@@ -44,6 +45,23 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
   const formatContent = (content: string) => {
     // Zamień hashtagi na linki
     return content.replace(/#(\w+)/g, '<a href="/hashtag/$1" class="text-primary hover:underline">#$1</a>');
+  };
+  
+  const toggleComments = (postId: string) => {
+    setOpenComments(prev => ({
+      ...prev,
+      [postId]: !prev[postId]
+    }));
+    
+    // Scroll do sekcji komentarzy po ich otwarciu z małym opóźnieniem dla animacji
+    if (!openComments[postId]) {
+      setTimeout(() => {
+        const postElement = document.getElementById(`post-${postId}`);
+        if (postElement) {
+          postElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
+    }
   };
   
   return (
@@ -173,16 +191,7 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                     variant="ghost" 
                     size="sm" 
                     className="flex items-center gap-1.5 h-8 px-2.5"
-                    onClick={() => {
-                      const postElement = document.getElementById(`post-${post.id}`);
-                      const commentsElement = document.getElementById(`comments-${post.id}`);
-                      if (commentsElement) {
-                        commentsElement.style.display = commentsElement.style.display === 'none' ? 'block' : 'none';
-                        if (commentsElement.style.display === 'block' && postElement) {
-                          postElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                        }
-                      }
-                    }}
+                    onClick={() => toggleComments(post.id)}
                     type="button"
                   >
                     <MessageCircle className="h-4 w-4" />
@@ -203,11 +212,24 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                 </div>
               </div>
               
-              <div id={`comments-${post.id}`} style={{ display: 'none' }} className="mt-4">
-                <div className="border rounded-lg bg-background shadow-sm w-full">
-                  <CommentsSection postId={post.id} />
-                </div>
-              </div>
+              <AnimatePresence>
+                {openComments[post.id] && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="mt-4 overflow-hidden w-full"
+                  >
+                    <div className="border rounded-lg bg-background shadow-sm w-full">
+                      <CommentsSection 
+                        postId={post.id} 
+                        onClose={() => toggleComments(post.id)}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </motion.div>
