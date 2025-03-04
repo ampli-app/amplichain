@@ -1,7 +1,21 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Mic, Music, Music2, Monitor, Gamepad2, Package, Laptop, ListFilter, Headphones } from 'lucide-react';
+import { 
+  ChevronDown, 
+  Mic, 
+  Music, 
+  Music2, 
+  Monitor, 
+  Gamepad2, 
+  Package, 
+  Laptop, 
+  ListFilter, 
+  Headphones,
+  Guitar,
+  Settings,
+  Briefcase
+} from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -27,22 +41,44 @@ export function CategorySelection({ categories, selectedCategory, onCategorySele
 
   const getCategoryIcon = (categoryName: string) => {
     switch(categoryName.toLowerCase()) {
-      case 'mikrofony':
-        return <Mic className="h-5 w-5" />;
+      case 'akcesoria':
+        return <Package className="h-5 w-5" />;
+      case 'gitary':
+        return <Guitar className="h-5 w-5" />;
+      case 'instrumenty':
+        return <Music className="h-5 w-5" />;
       case 'interfejsy audio':
         return <Music2 className="h-5 w-5" />;
+      case 'kontrolery':
+        return <Gamepad2 className="h-5 w-5" />;
+      case 'mikrofony':
+        return <Mic className="h-5 w-5" />;
       case 'monitory':
         return <Monitor className="h-5 w-5" />;
       case 'słuchawki':
         return <Headphones className="h-5 w-5" />;
-      case 'kontrolery':
-        return <Gamepad2 className="h-5 w-5" />;
-      case 'instrumenty':
-        return <Music className="h-5 w-5" />;
       case 'oprogramowanie':
         return <Laptop className="h-5 w-5" />;
-      case 'akcesoria':
+      case 'studio nagrań':
+        return <Mic className="h-5 w-5" />;
+      case 'mix i mastering':
+        return <Settings className="h-5 w-5" />;
+      case 'produkcja muzyczna':
+        return <Music className="h-5 w-5" />;
+      case 'lekcje muzyki':
+        return <Music2 className="h-5 w-5" />;
+      case 'kompozycja':
+        return <Music className="h-5 w-5" />;
+      case 'aranżacja':
+        return <Music2 className="h-5 w-5" />;
+      case 'występy na żywo':
+        return <Mic className="h-5 w-5" />;
+      case 'wynajem sprzętu':
         return <Package className="h-5 w-5" />;
+      case 'naprawa instrumentów':
+        return <Settings className="h-5 w-5" />;
+      case 'usługi':
+        return <Briefcase className="h-5 w-5" />;
       default:
         return <ListFilter className="h-5 w-5" />;
     }
@@ -55,27 +91,29 @@ export function CategorySelection({ categories, selectedCategory, onCategorySele
 
   return (
     <div className="flex items-center justify-center mb-4">
-      <div className="flex overflow-x-auto p-1 bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1 rounded-md">
-        {categories.slice(0, 7).map((category) => (
-          <Button 
-            key={category.id}
-            variant={selectedCategory === category.id ? "default" : "ghost"}
-            className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2"
-            onClick={() => onCategorySelect(category.id)}
+      <div className="w-full bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1 rounded-md overflow-hidden">
+        <div className="flex overflow-x-auto py-2 px-1">
+          {categories.slice(0, 7).map((category) => (
+            <Button 
+              key={category.id}
+              variant={selectedCategory === category.id ? "default" : "ghost"}
+              className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2 mx-1"
+              onClick={() => onCategorySelect(category.id)}
+            >
+              {getCategoryIcon(category.name)}
+              <span>{category.name}</span>
+            </Button>
+          ))}
+          
+          <Button
+            variant="ghost"
+            className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2 mx-1"
+            onClick={() => setShowCategoriesDialog(true)}
           >
-            {getCategoryIcon(category.name)}
-            <span>{category.name}</span>
+            <ChevronDown className="h-5 w-5" />
+            <span>Więcej kategorii</span>
           </Button>
-        ))}
-        
-        <Button
-          variant="ghost"
-          className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2"
-          onClick={() => setShowCategoriesDialog(true)}
-        >
-          <ChevronDown className="h-5 w-5" />
-          <span>Więcej kategorii</span>
-        </Button>
+        </div>
       </div>
       
       <Dialog open={showCategoriesDialog} onOpenChange={setShowCategoriesDialog}>

@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Search, Filter, MapPin, Calendar, Star, User, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Search, Filter, MapPin, User, ArrowRight, ArrowLeft, Briefcase } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -13,22 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddServiceFormDialog } from '@/components/AddServiceFormDialog';
 import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
-
-interface Service {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  category: string;
-  location: string;
-  created_at: string;
-  user_id: string;
-  profiles?: {
-    full_name: string | null;
-    username: string | null;
-    avatar_url: string | null;
-  }
-}
+import { CategorySelection } from '@/components/marketplace/CategorySelection';
+import { Service } from '@/types/messages';
 
 export function ServicesMarketplace() {
   const { isLoggedIn } = useAuth();
@@ -56,16 +41,16 @@ export function ServicesMarketplace() {
 
   // Kategorie usług
   const serviceCategories = [
-    { id: 'all', name: 'Wszystkie kategorie' },
-    { id: 'recording', name: 'Studio nagrań' },
-    { id: 'mixing', name: 'Mix i mastering' },
-    { id: 'production', name: 'Produkcja muzyczna' },
-    { id: 'lessons', name: 'Lekcje muzyki' },
-    { id: 'songwriting', name: 'Kompozycja' },
-    { id: 'arrangement', name: 'Aranżacja' },
-    { id: 'live', name: 'Występy na żywo' },
-    { id: 'rental', name: 'Wynajem sprzętu' },
-    { id: 'repair', name: 'Naprawa instrumentów' }
+    { id: 'all', name: 'Wszystkie kategorie', slug: 'all-categories', description: null },
+    { id: 'recording', name: 'Studio nagrań', slug: 'recording-studio', description: null },
+    { id: 'mixing', name: 'Mix i mastering', slug: 'mixing-mastering', description: null },
+    { id: 'production', name: 'Produkcja muzyczna', slug: 'music-production', description: null },
+    { id: 'lessons', name: 'Lekcje muzyki', slug: 'music-lessons', description: null },
+    { id: 'songwriting', name: 'Kompozycja', slug: 'songwriting', description: null },
+    { id: 'arrangement', name: 'Aranżacja', slug: 'arrangement', description: null },
+    { id: 'live', name: 'Występy na żywo', slug: 'live-performance', description: null },
+    { id: 'rental', name: 'Wynajem sprzętu', slug: 'equipment-rental', description: null },
+    { id: 'repair', name: 'Naprawa instrumentów', slug: 'instrument-repair', description: null }
   ];
   
   useEffect(() => {
@@ -225,8 +210,18 @@ export function ServicesMarketplace() {
     );
   };
   
+  const handleCategorySelect = (categoryId: string) => {
+    setSelectedCategory(categoryId === 'all' ? '' : categoryId);
+  };
+  
   return (
     <div>
+      <CategorySelection 
+        categories={serviceCategories}
+        selectedCategory={selectedCategory || 'all'}
+        onCategorySelect={handleCategorySelect}
+      />
+      
       <div className="lg:hidden mb-4">
         <div className="flex gap-2">
           <Button 
@@ -255,21 +250,6 @@ export function ServicesMarketplace() {
             <h3 className="font-medium mb-4">Filtry</h3>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Kategoria</label>
-                <select 
-                  className="w-full p-2 border rounded-md bg-background"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                >
-                  {serviceCategories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
               <div>
                 <label className="block text-sm font-medium mb-2">Lokalizacja</label>
                 <Input 
@@ -321,24 +301,13 @@ export function ServicesMarketplace() {
             </div>
             
             <Button onClick={handleAddServiceClick}>
+              <Briefcase className="h-4 w-4 mr-2" />
               Dodaj swoją usługę
             </Button>
           </div>
           
           {/* Wybrane filtry */}
           <div className="flex flex-wrap gap-2 mb-4">
-            {selectedCategory && selectedCategory !== 'all' && (
-              <Badge variant="outline" className="px-3 py-1">
-                {serviceCategories.find(c => c.id === selectedCategory)?.name || selectedCategory}
-                <button 
-                  className="ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
-                  onClick={() => setSelectedCategory('all')}
-                >
-                  &times;
-                </button>
-              </Badge>
-            )}
-            
             {selectedLocation && (
               <Badge variant="outline" className="px-3 py-1">
                 <MapPin className="h-3 w-3 mr-1" /> {selectedLocation}
@@ -392,7 +361,7 @@ export function ServicesMarketplace() {
                       <div className="flex items-center gap-4 mb-4">
                         <Avatar>
                           <AvatarImage 
-                            src={service.profiles?.avatar_url} 
+                            src={service.profiles?.avatar_url || undefined} 
                             alt={service.profiles?.full_name || "Użytkownik"} 
                           />
                           <AvatarFallback><User /></AvatarFallback>
