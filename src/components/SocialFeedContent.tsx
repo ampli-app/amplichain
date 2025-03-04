@@ -155,11 +155,11 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                 </div>
               )}
               
-              <div className="flex items-center gap-4 text-sm text-rhythm-500">
+              <div className="flex items-center gap-4 text-sm text-rhythm-500 mt-4">
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className={`flex items-center gap-1 h-8 px-2 ${post.hasLiked ? 'text-red-500' : ''}`}
+                  className={`flex items-center gap-1.5 h-8 px-2.5 ${post.hasLiked ? 'text-red-500' : ''}`}
                   onClick={() => handleLikeToggle(post)}
                   disabled={loading}
                   type="button"
@@ -176,7 +176,7 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className={`flex items-center gap-1 h-8 px-2 ${post.hasSaved ? 'text-primary' : ''}`}
+                  className={`flex items-center gap-1.5 h-8 px-2.5 ${post.hasSaved ? 'text-primary' : ''}`}
                   onClick={() => handleSaveToggle(post)}
                   disabled={loading}
                   type="button"

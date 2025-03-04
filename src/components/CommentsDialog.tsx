@@ -17,7 +17,7 @@ export function CommentsDialog({ postId, commentsCount }: CommentsDialogProps) {
       <Button 
         variant="ghost" 
         size="sm" 
-        className="flex items-center gap-1 h-8 px-2"
+        className="flex items-center gap-1.5 h-8 px-2.5"
         type="button"
         onClick={(e) => {
           e.preventDefault();
