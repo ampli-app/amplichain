@@ -1,5 +1,5 @@
 
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface PostCommentsToggleProps {
@@ -8,16 +8,18 @@ interface PostCommentsToggleProps {
 }
 
 export function PostCommentsToggle({ showComments, onClick }: PostCommentsToggleProps) {
+  if (!showComments) return null;
+  
   return (
-    <div className="flex justify-center mt-2">
+    <div className="flex justify-end pb-1">
       <Button
         variant="ghost"
         size="sm"
         onClick={onClick}
         className="text-muted-foreground"
       >
-        {showComments ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
-        {showComments ? "Ukryj komentarze" : "Pokaż komentarze"}
+        <X className="h-4 w-4" />
+        <span className="sr-only">Zamknij komentarze</span>
       </Button>
     </div>
   );
