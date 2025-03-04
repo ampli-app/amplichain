@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Notifications } from '@/components/Notifications';
+import { LanguageSwitcher } from '@/components/navigation/LanguageSwitcher';
 import { 
   Menu, 
   X, 
@@ -21,6 +22,7 @@ import { NavItem } from '@/components/navigation/NavItem';
 import { MobileNavItem } from '@/components/navigation/MobileNavItem';
 import { UserMenu } from '@/components/navigation/UserMenu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useTranslation } from 'react-i18next';
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -29,6 +31,7 @@ export function Navbar() {
   const navigate = useNavigate();
   const { isLoggedIn, user, logout } = useAuth();
   const { users } = useSocial();
+  const { t } = useTranslation();
   
   const userProfile = user ? users.find(u => u.id === user.id) : null;
   
@@ -78,15 +81,16 @@ export function Navbar() {
           </div>
           
           <nav className="hidden md:flex items-center gap-1 h-14">
-            <NavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
-            <NavItem to="/marketplace" label="Marketplace" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
-            <NavItem to="/groups" label="Grupy" icon={<Users className="h-4 w-4" />} active={isActive('/groups')} />
-            <NavItem to="/connections" label="Sieć" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
+            <NavItem to="/feed" label={t('navbar.feed')} icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
+            <NavItem to="/marketplace" label={t('navbar.marketplace')} icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
+            <NavItem to="/groups" label={t('navbar.groups')} icon={<Users className="h-4 w-4" />} active={isActive('/groups')} />
+            <NavItem to="/connections" label={t('navbar.connections')} icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
           </nav>
           
           <div className="flex items-center gap-2">
             {isLoggedIn ? (
               <>
+                <LanguageSwitcher />
                 <Notifications />
                 
                 <Button asChild variant="ghost" size="icon">
@@ -102,11 +106,12 @@ export function Navbar() {
               </>
             ) : (
               <>
+                <LanguageSwitcher />
                 <Button variant="outline" asChild>
-                  <Link to="/login">Zaloguj się</Link>
+                  <Link to="/login">{t('navbar.login')}</Link>
                 </Button>
                 <Button asChild className="hidden sm:flex">
-                  <Link to="/signup">Zarejestruj się</Link>
+                  <Link to="/signup">{t('navbar.signup')}</Link>
                 </Button>
               </>
             )}
@@ -136,34 +141,34 @@ export function Navbar() {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold">Moje konto</p>
+                    <p className="font-semibold">{t('navbar.myAccount')}</p>
                   </div>
                 </div>
                 
                 <MobileNavItem 
                   to="/profile" 
-                  label="Profil" 
+                  label={t('navbar.profile')} 
                   icon={<User className="h-4 w-4" />} 
                   active={isActive('/profile')} 
                 />
                 
                 <MobileNavItem 
                   to="/messages" 
-                  label="Wiadomości" 
+                  label={t('navbar.messages')} 
                   icon={<MessageSquare className="h-4 w-4" />} 
                   active={isActive('/messages')} 
                 />
                 
                 <MobileNavItem 
                   to="/discovery" 
-                  label="Odkrywaj" 
+                  label={t('navbar.discover')} 
                   icon={<Compass className="h-4 w-4" />} 
                   active={isActive('/discovery')} 
                 />
                 
                 <MobileNavItem 
                   to="/settings" 
-                  label="Ustawienia" 
+                  label={t('navbar.settings')} 
                   icon={<Settings className="h-4 w-4" />} 
                   active={isActive('/settings')} 
                 />
@@ -174,19 +179,19 @@ export function Navbar() {
                   onClick={() => logout()}
                 >
                   <LogOut className="h-4 w-4" />
-                  Wyloguj się
+                  {t('navbar.logout')}
                 </Button>
               </div>
             )}
             
-            <MobileNavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
-            <MobileNavItem to="/marketplace" label="Marketplace" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
-            <MobileNavItem to="/groups" label="Grupy" icon={<Users className="h-4 w-4" />} active={isActive('/groups')} />
-            <MobileNavItem to="/connections" label="Sieć" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
+            <MobileNavItem to="/feed" label={t('navbar.feed')} icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
+            <MobileNavItem to="/marketplace" label={t('navbar.marketplace')} icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
+            <MobileNavItem to="/groups" label={t('navbar.groups')} icon={<Users className="h-4 w-4" />} active={isActive('/groups')} />
+            <MobileNavItem to="/connections" label={t('navbar.connections')} icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
             
             {!isLoggedIn && (
               <Button asChild className="mt-4 sm:hidden">
-                <Link to="/signup">Zarejestruj się</Link>
+                <Link to="/signup">{t('navbar.signup')}</Link>
               </Button>
             )}
           </nav>

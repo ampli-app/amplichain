@@ -1,0 +1,49 @@
+
+{
+  "navbar": {
+    "feed": "Feed",
+    "marketplace": "Marketplace",
+    "groups": "Grupy",
+    "connections": "Sieć",
+    "login": "Zaloguj się",
+    "signup": "Zarejestruj się",
+    "messages": "Wiadomości",
+    "profile": "Profil",
+    "discover": "Odkrywaj",
+    "settings": "Ustawienia",
+    "logout": "Wyloguj się",
+    "myAccount": "Moje konto"
+  },
+  "marketplace": {
+    "allCategories": "Wszystkie kategorie",
+    "search": "Szukaj produktów...",
+    "filters": "Filtry",
+    "browse": "Przeglądaj",
+    "sortBy": "Sortuj według:",
+    "featured": "Wyróżnione",
+    "priceAsc": "Cena: od najniższej",
+    "priceDesc": "Cena: od najwyższej",
+    "rating": "Ocena",
+    "newest": "Najnowsze",
+    "selectedCategory": "Wybrana kategoria",
+    "products": "produktów",
+    "priceRange": "Zakres cenowy",
+    "min": "Min",
+    "max": "Max",
+    "condition": "Stan",
+    "tryBeforeBuy": "Wypróbuj przed zakupem",
+    "availableForTesting": "Dostępne do testów",
+    "weeklyRental": "Wynajem tygodniowy",
+    "applyFilters": "Zastosuj filtry",
+    "filtersApplied": "Filtry zastosowane",
+    "foundProducts": "Znaleziono {count} produktów.",
+    "noProductsFound": "Nie znaleziono produktów",
+    "tryChangingFilters": "Spróbuj zmienić filtry aby zobaczyć więcej produktów.",
+    "noProductsYet": "Nie ma jeszcze żadnych produktów. Dodaj pierwszy produkt!",
+    "addProduct": "Dodaj produkt"
+  },
+  "pagination": {
+    "previous": "Poprzednia",
+    "next": "Następna"
+  }
+}

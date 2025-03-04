@@ -1,6 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface PaginationControlsProps {
   currentPage: number;
@@ -9,6 +10,8 @@ interface PaginationControlsProps {
 }
 
 export function PaginationControls({ currentPage, totalPages, onPageChange }: PaginationControlsProps) {
+  const { t } = useTranslation();
+  
   if (totalPages <= 1) return null;
   
   const pagesToShow = Math.min(5, totalPages);
@@ -32,7 +35,7 @@ export function PaginationControls({ currentPage, totalPages, onPageChange }: Pa
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage === 1}
         >
-          <ArrowLeft className="h-4 w-4 mr-1" /> Poprzednia
+          <ArrowLeft className="h-4 w-4 mr-1" /> {t('pagination.previous')}
         </Button>
         
         {pages.map((page) => (
@@ -54,7 +57,7 @@ export function PaginationControls({ currentPage, totalPages, onPageChange }: Pa
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages}
         >
-          Następna <ArrowRight className="h-4 w-4 ml-1" />
+          {t('pagination.next')} <ArrowRight className="h-4 w-4 ml-1" />
         </Button>
       </div>
     </div>
