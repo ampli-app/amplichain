@@ -12,10 +12,9 @@ import { Post } from '@/types/social';
 
 interface PostHeaderProps {
   post: Post;
-  onSaveToggle: () => void;
 }
 
-export function PostHeader({ post, onSaveToggle }: PostHeaderProps) {
+export function PostHeader({ post }: PostHeaderProps) {
   return (
     <div className="flex justify-between items-start">
       <div>
@@ -37,9 +36,6 @@ export function PostHeader({ post, onSaveToggle }: PostHeaderProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onSaveToggle}>
-            {post.hasSaved ? 'Usuń z zapisanych' : 'Zapisz post'}
-          </DropdownMenuItem>
           <DropdownMenuItem>Zgłoś post</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

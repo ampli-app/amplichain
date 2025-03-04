@@ -85,9 +85,6 @@ export const usePostCreation = (
             mediaUrl: newPost.media_url,
             likes: 0,
             comments: 0,
-            saves: 0,
-            hasLiked: false,
-            hasSaved: false,
             hashtags: []
           };
           

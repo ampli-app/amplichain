@@ -32,8 +32,6 @@ export interface Comment {
   timeAgo: string;
   likes: number;
   replies: number;
-  hasLiked?: boolean;
-  isOptimistic?: boolean;
 }
 
 export interface Hashtag {
