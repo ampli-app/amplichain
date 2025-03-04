@@ -13,11 +13,11 @@ export function CommentsDialog({ postId, commentsCount }: CommentsDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="flex flex-col">
+    <div>
       <Button 
         variant="ghost" 
         size="sm" 
-        className="flex items-center gap-1 w-fit"
+        className="flex items-center gap-1 h-8 px-2"
         type="button"
         onClick={(e) => {
           e.preventDefault();
