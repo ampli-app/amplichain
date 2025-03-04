@@ -238,9 +238,9 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         title: "Błąd",
         description: "Wystąpił nieoczekiwany błąd podczas usuwania polubienia",
         variant: "destructive",
-        });
-      }
-    };
+      });
+    }
+  };
 
   return {
     commentOnPost,
