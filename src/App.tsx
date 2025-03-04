@@ -20,9 +20,6 @@ import Checkout from '@/pages/Checkout';
 import CheckoutSuccess from '@/pages/CheckoutSuccess';
 import SocialFeed from '@/pages/SocialFeed';
 
-// Import i18n configuration
-import '@/i18n';
-
 function App() {
   return (
     <Router>

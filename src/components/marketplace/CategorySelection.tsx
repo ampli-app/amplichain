@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useTranslation } from 'react-i18next';
 import { 
   ChevronDown, 
   Mic, 
@@ -39,7 +38,6 @@ interface CategorySelectionProps {
 
 export function CategorySelection({ categories, selectedCategory, onCategorySelect }: CategorySelectionProps) {
   const [showCategoriesDialog, setShowCategoriesDialog] = useState(false);
-  const { t } = useTranslation();
 
   const getCategoryIcon = (categoryName: string) => {
     switch(categoryName.toLowerCase()) {
@@ -100,7 +98,7 @@ export function CategorySelection({ categories, selectedCategory, onCategorySele
         onClick={() => setShowCategoriesDialog(true)}
       >
         <ListFilter className="h-5 w-5" />
-        <span>{t('marketplace.allCategories')}</span>
+        <span>Wszystkie kategorie</span>
       </Button>
       
       <div className="w-full bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1 rounded-md overflow-hidden">
@@ -122,7 +120,7 @@ export function CategorySelection({ categories, selectedCategory, onCategorySele
       <Dialog open={showCategoriesDialog} onOpenChange={setShowCategoriesDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{t('marketplace.allCategories')}</DialogTitle>
+            <DialogTitle>Wszystkie kategorie</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
             {categories.map((category) => (
