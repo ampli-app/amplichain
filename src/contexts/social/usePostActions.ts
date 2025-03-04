@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -44,11 +45,37 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
         return;
       }
       
-      // Odśwież posty poprzez callback, który jest przekazywany z zewnątrz
+      // Odśwież posty poprzez callback
       toast({
         title: "Sukces",
         description: "Post został utworzony",
       });
+      
+      // Zaktualizuj lokalny stan postów aby uwzględnić nowy post
+      if (data && data.length > 0) {
+        const newPost = data[0];
+        
+        const formattedPost: Post = {
+          id: newPost.id,
+          userId: newPost.user_id,
+          author: {
+            name: user.user_metadata?.full_name || '',
+            avatar: user.user_metadata?.avatar_url || '/placeholder.svg',
+            role: user.user_metadata?.role || ''
+          },
+          timeAgo: 'przed chwilą',
+          content: newPost.content,
+          mediaUrl: newPost.media_url,
+          likes: 0,
+          comments: 0,
+          saves: 0,
+          hasLiked: false,
+          hasSaved: false,
+          hashtags: []
+        };
+        
+        setPosts(prev => [formattedPost, ...prev]);
+      }
     } catch (err) {
       console.error('Unexpected error creating post:', err);
       toast({

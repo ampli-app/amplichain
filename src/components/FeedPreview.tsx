@@ -1,4 +1,3 @@
-
 import { User, Calendar, Heart, MessageCircle, Bookmark, MoreHorizontal } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -51,7 +50,6 @@ export function FeedPreview() {
               console.error('Error fetching user profile:', profileError);
             }
             
-            // Bezpiecznie dostępujemy do danych profilu
             // Tworzymy domyślny pusty profil na wypadek błędu
             const userProfile = {
               full_name: '',
@@ -59,8 +57,8 @@ export function FeedPreview() {
               role: ''
             };
             
-            // Jeśli mamy dane profileData i nie jest to błąd, to używamy tych danych
-            if (profileData && !profileError) {
+            // Sprawdzamy czy mamy dane profilu i czy to nie jest błąd
+            if (profileData && typeof profileData === 'object' && 'full_name' in profileData) {
               userProfile.full_name = profileData.full_name || '';
               userProfile.avatar_url = profileData.avatar_url || '/placeholder.svg';
               userProfile.role = profileData.role || '';
