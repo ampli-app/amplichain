@@ -54,8 +54,8 @@ export const useCommentCreation = (
         })
         .select();
       
-      if (error || !data || data.length === 0) {
-        console.error('Error adding comment:', error || 'No data returned');
+      if (error) {
+        console.error('Error adding comment:', error);
         showErrorToast("Błąd", "Nie udało się dodać komentarza");
         return;
       }
