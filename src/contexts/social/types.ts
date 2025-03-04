@@ -46,13 +46,6 @@ export interface SocialContextType {
   removeConnection: (userId: string) => Promise<void>;
   searchUsers: (query: string) => Promise<SocialUser[]>;
   createPost: (content: string, mediaUrl?: string, mediaType?: 'image' | 'video', mediaFiles?: Array<{url: string, type: 'image' | 'video'}>) => Promise<void>;
-  likePost: (postId: string) => Promise<void>;
-  unlikePost: (postId: string) => Promise<void>;
-  savePost: (postId: string) => Promise<void>;
-  unsavePost: (postId: string) => Promise<void>;
-  commentOnPost: (postId: string, content: string, parentId?: string) => Promise<void>;
-  likeComment: (commentId: string) => Promise<void>;
-  unlikeComment: (commentId: string) => Promise<void>;
   getPostComments: (postId: string, parentId?: string) => Promise<Comment[]>;
   markNotificationAsRead: (notificationId: string) => void;
   markAllNotificationsAsRead: () => void;

@@ -13,9 +13,6 @@ export interface Post {
   mediaType?: 'image' | 'video';
   likes: number;
   comments: number;
-  saves: number;
-  hasLiked?: boolean;
-  hasSaved?: boolean;
   hashtags?: string[];
   mediaFiles?: Array<{url: string, type: 'image' | 'video'}>;
 }

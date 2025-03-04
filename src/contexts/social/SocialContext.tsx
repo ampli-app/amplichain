@@ -6,8 +6,7 @@ import { SocialContextType, SocialUser } from './types';
 import { useCurrentUser } from './useCurrentUser';
 import { useUserActions } from './useUserActions';
 import { usePostsLoading } from './usePostsLoading';
-import { usePostActions } from './usePostActions';
-import { useCommentActions } from './useCommentActions';
+import { usePostCreation } from './usePostCreation';
 import { useNotifications } from './useNotifications';
 
 const SocialContext = createContext<SocialContextType | null>(null);
@@ -17,7 +16,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
   const [users, setUsers] = useState<SocialUser[]>([]);
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   
-  // Użyj naszych zrefaktoryzowanych hooków
+  // Użyj zrefaktoryzowanych hooków
   const { currentUser, setCurrentUser, loadCurrentUserProfile } = useCurrentUser(user);
   
   const { 
@@ -44,12 +43,8 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
   
   const {
     createPost,
-    likePost,
-    unlikePost,
-    savePost,
-    unsavePost,
-    loading: postActionLoading
-  } = usePostActions(user, setPosts);
+    loading: postCreationLoading
+  } = usePostCreation(user, setPosts);
   
   // Wrapper dla createPost, który obsługuje globalny stan ładowania
   const wrappedCreatePost = async (
@@ -65,14 +60,6 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
       setIsCreatingPost(false);
     }
   };
-  
-  const {
-    commentOnPost,
-    getPostComments,
-    likeComment,
-    unlikeComment,
-    loading: commentActionLoading
-  } = useCommentActions(user, setPosts);
   
   const {
     notifications,
@@ -95,7 +82,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
   }, [isLoggedIn, user]);
 
   // Połącz wszystkie stany ładowania w jeden
-  const loading = postsLoading || postActionLoading || isCreatingPost || commentActionLoading;
+  const loading = postsLoading || postCreationLoading || isCreatingPost;
   
   return (
     <SocialContext.Provider value={{
@@ -113,14 +100,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
       removeConnection,
       searchUsers,
       createPost: wrappedCreatePost,
-      likePost,
-      unlikePost,
-      savePost,
-      unsavePost,
-      commentOnPost,
-      likeComment,
-      unlikeComment,
-      getPostComments,
+      getPostComments: async () => [],
       markNotificationAsRead,
       markAllNotificationsAsRead,
       getPostsByHashtag,

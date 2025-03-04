@@ -1,5 +1,6 @@
 
-import { User, Calendar, Heart, MessageCircle, Bookmark, MoreHorizontal } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Calendar, MessageCircle, MoreHorizontal } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { 
@@ -9,114 +10,13 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSocial } from '@/contexts/SocialContext';
-import { CommentsDialog } from '@/components/CommentsDialog';
 import { Link } from 'react-router-dom';
 import { Post } from '@/types/social';
-import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export function FeedPreview() {
-  const { likePost, unlikePost, savePost, unsavePost, loading: socialLoading } = useSocial();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingPostIds, setLoadingPostIds] = useState<Set<string>>(new Set());
-  
-  const isPostLoading = (postId: string) => loadingPostIds.has(postId) || socialLoading;
-  
-  const handleLikeToggle = async (post: Post) => {
-    if (isPostLoading(post.id)) return;
-    
-    // Optymistyczna aktualizacja UI
-    setPosts(prevPosts => 
-      prevPosts.map(p => 
-        p.id === post.id 
-          ? { 
-              ...p, 
-              hasLiked: !p.hasLiked, 
-              likes: p.hasLiked ? Math.max(0, p.likes - 1) : p.likes + 1 
-            } 
-          : p
-      )
-    );
-    
-    setLoadingPostIds(prev => {
-      const newSet = new Set(prev);
-      newSet.add(post.id);
-      return newSet;
-    });
-    
-    try {
-      if (post.hasLiked) {
-        await unlikePost(post.id);
-      } else {
-        await likePost(post.id);
-      }
-    } catch (error) {
-      console.error('Error toggling like:', error);
-      // Cofnij optymistyczną aktualizację w przypadku błędu
-      setPosts(prevPosts => 
-        prevPosts.map(p => 
-          p.id === post.id 
-            ? { 
-                ...p, 
-                hasLiked: post.hasLiked, 
-                likes: post.hasLiked ? p.likes + 1 : Math.max(0, p.likes - 1) 
-              } 
-            : p
-        )
-      );
-    } finally {
-      setLoadingPostIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(post.id);
-        return newSet;
-      });
-    }
-  };
-  
-  const handleSaveToggle = async (post: Post) => {
-    if (isPostLoading(post.id)) return;
-    
-    // Optymistyczna aktualizacja UI
-    setPosts(prevPosts => 
-      prevPosts.map(p => 
-        p.id === post.id 
-          ? { ...p, hasSaved: !p.hasSaved } 
-          : p
-      )
-    );
-    
-    setLoadingPostIds(prev => {
-      const newSet = new Set(prev);
-      newSet.add(post.id);
-      return newSet;
-    });
-    
-    try {
-      if (post.hasSaved) {
-        await unsavePost(post.id);
-      } else {
-        await savePost(post.id);
-      }
-    } catch (error) {
-      console.error('Error toggling save:', error);
-      // Cofnij optymistyczną aktualizację w przypadku błędu
-      setPosts(prevPosts => 
-        prevPosts.map(p => 
-          p.id === post.id 
-            ? { ...p, hasSaved: post.hasSaved } 
-            : p
-        )
-      );
-    } finally {
-      setLoadingPostIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(post.id);
-        return newSet;
-      });
-    }
-  };
   
   useEffect(() => {
     // Pobierz kilka najnowszych postów dla podglądu
@@ -134,9 +34,6 @@ export function FeedPreview() {
           console.error('Error fetching preview posts:', postsError);
           return;
         }
-        
-        // Pobierz dane zalogowanego użytkownika, jeśli istnieje
-        const { data: { user } } = await supabase.auth.getUser();
         
         const formattedPosts = await Promise.all(
           (postsData || []).map(async (post) => {
@@ -165,49 +62,8 @@ export function FeedPreview() {
               userProfile.role = profileData.role || '';
             }
             
-            // Pobierz liczbę polubień posta
-            const { count: likesCount } = await supabase
-              .from('post_likes')
-              .select('*', { count: 'exact', head: true })
-              .eq('post_id', post.id);
-            
-            // Pobierz liczbę komentarzy posta
-            const { count: commentsCount } = await supabase
-              .from('comments')
-              .select('*', { count: 'exact', head: true })
-              .eq('post_id', post.id);
-            
-            // Pobierz liczbę zapisów posta
-            const { count: savesCount } = await supabase
-              .from('saved_posts')
-              .select('*', { count: 'exact', head: true })
-              .eq('post_id', post.id);
-            
-            // Sprawdź, czy zalogowany użytkownik polubił post
-            let hasLiked = false;
-            if (user) {
-              const { data: likeData } = await supabase
-                .from('post_likes')
-                .select('id')
-                .eq('post_id', post.id)
-                .eq('user_id', user.id)
-                .maybeSingle();
-                
-              hasLiked = !!likeData;
-            }
-            
-            // Sprawdź, czy zalogowany użytkownik zapisał post
-            let hasSaved = false;
-            if (user) {
-              const { data: saveData } = await supabase
-                .from('saved_posts')
-                .select('id')
-                .eq('post_id', post.id)
-                .eq('user_id', user.id)
-                .maybeSingle();
-                
-              hasSaved = !!saveData;
-            }
+            // Pobierz liczbę komentarzy (teraz zawsze zero po usunięciu tabeli)
+            const commentsCount = 0;
             
             // Pobierz hashtagi
             const { data: tagData } = await supabase
@@ -246,11 +102,8 @@ export function FeedPreview() {
               timeAgo,
               content: post.content,
               mediaUrl: post.media_url,
-              likes: likesCount || 0,
-              comments: commentsCount || 0,
-              saves: savesCount || 0,
-              hasLiked,
-              hasSaved,
+              likes: 0,
+              comments: commentsCount,
               hashtags
             };
           })
@@ -316,9 +169,6 @@ export function FeedPreview() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleSaveToggle(post)}>
-                          {post.hasSaved ? 'Usuń z zapisanych' : 'Zapisz post'}
-                        </DropdownMenuItem>
                         <DropdownMenuItem>Zgłoś post</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -358,30 +208,12 @@ export function FeedPreview() {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className={`flex items-center gap-1 h-8 px-2 ${post.hasLiked ? 'text-red-500' : ''} ${isPostLoading(post.id) ? 'opacity-50' : ''}`}
-                      onClick={() => handleLikeToggle(post)}
-                      disabled={isPostLoading(post.id)}
+                      className="flex items-center gap-1 h-8 px-2"
+                      disabled
                       type="button"
                     >
-                      <Heart className={`h-4 w-4 transition-all ${post.hasLiked ? 'fill-red-500 scale-110' : ''}`} />
-                      <span>{post.likes}</span>
-                    </Button>
-                    
-                    <CommentsDialog 
-                      postId={post.id}
-                      commentsCount={post.comments}
-                    />
-                    
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className={`flex items-center gap-1 h-8 px-2 ${post.hasSaved ? 'text-primary' : ''} ${isPostLoading(post.id) ? 'opacity-50' : ''}`}
-                      onClick={() => handleSaveToggle(post)}
-                      disabled={isPostLoading(post.id)}
-                      type="button"
-                    >
-                      <Bookmark className={`h-4 w-4 transition-all ${post.hasSaved ? 'fill-primary scale-110' : ''}`} />
-                      <span>{post.hasSaved ? 'Zapisano' : 'Zapisz'}</span>
+                      <MessageCircle className="h-4 w-4" />
+                      <span>{post.comments}</span>
                     </Button>
                   </div>
                 </div>
