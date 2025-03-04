@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSocial } from '@/contexts/SocialContext';
-import { CommentsDialog } from '@/components/CommentsDialog';
+import { CommentsSection } from '@/components/CommentsSection';
 import { Link } from 'react-router-dom';
 import { Post } from '@/types/social';
 
@@ -52,6 +52,7 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
       {posts.map((post, index) => (
         <motion.div
           key={post.id}
+          id={`post-${post.id}`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: index * 0.1 }}
@@ -169,10 +170,25 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                     <span>{post.likes}</span>
                   </Button>
                   
-                  <CommentsDialog 
-                    postId={post.id}
-                    commentsCount={post.comments}
-                  />
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="flex items-center gap-1.5 h-8 px-2.5"
+                    onClick={() => {
+                      const postElement = document.getElementById(`post-${post.id}`);
+                      const commentsElement = document.getElementById(`comments-${post.id}`);
+                      if (commentsElement) {
+                        commentsElement.style.display = commentsElement.style.display === 'none' ? 'block' : 'none';
+                        if (commentsElement.style.display === 'block' && postElement) {
+                          postElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                      }
+                    }}
+                    type="button"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    <span>{post.comments}</span>
+                  </Button>
                   
                   <Button 
                     variant="ghost" 
@@ -186,6 +202,10 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                     <span>{post.hasSaved ? 'Zapisano' : 'Zapisz'}</span>
                   </Button>
                 </div>
+              </div>
+              
+              <div id={`comments-${post.id}`} style={{ display: 'none' }} className="mt-4">
+                <CommentsSection postId={post.id} />
               </div>
             </div>
           </div>
