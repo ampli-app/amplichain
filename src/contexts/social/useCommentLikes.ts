@@ -37,10 +37,7 @@ export const useCommentLikes = (user: any | null) => {
       
       if (error) {
         if (error.code === '23505') { // naruszenie unique constraint
-          toast({
-            title: "Informacja",
-            description: "Już polubiłeś ten komentarz",
-          });
+          showErrorToast("Informacja", "Już polubiłeś ten komentarz");
         } else {
           console.error('Error liking comment:', error);
           showErrorToast("Błąd", "Nie udało się polubić komentarza");
