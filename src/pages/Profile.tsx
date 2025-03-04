@@ -1,55 +1,29 @@
+
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSocial } from '@/contexts/SocialContext';
 import { toast } from '@/components/ui/use-toast';
-import { 
-  Pencil, 
-  MapPin, 
-  Globe, 
-  Calendar, 
-  MailIcon, 
-  BriefcaseIcon, 
-  GraduationCapIcon,
-  FolderIcon, 
-  Users,
-  Music,
-  Share2,
-  ExternalLink,
-  Plus,
-  Camera,
-  User,
-  ShoppingBag,
-  Headphones,
-  Briefcase,
-  Store
-} from 'lucide-react';
+
+// Import types
+import { Product, Service, Consultation } from '@/types/messages';
+import { ProfileData } from '@/types/profile';
+
+// Import components
+import { ProfileHeader } from '@/components/profile/ProfileHeader';
+import { PortfolioTab } from '@/components/profile/PortfolioTab';
+import { ProductsTab } from '@/components/profile/ProductsTab';
+import { ExperienceTab } from '@/components/profile/ExperienceTab';
+import { EducationTab } from '@/components/profile/EducationTab';
+import { MarketplaceTab } from '@/components/profile/MarketplaceTab';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 import { ChangeAvatarModal } from '@/components/profile/ChangeAvatarModal';
 
-interface ProfileData {
-  id: string;
-  username: string;
-  full_name: string;
-  avatar_url: string;
-  bio: string;
-  location: string;
-  website: string;
-  role: string;
-  joined_date: string;
-  followers: number;
-  following: number;
-}
-
+// Interfaces for other data types
 interface Education {
   id: string;
   institution: string;
@@ -73,38 +47,11 @@ interface Project {
   tags: string[];
 }
 
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  description?: string;
-  image_url?: string;
-  category?: string;
-  created_at: string;
-}
-
-interface Service {
-  id: string;
-  title: string;
-  price: number;
-  description?: string;
-  category?: string;
-  created_at: string;
-}
-
-interface Consultation {
-  id: string;
-  title: string;
-  price: number;
-  description?: string;
-  categories?: string[];
-  created_at: string;
-}
-
 export default function Profile() {
   const { user, isLoggedIn } = useAuth();
   const { userId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { 
     currentUser, 
     fetchUserProfile,
@@ -126,7 +73,10 @@ export default function Profile() {
   const [isChangeAvatarOpen, setIsChangeAvatarOpen] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'following' | 'connected' | 'pending_sent' | 'pending_received'>('none');
   const [isLoading, setIsLoading] = useState(true);
-  const [marketplaceTab, setMarketplaceTab] = useState("products");
+  
+  // Determine default tab based on URL params
+  const defaultTab = searchParams.get('tab') || 'portfolio';
+  const marketplaceTab = searchParams.get('marketplaceTab') || 'products';
 
   useEffect(() => {
     console.log("Profile page loaded, auth state:", { isLoggedIn, user, userId });
@@ -322,27 +272,6 @@ export default function Profile() {
     }
   };
   
-  const handleShareProfile = () => {
-    const profileUrl = window.location.href;
-    
-    navigator.clipboard.writeText(profileUrl).then(
-      () => {
-        toast({
-          title: "Link skopiowany",
-          description: "Link do profilu został skopiowany do schowka.",
-        });
-      },
-      (err) => {
-        console.error('Could not copy text: ', err);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się skopiować linku.",
-          variant: "destructive",
-        });
-      }
-    );
-  };
-
   const handleProfileUpdated = () => {
     if (user) {
       fetchProfileData(user.id);
@@ -365,10 +294,6 @@ export default function Profile() {
     handleProfileUpdated();
   };
 
-  const loadProductForEditing = (productId: string) => {
-    navigate(`/edit-product/${productId}`);
-  };
-  
   const handleDeleteProduct = async (productId: string) => {
     try {
       const { error } = await supabase
@@ -461,9 +386,9 @@ export default function Profile() {
           <div className="text-center">
             <h2 className="text-2xl font-semibold mb-4">Musisz się zalogować</h2>
             <p className="mb-6">Aby zobaczyć profil, musisz się najpierw zalogować.</p>
-            <Button onClick={() => navigate('/login')}>
+            <button onClick={() => navigate('/login')} className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors">
               Zaloguj się
-            </Button>
+            </button>
           </div>
         </main>
         <Footer />
@@ -491,137 +416,17 @@ export default function Profile() {
       <Navbar />
       <main className="flex-1 pt-24 pb-16">
         <div className="container px-4 mx-auto">
-          <div className="bg-card border rounded-xl p-6 mb-8">
-            <div className="flex flex-col md:flex-row gap-6">
-              <div className="flex-shrink-0">
-                <div className={`relative group ${isOwnProfile ? 'cursor-pointer' : ''}`} onClick={isOwnProfile ? handleAvatarClick : undefined}>
-                  <Avatar className="h-24 w-24 md:h-32 md:w-32 rounded-xl">
-                    <AvatarImage 
-                      src={profileData?.avatar_url || '/placeholder.svg'} 
-                      alt={profileData?.full_name || 'User'} 
-                      className="object-cover"
-                    />
-                    <AvatarFallback className="text-4xl">
-                      <User className="h-12 w-12" />
-                    </AvatarFallback>
-                  </Avatar>
-                  {isOwnProfile && (
-                    <div className="absolute inset-0 bg-black/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Camera className="h-8 w-8 text-white" />
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex-1">
-                <div className="flex flex-col sm:flex-row justify-between">
-                  <div>
-                    <h1 className="text-3xl font-bold">
-                      {profileData?.full_name || "Użytkownik"}
-                    </h1>
-                    
-                    <div className="flex items-center text-muted-foreground mb-2">
-                      <span className="text-sm">@{profileData?.username || "użytkownik"}</span>
-                      {profileData?.role && (
-                        <>
-                          <span className="mx-2">•</span>
-                          <span className="text-sm">{profileData.role}</span>
-                        </>
-                      )}
-                    </div>
-                    
-                    {profileData?.bio && (
-                      <p className="text-muted-foreground mt-2 mb-4 max-w-2xl">
-                        {profileData.bio}
-                      </p>
-                    )}
-                    
-                    <div className="flex flex-wrap gap-3 mt-2">
-                      {profileData?.location && (
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          <span>{profileData.location}</span>
-                        </div>
-                      )}
-                      
-                      {profileData?.website && (
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Globe className="h-4 w-4 mr-1" />
-                          <a 
-                            href={profileData.website.startsWith('http') ? profileData.website : `https://${profileData.website}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="hover:text-primary transition-colors"
-                          >
-                            {profileData.website.replace(/^https?:\/\//, '')}
-                          </a>
-                        </div>
-                      )}
-                      
-                      {profileData?.joined_date && (
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          <span>Dołączył {new Date(profileData.joined_date).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex gap-4 mt-4">
-                      <div className="flex items-center">
-                        <span className="font-semibold mr-1">{profileData?.followers || 0}</span>
-                        <span className="text-muted-foreground">Obserwujących</span>
-                      </div>
-                      <div className="flex items-center">
-                        <span className="font-semibold mr-1">{profileData?.following || 0}</span>
-                        <span className="text-muted-foreground">Obserwuje</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 sm:mt-0 flex flex-col sm:items-end gap-2">
-                    {isOwnProfile ? (
-                      <Button 
-                        onClick={() => setIsEditProfileOpen(true)}
-                        className="gap-2"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Edytuj profil
-                      </Button>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        <Button 
-                          variant={connectionStatus === 'connected' || connectionStatus === 'pending_sent' ? "outline" : "default"}
-                          className="gap-2 w-full"
-                          onClick={handleConnectionAction}
-                        >
-                          <Users className="h-4 w-4" />
-                          {connectionStatus === 'connected' ? "Usuń z kontaktów" :
-                           connectionStatus === 'pending_sent' ? "Anuluj zaproszenie" :
-                           connectionStatus === 'pending_received' ? "Odpowiedz na zaproszenie" :
-                           "Dodaj do kontaktów"}
-                        </Button>
-                        
-                        <Button 
-                          variant={connectionStatus === 'following' ? "outline" : "secondary"}
-                          className="gap-2 w-full"
-                          onClick={handleFollow}
-                        >
-                          {connectionStatus === 'following' ? "Obserwujesz" : "Obserwuj"}
-                        </Button>
-                      </div>
-                    )}
-                    
-                    <Button variant="ghost" size="sm" onClick={handleShareProfile}>
-                      <Share2 className="h-4 w-4 mr-1" />
-                      Udostępnij profil
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ProfileHeader 
+            profileData={profileData}
+            isOwnProfile={isOwnProfile}
+            connectionStatus={connectionStatus}
+            onEditProfileClick={() => setIsEditProfileOpen(true)}
+            onAvatarClick={handleAvatarClick}
+            handleConnectionAction={handleConnectionAction}
+            handleFollow={handleFollow}
+          />
           
-          <Tabs defaultValue="portfolio" className="mb-8">
+          <Tabs defaultValue={defaultTab} className="mb-8">
             <TabsList className="mb-6 grid grid-cols-5 max-w-3xl">
               <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
               <TabsTrigger value="products">Produkty</TabsTrigger>
@@ -633,519 +438,43 @@ export default function Profile() {
             </TabsList>
             
             <TabsContent value="portfolio">
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-semibold">Projekty i portfolio</h2>
-                  {isOwnProfile && (
-                    <Button size="sm">
-                      <Plus className="h-4 w-4 mr-1" />
-                      Dodaj projekt
-                    </Button>
-                  )}
-                </div>
-                
-                {userProjects.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {userProjects.map((project) => (
-                      <Card key={project.id} className="overflow-hidden">
-                        {project.image_url && (
-                          <div className="aspect-video relative overflow-hidden">
-                            <img 
-                              src={project.image_url} 
-                              alt={project.title} 
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-                        <CardHeader>
-                          <CardTitle>{project.title}</CardTitle>
-                          {project.date && (
-                            <CardDescription>{project.date}</CardDescription>
-                          )}
-                        </CardHeader>
-                        <CardContent>
-                          {project.description && (
-                            <p className="text-muted-foreground mb-4">{project.description}</p>
-                          )}
-                          
-                          {project.tags && project.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {project.tags.map((tag, index) => (
-                                <Badge key={index} variant="secondary">{tag}</Badge>
-                              ))}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-10 border rounded-lg bg-background">
-                    <FolderIcon className="h-12 w-12 mx-auto text-muted-foreground opacity-30" />
-                    <h3 className="text-xl font-medium mt-4">Brak projektów</h3>
-                    <p className="text-muted-foreground mt-2">
-                      {isOwnProfile ? "Dodaj swoje projekty i portfolio, aby pokazać swoje umiejętności." : "Ten użytkownik nie ma jeszcze żadnych projektów w portfolio."}
-                    </p>
-                    {isOwnProfile && (
-                      <Button className="mt-4">
-                        <Plus className="h-4 w-4 mr-1" />
-                        Dodaj pierwszy projekt
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
+              <PortfolioTab 
+                userProjects={userProjects}
+                isOwnProfile={isOwnProfile}
+              />
             </TabsContent>
             
             <TabsContent value="products">
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-semibold">Produkty</h2>
-                  {isOwnProfile && (
-                    <Button size="sm" onClick={() => navigate('/marketplace')}>
-                      <Plus className="h-4 w-4 mr-1" />
-                      Dodaj produkt
-                    </Button>
-                  )}
-                </div>
-                
-                {userProducts.length > 0 ? (
-                  <div className="space-y-4">
-                    {userProducts.map((product) => (
-                      <div key={product.id} className="border p-4 rounded-lg">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div>
-                            <h3 className="text-xl font-medium">{product.title}</h3>
-                            <p className="text-muted-foreground line-clamp-2">{product.description}</p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <Badge>{product.category || "Inne"}</Badge>
-                              <span className="font-medium">
-                                {new Intl.NumberFormat('pl-PL', {
-                                  style: 'currency',
-                                  currency: 'PLN'
-                                }).format(product.price)}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => navigate(`/marketplace/${product.id}`)}
-                            >
-                              <ExternalLink className="h-4 w-4 mr-1" />
-                              Zobacz
-                            </Button>
-                            
-                            {isOwnProfile && (
-                              <Button 
-                                variant="default" 
-                                size="sm"
-                                onClick={() => loadProductForEditing(product.id)}
-                              >
-                                <Pencil className="h-4 w-4 mr-1" />
-                                Edytuj
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-10 border rounded-lg bg-background">
-                    <Music className="h-12 w-12 mx-auto text-muted-foreground opacity-30" />
-                    <h3 className="text-xl font-medium mt-4">Brak produktów</h3>
-                    <p className="text-muted-foreground mt-2">
-                      {isOwnProfile ? "Dodaj swoje produkty do Rynku." : "Ten użytkownik nie ma jeszcze żadnych produktów na sprzedaż."}
-                    </p>
-                    {isOwnProfile && (
-                      <Button className="mt-4" onClick={() => navigate('/marketplace')}>
-                        <Plus className="h-4 w-4 mr-1" />
-                        Dodaj pierwszy produkt
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
+              <ProductsTab 
+                userProducts={userProducts}
+                isOwnProfile={isOwnProfile}
+              />
             </TabsContent>
             
             <TabsContent value="experience">
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-semibold">Doświadczenie zawodowe</h2>
-                  {isOwnProfile && (
-                    <Button size="sm">
-                      <Plus className="h-4 w-4 mr-1" />
-                      Dodaj doświadczenie
-                    </Button>
-                  )}
-                </div>
-                
-                {userExperience.length > 0 ? (
-                  <div className="space-y-6">
-                    {userExperience.map((exp) => (
-                      <div key={exp.id} className="border p-6 rounded-lg">
-                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                          <div className="flex gap-4">
-                            <div className="flex-shrink-0">
-                              <div className="h-12 w-12 rounded-md bg-primary/10 flex items-center justify-center text-primary">
-                                <BriefcaseIcon className="h-6 w-6" />
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <h3 className="text-xl font-medium">{exp.position}</h3>
-                              <p className="text-lg text-muted-foreground">{exp.company}</p>
-                              <p className="text-sm text-muted-foreground mt-1">{exp.period}</p>
-                            </div>
-                          </div>
-                          
-                          {isOwnProfile && (
-                            <Button variant="ghost" size="sm">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-10 border rounded-lg bg-background">
-                    <BriefcaseIcon className="h-12 w-12 mx-auto text-muted-foreground opacity-30" />
-                    <h3 className="text-xl font-medium mt-4">Brak doświadczenia</h3>
-                    <p className="text-muted-foreground mt-2">
-                      {isOwnProfile ? "Dodaj swoje doświadczenie zawodowe, aby pokazać swoją historię pracy." : "Ten użytkownik nie dodał jeszcze żadnego doświadczenia zawodowego."}
-                    </p>
-                    {isOwnProfile && (
-                      <Button className="mt-4">
-                        <Plus className="h-4 w-4 mr-1" />
-                        Dodaj doświadczenie
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
+              <ExperienceTab 
+                userExperience={userExperience}
+                isOwnProfile={isOwnProfile}
+              />
             </TabsContent>
             
             <TabsContent value="education">
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-semibold">Edukacja</h2>
-                  {isOwnProfile && (
-                    <Button size="sm">
-                      <Plus className="h-4 w-4 mr-1" />
-                      Dodaj edukację
-                    </Button>
-                  )}
-                </div>
-                
-                {userEducation.length > 0 ? (
-                  <div className="space-y-6">
-                    {userEducation.map((edu) => (
-                      <div key={edu.id} className="border p-6 rounded-lg">
-                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                          <div className="flex gap-4">
-                            <div className="flex-shrink-0">
-                              <div className="h-12 w-12 rounded-md bg-primary/10 flex items-center justify-center text-primary">
-                                <GraduationCapIcon className="h-6 w-6" />
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <h3 className="text-xl font-medium">{edu.institution}</h3>
-                              <p className="text-lg text-muted-foreground">{edu.degree}</p>
-                              <p className="text-sm text-muted-foreground mt-1">{edu.year}</p>
-                            </div>
-                          </div>
-                          
-                          {isOwnProfile && (
-                            <Button variant="ghost" size="sm">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-10 border rounded-lg bg-background">
-                    <GraduationCapIcon className="h-12 w-12 mx-auto text-muted-foreground opacity-30" />
-                    <h3 className="text-xl font-medium mt-4">Brak edukacji</h3>
-                    <p className="text-muted-foreground mt-2">
-                      {isOwnProfile ? "Dodaj swoją historię edukacji, aby pokazać swoje wykształcenie." : "Ten użytkownik nie dodał jeszcze żadnej historii edukacji."}
-                    </p>
-                    {isOwnProfile && (
-                      <Button className="mt-4">
-                        <Plus className="h-4 w-4 mr-1" />
-                        Dodaj edukację
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
+              <EducationTab 
+                userEducation={userEducation}
+                isOwnProfile={isOwnProfile}
+              />
             </TabsContent>
             
             {isOwnProfile && (
               <TabsContent value="marketplace">
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-semibold">Mój Marketplace</h2>
-                    <Button
-                      onClick={() => navigate('/marketplace')}
-                      className="gap-2"
-                    >
-                      <Store className="h-4 w-4" />
-                      Przejdź do Marketplace
-                    </Button>
-                  </div>
-                  
-                  <Tabs value={marketplaceTab} onValueChange={setMarketplaceTab} className="mb-6">
-                    <TabsList className="mb-4 grid grid-cols-3 max-w-md">
-                      <TabsTrigger value="products" className="flex gap-2 items-center">
-                        <ShoppingBag className="h-4 w-4" />
-                        Produkty ({userProducts.length})
-                      </TabsTrigger>
-                      <TabsTrigger value="services" className="flex gap-2 items-center">
-                        <Briefcase className="h-4 w-4" />
-                        Usługi ({userServices.length})
-                      </TabsTrigger>
-                      <TabsTrigger value="consultations" className="flex gap-2 items-center">
-                        <Headphones className="h-4 w-4" />
-                        Konsultacje ({userConsultations.length})
-                      </TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="products">
-                      <div className="flex justify-between mb-4">
-                        <h3 className="text-xl font-medium">Moje Produkty</h3>
-                        <Button size="sm" onClick={() => navigate('/marketplace')}>
-                          <Plus className="h-4 w-4 mr-1" />
-                          Dodaj produkt
-                        </Button>
-                      </div>
-                      
-                      {userProducts.length > 0 ? (
-                        <div className="space-y-4">
-                          {userProducts.map((product) => (
-                            <Card key={product.id}>
-                              <CardHeader className="pb-2">
-                                <div className="flex justify-between items-start">
-                                  <CardTitle>{product.title}</CardTitle>
-                                  <div className="text-lg font-semibold">
-                                    {new Intl.NumberFormat('pl-PL', {
-                                      style: 'currency',
-                                      currency: 'PLN'
-                                    }).format(product.price)}
-                                  </div>
-                                </div>
-                                <CardDescription>
-                                  Dodano: {new Date(product.created_at).toLocaleDateString()}
-                                </CardDescription>
-                              </CardHeader>
-                              <CardContent>
-                                {product.description && (
-                                  <p className="mb-4 text-muted-foreground line-clamp-2">{product.description}</p>
-                                )}
-                                {product.category && <Badge className="mr-2">{product.category}</Badge>}
-                              </CardContent>
-                              <div className="flex justify-end p-4 pt-0 gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => navigate(`/marketplace/${product.id}`)}
-                                >
-                                  <ExternalLink className="h-4 w-4 mr-1" />
-                                  Zobacz
-                                </Button>
-                                <Button 
-                                  variant="default" 
-                                  size="sm"
-                                  onClick={() => loadProductForEditing(product.id)}
-                                >
-                                  <Pencil className="h-4 w-4 mr-1" />
-                                  Edytuj
-                                </Button>
-                                <Button 
-                                  variant="destructive" 
-                                  size="sm"
-                                  onClick={() => handleDeleteProduct(product.id)}
-                                >
-                                  Usuń
-                                </Button>
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center p-8 border rounded-md">
-                          <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground opacity-30 mb-4" />
-                          <h3 className="text-lg font-medium">Nie masz jeszcze żadnych produktów</h3>
-                          <p className="text-muted-foreground mb-4">Dodaj swój pierwszy produkt do Marketplace.</p>
-                          <Button onClick={() => navigate('/marketplace')}>
-                            <Plus className="h-4 w-4 mr-1" />
-                            Dodaj produkt
-                          </Button>
-                        </div>
-                      )}
-                    </TabsContent>
-                    
-                    <TabsContent value="services">
-                      <div className="flex justify-between mb-4">
-                        <h3 className="text-xl font-medium">Moje Usługi</h3>
-                        <Button size="sm" onClick={() => navigate('/marketplace?tab=services')}>
-                          <Plus className="h-4 w-4 mr-1" />
-                          Dodaj usługę
-                        </Button>
-                      </div>
-                      
-                      {userServices.length > 0 ? (
-                        <div className="space-y-4">
-                          {userServices.map((service) => (
-                            <Card key={service.id}>
-                              <CardHeader className="pb-2">
-                                <div className="flex justify-between items-start">
-                                  <CardTitle>{service.title}</CardTitle>
-                                  <div className="text-lg font-semibold">
-                                    {new Intl.NumberFormat('pl-PL', {
-                                      style: 'currency',
-                                      currency: 'PLN'
-                                    }).format(service.price)}
-                                  </div>
-                                </div>
-                                <CardDescription>
-                                  Dodano: {new Date(service.created_at).toLocaleDateString()}
-                                </CardDescription>
-                              </CardHeader>
-                              <CardContent>
-                                {service.description && (
-                                  <p className="mb-4 text-muted-foreground line-clamp-2">{service.description}</p>
-                                )}
-                                {service.category && <Badge className="mr-2">{service.category}</Badge>}
-                              </CardContent>
-                              <div className="flex justify-end p-4 pt-0 gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => navigate(`/services/${service.id}`)}
-                                >
-                                  <ExternalLink className="h-4 w-4 mr-1" />
-                                  Zobacz
-                                </Button>
-                                <Button 
-                                  variant="default" 
-                                  size="sm"
-                                  onClick={() => navigate(`/edit-service/${service.id}`)}
-                                >
-                                  <Pencil className="h-4 w-4 mr-1" />
-                                  Edytuj
-                                </Button>
-                                <Button 
-                                  variant="destructive" 
-                                  size="sm"
-                                  onClick={() => handleDeleteService(service.id)}
-                                >
-                                  Usuń
-                                </Button>
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center p-8 border rounded-md">
-                          <Briefcase className="h-12 w-12 mx-auto text-muted-foreground opacity-30 mb-4" />
-                          <h3 className="text-lg font-medium">Nie masz jeszcze żadnych usług</h3>
-                          <p className="text-muted-foreground mb-4">Dodaj swoją pierwszą usługę do Marketplace.</p>
-                          <Button onClick={() => navigate('/marketplace?tab=services')}>
-                            <Plus className="h-4 w-4 mr-1" />
-                            Dodaj usługę
-                          </Button>
-                        </div>
-                      )}
-                    </TabsContent>
-                    
-                    <TabsContent value="consultations">
-                      <div className="flex justify-between mb-4">
-                        <h3 className="text-xl font-medium">Moje Konsultacje</h3>
-                        <Button size="sm" onClick={() => navigate('/marketplace?tab=consultations')}>
-                          <Plus className="h-4 w-4 mr-1" />
-                          Dodaj konsultację
-                        </Button>
-                      </div>
-                      
-                      {userConsultations.length > 0 ? (
-                        <div className="space-y-4">
-                          {userConsultations.map((consultation) => (
-                            <Card key={consultation.id}>
-                              <CardHeader className="pb-2">
-                                <div className="flex justify-between items-start">
-                                  <CardTitle>{consultation.title}</CardTitle>
-                                  <div className="text-lg font-semibold">
-                                    {new Intl.NumberFormat('pl-PL', {
-                                      style: 'currency',
-                                      currency: 'PLN'
-                                    }).format(consultation.price)}
-                                  </div>
-                                </div>
-                                <CardDescription>
-                                  Dodano: {new Date(consultation.created_at).toLocaleDateString()}
-                                </CardDescription>
-                              </CardHeader>
-                              <CardContent>
-                                {consultation.description && (
-                                  <p className="mb-4 text-muted-foreground line-clamp-2">{consultation.description}</p>
-                                )}
-                                {consultation.categories && consultation.categories.length > 0 && (
-                                  <div className="flex flex-wrap gap-2">
-                                    {consultation.categories.map((category, idx) => (
-                                      <Badge key={idx} className="mr-2">{category}</Badge>
-                                    ))}
-                                  </div>
-                                )}
-                              </CardContent>
-                              <div className="flex justify-end p-4 pt-0 gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => navigate(`/consultations/${consultation.id}`)}
-                                >
-                                  <ExternalLink className="h-4 w-4 mr-1" />
-                                  Zobacz
-                                </Button>
-                                <Button 
-                                  variant="default" 
-                                  size="sm"
-                                  onClick={() => navigate(`/edit-consultation/${consultation.id}`)}
-                                >
-                                  <Pencil className="h-4 w-4 mr-1" />
-                                  Edytuj
-                                </Button>
-                                <Button 
-                                  variant="destructive" 
-                                  size="sm"
-                                  onClick={() => handleDeleteConsultation(consultation.id)}
-                                >
-                                  Usuń
-                                </Button>
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center p-8 border rounded-md">
-                          <Headphones className="h-12 w-12 mx-auto text-muted-foreground opacity-30 mb-4" />
-                          <h3 className="text-lg font-medium">Nie masz jeszcze żadnych konsultacji</h3>
-                          <p className="text-muted-foreground mb-4">Dodaj swoją pierwszą ofertę konsultacji do Marketplace.</p>
-                          <Button onClick={() => navigate('/marketplace?tab=consultations')}>
-                            <Plus className="h-4 w-4 mr-1" />
-                            Dodaj konsultację
-                          </Button>
-                        </div>
-                      )}
-                    </TabsContent>
-                  </Tabs>
-                </div>
+                <MarketplaceTab 
+                  userProducts={userProducts}
+                  userServices={userServices}
+                  userConsultations={userConsultations}
+                  handleDeleteProduct={handleDeleteProduct}
+                  handleDeleteService={handleDeleteService}
+                  handleDeleteConsultation={handleDeleteConsultation}
+                />
               </TabsContent>
             )}
           </Tabs>
