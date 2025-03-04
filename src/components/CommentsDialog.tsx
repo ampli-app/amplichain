@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { CommentsSection } from "./CommentsSection";
 import { MessageCircle } from "lucide-react";
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 interface CommentsDialogProps {
   postId: string;
@@ -28,15 +29,20 @@ export function CommentsDialog({ postId, commentsCount }: CommentsDialogProps) {
         <span>{commentsCount}</span>
       </Button>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-background rounded-lg max-w-lg w-full mx-auto relative">
-            <CommentsSection 
-              postId={postId} 
-              onClose={() => setIsOpen(false)} 
-            />
-          </div>
-        </div>
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="absolute left-0 right-0 mt-2 z-10 bg-background rounded-lg shadow-lg overflow-hidden"
+        >
+          <CommentsSection 
+            postId={postId} 
+            onClose={() => setIsOpen(false)} 
+          />
+        </motion.div>
       )}
     </div>
   );
+
 }

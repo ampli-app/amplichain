@@ -111,6 +111,27 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
         )}
       </div>
       
+      <div className="p-4 border-b bg-background">
+        <div className="flex items-end gap-2">
+          <Textarea
+            value={commentContent}
+            onChange={(e) => setCommentContent(e.target.value)}
+            placeholder="Napisz komentarz..."
+            className="flex-1 min-h-[60px]"
+            disabled={loading}
+          />
+          <Button
+            onClick={handleSubmitComment}
+            disabled={!commentContent.trim() || loading}
+            size="icon"
+            className="h-10 w-10 flex-shrink-0"
+            type="button"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      
       <div className="flex-1 overflow-y-auto max-h-[400px] p-4 space-y-2">
         {isLoading ? (
           <div className="flex justify-center p-4">Ładowanie komentarzy...</div>
@@ -134,27 +155,6 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
             ))}
           </AnimatePresence>
         )}
-      </div>
-      
-      <div className="p-4 border-t bg-background">
-        <div className="flex items-end gap-2">
-          <Textarea
-            value={commentContent}
-            onChange={(e) => setCommentContent(e.target.value)}
-            placeholder="Napisz komentarz..."
-            className="flex-1 min-h-[60px]"
-            disabled={loading}
-          />
-          <Button
-            onClick={handleSubmitComment}
-            disabled={!commentContent.trim() || loading}
-            size="icon"
-            className="h-10 w-10 flex-shrink-0"
-            type="button"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
       </div>
     </div>
   );
