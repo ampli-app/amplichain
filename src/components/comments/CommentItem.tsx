@@ -15,7 +15,7 @@ interface CommentItemProps {
   maxLevel?: number;
 }
 
-export function CommentItem({ comment, level = 0, maxLevel = 1 }: CommentItemProps) {
+export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemProps) {
   const { likeComment, unlikeComment, commentOnPost, getPostComments, loading } = useSocial();
   const [isReplying, setIsReplying] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
@@ -60,7 +60,7 @@ export function CommentItem({ comment, level = 0, maxLevel = 1 }: CommentItemPro
     if (comment.replies > 0 && !repliesLoading) {
       try {
         setRepliesLoading(true);
-        console.log("Loading replies for comment:", comment.id);
+        console.log("Loading replies for comment:", comment.id, "post ID:", comment.postId);
         const fetchedReplies = await getPostComments(comment.postId, comment.id);
         console.log("Fetched replies:", fetchedReplies);
         if (fetchedReplies && Array.isArray(fetchedReplies)) {
@@ -68,11 +68,11 @@ export function CommentItem({ comment, level = 0, maxLevel = 1 }: CommentItemPro
           setRepliesLoaded(true);
           setShowReplies(true); // Automatically show replies after loading
         } else {
-          console.error("Invalid replies data received");
+          console.error("Invalid replies data received", fetchedReplies);
           setReplies([]);
           toast({
             title: "Błąd",
-            description: "Nie udało się załadować odpowiedzi",
+            description: "Nie udało się załadować odpowiedzi - nieprawidłowe dane",
             variant: "destructive"
           });
         }
@@ -81,7 +81,7 @@ export function CommentItem({ comment, level = 0, maxLevel = 1 }: CommentItemPro
         setReplies([]);
         toast({
           title: "Błąd",
-          description: "Wystąpił błąd podczas ładowania odpowiedzi",
+          description: "Wystąpił błąd podczas ładowania odpowiedzi: " + (err instanceof Error ? err.message : String(err)),
           variant: "destructive"
         });
       } finally {
@@ -99,7 +99,7 @@ export function CommentItem({ comment, level = 0, maxLevel = 1 }: CommentItemPro
   };
   
   return (
-    <div className={`pl-${level > 0 ? 4 : 0}`}>
+    <div className={level > 0 ? "pl-4" : ""}>      
       <div className="flex items-start gap-3 py-2">
         <div className="flex-1 min-w-0">
           <div className="glass-card rounded-lg p-3 border">
