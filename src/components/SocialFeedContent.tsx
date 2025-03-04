@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, Calendar, Heart, MessageCircle, Bookmark, MoreHorizontal } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -205,7 +204,9 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
               </div>
               
               <div id={`comments-${post.id}`} style={{ display: 'none' }} className="mt-4">
-                <CommentsSection postId={post.id} />
+                <div className="border rounded-lg bg-background shadow-sm w-full">
+                  <CommentsSection postId={post.id} />
+                </div>
               </div>
             </div>
           </div>
