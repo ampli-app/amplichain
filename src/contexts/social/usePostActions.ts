@@ -62,33 +62,54 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
       if (data && data.length > 0) {
         const newPost = data[0];
         
-        // Pobierz dane profilu użytkownika
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('full_name, avatar_url, role')
-          .eq('id', user.id)
-          .maybeSingle();
-        
-        const formattedPost: Post = {
-          id: newPost.id,
-          userId: newPost.user_id,
-          author: {
-            name: profileData?.full_name || user.user_metadata?.full_name || '',
+        try {
+          // Pobierz dane profilu użytkownika
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('full_name, avatar_url, role')
+            .eq('id', user.id)
+            .single();
+          
+          if (profileError) {
+            console.error('Error fetching profile data:', profileError);
+          }
+          
+          console.log("Pobrane dane profilu:", profileData);
+          
+          const author = {
+            name: profileData?.full_name || user.user_metadata?.full_name || 'Użytkownik',
             avatar: profileData?.avatar_url || user.user_metadata?.avatar_url || '/placeholder.svg',
             role: profileData?.role || user.user_metadata?.role || ''
-          },
-          timeAgo: 'przed chwilą',
-          content: newPost.content,
-          mediaUrl: newPost.media_url,
-          likes: 0,
-          comments: 0,
-          saves: 0,
-          hasLiked: false,
-          hasSaved: false,
-          hashtags: []
-        };
-        
-        setPosts(prev => [formattedPost, ...prev]);
+          };
+          
+          console.log("Dane autora posta:", author);
+          
+          const formattedPost: Post = {
+            id: newPost.id,
+            userId: newPost.user_id,
+            author,
+            timeAgo: 'przed chwilą',
+            content: newPost.content,
+            mediaUrl: newPost.media_url,
+            likes: 0,
+            comments: 0,
+            saves: 0,
+            hasLiked: false,
+            hasSaved: false,
+            hashtags: []
+          };
+          
+          console.log("Sformatowany post do dodania:", formattedPost);
+          
+          setPosts(prev => {
+            console.log("Aktualny stan postów:", prev);
+            const updatedPosts = [formattedPost, ...prev];
+            console.log("Zaktualizowany stan postów:", updatedPosts);
+            return updatedPosts;
+          });
+        } catch (profileFetchError) {
+          console.error('Unexpected error fetching profile:', profileFetchError);
+        }
       }
     } catch (err) {
       console.error('Unexpected error creating post:', err);

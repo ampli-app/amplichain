@@ -15,6 +15,7 @@ const SocialContext = createContext<SocialContextType | null>(null);
 export const SocialProvider = ({ children }: { children: ReactNode }) => {
   const { user, isLoggedIn } = useAuth();
   const [users, setUsers] = useState<SocialUser[]>([]);
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
   
   // Użyj naszych zrefaktoryzowanych hooków
   const { currentUser, setCurrentUser, loadCurrentUserProfile } = useCurrentUser(user);
@@ -42,13 +43,28 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
   } = usePostsLoading(user);
   
   const {
-    createPost,
+    createPost: originalCreatePost,
     likePost,
     unlikePost,
     savePost,
     unsavePost,
     loading: postActionLoading
   } = usePostActions(user, setPosts);
+  
+  // Wrapper dla createPost, który obsługuje globalny stan ładowania
+  const createPost = async (
+    content: string, 
+    mediaUrl?: string, 
+    mediaType?: 'image' | 'video',
+    mediaFiles?: Array<{url: string, type: 'image' | 'video'}>
+  ) => {
+    setIsCreatingPost(true);
+    try {
+      await originalCreatePost(content, mediaUrl, mediaType, mediaFiles);
+    } finally {
+      setIsCreatingPost(false);
+    }
+  };
   
   const {
     commentOnPost,
@@ -78,7 +94,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
   }, [isLoggedIn, user]);
 
   // Połącz wszystkie stany ładowania w jeden
-  const loading = postsLoading || postActionLoading;
+  const loading = postsLoading || postActionLoading || isCreatingPost;
   
   return (
     <SocialContext.Provider value={{

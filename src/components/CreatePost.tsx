@@ -10,13 +10,12 @@ import { toast } from '@/components/ui/use-toast';
 export function CreatePost() {
   const { currentUser, createPost, loading } = useSocial();
   const [content, setContent] = useState('');
-  const [mediaUrl, setMediaUrl] = useState<string>('');
-  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+  const [media, setMedia] = useState<Array<{ url: string; type: 'image' | 'video' }>>([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const handleSubmit = async () => {
-    if (!content.trim() && !mediaUrl) {
+    if (!content.trim() && media.length === 0) {
       toast({
         title: "Błąd",
         description: "Post musi zawierać tekst lub media",
@@ -28,21 +27,27 @@ export function CreatePost() {
     try {
       console.log('Tworzenie posta:', {
         content,
-        mediaUrl,
-        mediaType
+        mediaUrl: media[0]?.url,
+        mediaType: media[0]?.type,
+        mediaFiles: media.length > 1 ? media : undefined
       });
       
       await createPost(
         content, 
-        mediaUrl || undefined, 
-        mediaType || undefined
+        media[0]?.url || undefined, 
+        media[0]?.type || undefined,
+        media.length > 1 ? media : undefined
       );
       
       // Reset form
       setContent('');
-      setMediaUrl('');
-      setMediaType(null);
+      setMedia([]);
       setIsExpanded(false);
+      
+      toast({
+        title: "Sukces",
+        description: "Post został utworzony pomyślnie"
+      });
       
     } catch (error) {
       console.error("Błąd podczas tworzenia posta:", error);
@@ -55,14 +60,25 @@ export function CreatePost() {
   };
   
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
     
-    const type = file.type.startsWith('image/') ? 'image' as const : 'video' as const;
-    const url = URL.createObjectURL(file);
+    // Sprawdź, czy nie przekraczamy limitu 4 plików
+    if (media.length + files.length > 4) {
+      toast({
+        title: "Błąd",
+        description: "Możesz dodać maksymalnie 4 pliki",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    setMediaType(type);
-    setMediaUrl(url);
+    Array.from(files).forEach(file => {
+      const type = file.type.startsWith('image/') ? 'image' as const : 'video' as const;
+      const url = URL.createObjectURL(file);
+      
+      setMedia(prev => [...prev, { url, type }]);
+    });
     
     // Resetuj input
     if (fileInputRef.current) {
@@ -70,9 +86,8 @@ export function CreatePost() {
     }
   };
   
-  const removeMedia = () => {
-    setMediaUrl('');
-    setMediaType(null);
+  const removeMedia = (index: number) => {
+    setMedia(prev => prev.filter((_, i) => i !== index));
   };
   
   return (
@@ -81,7 +96,7 @@ export function CreatePost() {
         <Avatar className="h-10 w-10">
           <AvatarImage 
             src={currentUser?.avatar} 
-            alt={currentUser?.name || "Your profile"} 
+            alt={currentUser?.name || "Twój profil"} 
           />
           <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
         </Avatar>
@@ -90,34 +105,38 @@ export function CreatePost() {
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Share something with your network..."
+            placeholder="Podziel się czymś ze swoją siecią..."
             className="resize-none mb-3 min-h-24"
             onFocus={() => setIsExpanded(true)}
           />
           
-          {mediaUrl && (
-            <div className="relative rounded-md overflow-hidden mb-3">
-              <Button 
-                variant="destructive" 
-                size="icon" 
-                className="absolute top-2 right-2 h-7 w-7 opacity-90"
-                onClick={removeMedia}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-              {mediaType === 'image' ? (
-                <img 
-                  src={mediaUrl} 
-                  alt="Upload preview" 
-                  className="w-full h-auto max-h-64 object-cover rounded-md" 
-                />
-              ) : (
-                <video 
-                  src={mediaUrl}
-                  controls
-                  className="w-full h-auto max-h-64 object-cover rounded-md"
-                />
-              )}
+          {media.length > 0 && (
+            <div className={`grid ${media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 mb-3`}>
+              {media.map((item, index) => (
+                <div key={index} className="relative rounded-md overflow-hidden">
+                  <Button 
+                    variant="destructive" 
+                    size="icon" 
+                    className="absolute top-2 right-2 h-7 w-7 opacity-90"
+                    onClick={() => removeMedia(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  {item.type === 'image' ? (
+                    <img 
+                      src={item.url} 
+                      alt={`Załącznik ${index + 1}`} 
+                      className="w-full h-auto max-h-48 object-cover rounded-md" 
+                    />
+                  ) : (
+                    <video 
+                      src={item.url}
+                      controls
+                      className="w-full h-auto max-h-48 object-cover rounded-md"
+                    />
+                  )}
+                </div>
+              ))}
             </div>
           )}
           
@@ -130,15 +149,17 @@ export function CreatePost() {
                   size="sm" 
                   className="gap-1.5 text-rhythm-600"
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={media.length >= 4 || loading}
                 >
                   <Image className="h-4 w-4" />
-                  <span className="hidden md:inline">Image</span>
+                  <span className="hidden md:inline">Media ({media.length}/4)</span>
                 </Button>
                 <input 
                   type="file" 
                   ref={fileInputRef} 
                   className="hidden" 
                   accept="image/*,video/*" 
+                  multiple
                   onChange={handleFileUpload}
                 />
               </div>
@@ -148,12 +169,12 @@ export function CreatePost() {
                 size="sm"
                 className="gap-1.5"
                 onClick={handleSubmit}
-                disabled={loading || (!content.trim() && !mediaUrl)}
+                disabled={loading || (!content.trim() && media.length === 0)}
               >
                 {loading ? "Tworzenie..." : (
                   <>
                     <Send className="h-4 w-4" />
-                    Post
+                    Opublikuj
                   </>
                 )}
               </Button>

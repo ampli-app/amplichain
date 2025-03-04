@@ -65,7 +65,8 @@ export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
       console.log('Tworzenie posta z modalu:', {
         content,
         mediaUrl: media[0]?.url,
-        mediaType: media[0]?.type
+        mediaType: media[0]?.type,
+        mediaFiles: media.length > 1 ? media : undefined
       });
       
       await createPost(
@@ -81,6 +82,11 @@ export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
       
       // Zamknij modal
       onClose();
+      
+      toast({
+        title: "Sukces",
+        description: "Post został utworzony pomyślnie"
+      });
     } catch (error) {
       console.error("Błąd podczas tworzenia posta:", error);
       toast({
@@ -146,7 +152,7 @@ export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
               size="sm" 
               className="gap-1.5 text-rhythm-600"
               onClick={() => fileInputRef.current?.click()}
-              disabled={media.length >= 4}
+              disabled={media.length >= 4 || loading}
             >
               <FileUp className="h-4 w-4" />
               <span>Dodaj pliki ({media.length}/4)</span>
