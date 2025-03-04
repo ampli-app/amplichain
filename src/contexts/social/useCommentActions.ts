@@ -259,7 +259,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         .from('comments')
         .select('*')
         .eq('post_id', postId)
-        .eq('parent_id', parentId)
+        .is('parent_id', parentId || null) // Changed to handle null parent_id correctly
         .order('created_at', { ascending: true });
       
       if (commentsError) {

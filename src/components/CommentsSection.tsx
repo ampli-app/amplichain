@@ -36,8 +36,8 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
       console.log("Pobrane komentarze:", fetchedComments);
       setComments(fetchedComments);
       
-      // Only show error toast if no comments were fetched
-      if (fetchedComments.length === 0) {
+      // Only show info toast if there's no error and no comments
+      if (!fetchedComments || fetchedComments.length === 0) {
         toast({
           title: "Informacja",
           description: "Brak komentarzy dla tego posta.",
@@ -50,6 +50,8 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
         description: "Nie można załadować komentarzy. Spróbuj ponownie później.",
         variant: "destructive",
       });
+      // Clear comments in case of error
+      setComments([]);
     } finally {
       setIsLoading(false);
     }
