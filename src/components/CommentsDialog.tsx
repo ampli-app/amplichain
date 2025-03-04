@@ -13,7 +13,7 @@ export function CommentsDialog({ postId, commentsCount }: CommentsDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div>
+    <div className="relative">
       <Button 
         variant="ghost" 
         size="sm" 
@@ -28,11 +28,13 @@ export function CommentsDialog({ postId, commentsCount }: CommentsDialogProps) {
         <span>{commentsCount}</span>
       </Button>
       {isOpen && (
-        <div className="mt-4">
-          <CommentsSection 
-            postId={postId} 
-            onClose={() => setIsOpen(false)} 
-          />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-background rounded-lg max-w-lg w-full mx-auto relative">
+            <CommentsSection 
+              postId={postId} 
+              onClose={() => setIsOpen(false)} 
+            />
+          </div>
         </div>
       )}
     </div>
