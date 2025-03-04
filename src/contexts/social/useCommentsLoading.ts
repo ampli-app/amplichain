@@ -73,20 +73,13 @@ export const useCommentsLoading = (user: any | null) => {
     try {
       console.log("Pobieranie komentarzy dla posta:", postId);
       
-      // Tworzenie zapytania
-      const query = supabase
+      // Pobierz komentarze główne lub odpowiedzi
+      const { data: commentsData, error: commentsError } = await supabase
         .from('comments')
         .select('*')
-        .eq('post_id', postId);
-      
-      // Dodajemy warunek dla parent_id w zależności od tego, czy chcemy główne komentarze czy odpowiedzi
-      if (parentId) {
-        query.eq('parent_id', parentId);
-      } else {
-        query.is('parent_id', null);
-      }
-      
-      const { data: commentsData, error: commentsError } = await query.order('created_at', { ascending: true });
+        .eq('post_id', postId)
+        .is('parent_id', parentId || null) // Changed to handle null parent_id correctly
+        .order('created_at', { ascending: true });
       
       if (commentsError) {
         console.error('Error fetching comments:', commentsError);
