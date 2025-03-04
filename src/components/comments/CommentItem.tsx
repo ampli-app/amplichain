@@ -15,7 +15,7 @@ interface CommentItemProps {
   maxLevel?: number;
 }
 
-export function CommentItem({ comment, level = 0, maxLevel = 1 }: CommentItemProps) {
+export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemProps) {
   const { likeComment, unlikeComment, commentOnPost, getPostComments, loading } = useSocial();
   const [isReplying, setIsReplying] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
@@ -99,7 +99,7 @@ export function CommentItem({ comment, level = 0, maxLevel = 1 }: CommentItemPro
   };
   
   return (
-    <div className={`pl-${level > 0 ? 4 : 0}`}>
+    <div className={level > 0 ? "pl-4" : ""}>      
       <div className="flex items-start gap-3 py-2">
         <div className="flex-1 min-w-0">
           <div className="glass-card rounded-lg p-3 border">
