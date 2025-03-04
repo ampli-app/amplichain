@@ -20,14 +20,20 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         return;
       }
       
+      setLoading(true);
+      
+      const commentData = {
+        post_id: postId,
+        user_id: user.id,
+        content,
+        parent_id: parentId || null
+      };
+      
+      console.log("Dodawanie komentarza:", commentData);
+      
       const { error } = await supabase
         .from('comments')
-        .insert({
-          post_id: postId,
-          user_id: user.id,
-          content,
-          parent_id: parentId
-        });
+        .insert(commentData);
       
       if (error) {
         console.error('Error adding comment:', error);
@@ -52,6 +58,8 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         title: "Sukces",
         description: parentId ? "Odpowiedź została dodana" : "Komentarz został dodany",
       });
+      
+      return true;
     } catch (err) {
       console.error('Unexpected error adding comment:', err);
       toast({
@@ -59,12 +67,17 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         description: "Wystąpił nieoczekiwany błąd podczas dodawania komentarza",
         variant: "destructive",
       });
+      return false;
+    } finally {
+      setLoading(false);
     }
   };
 
   // Funkcja do pobierania komentarzy do posta
   const getPostComments = async (postId: string, parentId?: string): Promise<Comment[]> => {
     try {
+      setLoading(true);
+      
       let query = supabase
         .from('comments')
         .select(`
@@ -86,6 +99,8 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         console.error('Error fetching comments:', error);
         return [];
       }
+      
+      console.log("Pobrane komentarze:", data);
       
       const commentsWithMetadata: Comment[] = await Promise.all(
         (data || []).map(async (comment) => {
@@ -174,6 +189,8 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
     } catch (err) {
       console.error('Unexpected error fetching comments:', err);
       return [];
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -186,8 +203,10 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
           description: "Musisz być zalogowany, aby polubić komentarz",
           variant: "destructive",
         });
-        return;
+        return false;
       }
+      
+      setLoading(true);
       
       const { error } = await supabase
         .from('comment_likes')
@@ -210,8 +229,15 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
             variant: "destructive",
           });
         }
-        return;
+        return false;
       }
+      
+      toast({
+        title: "Sukces",
+        description: "Komentarz został polubiony",
+      });
+      
+      return true;
     } catch (err) {
       console.error('Unexpected error liking comment:', err);
       toast({
@@ -219,6 +245,9 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         description: "Wystąpił nieoczekiwany błąd podczas polubienia komentarza",
         variant: "destructive",
       });
+      return false;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -231,8 +260,10 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
           description: "Musisz być zalogowany, aby usunąć polubienie",
           variant: "destructive",
         });
-        return;
+        return false;
       }
+      
+      setLoading(true);
       
       const { error } = await supabase
         .from('comment_likes')
@@ -247,8 +278,15 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
           description: "Nie udało się usunąć polubienia",
           variant: "destructive",
         });
-        return;
+        return false;
       }
+      
+      toast({
+        title: "Sukces",
+        description: "Polubienie komentarza zostało usunięte",
+      });
+      
+      return true;
     } catch (err) {
       console.error('Unexpected error unliking comment:', err);
       toast({
@@ -256,6 +294,9 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         description: "Wystąpił nieoczekiwany błąd podczas usuwania polubienia",
         variant: "destructive",
       });
+      return false;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -263,6 +304,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
     commentOnPost,
     getPostComments,
     likeComment,
-    unlikeComment
+    unlikeComment,
+    loading
   };
 };

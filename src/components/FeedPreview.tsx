@@ -1,3 +1,4 @@
+
 import { User, Calendar, Heart, MessageCircle, Bookmark, MoreHorizontal } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -16,9 +17,61 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export function FeedPreview() {
-  const { likePost, unlikePost, savePost, unsavePost } = useSocial();
+  const { likePost, unlikePost, savePost, unsavePost, loading: socialLoading } = useSocial();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const handleLikeToggle = (post: Post) => {
+    if (socialLoading) return;
+    
+    if (post.hasLiked) {
+      unlikePost(post.id);
+      // Optymistyczna aktualizacja UI
+      setPosts(prevPosts => 
+        prevPosts.map(p => 
+          p.id === post.id 
+            ? { ...p, hasLiked: false, likes: Math.max(0, p.likes - 1) } 
+            : p
+        )
+      );
+    } else {
+      likePost(post.id);
+      // Optymistyczna aktualizacja UI
+      setPosts(prevPosts => 
+        prevPosts.map(p => 
+          p.id === post.id 
+            ? { ...p, hasLiked: true, likes: p.likes + 1 } 
+            : p
+        )
+      );
+    }
+  };
+  
+  const handleSaveToggle = (post: Post) => {
+    if (socialLoading) return;
+    
+    if (post.hasSaved) {
+      unsavePost(post.id);
+      // Optymistyczna aktualizacja UI
+      setPosts(prevPosts => 
+        prevPosts.map(p => 
+          p.id === post.id 
+            ? { ...p, hasSaved: false, saves: Math.max(0, p.saves - 1) } 
+            : p
+        )
+      );
+    } else {
+      savePost(post.id);
+      // Optymistyczna aktualizacja UI
+      setPosts(prevPosts => 
+        prevPosts.map(p => 
+          p.id === post.id 
+            ? { ...p, hasSaved: true, saves: p.saves + 1 } 
+            : p
+        )
+      );
+    }
+  };
   
   useEffect(() => {
     // Pobierz kilka najnowszych postów dla podglądu
@@ -36,6 +89,9 @@ export function FeedPreview() {
           console.error('Error fetching preview posts:', postsError);
           return;
         }
+        
+        // Pobierz dane zalogowanego użytkownika, jeśli istnieje
+        const { data: { user } } = await supabase.auth.getUser();
         
         const formattedPosts = await Promise.all(
           (postsData || []).map(async (post) => {
@@ -82,6 +138,32 @@ export function FeedPreview() {
               .select('*', { count: 'exact', head: true })
               .eq('post_id', post.id);
             
+            // Sprawdź, czy zalogowany użytkownik polubił post
+            let hasLiked = false;
+            if (user) {
+              const { data: likeData } = await supabase
+                .from('post_likes')
+                .select('id')
+                .eq('post_id', post.id)
+                .eq('user_id', user.id)
+                .maybeSingle();
+                
+              hasLiked = !!likeData;
+            }
+            
+            // Sprawdź, czy zalogowany użytkownik zapisał post
+            let hasSaved = false;
+            if (user) {
+              const { data: saveData } = await supabase
+                .from('saved_posts')
+                .select('id')
+                .eq('post_id', post.id)
+                .eq('user_id', user.id)
+                .maybeSingle();
+                
+              hasSaved = !!saveData;
+            }
+            
             // Pobierz hashtagi
             const { data: tagData } = await supabase
               .from('post_hashtags')
@@ -122,8 +204,8 @@ export function FeedPreview() {
               likes: likesCount || 0,
               comments: commentsCount || 0,
               saves: savesCount || 0,
-              hasLiked: false,
-              hasSaved: false,
+              hasLiked,
+              hasSaved,
               hashtags
             };
           })
@@ -188,7 +270,9 @@ export function FeedPreview() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Zapisz post</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleSaveToggle(post)}>
+                          {post.hasSaved ? 'Usuń z zapisanych' : 'Zapisz post'}
+                        </DropdownMenuItem>
                         <DropdownMenuItem>Zgłoś post</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -228,24 +312,24 @@ export function FeedPreview() {
                       variant="ghost" 
                       size="sm" 
                       className={`flex items-center gap-1 h-8 px-2 ${post.hasLiked ? 'text-red-500' : ''}`}
+                      onClick={() => handleLikeToggle(post)}
+                      disabled={socialLoading}
                     >
                       <Heart className={`h-4 w-4 ${post.hasLiked ? 'fill-red-500' : ''}`} />
                       <span>{post.likes}</span>
                     </Button>
                     
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex items-center gap-1 h-8 px-2"
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                      <span>{post.comments}</span>
-                    </Button>
+                    <CommentsDialog 
+                      postId={post.id}
+                      commentsCount={post.comments}
+                    />
                     
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       className={`flex items-center gap-1 h-8 px-2 ${post.hasSaved ? 'text-primary' : ''}`}
+                      onClick={() => handleSaveToggle(post)}
+                      disabled={socialLoading}
                     >
                       <Bookmark className={`h-4 w-4 ${post.hasSaved ? 'fill-primary' : ''}`} />
                       <span>{post.hasSaved ? 'Zapisano' : 'Zapisz'}</span>

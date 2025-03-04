@@ -19,9 +19,11 @@ interface SocialFeedContentProps {
 }
 
 export function SocialFeedContent({ posts }: SocialFeedContentProps) {
-  const { likePost, unlikePost, savePost, unsavePost } = useSocial();
+  const { likePost, unlikePost, savePost, unsavePost, loading } = useSocial();
   
   const handleLikeToggle = (post: Post) => {
+    if (loading) return;
+    
     if (post.hasLiked) {
       unlikePost(post.id);
     } else {
@@ -30,6 +32,8 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
   };
   
   const handleSaveToggle = (post: Post) => {
+    if (loading) return;
+    
     if (post.hasSaved) {
       unsavePost(post.id);
     } else {
@@ -81,7 +85,9 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>Zapisz post</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleSaveToggle(post)}>
+                      {post.hasSaved ? 'Usuń z zapisanych' : 'Zapisz post'}
+                    </DropdownMenuItem>
                     <DropdownMenuItem>Zgłoś post</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -94,11 +100,42 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
               
               {post.mediaUrl && (
                 <div className="mb-4 rounded-md overflow-hidden">
-                  <img 
-                    src={post.mediaUrl} 
-                    alt="Post media" 
-                    className="w-full h-auto max-h-96 object-cover" 
-                  />
+                  {post.mediaType === 'video' ? (
+                    <video 
+                      src={post.mediaUrl}
+                      controls
+                      className="w-full h-auto max-h-96 object-cover"
+                    />
+                  ) : (
+                    <img 
+                      src={post.mediaUrl} 
+                      alt="Post media" 
+                      className="w-full h-auto max-h-96 object-cover" 
+                    />
+                  )}
+                </div>
+              )}
+              
+              {/* Obsługa wielu plików multimedialnych */}
+              {post.mediaFiles && post.mediaFiles.length > 0 && !post.mediaUrl && (
+                <div className={`grid ${post.mediaFiles.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 mb-4`}>
+                  {post.mediaFiles.map((file, idx) => (
+                    <div key={idx} className="relative rounded-md overflow-hidden">
+                      {file.type === 'video' ? (
+                        <video 
+                          src={file.url}
+                          controls
+                          className="w-full h-auto max-h-80 object-cover"
+                        />
+                      ) : (
+                        <img 
+                          src={file.url} 
+                          alt={`Media ${idx + 1}`} 
+                          className="w-full h-auto max-h-80 object-cover" 
+                        />
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
               
@@ -122,6 +159,7 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                   size="sm" 
                   className={`flex items-center gap-1 h-8 px-2 ${post.hasLiked ? 'text-red-500' : ''}`}
                   onClick={() => handleLikeToggle(post)}
+                  disabled={loading}
                 >
                   <Heart className={`h-4 w-4 ${post.hasLiked ? 'fill-red-500' : ''}`} />
                   <span>{post.likes}</span>
@@ -137,6 +175,7 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                   size="sm" 
                   className={`flex items-center gap-1 h-8 px-2 ${post.hasSaved ? 'text-primary' : ''}`}
                   onClick={() => handleSaveToggle(post)}
+                  disabled={loading}
                 >
                   <Bookmark className={`h-4 w-4 ${post.hasSaved ? 'fill-primary' : ''}`} />
                   <span>{post.hasSaved ? 'Zapisano' : 'Zapisz'}</span>

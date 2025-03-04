@@ -21,29 +21,33 @@ interface CommentItemProps {
 }
 
 export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemProps) {
-  const { likeComment, unlikeComment, commentOnPost, getPostComments } = useSocial();
+  const { likeComment, unlikeComment, commentOnPost, getPostComments, loading } = useSocial();
   const [isReplying, setIsReplying] = useState(false);
   const [replyContent, setReplyContent] = useState('');
   const [showReplies, setShowReplies] = useState(false);
   const [replies, setReplies] = useState<Comment[]>([]);
   const [repliesLoaded, setRepliesLoaded] = useState(false);
+  const [localHasLiked, setLocalHasLiked] = useState(comment.hasLiked);
+  const [localLikes, setLocalLikes] = useState(comment.likes);
   
   const handleLikeToggle = () => {
-    if (comment.hasLiked) {
+    if (loading) return;
+    
+    if (localHasLiked) {
       unlikeComment(comment.id);
       // Optymistyczna aktualizacja UI
-      comment.hasLiked = false;
-      comment.likes--;
+      setLocalHasLiked(false);
+      setLocalLikes(prev => Math.max(0, prev - 1));
     } else {
       likeComment(comment.id);
       // Optymistyczna aktualizacja UI
-      comment.hasLiked = true;
-      comment.likes++;
+      setLocalHasLiked(true);
+      setLocalLikes(prev => prev + 1);
     }
   };
   
   const handleReplySubmit = async () => {
-    if (!replyContent.trim()) return;
+    if (!replyContent.trim() || loading) return;
     
     await commentOnPost(comment.postId, replyContent, comment.id);
     setReplyContent('');
@@ -57,9 +61,13 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
   
   const loadReplies = async () => {
     if (comment.replies > 0) {
-      const fetchedReplies = await getPostComments(comment.postId, comment.id);
-      setReplies(fetchedReplies);
-      setRepliesLoaded(true);
+      try {
+        const fetchedReplies = await getPostComments(comment.postId, comment.id);
+        setReplies(fetchedReplies);
+        setRepliesLoaded(true);
+      } catch (err) {
+        console.error("Błąd podczas ładowania odpowiedzi:", err);
+      }
     }
   };
   
@@ -107,11 +115,12 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
             <Button 
               variant="ghost" 
               size="sm" 
-              className={`flex items-center gap-1 h-6 px-2 text-xs ${comment.hasLiked ? 'text-red-500' : ''}`}
+              className={`flex items-center gap-1 h-6 px-2 text-xs ${localHasLiked ? 'text-red-500' : ''}`}
               onClick={handleLikeToggle}
+              disabled={loading}
             >
-              <Heart className={`h-3 w-3 ${comment.hasLiked ? 'fill-red-500' : ''}`} />
-              <span>{comment.likes > 0 ? comment.likes : ''}</span>
+              <Heart className={`h-3 w-3 ${localHasLiked ? 'fill-red-500' : ''}`} />
+              <span>{localLikes > 0 ? localLikes : ''}</span>
             </Button>
             
             {level < maxLevel && (
@@ -120,6 +129,7 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
                 size="sm" 
                 className="flex items-center gap-1 h-6 px-2 text-xs"
                 onClick={() => setIsReplying(!isReplying)}
+                disabled={loading}
               >
                 <Reply className="h-3 w-3" />
                 <span>Odpowiedz</span>
@@ -132,6 +142,7 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
                 size="sm" 
                 className="flex items-center gap-1 h-6 px-2 text-xs"
                 onClick={toggleReplies}
+                disabled={loading}
               >
                 <MessageCircle className="h-3 w-3" />
                 <span>{showReplies ? 'Ukryj odpowiedzi' : `Pokaż odpowiedzi (${comment.replies})`}</span>
@@ -146,19 +157,21 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
                 onChange={(e) => setReplyContent(e.target.value)}
                 placeholder="Napisz odpowiedź..."
                 className="text-sm min-h-[60px] mb-2"
+                disabled={loading}
               />
               <div className="flex justify-end gap-2">
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={() => setIsReplying(false)}
+                  disabled={loading}
                 >
                   Anuluj
                 </Button>
                 <Button 
                   size="sm" 
                   onClick={handleReplySubmit}
-                  disabled={!replyContent.trim()}
+                  disabled={!replyContent.trim() || loading}
                 >
                   Wyślij
                 </Button>

@@ -15,9 +15,9 @@ interface CommentsSectionProps {
 }
 
 export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
-  const { commentOnPost, getPostComments } = useSocial();
+  const { commentOnPost, getPostComments, loading } = useSocial();
   const [comments, setComments] = useState<Comment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [commentContent, setCommentContent] = useState('');
   
   useEffect(() => {
@@ -25,20 +25,28 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
   }, [postId]);
   
   const loadComments = async () => {
-    setLoading(true);
-    const fetchedComments = await getPostComments(postId);
-    setComments(fetchedComments);
-    setLoading(false);
+    setIsLoading(true);
+    try {
+      const fetchedComments = await getPostComments(postId);
+      setComments(fetchedComments);
+    } catch (err) {
+      console.error("Błąd podczas ładowania komentarzy:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const handleSubmitComment = async () => {
-    if (!commentContent.trim()) return;
+    if (!commentContent.trim() || loading) return;
     
-    await commentOnPost(postId, commentContent);
-    setCommentContent('');
-    
-    // Odśwież komentarze
-    loadComments();
+    try {
+      await commentOnPost(postId, commentContent);
+      setCommentContent('');
+      // Odśwież komentarze
+      loadComments();
+    } catch (err) {
+      console.error("Błąd podczas dodawania komentarza:", err);
+    }
   };
   
   return (
@@ -53,7 +61,7 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
       </div>
       
       <div className="flex-1 overflow-y-auto max-h-[400px] p-4 space-y-2">
-        {loading ? (
+        {isLoading ? (
           <div className="flex justify-center p-4">Ładowanie komentarzy...</div>
         ) : comments.length === 0 ? (
           <div className="text-center py-8 text-rhythm-500">
@@ -81,10 +89,11 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
             onChange={(e) => setCommentContent(e.target.value)}
             placeholder="Napisz komentarz..."
             className="flex-1 min-h-[60px]"
+            disabled={loading}
           />
           <Button
             onClick={handleSubmitComment}
-            disabled={!commentContent.trim()}
+            disabled={!commentContent.trim() || loading}
             size="icon"
             className="h-10 w-10 flex-shrink-0"
           >

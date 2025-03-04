@@ -135,6 +135,8 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
         return;
       }
       
+      setLoading(true);
+      
       const { error } = await supabase
         .from('post_likes')
         .insert({
@@ -167,6 +169,11 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
             : post
         )
       );
+      
+      toast({
+        title: "Sukces",
+        description: "Post został polubiony",
+      });
     } catch (err) {
       console.error('Unexpected error liking post:', err);
       toast({
@@ -174,6 +181,8 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
         description: "Wystąpił nieoczekiwany błąd podczas polubienia posta",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -188,6 +197,8 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
         });
         return;
       }
+      
+      setLoading(true);
       
       const { error } = await supabase
         .from('post_likes')
@@ -213,6 +224,11 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
             : post
         )
       );
+      
+      toast({
+        title: "Sukces",
+        description: "Polubienie zostało usunięte",
+      });
     } catch (err) {
       console.error('Unexpected error unliking post:', err);
       toast({
@@ -220,6 +236,8 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
         description: "Wystąpił nieoczekiwany błąd podczas usuwania polubienia",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -234,6 +252,8 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
         });
         return;
       }
+      
+      setLoading(true);
       
       const { error } = await supabase
         .from('saved_posts')
@@ -279,6 +299,8 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
         description: "Wystąpił nieoczekiwany błąd podczas zapisywania posta",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -293,6 +315,8 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
         });
         return;
       }
+      
+      setLoading(true);
       
       const { error } = await supabase
         .from('saved_posts')
@@ -330,6 +354,8 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
         description: "Wystąpił nieoczekiwany błąd podczas usuwania zapisu",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
