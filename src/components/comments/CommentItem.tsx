@@ -21,6 +21,7 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
   const [showReplies, setShowReplies] = useState(false);
   const [replies, setReplies] = useState<Comment[]>([]);
   const [repliesLoaded, setRepliesLoaded] = useState(false);
+  const [repliesLoading, setRepliesLoading] = useState(false);
   const [localHasLiked, setLocalHasLiked] = useState(comment.hasLiked);
   const [localLikes, setLocalLikes] = useState(comment.likes);
   
@@ -53,8 +54,9 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
   };
   
   const loadReplies = async () => {
-    if (comment.replies > 0) {
+    if (comment.replies > 0 && !repliesLoading) {
       try {
+        setRepliesLoading(true);
         console.log("Loading replies for comment:", comment.id);
         const fetchedReplies = await getPostComments(comment.postId, comment.id);
         console.log("Fetched replies:", fetchedReplies);
@@ -79,6 +81,8 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
           description: "Wystąpił błąd podczas ładowania odpowiedzi",
           variant: "destructive"
         });
+      } finally {
+        setRepliesLoading(false);
       }
     }
   };
@@ -107,7 +111,7 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
             repliesCount={comment.replies}
             showReplies={showReplies}
             canReply={level < maxLevel}
-            loading={loading}
+            loading={loading || repliesLoading}
             onLikeToggle={handleLikeToggle}
             onReplyToggle={() => setIsReplying(!isReplying)}
             onShowRepliesToggle={toggleReplies}
