@@ -137,6 +137,22 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
       
       setLoading(true);
       
+      // Sprawdź, czy użytkownik próbuje polubić własny post
+      const { data: postData } = await supabase
+        .from('posts')
+        .select('user_id')
+        .eq('id', postId)
+        .single();
+      
+      if (postData && postData.user_id === user.id) {
+        toast({
+          title: "Błąd",
+          description: "Nie możesz polubić własnego posta",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const { error } = await supabase
         .from('post_likes')
         .insert({
@@ -254,6 +270,22 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
       }
       
       setLoading(true);
+      
+      // Sprawdź, czy użytkownik próbuje zapisać własny post
+      const { data: postData } = await supabase
+        .from('posts')
+        .select('user_id')
+        .eq('id', postId)
+        .single();
+      
+      if (postData && postData.user_id === user.id) {
+        toast({
+          title: "Błąd",
+          description: "Nie możesz zapisać własnego posta",
+          variant: "destructive",
+        });
+        return;
+      }
       
       const { error } = await supabase
         .from('saved_posts')

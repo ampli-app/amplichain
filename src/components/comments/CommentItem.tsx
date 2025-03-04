@@ -15,7 +15,7 @@ interface CommentItemProps {
   maxLevel?: number;
 }
 
-export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemProps) {
+export function CommentItem({ comment, level = 0, maxLevel = 1 }: CommentItemProps) {
   const { likeComment, unlikeComment, commentOnPost, getPostComments, loading } = useSocial();
   const [isReplying, setIsReplying] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
@@ -24,6 +24,9 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
   const [repliesLoading, setRepliesLoading] = useState(false);
   const [localHasLiked, setLocalHasLiked] = useState(comment.hasLiked);
   const [localLikes, setLocalLikes] = useState(comment.likes);
+  
+  // Sprawdź czy możemy odpowiedzieć na ten komentarz (tylko dla głównych komentarzy)
+  const canReply = level < maxLevel;
   
   const handleLikeToggle = async () => {
     if (loading) return;
@@ -110,7 +113,7 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
             hasReplies={comment.replies > 0}
             repliesCount={comment.replies}
             showReplies={showReplies}
-            canReply={level < maxLevel}
+            canReply={canReply}
             loading={loading || repliesLoading}
             onLikeToggle={handleLikeToggle}
             onReplyToggle={() => setIsReplying(!isReplying)}

@@ -49,6 +49,20 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
     setLoading(true);
     
     try {
+      // Sprawdź czy parentId nie jest sam odpowiedzią
+      if (parentId) {
+        const { data: parentComment } = await supabase
+          .from('comments')
+          .select('parent_id')
+          .eq('id', parentId)
+          .single();
+        
+        if (parentComment && parentComment.parent_id !== null) {
+          showErrorToast("Błąd", "Nie można dodawać odpowiedzi do odpowiedzi");
+          return;
+        }
+      }
+      
       // Dodaj komentarz do bazy danych
       const { data, error } = await supabase
         .from('comments')
@@ -99,6 +113,18 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
     setLoading(true);
     
     try {
+      // Sprawdź, czy użytkownik próbuje polubić własny komentarz
+      const { data: commentData } = await supabase
+        .from('comments')
+        .select('user_id')
+        .eq('id', commentId)
+        .single();
+      
+      if (commentData && commentData.user_id === user.id) {
+        showErrorToast("Błąd", "Nie możesz polubić własnego komentarza");
+        return;
+      }
+      
       const { error } = await supabase
         .from('comment_likes')
         .insert({
@@ -254,8 +280,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
     try {
       console.log("Pobieranie komentarzy dla posta:", postId);
       
-      // Poprawiona część - używamy is('parent_id', parentId || null) zamiast eq
-      // Jest to kluczowa zmiana do rozwiązania problemu TypeScript
+      // Tworzenie zapytania
       const query = supabase
         .from('comments')
         .select('*')
