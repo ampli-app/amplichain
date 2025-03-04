@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { useSocial } from '@/contexts/SocialContext';
 import { Image, Video, Send, X, User } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 
 export function CreatePost() {
   const { currentUser, createPost } = useSocial();
@@ -12,33 +13,62 @@ export function CreatePost() {
   const [mediaUrl, setMediaUrl] = useState<string>('');
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const handleSubmit = () => {
-    if (!content.trim() && !mediaUrl) return;
+  const handleSubmit = async () => {
+    if (!content.trim() && !mediaUrl) {
+      toast({
+        title: "Błąd",
+        description: "Post musi zawierać tekst lub media",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    createPost(
-      content, 
-      mediaUrl || undefined, 
-      mediaType || undefined
-    );
-    
-    // Reset form
-    setContent('');
-    setMediaUrl('');
-    setMediaType(null);
-    setIsExpanded(false);
+    try {
+      setIsSubmitting(true);
+      await createPost(
+        content, 
+        mediaUrl || undefined, 
+        mediaType || undefined
+      );
+      
+      // Reset form
+      setContent('');
+      setMediaUrl('');
+      setMediaType(null);
+      setIsExpanded(false);
+      
+      toast({
+        title: "Sukces",
+        description: "Post został utworzony",
+      });
+    } catch (error) {
+      console.error("Błąd podczas tworzenia posta:", error);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił problem podczas tworzenia posta",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
-  const handleMediaUpload = (type: 'image' | 'video') => {
-    // In a real app, this would open a file picker and upload the file
-    // For this demo, we'll just simulate by using a placeholder URL
-    setMediaType(type);
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
     
-    if (type === 'image') {
-      setMediaUrl('https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop');
-    } else {
-      setMediaUrl('https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop');
+    const type = file.type.startsWith('image/') ? 'image' as const : 'video' as const;
+    const url = URL.createObjectURL(file);
+    
+    setMediaType(type);
+    setMediaUrl(url);
+    
+    // Resetuj input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
   
@@ -77,11 +107,19 @@ export function CreatePost() {
               >
                 <X className="h-4 w-4" />
               </Button>
-              <img 
-                src={mediaUrl} 
-                alt="Upload preview" 
-                className="w-full h-auto max-h-64 object-cover rounded-md" 
-              />
+              {mediaType === 'image' ? (
+                <img 
+                  src={mediaUrl} 
+                  alt="Upload preview" 
+                  className="w-full h-auto max-h-64 object-cover rounded-md" 
+                />
+              ) : (
+                <video 
+                  src={mediaUrl}
+                  controls
+                  className="w-full h-auto max-h-64 object-cover rounded-md"
+                />
+              )}
             </div>
           )}
           
@@ -93,26 +131,17 @@ export function CreatePost() {
                   variant="outline" 
                   size="sm" 
                   className="gap-1.5 text-rhythm-600"
-                  onClick={() => handleMediaUpload('image')}
+                  onClick={() => fileInputRef.current?.click()}
                 >
                   <Image className="h-4 w-4" />
                   <span className="hidden md:inline">Image</span>
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm" 
-                  className="gap-1.5 text-rhythm-600"
-                  onClick={() => handleMediaUpload('video')}
-                >
-                  <Video className="h-4 w-4" />
-                  <span className="hidden md:inline">Video</span>
                 </Button>
                 <input 
                   type="file" 
                   ref={fileInputRef} 
                   className="hidden" 
                   accept="image/*,video/*" 
+                  onChange={handleFileUpload}
                 />
               </div>
               
@@ -121,10 +150,14 @@ export function CreatePost() {
                 size="sm"
                 className="gap-1.5"
                 onClick={handleSubmit}
-                disabled={!content.trim() && !mediaUrl}
+                disabled={isSubmitting || (!content.trim() && !mediaUrl)}
               >
-                <Send className="h-4 w-4" />
-                Post
+                {isSubmitting ? "Tworzenie..." : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    Post
+                  </>
+                )}
               </Button>
             </div>
           )}

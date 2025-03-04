@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -24,12 +23,14 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
         return;
       }
       
+      setLoading(true);
+      
       const { data, error } = await supabase
         .from('posts')
         .insert({
           user_id: user.id,
           content,
-          media_url: mediaUrl
+          media_url: mediaUrl || null
         })
         .select();
       
@@ -55,6 +56,8 @@ export const usePostActions = (user: any | null, setPosts: React.Dispatch<React.
         description: "Wystąpił nieoczekiwany błąd podczas tworzenia posta",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -2,8 +2,7 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Image, X, Send, FileUp } from 'lucide-react';
 import { useSocial } from '@/contexts/SocialContext';
 import { toast } from '@/components/ui/use-toast';
@@ -17,6 +16,7 @@ export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
   const { createPost } = useSocial();
   const [content, setContent] = useState('');
   const [media, setMedia] = useState<{ url: string; type: 'image' | 'video' }[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const handleMediaUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,7 +52,7 @@ export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
     setMedia(prev => prev.filter((_, i) => i !== index));
   };
   
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!content.trim() && media.length === 0) {
       toast({
         title: "Błąd",
@@ -62,21 +62,26 @@ export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
       return;
     }
     
-    // W rzeczywistej aplikacji tutaj wysyłalibyśmy post do API
-    // i czekali na odpowiedź przed zamknięciem modala
-    createPost(content, media[0]?.url, media[0]?.type);
-    
-    // Resetuj formularz
-    setContent('');
-    setMedia([]);
-    
-    // Zamknij modal
-    onClose();
-    
-    toast({
-      title: "Sukces",
-      description: "Post został opublikowany",
-    });
+    try {
+      setIsSubmitting(true);
+      await createPost(content, media[0]?.url, media[0]?.type);
+      
+      // Resetuj formularz
+      setContent('');
+      setMedia([]);
+      
+      // Zamknij modal
+      onClose();
+    } catch (error) {
+      console.error("Błąd podczas tworzenia posta:", error);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił problem podczas tworzenia posta",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   return (
@@ -84,6 +89,9 @@ export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
       <DialogContent className="sm:max-w-md md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Nowy post</DialogTitle>
+          <DialogDescription>
+            Podziel się czymś ze społecznością
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 my-4">
@@ -151,6 +159,7 @@ export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
           <Button
             variant="outline"
             onClick={onClose}
+            disabled={isSubmitting}
           >
             Anuluj
           </Button>
@@ -158,9 +167,14 @@ export const CreatePostModal = ({ isOpen, onClose }: CreatePostModalProps) => {
             type="button"
             className="gap-1.5"
             onClick={handleSubmit}
+            disabled={isSubmitting || (!content.trim() && media.length === 0)}
           >
-            <Send className="h-4 w-4" />
-            Opublikuj
+            {isSubmitting ? "Tworzenie..." : (
+              <>
+                <Send className="h-4 w-4" />
+                Opublikuj
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
