@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,6 @@ import {
   Rss, 
   Users,
   ShoppingBag,
-  GraduationCap,
   MessageSquare,
   User,
   LogOut,
@@ -80,7 +80,7 @@ export function Navbar() {
           <nav className="hidden md:flex items-center gap-1 h-14">
             <NavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
             <NavItem to="/marketplace" label="Marketplace" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
-            <NavItem to="/mentorship" label="Mentoring" icon={<GraduationCap className="h-4 w-4" />} active={isActive('/mentorship')} />
+            <NavItem to="/groups" label="Grupy" icon={<Users className="h-4 w-4" />} active={isActive('/groups')} />
             <NavItem to="/connections" label="Sieć" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
           </nav>
           
@@ -181,7 +181,7 @@ export function Navbar() {
             
             <MobileNavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
             <MobileNavItem to="/marketplace" label="Marketplace" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
-            <MobileNavItem to="/mentorship" label="Mentoring" icon={<GraduationCap className="h-4 w-4" />} active={isActive('/mentorship')} />
+            <MobileNavItem to="/groups" label="Grupy" icon={<Users className="h-4 w-4" />} active={isActive('/groups')} />
             <MobileNavItem to="/connections" label="Sieć" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
             
             {!isLoggedIn && (

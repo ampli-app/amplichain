@@ -9,7 +9,7 @@ import Signup from '@/pages/Signup';
 import Login from '@/pages/Login';
 import Profile from '@/pages/Profile';
 import NotFound from '@/pages/NotFound';
-import Mentorship from '@/pages/Mentorship';
+import Groups from '@/pages/Groups';
 import Connections from '@/pages/Connections';
 import Discovery from '@/pages/Discovery';
 import Messages from '@/pages/Messages';
@@ -33,18 +33,21 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/profile/:id" element={<Profile />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/mentorship" element={<Mentorship />} />
+            <Route path="/groups" element={<Groups />} />
             <Route path="/connections" element={<Connections />} />
             <Route path="/discovery" element={<Discovery />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/messages/product/:id" element={<Messages />} />
             <Route path="/messages/service/:id" element={<Messages />} />
+            <Route path="/messages/consultation/:id" element={<Messages />} />
             <Route path="/messages/user/:id" element={<Messages />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/marketplace/:id" element={<ProductDetail />} />
             <Route path="/services/:id" element={<ProductDetail />} />
+            <Route path="/consultations/:id" element={<ProductDetail />} />
             <Route path="/edit-product/:id" element={<EditProduct />} />
             <Route path="/edit-service/:id" element={<EditProduct />} />
+            <Route path="/edit-consultation/:id" element={<EditProduct />} />
             
             {/* Ścieżki dla finalizacji zamówienia */}
             <Route path="/checkout/:id" element={<Checkout />} />

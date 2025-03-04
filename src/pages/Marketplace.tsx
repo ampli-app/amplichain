@@ -1,10 +1,9 @@
-
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { PlusCircle, ShoppingBag, Briefcase } from 'lucide-react';
+import { PlusCircle, ShoppingBag, Briefcase, Headphones } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddProductDialog } from '@/components/AddProductDialog';
 import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
@@ -12,8 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { ServicesMarketplace } from '@/components/ServicesMarketplace';
 import { ProductsTab } from '@/components/marketplace/ProductsTab';
+import { ConsultationsTab } from '@/components/marketplace/ConsultationsTab';
 
-// Interfejsy - zdefiniowane dla czytelności
 interface Product {
   id: string;
   title: string;
@@ -39,7 +38,6 @@ interface Category {
   description: string | null;
 }
 
-// Stałe pomocnicze
 const productConditions = [
   "Nowy",
   "Jak nowy",
@@ -65,15 +63,12 @@ const conditionDisplayMap: Record<string, string> = {
 };
 
 export default function Marketplace() {
-  // Auth state
   const { isLoggedIn } = useAuth();
 
-  // UI state
   const [showAddProductDialog, setShowAddProductDialog] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("products");
   
-  // Data state
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,6 +140,15 @@ export default function Marketplace() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const getAddButtonText = () => {
+    switch(activeTab) {
+      case "products": return "Dodaj produkt";
+      case "services": return "Dodaj usługę";
+      case "consultations": return "Dodaj konsultację";
+      default: return "Dodaj";
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -165,7 +169,7 @@ export default function Marketplace() {
               size="lg"
             >
               <PlusCircle className="h-4 w-4" />
-              {activeTab === "products" ? "Dodaj produkt" : "Dodaj usługę"}
+              {getAddButtonText()}
             </Button>
           </div>
           
@@ -191,6 +195,13 @@ export default function Marketplace() {
                   <Briefcase className="h-5 w-5" />
                   <span>Usługi</span>
                 </TabsTrigger>
+                <TabsTrigger 
+                  value="consultations" 
+                  className="flex-1 gap-2 font-medium"
+                >
+                  <Headphones className="h-5 w-5" />
+                  <span>Konsultacje</span>
+                </TabsTrigger>
               </TabsList>
             </div>
             
@@ -208,6 +219,10 @@ export default function Marketplace() {
             
             <TabsContent value="services" className="mt-6">
               <ServicesMarketplace />
+            </TabsContent>
+            
+            <TabsContent value="consultations" className="mt-6">
+              <ConsultationsTab />
             </TabsContent>
           </Tabs>
         </div>
