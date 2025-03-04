@@ -130,7 +130,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
             timeAgo = `${Math.floor(diffInSeconds / 86400)} dni temu`;
           }
           
-          // Upewnij się, że profil użytkownika istnieje
+          // Ensure profileData is properly extracted and defaulted
           const profileData = comment.profiles || {};
           
           return {

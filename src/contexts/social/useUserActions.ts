@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -120,15 +119,8 @@ export const useUserActions = (user: any | null, setUsers: React.Dispatch<React.
     }
   };
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string): Promise<SocialUser | null> => {
     try {
-      const { data: users } = await supabase
-        .from('users')
-        .select('*');
-
-      const cachedUser = users.find(u => u.id === userId);
-      if (cachedUser) return cachedUser;
-
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
