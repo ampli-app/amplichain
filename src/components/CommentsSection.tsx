@@ -5,11 +5,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { useSocial } from '@/contexts/SocialContext';
 import { Comment } from '@/types/social';
-import { CommentItem } from './CommentItem';
+import { CommentItem } from './comments/CommentItem';
 import { Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '@/components/ui/use-toast';
-import { DialogTitle } from '@/components/ui/dialog';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
@@ -104,7 +103,7 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
   return (
     <div className="bg-background rounded-lg max-w-lg w-full mx-auto overflow-hidden flex flex-col">
       <div className="p-4 border-b flex justify-between items-center">
-        <DialogTitle className="font-semibold text-lg">Komentarze</DialogTitle>
+        <h3 className="font-semibold text-lg">Komentarze</h3>
         {onClose && (
           <Button variant="ghost" size="sm" onClick={onClose}>
             Zamknij
