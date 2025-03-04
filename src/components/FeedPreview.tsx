@@ -1,12 +1,23 @@
 
-import { User, Calendar, Heart, MessageCircle, Share2 } from 'lucide-react';
+import { User, Calendar, Heart, MessageCircle, Bookmark, MoreHorizontal } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { CommentsDialog } from '@/components/CommentsDialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { Post } from '@/types/social';
 
-const posts = [
+const demoPostsData = [
   {
-    id: 1,
+    id: '1',
+    userId: 'user1',
     author: {
       name: 'Lisa Johnson',
       avatar: '/placeholder.svg',
@@ -16,9 +27,14 @@ const posts = [
     content: 'Just wrapped up an amazing session with the talented @JamesBrown. The new single is going to blow everyone away! 🎵 #MusicProduction #NewRelease',
     likes: 46,
     comments: 8,
+    saves: 5,
+    hasLiked: false,
+    hasSaved: false,
+    hashtags: ['MusicProduction', 'NewRelease']
   },
   {
-    id: 2,
+    id: '2',
+    userId: 'user2',
     author: {
       name: 'Michael Chen',
       avatar: '/placeholder.svg',
@@ -28,22 +44,52 @@ const posts = [
     content: 'Testing out the new SSL console today at the studio. The clarity and warmth this thing delivers is next level. What\'s your favorite mixing console?',
     likes: 29,
     comments: 12,
+    saves: 3,
+    hasLiked: false,
+    hasSaved: false,
+    hashtags: []
   },
   {
-    id: 3,
+    id: '3',
+    userId: 'user3',
     author: {
       name: 'Sophia Williams',
       avatar: '/placeholder.svg',
       role: 'A&R Executive',
     },
     timeAgo: '1d ago',
-    content: 'Looking for emerging indie artists with strong songwriting skills for a new project. Send me your demos if you think you\'ve got what it takes!',
+    content: 'Looking for emerging indie artists with strong songwriting skills for a new project. Send me your demos if you think you\'ve got what it takes! #IndieMusic #NewTalent',
     likes: 73,
     comments: 24,
+    saves: 15,
+    hasLiked: false,
+    hasSaved: false,
+    hashtags: ['IndieMusic', 'NewTalent']
   },
 ];
 
 export function FeedPreview() {
+  const { isLoggedIn } = useAuth();
+  const posts: Post[] = demoPostsData;
+  
+  const formatContent = (content: string) => {
+    // Zamień hashtagi na linki
+    return content.replace(/#(\w+)/g, '<a href="/hashtag/$1" class="text-primary hover:underline">#$1</a>');
+  };
+  
+  const handleLikeToggle = (index: number) => {
+    if (!isLoggedIn) return;
+    // W przypadku wersji demo tylko symulacja
+    posts[index].hasLiked = !posts[index].hasLiked;
+    posts[index].likes += posts[index].hasLiked ? 1 : -1;
+  };
+  
+  const handleSaveToggle = (index: number) => {
+    if (!isLoggedIn) return;
+    // W przypadku wersji demo tylko symulacja
+    posts[index].hasSaved = !posts[index].hasSaved;
+  };
+  
   return (
     <div className="w-full space-y-6">
       {posts.map((post, index) => (
@@ -75,30 +121,68 @@ export function FeedPreview() {
                     </span>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full flex-shrink-0">
-                  <span className="sr-only">More options</span>
-                  <svg width="16" height="4" viewBox="0 0 16 4" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 0.333C9.10457 0.333 10 1.22843 10 2.33299C10 3.43756 9.10457 4.33299 8 4.33299C6.89543 4.33299 6 3.43756 6 2.33299C6 1.22843 6.89543 0.333 8 0.333Z" fill="currentColor"/>
-                    <path d="M2 0.333C3.10457 0.333 4 1.22843 4 2.33299C4 3.43756 3.10457 4.33299 2 4.33299C0.895431 4.33299 0 3.43756 0 2.33299C0 1.22843 0.895431 0.333 2 0.333Z" fill="currentColor"/>
-                    <path d="M14 0.333C15.1046 0.333 16 1.22843 16 2.33299C16 3.43756 15.1046 4.33299 14 4.33299C12.8954 4.33299 12 3.43756 12 2.33299C12 1.22843 12.8954 0.333 14 0.333Z" fill="currentColor"/>
-                  </svg>
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full flex-shrink-0">
+                      <span className="sr-only">Więcej opcji</span>
+                      <MoreHorizontal className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>Zapisz post</DropdownMenuItem>
+                    <DropdownMenuItem>Zgłoś post</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               
-              <p className="mt-2 mb-4 text-rhythm-700 break-words">{post.content}</p>
+              <div 
+                className="mt-2 mb-4 text-rhythm-700 break-words"
+                dangerouslySetInnerHTML={{ __html: formatContent(post.content) }}
+              />
+              
+              {post.hashtags && post.hashtags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {post.hashtags.map((tag) => (
+                    <Link 
+                      key={tag} 
+                      to={`/hashtag/${tag}`}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      #{tag}
+                    </Link>
+                  ))}
+                </div>
+              )}
               
               <div className="flex items-center gap-4 text-sm text-rhythm-500">
-                <Button variant="ghost" size="sm" className="flex items-center gap-1 h-8 px-2">
-                  <Heart className="h-4 w-4" />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`flex items-center gap-1 h-8 px-2 ${post.hasLiked ? 'text-red-500' : ''}`}
+                  onClick={() => handleLikeToggle(index)}
+                >
+                  <Heart className={`h-4 w-4 ${post.hasLiked ? 'fill-red-500' : ''}`} />
                   <span>{post.likes}</span>
                 </Button>
-                <Button variant="ghost" size="sm" className="flex items-center gap-1 h-8 px-2">
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="flex items-center gap-1 h-8 px-2"
+                  onClick={() => {}}
+                >
                   <MessageCircle className="h-4 w-4" />
                   <span>{post.comments}</span>
                 </Button>
-                <Button variant="ghost" size="sm" className="flex items-center gap-1 h-8 px-2">
-                  <Share2 className="h-4 w-4" />
-                  <span>Share</span>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`flex items-center gap-1 h-8 px-2 ${post.hasSaved ? 'text-primary' : ''}`}
+                  onClick={() => handleSaveToggle(index)}
+                >
+                  <Bookmark className={`h-4 w-4 ${post.hasSaved ? 'fill-primary' : ''}`} />
+                  <span>{post.hasSaved ? 'Zapisano' : 'Zapisz'}</span>
                 </Button>
               </div>
             </div>
@@ -107,7 +191,12 @@ export function FeedPreview() {
       ))}
       
       <div className="text-center pt-6">
-        <Button variant="outline">View Full Feed</Button>
+        <Button 
+          variant="outline" 
+          asChild
+        >
+          <Link to="/feed">Zobacz pełny feed</Link>
+        </Button>
       </div>
     </div>
   );

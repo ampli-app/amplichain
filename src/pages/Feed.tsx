@@ -6,8 +6,13 @@ import { FeedPreview } from '@/components/FeedPreview';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Filter } from 'lucide-react';
 import { CreatePostModal } from '@/components/CreatePostModal';
+import { SocialFeedContent } from '@/components/SocialFeedContent';
+import { useSocial } from '@/contexts/SocialContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Feed() {
+  const { isLoggedIn } = useAuth();
+  const { posts, loading } = useSocial();
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   
   useEffect(() => {
@@ -41,11 +46,17 @@ export default function Feed() {
             </div>
             
             <div className="w-full">
-              <FeedPreview />
-            </div>
-            
-            <div className="text-center mt-8">
-              <Button variant="outline">Load More</Button>
+              {isLoggedIn ? (
+                loading ? (
+                  <div className="text-center py-8">Ładowanie postów...</div>
+                ) : posts.length > 0 ? (
+                  <SocialFeedContent posts={posts} />
+                ) : (
+                  <FeedPreview />
+                )
+              ) : (
+                <FeedPreview />
+              )}
             </div>
           </div>
         </div>

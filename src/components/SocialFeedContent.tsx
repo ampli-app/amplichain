@@ -1,16 +1,25 @@
 
-import { User, Calendar, Heart, MessageCircle, Share2 } from 'lucide-react';
+import { User, Calendar, Heart, MessageCircle, Bookmark, MoreHorizontal } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { motion } from 'framer-motion';
-import { useSocial, Post } from '@/contexts/SocialContext';
+import { useSocial } from '@/contexts/SocialContext';
+import { CommentsDialog } from '@/components/CommentsDialog';
+import { Link } from 'react-router-dom';
+import { Post } from '@/types/social';
 
 interface SocialFeedContentProps {
   posts: Post[];
 }
 
 export function SocialFeedContent({ posts }: SocialFeedContentProps) {
-  const { likePost, unlikePost } = useSocial();
+  const { likePost, unlikePost, savePost, unsavePost } = useSocial();
   
   const handleLikeToggle = (post: Post) => {
     if (post.hasLiked) {
@@ -18,6 +27,19 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
     } else {
       likePost(post.id);
     }
+  };
+  
+  const handleSaveToggle = (post: Post) => {
+    if (post.hasSaved) {
+      unsavePost(post.id);
+    } else {
+      savePost(post.id);
+    }
+  };
+  
+  const formatContent = (content: string) => {
+    // Zamień hashtagi na linki
+    return content.replace(/#(\w+)/g, '<a href="/hashtag/$1" class="text-primary hover:underline">#$1</a>');
   };
   
   return (
@@ -51,17 +73,24 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                     </span>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full flex-shrink-0">
-                  <span className="sr-only">More options</span>
-                  <svg width="16" height="4" viewBox="0 0 16 4" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 0.333C9.10457 0.333 10 1.22843 10 2.33299C10 3.43756 9.10457 4.33299 8 4.33299C6.89543 4.33299 6 3.43756 6 2.33299C6 1.22843 6.89543 0.333 8 0.333Z" fill="currentColor"/>
-                    <path d="M2 0.333C3.10457 0.333 4 1.22843 4 2.33299C4 3.43756 3.10457 4.33299 2 4.33299C0.895431 4.33299 0 3.43756 0 2.33299C0 1.22843 0.895431 0.333 2 0.333Z" fill="currentColor"/>
-                    <path d="M14 0.333C15.1046 0.333 16 1.22843 16 2.33299C16 3.43756 15.1046 4.33299 14 4.33299C12.8954 4.33299 12 3.43756 12 2.33299C12 1.22843 12.8954 0.333 14 0.333Z" fill="currentColor"/>
-                  </svg>
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full flex-shrink-0">
+                      <span className="sr-only">Więcej opcji</span>
+                      <MoreHorizontal className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>Zapisz post</DropdownMenuItem>
+                    <DropdownMenuItem>Zgłoś post</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               
-              <p className="mt-2 mb-4 text-rhythm-700 break-words">{post.content}</p>
+              <div 
+                className="mt-2 mb-4 text-rhythm-700 break-words"
+                dangerouslySetInnerHTML={{ __html: formatContent(post.content) }}
+              />
               
               {post.mediaUrl && (
                 <div className="mb-4 rounded-md overflow-hidden">
@@ -70,6 +99,20 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                     alt="Post media" 
                     className="w-full h-auto max-h-96 object-cover" 
                   />
+                </div>
+              )}
+              
+              {post.hashtags && post.hashtags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {post.hashtags.map((tag) => (
+                    <Link 
+                      key={tag} 
+                      to={`/hashtag/${tag}`}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      #{tag}
+                    </Link>
+                  ))}
                 </div>
               )}
               
@@ -83,13 +126,20 @@ export function SocialFeedContent({ posts }: SocialFeedContentProps) {
                   <Heart className={`h-4 w-4 ${post.hasLiked ? 'fill-red-500' : ''}`} />
                   <span>{post.likes}</span>
                 </Button>
-                <Button variant="ghost" size="sm" className="flex items-center gap-1 h-8 px-2">
-                  <MessageCircle className="h-4 w-4" />
-                  <span>{post.comments}</span>
-                </Button>
-                <Button variant="ghost" size="sm" className="flex items-center gap-1 h-8 px-2">
-                  <Share2 className="h-4 w-4" />
-                  <span>Share</span>
+                
+                <CommentsDialog 
+                  postId={post.id}
+                  commentsCount={post.comments}
+                />
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`flex items-center gap-1 h-8 px-2 ${post.hasSaved ? 'text-primary' : ''}`}
+                  onClick={() => handleSaveToggle(post)}
+                >
+                  <Bookmark className={`h-4 w-4 ${post.hasSaved ? 'fill-primary' : ''}`} />
+                  <span>{post.hasSaved ? 'Zapisano' : 'Zapisz'}</span>
                 </Button>
               </div>
             </div>

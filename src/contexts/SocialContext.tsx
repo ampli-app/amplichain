@@ -1,40 +1,11 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
+import { Post, Comment, Hashtag } from '@/types/social';
 
 export type UserConnectionStatus = 'none' | 'following' | 'connected' | 'pending_sent' | 'pending_received';
-
-export interface Post {
-  id: string;
-  userId: string;
-  author: {
-    name: string;
-    avatar: string;
-    role: string;
-  };
-  timeAgo: string;
-  content: string;
-  mediaUrl?: string;
-  mediaType?: 'image' | 'video';
-  mediaFiles?: Array<{url: string, type: 'image' | 'video'}>;
-  likes: number;
-  comments: number;
-  hasLiked?: boolean;
-}
-
-export interface Notification {
-  id: string;
-  type: 'follow' | 'connection_request' | 'connection_accepted' | 'like' | 'comment';
-  from: {
-    id: string;
-    name: string;
-    avatar: string;
-  };
-  read: boolean;
-  time: string;
-  postId?: string;
-}
 
 export interface SocialUser {
   id: string;
@@ -51,6 +22,19 @@ export interface SocialUser {
   connectionsCount: number;
 }
 
+export interface Notification {
+  id: string;
+  type: 'follow' | 'connection_request' | 'connection_accepted' | 'like' | 'comment';
+  from: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
+  read: boolean;
+  time: string;
+  postId?: string;
+}
+
 interface SocialContextType {
   currentUser: SocialUser | null;
   users: SocialUser[];
@@ -65,12 +49,19 @@ interface SocialContextType {
   declineConnectionRequest: (userId: string) => Promise<void>;
   removeConnection: (userId: string) => Promise<void>;
   searchUsers: (query: string) => Promise<SocialUser[]>;
-  createPost: (content: string, mediaUrl?: string, mediaType?: 'image' | 'video', mediaFiles?: Array<{url: string, type: 'image' | 'video'}>) => void;
-  likePost: (postId: string) => void;
-  unlikePost: (postId: string) => void;
-  commentOnPost: (postId: string, comment: string) => void;
+  createPost: (content: string, mediaUrl?: string, mediaType?: 'image' | 'video') => Promise<void>;
+  likePost: (postId: string) => Promise<void>;
+  unlikePost: (postId: string) => Promise<void>;
+  savePost: (postId: string) => Promise<void>;
+  unsavePost: (postId: string) => Promise<void>;
+  commentOnPost: (postId: string, content: string, parentId?: string) => Promise<void>;
+  likeComment: (commentId: string) => Promise<void>;
+  unlikeComment: (commentId: string) => Promise<void>;
+  getPostComments: (postId: string, parentId?: string) => Promise<Comment[]>;
   markNotificationAsRead: (notificationId: string) => void;
   markAllNotificationsAsRead: () => void;
+  getPostsByHashtag: (hashtag: string) => Promise<Post[]>;
+  getPopularHashtags: () => Promise<Hashtag[]>;
   loading: boolean;
 }
 
@@ -89,12 +80,71 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (isLoggedIn && user) {
       loadCurrentUserProfile();
-      loadUsers();
+      loadPosts();
+      setUpRealtimeSubscriptions();
     } else {
       setCurrentUser(null);
       setLoading(false);
     }
   }, [isLoggedIn, user]);
+  
+  // Funkcja ustawiająca subskrypcje realtime
+  const setUpRealtimeSubscriptions = () => {
+    // Subskrypcja na zmiany w postach
+    const postsChannel = supabase
+      .channel('public:posts')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'posts' },
+        (payload) => {
+          loadPosts();
+        }
+      )
+      .subscribe();
+    
+    // Subskrypcja na zmiany w polubieniach postów
+    const likesChannel = supabase
+      .channel('public:post_likes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'post_likes' },
+        (payload) => {
+          loadPosts();
+        }
+      )
+      .subscribe();
+      
+    // Subskrypcja na zmiany w zapisanych postach
+    const savedChannel = supabase
+      .channel('public:saved_posts')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'saved_posts' },
+        (payload) => {
+          loadPosts();
+        }
+      )
+      .subscribe();
+    
+    // Subskrypcja na zmiany w komentarzach
+    const commentsChannel = supabase
+      .channel('public:comments')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'comments' },
+        (payload) => {
+          loadPosts();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(postsChannel);
+      supabase.removeChannel(likesChannel);
+      supabase.removeChannel(savedChannel);
+      supabase.removeChannel(commentsChannel);
+    };
+  };
   
   const loadCurrentUserProfile = async () => {
     try {
@@ -131,6 +181,781 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const loadPosts = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: postsData, error: postsError } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          profiles:user_id (full_name, username, avatar_url, role),
+          post_hashtags!inner (
+            hashtags:hashtag_id (name)
+          )
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (postsError) {
+        console.error('Error loading posts:', postsError);
+        return;
+      }
+      
+      let postsWithMetadata = [];
+      
+      for (const post of postsData || []) {
+        // Pobierz liczbę polubień posta
+        const { count: likesCount } = await supabase
+          .from('post_likes')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+        
+        // Pobierz liczbę komentarzy posta
+        const { count: commentsCount } = await supabase
+          .from('comments')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+        
+        // Pobierz liczbę zapisań posta
+        const { count: savesCount } = await supabase
+          .from('saved_posts')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+        
+        // Sprawdź, czy zalogowany użytkownik polubił post
+        let hasLiked = false;
+        let hasSaved = false;
+        
+        if (user) {
+          const { data: likeData } = await supabase
+            .from('post_likes')
+            .select('*')
+            .eq('post_id', post.id)
+            .eq('user_id', user.id)
+            .single();
+          
+          hasLiked = !!likeData;
+          
+          const { data: saveData } = await supabase
+            .from('saved_posts')
+            .select('*')
+            .eq('post_id', post.id)
+            .eq('user_id', user.id)
+            .single();
+          
+          hasSaved = !!saveData;
+        }
+        
+        // Wyodrębnij hashtagi
+        const hashtags = post.post_hashtags.map((ph: any) => ph.hashtags.name);
+        
+        // Oblicz czas względny
+        const createdDate = new Date(post.created_at);
+        const now = new Date();
+        const diffInSeconds = Math.floor((now.getTime() - createdDate.getTime()) / 1000);
+        
+        let timeAgo;
+        if (diffInSeconds < 60) {
+          timeAgo = `${diffInSeconds} sek. temu`;
+        } else if (diffInSeconds < 3600) {
+          timeAgo = `${Math.floor(diffInSeconds / 60)} min. temu`;
+        } else if (diffInSeconds < 86400) {
+          timeAgo = `${Math.floor(diffInSeconds / 3600)} godz. temu`;
+        } else {
+          timeAgo = `${Math.floor(diffInSeconds / 86400)} dni temu`;
+        }
+        
+        postsWithMetadata.push({
+          id: post.id,
+          userId: post.user_id,
+          author: {
+            name: post.profiles.full_name || '',
+            avatar: post.profiles.avatar_url || '/placeholder.svg',
+            role: post.profiles.role || '',
+          },
+          timeAgo,
+          content: post.content,
+          mediaUrl: post.media_url,
+          likes: likesCount || 0,
+          comments: commentsCount || 0,
+          saves: savesCount || 0,
+          hasLiked,
+          hasSaved,
+          hashtags
+        });
+      }
+      
+      setPosts(postsWithMetadata);
+    } catch (err) {
+      console.error('Unexpected error loading posts:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Funkcja do tworzenia nowego posta
+  const createPost = async (content: string, mediaUrl?: string, mediaType?: 'image' | 'video') => {
+    try {
+      if (!user) {
+        toast({
+          title: "Błąd",
+          description: "Musisz być zalogowany, aby utworzyć post",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('posts')
+        .insert({
+          user_id: user.id,
+          content,
+          media_url: mediaUrl
+        })
+        .select();
+      
+      if (error) {
+        console.error('Error creating post:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się utworzyć posta",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Odśwież posty
+      loadPosts();
+      
+      toast({
+        title: "Sukces",
+        description: "Post został utworzony",
+      });
+    } catch (err) {
+      console.error('Unexpected error creating post:', err);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił nieoczekiwany błąd podczas tworzenia posta",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Funkcja do polubienia posta
+  const likePost = async (postId: string) => {
+    try {
+      if (!user) {
+        toast({
+          title: "Błąd",
+          description: "Musisz być zalogowany, aby polubić post",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('post_likes')
+        .insert({
+          post_id: postId,
+          user_id: user.id
+        });
+      
+      if (error) {
+        if (error.code === '23505') { // Naruszenie ograniczenia unique
+          toast({
+            title: "Informacja",
+            description: "Już polubiłeś ten post",
+          });
+        } else {
+          console.error('Error liking post:', error);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się polubić posta",
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+      
+      // Aktualizuj stan lokalny
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { ...post, hasLiked: true, likes: post.likes + 1 } 
+            : post
+        )
+      );
+    } catch (err) {
+      console.error('Unexpected error liking post:', err);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił nieoczekiwany błąd podczas polubienia posta",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Funkcja do usunięcia polubienia posta
+  const unlikePost = async (postId: string) => {
+    try {
+      if (!user) {
+        toast({
+          title: "Błąd",
+          description: "Musisz być zalogowany, aby usunąć polubienie",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('post_likes')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', user.id);
+      
+      if (error) {
+        console.error('Error unliking post:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się usunąć polubienia",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Aktualizuj stan lokalny
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { ...post, hasLiked: false, likes: Math.max(0, post.likes - 1) } 
+            : post
+        )
+      );
+    } catch (err) {
+      console.error('Unexpected error unliking post:', err);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił nieoczekiwany błąd podczas usuwania polubienia",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Funkcja do zapisania posta
+  const savePost = async (postId: string) => {
+    try {
+      if (!user) {
+        toast({
+          title: "Błąd",
+          description: "Musisz być zalogowany, aby zapisać post",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('saved_posts')
+        .insert({
+          post_id: postId,
+          user_id: user.id
+        });
+      
+      if (error) {
+        if (error.code === '23505') { // Naruszenie ograniczenia unique
+          toast({
+            title: "Informacja",
+            description: "Już zapisałeś ten post",
+          });
+        } else {
+          console.error('Error saving post:', error);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się zapisać posta",
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+      
+      // Aktualizuj stan lokalny
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { ...post, hasSaved: true, saves: post.saves + 1 } 
+            : post
+        )
+      );
+      
+      toast({
+        title: "Sukces",
+        description: "Post został zapisany",
+      });
+    } catch (err) {
+      console.error('Unexpected error saving post:', err);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił nieoczekiwany błąd podczas zapisywania posta",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Funkcja do usunięcia zapisanego posta
+  const unsavePost = async (postId: string) => {
+    try {
+      if (!user) {
+        toast({
+          title: "Błąd",
+          description: "Musisz być zalogowany, aby usunąć zapis",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('saved_posts')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', user.id);
+      
+      if (error) {
+        console.error('Error unsaving post:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się usunąć zapisu",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Aktualizuj stan lokalny
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { ...post, hasSaved: false, saves: Math.max(0, post.saves - 1) } 
+            : post
+        )
+      );
+      
+      toast({
+        title: "Sukces",
+        description: "Zapis posta został usunięty",
+      });
+    } catch (err) {
+      console.error('Unexpected error unsaving post:', err);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił nieoczekiwany błąd podczas usuwania zapisu",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Funkcja do dodawania komentarza do posta
+  const commentOnPost = async (postId: string, content: string, parentId?: string) => {
+    try {
+      if (!user) {
+        toast({
+          title: "Błąd",
+          description: "Musisz być zalogowany, aby dodać komentarz",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('comments')
+        .insert({
+          post_id: postId,
+          user_id: user.id,
+          content,
+          parent_id: parentId
+        });
+      
+      if (error) {
+        console.error('Error adding comment:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się dodać komentarza",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Aktualizuj stan lokalny - zwiększ licznik komentarzy posta
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { ...post, comments: post.comments + 1 } 
+            : post
+        )
+      );
+      
+      toast({
+        title: "Sukces",
+        description: parentId ? "Odpowiedź została dodana" : "Komentarz został dodany",
+      });
+    } catch (err) {
+      console.error('Unexpected error adding comment:', err);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił nieoczekiwany błąd podczas dodawania komentarza",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Funkcja do pobierania komentarzy do posta
+  const getPostComments = async (postId: string, parentId?: string): Promise<Comment[]> => {
+    try {
+      let query = supabase
+        .from('comments')
+        .select(`
+          *,
+          profiles:user_id (full_name, username, avatar_url, role)
+        `)
+        .eq('post_id', postId)
+        .order('created_at', { ascending: true });
+      
+      if (parentId) {
+        query = query.eq('parent_id', parentId);
+      } else {
+        query = query.is('parent_id', null);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching comments:', error);
+        return [];
+      }
+      
+      const commentsWithMetadata: Comment[] = await Promise.all(
+        (data || []).map(async (comment) => {
+          // Pobierz liczbę polubień komentarza
+          const { count: likesCount } = await supabase
+            .from('comment_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('comment_id', comment.id);
+          
+          // Pobierz liczbę odpowiedzi na komentarz
+          const { count: repliesCount } = await supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('parent_id', comment.id);
+          
+          // Sprawdź, czy zalogowany użytkownik polubił komentarz
+          let hasLiked = false;
+          
+          if (user) {
+            const { data: likeData } = await supabase
+              .from('comment_likes')
+              .select('*')
+              .eq('comment_id', comment.id)
+              .eq('user_id', user.id)
+              .single();
+            
+            hasLiked = !!likeData;
+          }
+          
+          // Oblicz czas względny
+          const createdDate = new Date(comment.created_at);
+          const now = new Date();
+          const diffInSeconds = Math.floor((now.getTime() - createdDate.getTime()) / 1000);
+          
+          let timeAgo;
+          if (diffInSeconds < 60) {
+            timeAgo = `${diffInSeconds} sek. temu`;
+          } else if (diffInSeconds < 3600) {
+            timeAgo = `${Math.floor(diffInSeconds / 60)} min. temu`;
+          } else if (diffInSeconds < 86400) {
+            timeAgo = `${Math.floor(diffInSeconds / 3600)} godz. temu`;
+          } else {
+            timeAgo = `${Math.floor(diffInSeconds / 86400)} dni temu`;
+          }
+          
+          return {
+            id: comment.id,
+            postId: comment.post_id,
+            parentId: comment.parent_id,
+            userId: comment.user_id,
+            author: {
+              name: comment.profiles.full_name || '',
+              avatar: comment.profiles.avatar_url || '/placeholder.svg',
+              role: comment.profiles.role || '',
+            },
+            content: comment.content,
+            createdAt: comment.created_at,
+            timeAgo,
+            likes: likesCount || 0,
+            replies: repliesCount || 0,
+            hasLiked
+          };
+        })
+      );
+      
+      return commentsWithMetadata;
+    } catch (err) {
+      console.error('Unexpected error fetching comments:', err);
+      return [];
+    }
+  };
+
+  // Funkcja do polubienia komentarza
+  const likeComment = async (commentId: string) => {
+    try {
+      if (!user) {
+        toast({
+          title: "Błąd",
+          description: "Musisz być zalogowany, aby polubić komentarz",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('comment_likes')
+        .insert({
+          comment_id: commentId,
+          user_id: user.id
+        });
+      
+      if (error) {
+        if (error.code === '23505') { // Naruszenie ograniczenia unique
+          toast({
+            title: "Informacja",
+            description: "Już polubiłeś ten komentarz",
+          });
+        } else {
+          console.error('Error liking comment:', error);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się polubić komentarza",
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+    } catch (err) {
+      console.error('Unexpected error liking comment:', err);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił nieoczekiwany błąd podczas polubienia komentarza",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Funkcja do usunięcia polubienia komentarza
+  const unlikeComment = async (commentId: string) => {
+    try {
+      if (!user) {
+        toast({
+          title: "Błąd",
+          description: "Musisz być zalogowany, aby usunąć polubienie",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('comment_likes')
+        .delete()
+        .eq('comment_id', commentId)
+        .eq('user_id', user.id);
+      
+      if (error) {
+        console.error('Error unliking comment:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się usunąć polubienia",
+          variant: "destructive",
+        });
+        return;
+      }
+    } catch (err) {
+      console.error('Unexpected error unliking comment:', err);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił nieoczekiwany błąd podczas usuwania polubienia",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Funkcja do pobierania postów z określonym hashtagiem
+  const getPostsByHashtag = async (hashtag: string): Promise<Post[]> => {
+    try {
+      setLoading(true);
+      
+      const { data: hashtagData, error: hashtagError } = await supabase
+        .from('hashtags')
+        .select('id')
+        .eq('name', hashtag.toLowerCase())
+        .single();
+      
+      if (hashtagError || !hashtagData) {
+        console.error('Error fetching hashtag:', hashtagError);
+        return [];
+      }
+      
+      const { data: postHashtagsData, error: postHashtagsError } = await supabase
+        .from('post_hashtags')
+        .select('post_id')
+        .eq('hashtag_id', hashtagData.id);
+      
+      if (postHashtagsError) {
+        console.error('Error fetching post hashtags:', postHashtagsError);
+        return [];
+      }
+      
+      const postIds = postHashtagsData.map(ph => ph.post_id);
+      
+      if (postIds.length === 0) {
+        return [];
+      }
+      
+      const { data: postsData, error: postsError } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          profiles:user_id (full_name, username, avatar_url, role),
+          post_hashtags (
+            hashtags:hashtag_id (name)
+          )
+        `)
+        .in('id', postIds)
+        .order('created_at', { ascending: false });
+      
+      if (postsError) {
+        console.error('Error fetching posts by hashtag:', postsError);
+        return [];
+      }
+      
+      // Przetwarzanie postów tak jak w funkcji loadPosts
+      let postsWithMetadata = [];
+      
+      for (const post of postsData || []) {
+        // Pobierz liczbę polubień posta
+        const { count: likesCount } = await supabase
+          .from('post_likes')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+        
+        // Pobierz liczbę komentarzy posta
+        const { count: commentsCount } = await supabase
+          .from('comments')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+        
+        // Pobierz liczbę zapisań posta
+        const { count: savesCount } = await supabase
+          .from('saved_posts')
+          .select('*', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+        
+        // Sprawdź, czy zalogowany użytkownik polubił post
+        let hasLiked = false;
+        let hasSaved = false;
+        
+        if (user) {
+          const { data: likeData } = await supabase
+            .from('post_likes')
+            .select('*')
+            .eq('post_id', post.id)
+            .eq('user_id', user.id)
+            .single();
+          
+          hasLiked = !!likeData;
+          
+          const { data: saveData } = await supabase
+            .from('saved_posts')
+            .select('*')
+            .eq('post_id', post.id)
+            .eq('user_id', user.id)
+            .single();
+          
+          hasSaved = !!saveData;
+        }
+        
+        // Wyodrębnij hashtagi
+        const hashtags = post.post_hashtags.map((ph: any) => ph.hashtags.name);
+        
+        // Oblicz czas względny
+        const createdDate = new Date(post.created_at);
+        const now = new Date();
+        const diffInSeconds = Math.floor((now.getTime() - createdDate.getTime()) / 1000);
+        
+        let timeAgo;
+        if (diffInSeconds < 60) {
+          timeAgo = `${diffInSeconds} sek. temu`;
+        } else if (diffInSeconds < 3600) {
+          timeAgo = `${Math.floor(diffInSeconds / 60)} min. temu`;
+        } else if (diffInSeconds < 86400) {
+          timeAgo = `${Math.floor(diffInSeconds / 3600)} godz. temu`;
+        } else {
+          timeAgo = `${Math.floor(diffInSeconds / 86400)} dni temu`;
+        }
+        
+        postsWithMetadata.push({
+          id: post.id,
+          userId: post.user_id,
+          author: {
+            name: post.profiles.full_name || '',
+            avatar: post.profiles.avatar_url || '/placeholder.svg',
+            role: post.profiles.role || '',
+          },
+          timeAgo,
+          content: post.content,
+          mediaUrl: post.media_url,
+          likes: likesCount || 0,
+          comments: commentsCount || 0,
+          saves: savesCount || 0,
+          hasLiked,
+          hasSaved,
+          hashtags
+        });
+      }
+      
+      return postsWithMetadata;
+    } catch (err) {
+      console.error('Unexpected error fetching posts by hashtag:', err);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Funkcja do pobierania popularnych hashtagów
+  const getPopularHashtags = async (): Promise<Hashtag[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('hashtags')
+        .select(`
+          id,
+          name,
+          post_hashtags (id)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (error) {
+        console.error('Error fetching hashtags:', error);
+        return [];
+      }
+      
+      return data.map((hashtag) => ({
+        id: hashtag.id,
+        name: hashtag.name,
+        postsCount: hashtag.post_hashtags.length
+      })).sort((a, b) => b.postsCount - a.postsCount);
+    } catch (err) {
+      console.error('Unexpected error fetching hashtags:', err);
+      return [];
+    }
+  };
+
+  // Zachowanie istniejących funkcji
   const loadUsers = async () => {
     try {
       setLoading(true);
@@ -927,9 +1752,16 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
       createPost,
       likePost,
       unlikePost,
+      savePost,
+      unsavePost,
       commentOnPost,
+      likeComment,
+      unlikeComment,
+      getPostComments,
       markNotificationAsRead,
       markAllNotificationsAsRead,
+      getPostsByHashtag,
+      getPopularHashtags,
       loading
     }}>
       {children}

@@ -15,13 +15,23 @@ import { CreatePostModal } from '@/components/CreatePostModal';
 
 export default function SocialFeed() {
   const { isLoggedIn } = useAuth();
-  const { posts } = useSocial();
+  const { posts, getPopularHashtags } = useSocial();
   const [feedType, setFeedType] = useState<'all' | 'following' | 'connections'>('all');
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  const [popularHashtags, setPopularHashtags] = useState<{name: string, postsCount: number}[]>([]);
   
   useEffect(() => {
     window.scrollTo(0, 0);
+    loadHashtags();
   }, []);
+  
+  const loadHashtags = async () => {
+    const hashtags = await getPopularHashtags();
+    setPopularHashtags(hashtags.map(h => ({
+      name: h.name,
+      postsCount: h.postsCount
+    })));
+  };
 
   // If user is not logged in, show a prompt to log in
   if (!isLoggedIn) {
@@ -63,8 +73,7 @@ export default function SocialFeed() {
 
   const filteredPosts = posts.filter(post => {
     if (feedType === 'all') return true;
-    // In a real app, we would filter based on the actual connection status
-    // For now, we'll just show all posts for demo purposes
+    // W rzeczywistej aplikacji filtrowanie byłoby oparte na rzeczywistym statusie połączenia
     return true;
   });
 
@@ -128,24 +137,22 @@ export default function SocialFeed() {
                 <UserSuggestions />
                 
                 <div className="glass-card rounded-xl border p-5">
-                  <h3 className="font-semibold mb-4">Trending Topics</h3>
+                  <h3 className="font-semibold mb-4">Popularne hashtagi</h3>
                   <div className="space-y-3">
-                    <div>
-                      <p className="font-medium">#MusicProduction</p>
-                      <p className="text-sm text-rhythm-500">1,245 posts</p>
-                    </div>
-                    <div>
-                      <p className="font-medium">#StudioLife</p>
-                      <p className="text-sm text-rhythm-500">879 posts</p>
-                    </div>
-                    <div>
-                      <p className="font-medium">#NewRelease</p>
-                      <p className="text-sm text-rhythm-500">652 posts</p>
-                    </div>
-                    <div>
-                      <p className="font-medium">#MusicTech</p>
-                      <p className="text-sm text-rhythm-500">524 posts</p>
-                    </div>
+                    {popularHashtags.map((tag, index) => (
+                      <div key={index}>
+                        <Link 
+                          to={`/hashtag/${tag.name}`}
+                          className="font-medium hover:text-primary transition-colors"
+                        >
+                          #{tag.name}
+                        </Link>
+                        <p className="text-sm text-rhythm-500">{tag.postsCount} postów</p>
+                      </div>
+                    ))}
+                    {popularHashtags.length === 0 && (
+                      <p className="text-sm text-rhythm-500">Brak popularnych hashtagów</p>
+                    )}
                   </div>
                 </div>
               </div>
