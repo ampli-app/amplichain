@@ -43,7 +43,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
   } = usePostsLoading(user);
   
   const {
-    createPost: originalCreatePost,
+    createPost,
     likePost,
     unlikePost,
     savePost,
@@ -52,7 +52,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
   } = usePostActions(user, setPosts);
   
   // Wrapper dla createPost, który obsługuje globalny stan ładowania
-  const createPost = async (
+  const wrappedCreatePost = async (
     content: string, 
     mediaUrl?: string, 
     mediaType?: 'image' | 'video',
@@ -60,7 +60,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     setIsCreatingPost(true);
     try {
-      await originalCreatePost(content, mediaUrl, mediaType, mediaFiles);
+      await createPost(content, mediaUrl, mediaType, mediaFiles);
     } finally {
       setIsCreatingPost(false);
     }
@@ -112,7 +112,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
       declineConnectionRequest,
       removeConnection,
       searchUsers,
-      createPost,
+      createPost: wrappedCreatePost,
       likePost,
       unlikePost,
       savePost,
