@@ -17,6 +17,7 @@ export interface Post {
   hasLiked?: boolean;
   hasSaved?: boolean;
   hashtags?: string[];
+  mediaFiles?: Array<{url: string, type: 'image' | 'video'}>;
 }
 
 export interface Comment {
