@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User, Calendar, Search, Filter, Clock, ChevronDown, ArrowLeft, ArrowRight, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
 import { AddConsultationDialog } from '@/components/AddConsultationDialog';
+import { toast } from '@/components/ui/use-toast';
 
 interface Consultant {
   id: string;
@@ -18,17 +18,17 @@ interface Consultant {
   title: string;
   description: string;
   price: number;
-  price_type: string;
-  categories: string[];
-  experience_years: number;
-  tags: string[];
+  price_type?: string;
+  categories?: string[];
+  experience_years?: number;
+  tags?: string[];
   created_at: string;
   profile?: {
     username: string;
     full_name: string;
     avatar_url: string;
-    specialties: string[];
-    role: string;
+    specialties?: string[];
+    role?: string;
   }
 }
 
@@ -131,7 +131,7 @@ export function ConsultationsTab() {
   
   useEffect(() => {
     // Tutaj docelowo pobranie prawdziwych danych z Supabase
-    // fetchConsultants();
+    fetchConsultants();
   }, []);
   
   useEffect(() => {
@@ -141,25 +141,32 @@ export function ConsultationsTab() {
   const fetchConsultants = async () => {
     setLoading(true);
     try {
-      // Tymczasowo używamy danych przykładowych
-      // W przyszłości pobieranie z Supabase
-      /*
       const { data, error } = await supabase
         .from('consultations')
-        .select('*, profiles(*)');
+        .select(`
+          *,
+          profiles:user_id(username, full_name, avatar_url, specialties, role)
+        `);
       
-      if (error) throw error;
-      setConsultants(data || []);
-      */
-      
-      // Symulacja opóźnienia
-      setTimeout(() => {
-        setConsultants(dummyConsultants);
-        setLoading(false);
-      }, 1000);
-      
+      if (error) {
+        console.error("Błąd podczas pobierania konsultantów:", error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się pobrać listy konsultacji.",
+          variant: "destructive",
+        });
+      } else {
+        console.log("Pobrane konsultacje:", data);
+        if (data && data.length > 0) {
+          setConsultants(data);
+        } else {
+          // Jeśli nie ma danych, używamy przykładowych danych
+          setConsultants(dummyConsultants);
+        }
+      }
     } catch (error) {
       console.error("Błąd podczas pobierania konsultantów:", error);
+    } finally {
       setLoading(false);
     }
   };

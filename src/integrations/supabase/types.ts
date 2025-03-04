@@ -114,6 +114,51 @@ export type Database = {
           },
         ]
       }
+      consultations: {
+        Row: {
+          availability: string[] | null
+          categories: string[] | null
+          created_at: string
+          description: string | null
+          experience: string | null
+          id: string
+          is_online: boolean | null
+          location: string | null
+          price: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          availability?: string[] | null
+          categories?: string[] | null
+          created_at?: string
+          description?: string | null
+          experience?: string | null
+          id?: string
+          is_online?: boolean | null
+          location?: string | null
+          price: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          availability?: string[] | null
+          categories?: string[] | null
+          created_at?: string
+          description?: string | null
+          experience?: string | null
+          id?: string
+          is_online?: boolean | null
+          location?: string | null
+          price?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversation_participants: {
         Row: {
           conversation_id: string
@@ -561,6 +606,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      services: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          location: string | null
+          price: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          price: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          price?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

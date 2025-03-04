@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -130,17 +129,14 @@ export default function Profile() {
   const [marketplaceTab, setMarketplaceTab] = useState("products");
 
   useEffect(() => {
-    // Add console logs for debugging
     console.log("Profile page loaded, auth state:", { isLoggedIn, user, userId });
 
-    // Modified redirect logic - only redirect if not logged in AND explicitly checking own profile
     if (!isLoggedIn && !userId) {
       console.log("Not logged in and no userId provided, redirecting to login");
       navigate('/login');
       return;
     }
     
-    // Determine if we're looking at our own profile or someone else's
     const targetUserId = userId || (user && user.id);
     console.log("Target user ID:", targetUserId);
     
@@ -153,7 +149,6 @@ export default function Profile() {
     if (targetUserId) {
       fetchProfileData(targetUserId);
     } else {
-      // Set loading to false if we don't have a target user ID
       setIsLoading(false);
     }
   }, [isLoggedIn, navigate, userId, user]);
@@ -162,7 +157,6 @@ export default function Profile() {
     console.log("Fetching profile data for:", profileId);
     setIsLoading(true);
     try {
-      // Fetch profile data
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -180,7 +174,6 @@ export default function Profile() {
         console.log("Profile data fetched successfully:", data);
         setProfileData(data);
         
-        // Try to get connection status via Social Context
         if (!isOwnProfile && currentUser) {
           try {
             const socialProfile = await fetchUserProfile(profileId);
@@ -193,14 +186,12 @@ export default function Profile() {
         }
       }
 
-      // Fetch user's marketplace items
       if (isOwnProfile) {
         fetchUserProducts(profileId);
         fetchUserServices(profileId);
         fetchUserConsultations(profileId);
       }
       
-      // Fetch education, experience and projects
       fetchEducation(profileId);
       fetchExperience(profileId);
       fetchProjects(profileId);
@@ -234,10 +225,6 @@ export default function Profile() {
 
     if (error) {
       console.error('Error fetching user services:', error);
-      // Jeśli tabela nie istnieje, ustawiamy pustą tablicę
-      if (error.code === "PGRST116") {
-        setUserServices([]);
-      }
     } else {
       console.log("User services fetched:", data?.length || 0);
       setUserServices(data || []);
@@ -252,10 +239,6 @@ export default function Profile() {
 
     if (error) {
       console.error('Error fetching user consultations:', error);
-      // Jeśli tabela nie istnieje, ustawiamy pustą tablicę
-      if (error.code === "PGRST116") {
-        setUserConsultations([]);
-      }
     } else {
       console.log("User consultations fetched:", data?.length || 0);
       setUserConsultations(data || []);
@@ -321,7 +304,6 @@ export default function Profile() {
         setConnectionStatus('none');
         break;
       case 'pending_sent':
-        // Cancel request functionality would go here
         setConnectionStatus('none');
         break;
       // For pending_received, the user should accept/decline via notifications
@@ -406,7 +388,6 @@ export default function Profile() {
           title: "Sukces",
           description: "Produkt został usunięty.",
         });
-        // Odświeżenie listy produktów
         if (user) {
           fetchUserProducts(user.id);
         }
@@ -435,7 +416,6 @@ export default function Profile() {
           title: "Sukces",
           description: "Usługa została usunięta.",
         });
-        // Odświeżenie listy usług
         if (user) {
           fetchUserServices(user.id);
         }
@@ -464,7 +444,6 @@ export default function Profile() {
           title: "Sukces",
           description: "Konsultacja została usunięta.",
         });
-        // Odświeżenie listy konsultacji
         if (user) {
           fetchUserConsultations(user.id);
         }
@@ -474,7 +453,6 @@ export default function Profile() {
     }
   };
 
-  // Add a fallback if no data is loaded yet but loading is complete
   if (!isLoading && !profileData && !userId && !user) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -513,7 +491,6 @@ export default function Profile() {
       <Navbar />
       <main className="flex-1 pt-24 pb-16">
         <div className="container px-4 mx-auto">
-          {/* Profile Header */}
           <div className="bg-card border rounded-xl p-6 mb-8">
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-shrink-0">
@@ -644,7 +621,6 @@ export default function Profile() {
             </div>
           </div>
           
-          {/* Tabs and Content */}
           <Tabs defaultValue="portfolio" className="mb-8">
             <TabsList className="mb-6 grid grid-cols-5 max-w-3xl">
               <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
@@ -656,7 +632,6 @@ export default function Profile() {
               )}
             </TabsList>
             
-            {/* Portfolio Tab */}
             <TabsContent value="portfolio">
               <div>
                 <div className="flex items-center justify-between mb-6">
@@ -722,7 +697,6 @@ export default function Profile() {
               </div>
             </TabsContent>
             
-            {/* Products Tab */}
             <TabsContent value="products">
               <div>
                 <div className="flex items-center justify-between mb-6">
@@ -797,7 +771,6 @@ export default function Profile() {
               </div>
             </TabsContent>
             
-            {/* Experience Tab */}
             <TabsContent value="experience">
               <div>
                 <div className="flex items-center justify-between mb-6">
@@ -856,7 +829,6 @@ export default function Profile() {
               </div>
             </TabsContent>
             
-            {/* Education Tab */}
             <TabsContent value="education">
               <div>
                 <div className="flex items-center justify-between mb-6">
@@ -915,7 +887,6 @@ export default function Profile() {
               </div>
             </TabsContent>
             
-            {/* Marketplace Tab (only visible for own profile) */}
             {isOwnProfile && (
               <TabsContent value="marketplace">
                 <div>
@@ -946,7 +917,6 @@ export default function Profile() {
                       </TabsTrigger>
                     </TabsList>
                     
-                    {/* Products Tab */}
                     <TabsContent value="products">
                       <div className="flex justify-between mb-4">
                         <h3 className="text-xl font-medium">Moje Produkty</h3>
@@ -1021,7 +991,6 @@ export default function Profile() {
                       )}
                     </TabsContent>
                     
-                    {/* Services Tab */}
                     <TabsContent value="services">
                       <div className="flex justify-between mb-4">
                         <h3 className="text-xl font-medium">Moje Usługi</h3>
@@ -1096,7 +1065,6 @@ export default function Profile() {
                       )}
                     </TabsContent>
                     
-                    {/* Consultations Tab */}
                     <TabsContent value="consultations">
                       <div className="flex justify-between mb-4">
                         <h3 className="text-xl font-medium">Moje Konsultacje</h3>
@@ -1186,7 +1154,6 @@ export default function Profile() {
       
       <Footer />
       
-      {/* Edit Profile Modal */}
       {profileData && (
         <EditProfileModal
           isOpen={isEditProfileOpen}
@@ -1196,7 +1163,6 @@ export default function Profile() {
         />
       )}
       
-      {/* Change Avatar Modal */}
       {isOwnProfile && (
         <ChangeAvatarModal
           isOpen={isChangeAvatarOpen}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,7 @@ import { toast } from '@/components/ui/use-toast';
 import { Loader2, Clock, Tag, Plus, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
 
 interface AddConsultationDialogProps {
   open: boolean;
@@ -37,6 +37,7 @@ const consultationCategories = [
 export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDialogProps) {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   
   // Formularz konsultacji
   const [title, setTitle] = useState('');
@@ -133,38 +134,43 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
     setIsLoading(true);
     
     try {
+      if (!user) {
+        throw new Error("Nie jesteś zalogowany.");
+      }
+      
       const consultationData = {
-        user_id: user?.id,
+        user_id: user.id,
         title,
         description,
         price: Number(price),
-        price_type: priceType,
+        experience: experienceYears,
         categories: selectedCategories,
-        experience_years: experienceYears ? Number(experienceYears) : null,
         is_online: isOnline,
-        is_in_person: isInPerson,
         location: isInPerson ? location : null,
-        tags: tags.length > 0 ? tags : [],
-        created_at: new Date()
+        availability: [], // Docelowo można dodać wybór dostępności
+        created_at: new Date(),
+        updated_at: new Date()
       };
       
-      // Tutaj możemy dodać kod do zapisania w Supabase
-      // const { data, error } = await supabase
-      //   .from('consultations')
-      //   .insert(consultationData)
-      //   .select();
+      const { data, error } = await supabase
+        .from('consultations')
+        .insert(consultationData)
+        .select();
       
-      // Symulujemy sukces
-      setTimeout(() => {
-        toast({
-          title: "Sukces!",
-          description: "Twoje konsultacje zostały dodane pomyślnie.",
-        });
-        
-        onOpenChange(false);
-        resetForm();
-        setIsLoading(false);
-      }, 1000);
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Sukces!",
+        description: "Twoje konsultacje zostały dodane pomyślnie.",
+      });
+      
+      onOpenChange(false);
+      resetForm();
+      
+      // Przekieruj na stronę profilu z aktywną zakładką marketplace
+      navigate('/profile?tab=marketplace&marketplaceTab=consultations');
       
     } catch (error) {
       console.error("Błąd podczas dodawania konsultacji:", error);
@@ -173,6 +179,7 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
         description: "Nie udało się dodać konsultacji. Spróbuj ponownie później.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };
