@@ -6,7 +6,7 @@ import { FeedPreview } from '@/components/FeedPreview';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Filter } from 'lucide-react';
 import { CreatePostModal } from '@/components/CreatePostModal';
-import { SocialFeedContent } from '@/components/SocialFeedContent';
+import { SocialFeedContent } from '@/components/social/SocialFeedContent';
 import { useSocial } from '@/contexts/SocialContext';
 import { useAuth } from '@/contexts/AuthContext';
 

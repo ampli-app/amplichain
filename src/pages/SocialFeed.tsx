@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
-import { SocialFeedContent } from '@/components/SocialFeedContent';
+import { SocialFeedContent } from '@/components/social/SocialFeedContent';
 import { UserSuggestions } from '@/components/UserSuggestions';
 import { CreatePost } from '@/components/CreatePost';
 import { Button } from '@/components/ui/button';
