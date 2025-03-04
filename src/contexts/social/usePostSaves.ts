@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Post } from '@/types/social';
-import { showErrorToast, showSuccessToast, isUserOwnPost } from './postHelpers';
+import { showErrorToast, showSuccessToast } from './postHelpers';
 
 export const usePostSaves = (
   user: any | null, 
@@ -20,13 +20,7 @@ export const usePostSaves = (
       
       setLoading(true);
       
-      // Sprawdź, czy użytkownik próbuje zapisać własny post
-      const isOwnPost = await isUserOwnPost(supabase, postId, user.id);
-      
-      if (isOwnPost) {
-        showErrorToast("Błąd", "Nie możesz zapisać własnego posta");
-        return;
-      }
+      // Usunęliśmy sprawdzanie, czy to własny post
       
       const { error } = await supabase
         .from('saved_posts')

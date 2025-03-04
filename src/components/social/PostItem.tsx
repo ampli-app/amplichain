@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { User, Calendar, Heart, MessageCircle, Bookmark, MoreHorizontal } from 'lucide-react';
+
+import { useState, useEffect } from 'react';
+import { User, Calendar, Heart, MessageCircle, Bookmark, MoreHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { 
@@ -13,6 +14,8 @@ import { useSocial } from '@/contexts/SocialContext';
 import { CommentsSection } from '@/components/CommentsSection';
 import { Link } from 'react-router-dom';
 import { Post } from '@/types/social';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PostItemProps {
   post: Post;
@@ -20,8 +23,10 @@ interface PostItemProps {
 }
 
 export function PostItem({ post, index }: PostItemProps) {
-  const { likePost, unlikePost, savePost, unsavePost, loading } = useSocial();
+  const { likePost, unlikePost, savePost, unsavePost, commentOnPost, loading } = useSocial();
+  const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState('');
   
   const handleLikeToggle = () => {
     if (loading) return;
@@ -52,9 +57,15 @@ export function PostItem({ post, index }: PostItemProps) {
     setShowComments(!showComments);
   };
   
+  const handleCommentSubmit = async () => {
+    if (!commentText.trim() || loading) return;
+    
+    await commentOnPost(post.id, commentText);
+    setCommentText('');
+  };
+  
   return (
     <motion.div
-      key={post.id}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
@@ -204,13 +215,52 @@ export function PostItem({ post, index }: PostItemProps) {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2 }}
-                className="mt-4 overflow-hidden w-full"
+                className="mt-3 overflow-hidden w-full"
               >
-                <div className="border rounded-lg bg-background shadow-sm w-full">
+                <div className="border-t pt-3 pb-2">
+                  <div className="flex gap-3 mb-4">
+                    <Avatar className="h-8 w-8 flex-shrink-0">
+                      <AvatarImage src={user?.user_metadata.avatar_url} />
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 flex items-end gap-2">
+                      <Textarea
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        placeholder="Dodaj komentarz..."
+                        className="flex-1 min-h-[40px] text-sm"
+                        disabled={loading}
+                      />
+                      <Button
+                        onClick={handleCommentSubmit}
+                        disabled={!commentText.trim() || loading}
+                        size="sm"
+                        className="h-8"
+                      >
+                        Wyślij
+                      </Button>
+                    </div>
+                  </div>
+                  
                   <CommentsSection 
                     postId={post.id} 
                     onClose={toggleComments}
+                    embedded={true}
                   />
+                  
+                  <div className="flex justify-center mt-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={toggleComments}
+                      className="text-muted-foreground"
+                    >
+                      {showComments ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
+                      {showComments ? "Ukryj komentarze" : "Pokaż komentarze"}
+                    </Button>
+                  </div>
                 </div>
               </motion.div>
             )}

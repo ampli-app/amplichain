@@ -1,27 +1,24 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { useSocial } from '@/contexts/SocialContext';
 import { Comment } from '@/types/social';
 import { CommentItem } from './comments/CommentItem';
-import { Send, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '@/components/ui/use-toast';
-import { formatDistanceToNow } from 'date-fns';
-import { pl } from 'date-fns/locale';
 
 interface CommentsSectionProps {
   postId: string;
   onClose?: () => void;
+  embedded?: boolean;
 }
 
-export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
-  const { commentOnPost, getPostComments, loading } = useSocial();
+export function CommentsSection({ postId, onClose, embedded = false }: CommentsSectionProps) {
+  const { getPostComments, loading } = useSocial();
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [commentContent, setCommentContent] = useState('');
   
   useEffect(() => {
     loadComments();
@@ -56,84 +53,21 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
     }
   };
   
-  const handleSubmitComment = async () => {
-    if (!commentContent.trim() || loading) return;
-    
-    try {
-      // Dodanie optymistycznego komentarza do UI
-      const optimisticComment: Comment = {
-        id: 'temp-' + Date.now(),
-        content: commentContent,
-        postId,
-        userId: 'current-user', // będzie zastąpione właściwym ID
-        author: {
-          name: 'Ty',
-          avatar: '/placeholder.svg',
-          role: ''
-        },
-        likes: 0,
-        hasLiked: false,
-        replies: 0,
-        createdAt: new Date().toISOString(),
-        timeAgo: formatDistanceToNow(new Date(), { addSuffix: true, locale: pl }),
-        isOptimistic: true
-      };
-      
-      setComments(prev => [optimisticComment, ...prev]);
-      const content = commentContent;
-      setCommentContent('');
-      
-      await commentOnPost(postId, content);
-      // Po udanym dodaniu, odświeżamy listę komentarzy
-      await loadComments();
-    } catch (err) {
-      console.error("Błąd podczas dodawania komentarza:", err);
-      // Usuwamy optymistyczny komentarz w przypadku błędu
-      setComments(prev => prev.filter(c => !c.isOptimistic));
-      setCommentContent(commentContent);
-      
-      toast({
-        title: "Błąd",
-        description: "Nie udało się dodać komentarza",
-        variant: "destructive",
-      });
-    }
-  };
-  
   return (
-    <div className="bg-background w-full overflow-hidden flex flex-col rounded-lg">
-      <div className="px-4 py-3 border-b flex justify-between items-center">
-        <h3 className="font-semibold text-sm">Komentarze</h3>
-        {onClose && (
-          <Button variant="ghost" size="sm" onClick={onClose} type="button" className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
-            <X className="h-4 w-4" />
-            <span className="sr-only">Zamknij</span>
-          </Button>
-        )}
-      </div>
-      
-      <div className="px-4 py-3 border-b bg-background">
-        <div className="flex items-end gap-2 w-full">
-          <Textarea
-            value={commentContent}
-            onChange={(e) => setCommentContent(e.target.value)}
-            placeholder="Napisz komentarz..."
-            className="flex-1 min-h-[50px] text-sm"
-            disabled={loading}
-          />
-          <Button
-            onClick={handleSubmitComment}
-            disabled={!commentContent.trim() || loading}
-            size="icon"
-            className="h-8 w-8 flex-shrink-0"
-            type="button"
-          >
-            <Send className="h-3.5 w-3.5" />
-          </Button>
+    <div className={`bg-background w-full overflow-hidden flex flex-col ${embedded ? '' : 'rounded-lg'}`}>
+      {!embedded && (
+        <div className="px-4 py-3 border-b flex justify-between items-center">
+          <h3 className="font-semibold text-sm">Komentarze</h3>
+          {onClose && (
+            <Button variant="ghost" size="sm" onClick={onClose} type="button" className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Zamknij</span>
+            </Button>
+          )}
         </div>
-      </div>
+      )}
       
-      <div className="overflow-y-auto max-h-[300px] px-4 py-2 space-y-2">
+      <div className={`overflow-y-auto ${embedded ? 'max-h-[400px]' : 'max-h-[300px]'} ${embedded ? '' : 'px-4'} py-2 space-y-2`}>
         {isLoading ? (
           <div className="flex justify-center p-2 text-sm">Ładowanie komentarzy...</div>
         ) : comments.length === 0 ? (
