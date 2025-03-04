@@ -1,21 +1,16 @@
 
-import { useState, useEffect } from 'react';
-import { User, Calendar, Heart, MessageCircle, Bookmark, MoreHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState } from 'react';
+import { User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSocial } from '@/contexts/SocialContext';
 import { CommentsSection } from '@/components/CommentsSection';
-import { Link } from 'react-router-dom';
 import { Post } from '@/types/social';
-import { Textarea } from '@/components/ui/textarea';
-import { useAuth } from '@/contexts/AuthContext';
+import { PostHeader } from './PostHeader';
+import { PostContent } from './PostContent';
+import { PostActions } from './PostActions';
+import { PostCommentForm } from './PostCommentForm';
+import { PostCommentsToggle } from './PostCommentsToggle';
 
 interface PostItemProps {
   post: Post;
@@ -24,9 +19,7 @@ interface PostItemProps {
 
 export function PostItem({ post, index }: PostItemProps) {
   const { likePost, unlikePost, savePost, unsavePost, commentOnPost, loading } = useSocial();
-  const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
-  const [commentText, setCommentText] = useState('');
   
   const handleLikeToggle = () => {
     if (loading) return;
@@ -48,20 +41,14 @@ export function PostItem({ post, index }: PostItemProps) {
     }
   };
   
-  const formatContent = (content: string) => {
-    // Zamień hashtagi na linki
-    return content.replace(/#(\w+)/g, '<a href="/hashtag/$1" class="text-primary hover:underline">#$1</a>');
-  };
-  
   const toggleComments = () => {
     setShowComments(!showComments);
   };
   
-  const handleCommentSubmit = async () => {
+  const handleCommentSubmit = async (commentText: string) => {
     if (!commentText.trim() || loading) return;
     
     await commentOnPost(post.id, commentText);
-    setCommentText('');
   };
   
   return (
@@ -80,133 +67,21 @@ export function PostItem({ post, index }: PostItemProps) {
         </Avatar>
         
         <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="font-semibold">{post.author.name}</h3>
-              <div className="text-sm text-rhythm-500 flex items-center gap-2">
-                <span>{post.author.role}</span>
-                <span className="text-xs">•</span>
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {post.timeAgo}
-                </span>
-              </div>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full flex-shrink-0">
-                  <span className="sr-only">Więcej opcji</span>
-                  <MoreHorizontal className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleSaveToggle}>
-                  {post.hasSaved ? 'Usuń z zapisanych' : 'Zapisz post'}
-                </DropdownMenuItem>
-                <DropdownMenuItem>Zgłoś post</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <PostHeader post={post} onSaveToggle={handleSaveToggle} />
+          <PostContent post={post} />
           
-          <div 
-            className="mt-2 mb-4 text-rhythm-700 break-words"
-            dangerouslySetInnerHTML={{ __html: formatContent(post.content) }}
+          <PostActions 
+            likes={post.likes}
+            hasLiked={post.hasLiked || false}
+            comments={post.comments}
+            hasSaved={post.hasSaved || false}
+            saves={post.saves}
+            showComments={showComments}
+            loading={loading}
+            onLikeToggle={handleLikeToggle}
+            onCommentToggle={toggleComments}
+            onSaveToggle={handleSaveToggle}
           />
-          
-          {post.mediaUrl && (
-            <div className="mb-4 rounded-md overflow-hidden">
-              {post.mediaType === 'video' ? (
-                <video 
-                  src={post.mediaUrl}
-                  controls
-                  className="w-full h-auto max-h-96 object-cover"
-                />
-              ) : (
-                <img 
-                  src={post.mediaUrl} 
-                  alt="Post media" 
-                  className="w-full h-auto max-h-96 object-cover" 
-                />
-              )}
-            </div>
-          )}
-          
-          {/* Obsługa wielu plików multimedialnych */}
-          {post.mediaFiles && post.mediaFiles.length > 0 && !post.mediaUrl && (
-            <div className={`grid ${post.mediaFiles.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 mb-4`}>
-              {post.mediaFiles.map((file, idx) => (
-                <div key={idx} className="relative rounded-md overflow-hidden">
-                  {file.type === 'video' ? (
-                    <video 
-                      src={file.url}
-                      controls
-                      className="w-full h-auto max-h-80 object-cover"
-                    />
-                  ) : (
-                    <img 
-                      src={file.url} 
-                      alt={`Media ${idx + 1}`} 
-                      className="w-full h-auto max-h-80 object-cover" 
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {post.hashtags && post.hashtags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
-              {post.hashtags.map((tag) => (
-                <Link 
-                  key={tag} 
-                  to={`/hashtag/${tag}`}
-                  className="text-sm text-primary hover:underline"
-                  onClick={(e) => e.stopPropagation()} // Zapobiegaj propagacji zdarzenia
-                >
-                  #{tag}
-                </Link>
-              ))}
-            </div>
-          )}
-          
-          <div className="flex items-center justify-between mt-4 border-t pt-3">
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className={`flex items-center gap-1.5 h-8 px-2.5 ${post.hasLiked ? 'text-red-500' : ''}`}
-                onClick={handleLikeToggle}
-                disabled={loading}
-                type="button"
-              >
-                <Heart className={`h-4 w-4 ${post.hasLiked ? 'fill-red-500' : ''}`} />
-                <span>{post.likes}</span>
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="flex items-center gap-1.5 h-8 px-2.5"
-                onClick={toggleComments}
-                type="button"
-              >
-                <MessageCircle className="h-4 w-4" />
-                <span>{post.comments}</span>
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className={`flex items-center gap-1.5 h-8 px-2.5 ${post.hasSaved ? 'text-primary' : ''}`}
-                onClick={handleSaveToggle}
-                disabled={loading}
-                type="button"
-              >
-                <Bookmark className={`h-4 w-4 ${post.hasSaved ? 'fill-primary' : ''}`} />
-                <span>{post.hasSaved ? 'Zapisano' : 'Zapisz'}</span>
-              </Button>
-            </div>
-          </div>
           
           <AnimatePresence>
             {showComments && (
@@ -218,31 +93,10 @@ export function PostItem({ post, index }: PostItemProps) {
                 className="mt-3 overflow-hidden w-full"
               >
                 <div className="border-t pt-3 pb-2">
-                  <div className="flex gap-3 mb-4">
-                    <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarImage src={user?.user_metadata.avatar_url} />
-                      <AvatarFallback>
-                        <User className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 flex items-end gap-2">
-                      <Textarea
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        placeholder="Dodaj komentarz..."
-                        className="flex-1 min-h-[40px] text-sm"
-                        disabled={loading}
-                      />
-                      <Button
-                        onClick={handleCommentSubmit}
-                        disabled={!commentText.trim() || loading}
-                        size="sm"
-                        className="h-8"
-                      >
-                        Wyślij
-                      </Button>
-                    </div>
-                  </div>
+                  <PostCommentForm 
+                    loading={loading} 
+                    onCommentSubmit={handleCommentSubmit} 
+                  />
                   
                   <CommentsSection 
                     postId={post.id} 
@@ -250,17 +104,10 @@ export function PostItem({ post, index }: PostItemProps) {
                     embedded={true}
                   />
                   
-                  <div className="flex justify-center mt-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={toggleComments}
-                      className="text-muted-foreground"
-                    >
-                      {showComments ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
-                      {showComments ? "Ukryj komentarze" : "Pokaż komentarze"}
-                    </Button>
-                  </div>
+                  <PostCommentsToggle 
+                    showComments={showComments} 
+                    onClick={toggleComments} 
+                  />
                 </div>
               </motion.div>
             )}
