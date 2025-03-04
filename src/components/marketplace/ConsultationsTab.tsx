@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +29,6 @@ interface Consultation {
   };
 }
 
-// Kategorie konsultacji
 const consultationCategories = [
   { id: 'all', name: 'Wszystkie kategorie', slug: 'all-categories', description: null },
   { id: 'composition', name: 'Kompozycja', slug: 'composition', description: null },
@@ -44,23 +42,19 @@ const consultationCategories = [
 ];
 
 export function ConsultationsTab() {
-  // Stan do przechowywania danych
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [filteredConsultations, setFilteredConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Stan dla filtrów
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   
-  // Stan dla paginacji
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const PAGE_SIZE = 6;
   
-  // Stan dla UI
   const [viewMode, setViewMode] = useState<'grid' | 'filters'>('grid');
   
   useEffect(() => {
@@ -74,7 +68,6 @@ export function ConsultationsTab() {
   const fetchConsultations = async () => {
     setLoading(true);
     try {
-      // Pobieramy konsultacje
       const { data: consultationsData, error: consultationsError } = await supabase
         .from('consultations')
         .select('*')
@@ -84,7 +77,6 @@ export function ConsultationsTab() {
         throw consultationsError;
       }
       
-      // Dla każdej konsultacji pobieramy dane profilu użytkownika
       if (consultationsData) {
         const consultationsWithProfiles = await Promise.all(consultationsData.map(async (consultation) => {
           const { data: profileData, error: profileError } = await supabase
@@ -121,7 +113,6 @@ export function ConsultationsTab() {
   const applyFilters = () => {
     let filtered = [...consultations];
     
-    // Filtrowanie wg wyszukiwania
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(consultation => 
@@ -130,7 +121,6 @@ export function ConsultationsTab() {
       );
     }
     
-    // Filtrowanie wg kategorii
     if (selectedCategory && selectedCategory !== 'all') {
       filtered = filtered.filter(consultation => 
         consultation.categories && consultation.categories.some(cat => 
@@ -138,14 +128,12 @@ export function ConsultationsTab() {
       );
     }
     
-    // Filtrowanie wg lokalizacji
     if (selectedLocation) {
       filtered = filtered.filter(consultation => 
         consultation.location && consultation.location.toLowerCase().includes(selectedLocation.toLowerCase())
       );
     }
     
-    // Filtrowanie wg ceny
     filtered = filtered.filter(consultation => 
       consultation.price >= priceRange[0] && consultation.price <= priceRange[1]
     );
@@ -153,7 +141,6 @@ export function ConsultationsTab() {
     setFilteredConsultations(filtered);
     setTotalPages(Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)));
     
-    // Jeśli strona jest poza zakresem po zastosowaniu filtrów, wróć do pierwszej strony
     if (currentPage > Math.ceil(filtered.length / PAGE_SIZE)) {
       setCurrentPage(1);
     }
@@ -164,14 +151,12 @@ export function ConsultationsTab() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
-  // Funkcja do wyświetlania konsultacji aktualnej strony
   const getCurrentPageConsultations = () => {
     const startIndex = (currentPage - 1) * PAGE_SIZE;
     const endIndex = startIndex + PAGE_SIZE;
     return filteredConsultations.slice(startIndex, endIndex);
   };
   
-  // Renderowanie kontrolek paginacji
   const renderPaginationControls = () => {
     if (totalPages <= 1) return null;
     
@@ -223,6 +208,7 @@ export function ConsultationsTab() {
         categories={consultationCategories}
         selectedCategory={selectedCategory || 'all'}
         onCategorySelect={handleCategorySelect}
+        showAllCategoriesInBar={false}
       />
       
       <div className="lg:hidden mb-4">
@@ -247,7 +233,6 @@ export function ConsultationsTab() {
       </div>
       
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Panel filtrowania */}
         <div className={`lg:w-64 space-y-6 ${viewMode === 'filters' ? 'block' : 'hidden lg:block'}`}>
           <div>
             <h3 className="font-medium mb-4">Filtry</h3>
@@ -290,7 +275,6 @@ export function ConsultationsTab() {
           </div>
         </div>
         
-        {/* Główna zawartość */}
         <div className={`flex-1 ${viewMode === 'grid' ? 'block' : 'hidden lg:block'}`}>
           <div className="mb-6 flex flex-col sm:flex-row justify-between gap-4">
             <div className="relative flex-1">
@@ -304,7 +288,6 @@ export function ConsultationsTab() {
             </div>
           </div>
           
-          {/* Wybrane filtry */}
           <div className="flex flex-wrap gap-2 mb-4">
             {selectedLocation && (
               <Badge variant="outline" className="px-3 py-1">
@@ -325,7 +308,6 @@ export function ConsultationsTab() {
             )}
           </div>
           
-          {/* Lista konsultacji */}
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[1, 2, 3, 4].map(i => (

@@ -34,9 +34,15 @@ interface CategorySelectionProps {
   categories: Category[];
   selectedCategory: string;
   onCategorySelect: (categoryId: string) => void;
+  showAllCategoriesInBar?: boolean;
 }
 
-export function CategorySelection({ categories, selectedCategory, onCategorySelect }: CategorySelectionProps) {
+export function CategorySelection({ 
+  categories, 
+  selectedCategory, 
+  onCategorySelect,
+  showAllCategoriesInBar = true
+}: CategorySelectionProps) {
   const [showCategoriesDialog, setShowCategoriesDialog] = useState(false);
 
   const getCategoryIcon = (categoryName: string) => {
@@ -89,6 +95,11 @@ export function CategorySelection({ categories, selectedCategory, onCategorySele
     setShowCategoriesDialog(false);
   };
 
+  // Filtrowanie kategorii dla paska - bez "Wszystkie kategorie" jeśli showAllCategoriesInBar=false
+  const barCategories = showAllCategoriesInBar 
+    ? categories.slice(0, 7) 
+    : categories.filter(cat => cat.id !== 'all').slice(0, 7);
+
   return (
     <div className="flex flex-col items-start gap-2 mb-4">
       {/* Przycisk "Wszystkie kategorie" nad belką z kategoriami */}
@@ -103,7 +114,7 @@ export function CategorySelection({ categories, selectedCategory, onCategorySele
       
       <div className="w-full bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1 rounded-md overflow-hidden">
         <div className="flex overflow-x-auto py-2 px-1">
-          {categories.slice(0, 7).map((category) => (
+          {barCategories.map((category) => (
             <Button 
               key={category.id}
               variant={selectedCategory === category.id ? "default" : "ghost"}
