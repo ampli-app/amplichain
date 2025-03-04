@@ -9,7 +9,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
   const [loading, setLoading] = useState(false);
 
   // Funkcja do dodawania komentarza do posta
-  const commentOnPost = async (postId: string, content: string, parentId?: string) => {
+  const commentOnPost = async (postId: string, content: string, parentId?: string): Promise<void> => {
     try {
       if (!user) {
         toast({
@@ -58,8 +58,6 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         title: "Sukces",
         description: parentId ? "Odpowiedź została dodana" : "Komentarz został dodany",
       });
-      
-      return true;
     } catch (err) {
       console.error('Unexpected error adding comment:', err);
       toast({
@@ -67,7 +65,6 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         description: "Wystąpił nieoczekiwany błąd podczas dodawania komentarza",
         variant: "destructive",
       });
-      return false;
     } finally {
       setLoading(false);
     }
@@ -78,12 +75,10 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
     try {
       setLoading(true);
       
+      // Pobierz komentarze
       let query = supabase
         .from('comments')
-        .select(`
-          *,
-          profiles:user_id (*)
-        `)
+        .select('*')
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
       
@@ -93,17 +88,38 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         query = query.is('parent_id', null);
       }
       
-      const { data, error } = await query;
+      const { data: commentsData, error: commentsError } = await query;
       
-      if (error) {
-        console.error('Error fetching comments:', error);
+      if (commentsError) {
+        console.error('Error fetching comments:', commentsError);
         return [];
       }
       
-      console.log("Pobrane komentarze:", data);
+      console.log("Pobrane surowe komentarze:", commentsData);
+      
+      if (!commentsData || commentsData.length === 0) {
+        return [];
+      }
+      
+      // Pobierz dane profilowe dla wszystkich autorów komentarzy w jednym zapytaniu
+      const userIds = [...new Set(commentsData.map(comment => comment.user_id))];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, role')
+        .in('id', userIds);
+      
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      }
+      
+      // Utwórz mapę profili dla szybkiego dostępu
+      const profilesMap = new Map();
+      profilesData?.forEach(profile => {
+        profilesMap.set(profile.id, profile);
+      });
       
       const commentsWithMetadata: Comment[] = await Promise.all(
-        (data || []).map(async (comment) => {
+        (commentsData || []).map(async (comment) => {
           // Pobierz liczbę polubień komentarza
           const { count: likesCount } = await supabase
             .from('comment_likes')
@@ -146,24 +162,8 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
             timeAgo = `${Math.floor(diffInSeconds / 86400)} dni temu`;
           }
           
-          // Properly handle the profiles data with proper type casting
-          const profileData = comment.profiles as unknown;
-          
-          // Set default profile if profiles data is not available or invalid
-          const defaultProfile: Profile = {
-            id: comment.user_id,
-            username: '',
-            full_name: '',
-            avatar_url: '/placeholder.svg',
-            role: ''
-          };
-          
-          // Now safely convert to Profile type
-          const userProfile = profileData && 
-            typeof profileData === 'object' && 
-            !('error' in profileData) ? 
-            profileData as Profile : 
-            defaultProfile;
+          // Znajdź profil autora komentarza
+          const profile = profilesMap.get(comment.user_id);
           
           return {
             id: comment.id,
@@ -171,9 +171,9 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
             parentId: comment.parent_id,
             userId: comment.user_id,
             author: {
-              name: userProfile.full_name || '',
-              avatar: userProfile.avatar_url || '/placeholder.svg',
-              role: userProfile.role || '',
+              name: profile?.full_name || 'Nieznany użytkownik',
+              avatar: profile?.avatar_url || '/placeholder.svg',
+              role: profile?.role || '',
             },
             content: comment.content,
             createdAt: comment.created_at,
@@ -185,6 +185,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         })
       );
       
+      console.log("Przetworzone komentarze:", commentsWithMetadata);
       return commentsWithMetadata;
     } catch (err) {
       console.error('Unexpected error fetching comments:', err);
@@ -195,7 +196,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
   };
 
   // Funkcja do polubienia komentarza
-  const likeComment = async (commentId: string) => {
+  const likeComment = async (commentId: string): Promise<void> => {
     try {
       if (!user) {
         toast({
@@ -203,7 +204,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
           description: "Musisz być zalogowany, aby polubić komentarz",
           variant: "destructive",
         });
-        return false;
+        return;
       }
       
       setLoading(true);
@@ -229,15 +230,13 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
             variant: "destructive",
           });
         }
-        return false;
+        return;
       }
       
       toast({
         title: "Sukces",
         description: "Komentarz został polubiony",
       });
-      
-      return true;
     } catch (err) {
       console.error('Unexpected error liking comment:', err);
       toast({
@@ -245,14 +244,13 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         description: "Wystąpił nieoczekiwany błąd podczas polubienia komentarza",
         variant: "destructive",
       });
-      return false;
     } finally {
       setLoading(false);
     }
   };
 
   // Funkcja do usunięcia polubienia komentarza
-  const unlikeComment = async (commentId: string) => {
+  const unlikeComment = async (commentId: string): Promise<void> => {
     try {
       if (!user) {
         toast({
@@ -260,7 +258,7 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
           description: "Musisz być zalogowany, aby usunąć polubienie",
           variant: "destructive",
         });
-        return false;
+        return;
       }
       
       setLoading(true);
@@ -278,15 +276,13 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
           description: "Nie udało się usunąć polubienia",
           variant: "destructive",
         });
-        return false;
+        return;
       }
       
       toast({
         title: "Sukces",
         description: "Polubienie komentarza zostało usunięte",
       });
-      
-      return true;
     } catch (err) {
       console.error('Unexpected error unliking comment:', err);
       toast({
@@ -294,7 +290,6 @@ export const useCommentActions = (user: any | null, setPosts: React.Dispatch<Rea
         description: "Wystąpił nieoczekiwany błąd podczas usuwania polubienia",
         variant: "destructive",
       });
-      return false;
     } finally {
       setLoading(false);
     }

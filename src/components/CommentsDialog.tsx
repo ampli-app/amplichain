@@ -3,6 +3,7 @@ import {
   Dialog,
   DialogContent,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CommentsSection } from "./CommentsSection";
@@ -23,6 +24,9 @@ export function CommentsDialog({ postId, commentsCount }: CommentsDialogProps) {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-xl">
+        <DialogDescription className="sr-only">
+          Sekcja komentarzy do posta
+        </DialogDescription>
         <CommentsSection postId={postId} />
       </DialogContent>
     </Dialog>

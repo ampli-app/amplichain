@@ -70,7 +70,8 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
     commentOnPost,
     getPostComments,
     likeComment,
-    unlikeComment
+    unlikeComment,
+    loading: commentActionLoading
   } = useCommentActions(user, setPosts);
   
   const {
@@ -94,7 +95,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
   }, [isLoggedIn, user]);
 
   // Połącz wszystkie stany ładowania w jeden
-  const loading = postsLoading || postActionLoading || isCreatingPost;
+  const loading = postsLoading || postActionLoading || isCreatingPost || commentActionLoading;
   
   return (
     <SocialContext.Provider value={{

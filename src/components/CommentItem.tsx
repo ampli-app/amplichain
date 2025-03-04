@@ -30,16 +30,16 @@ export function CommentItem({ comment, level = 0, maxLevel = 3 }: CommentItemPro
   const [localHasLiked, setLocalHasLiked] = useState(comment.hasLiked);
   const [localLikes, setLocalLikes] = useState(comment.likes);
   
-  const handleLikeToggle = () => {
+  const handleLikeToggle = async () => {
     if (loading) return;
     
     if (localHasLiked) {
-      unlikeComment(comment.id);
+      await unlikeComment(comment.id);
       // Optymistyczna aktualizacja UI
       setLocalHasLiked(false);
       setLocalLikes(prev => Math.max(0, prev - 1));
     } else {
-      likeComment(comment.id);
+      await likeComment(comment.id);
       // Optymistyczna aktualizacja UI
       setLocalHasLiked(true);
       setLocalLikes(prev => prev + 1);

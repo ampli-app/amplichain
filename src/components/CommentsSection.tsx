@@ -8,6 +8,8 @@ import { Comment } from '@/types/social';
 import { CommentItem } from './CommentItem';
 import { Send } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { toast } from '@/components/ui/use-toast';
+import { DialogTitle } from '@/components/ui/dialog';
 
 interface CommentsSectionProps {
   postId: string;
@@ -27,10 +29,17 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
   const loadComments = async () => {
     setIsLoading(true);
     try {
+      console.log("Ładowanie komentarzy dla posta:", postId);
       const fetchedComments = await getPostComments(postId);
+      console.log("Pobrane komentarze:", fetchedComments);
       setComments(fetchedComments);
     } catch (err) {
       console.error("Błąd podczas ładowania komentarzy:", err);
+      toast({
+        title: "Błąd",
+        description: "Nie można załadować komentarzy. Spróbuj ponownie później.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -43,16 +52,25 @@ export function CommentsSection({ postId, onClose }: CommentsSectionProps) {
       await commentOnPost(postId, commentContent);
       setCommentContent('');
       // Odśwież komentarze
-      loadComments();
+      await loadComments();
+      toast({
+        title: "Sukces",
+        description: "Komentarz został dodany",
+      });
     } catch (err) {
       console.error("Błąd podczas dodawania komentarza:", err);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się dodać komentarza",
+        variant: "destructive",
+      });
     }
   };
   
   return (
     <div className="bg-background rounded-lg max-w-lg w-full mx-auto overflow-hidden flex flex-col">
       <div className="p-4 border-b flex justify-between items-center">
-        <h3 className="font-semibold text-lg">Komentarze</h3>
+        <DialogTitle className="font-semibold text-lg">Komentarze</DialogTitle>
         {onClose && (
           <Button variant="ghost" size="sm" onClick={onClose}>
             Zamknij
