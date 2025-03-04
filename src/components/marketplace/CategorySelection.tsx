@@ -90,7 +90,17 @@ export function CategorySelection({ categories, selectedCategory, onCategorySele
   };
 
   return (
-    <div className="flex items-center justify-center mb-4">
+    <div className="flex flex-col items-start gap-2 mb-4">
+      {/* Przycisk "Wszystkie kategorie" nad belką z kategoriami */}
+      <Button
+        variant="outline"
+        className="flex gap-2 items-center self-start"
+        onClick={() => setShowCategoriesDialog(true)}
+      >
+        <ListFilter className="h-5 w-5" />
+        <span>Wszystkie kategorie</span>
+      </Button>
+      
       <div className="w-full bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1 rounded-md overflow-hidden">
         <div className="flex overflow-x-auto py-2 px-1">
           {categories.slice(0, 7).map((category) => (
@@ -104,15 +114,6 @@ export function CategorySelection({ categories, selectedCategory, onCategorySele
               <span>{category.name}</span>
             </Button>
           ))}
-          
-          <Button
-            variant="ghost"
-            className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2 mx-1"
-            onClick={() => setShowCategoriesDialog(true)}
-          >
-            <ChevronDown className="h-5 w-5" />
-            <span>Więcej kategorii</span>
-          </Button>
         </div>
       </div>
       

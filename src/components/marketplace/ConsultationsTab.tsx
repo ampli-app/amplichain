@@ -1,230 +1,162 @@
+
 import { useState, useEffect } from 'react';
-import { User, Calendar, Search, Filter, Clock, ChevronDown, ArrowLeft, ArrowRight, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Search, Filter, MapPin, User, ArrowRight, ArrowLeft, Headphones } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
-import { AddConsultationDialog } from '@/components/AddConsultationDialog';
 import { toast } from '@/components/ui/use-toast';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CategorySelection } from './CategorySelection';
 
-interface Consultant {
+interface Consultation {
   id: string;
-  user_id: string;
   title: string;
-  description: string;
+  description: string | null;
   price: number;
-  price_type?: string;
-  categories?: string[];
-  experience_years?: number;
-  tags?: string[];
+  user_id: string;
+  categories: string[] | null;
+  is_online: boolean;
+  location: string | null;
+  experience: string | null;
   created_at: string;
-  profile?: {
-    username: string;
-    full_name: string;
-    avatar_url: string;
-    specialties?: string[];
-    role?: string;
-  }
+  profiles?: {
+    username: string | null;
+    full_name: string | null;
+    avatar_url: string | null;
+  };
 }
-
-// Przykładowe dane na potrzeby prezentacji UI
-const dummyConsultants: Consultant[] = [
-  {
-    id: '1',
-    user_id: '123',
-    title: 'Konsultacje z zakresu realizacji dźwięku',
-    description: 'Profesjonalne konsultacje z zakresu realizacji dźwięku, miksu i masteringu. Ponad 10 lat doświadczenia w branży.',
-    price: 150,
-    price_type: 'za godzinę',
-    categories: ['Realizacja dźwięku', 'Mix i mastering'],
-    experience_years: 10,
-    tags: ['mix', 'mastering', 'realizacja'],
-    created_at: '2023-06-15T10:00:00Z',
-    profile: {
-      username: 'soundmaster',
-      full_name: 'Jan Kowalski',
-      avatar_url: '/lovable-uploads/9b8af26a-e395-4b2d-b30e-ff147a5f2eac.png',
-      specialties: ['Realizacja dźwięku', 'Produkcja muzyczna'],
-      role: 'Realizator dźwięku'
-    }
-  },
-  {
-    id: '2',
-    user_id: '456',
-    title: 'Konsultacje z kompozycji i aranżacji',
-    description: 'Pomogę Ci udoskonalić Twoje kompozycje i aranżacje. Specjalizuję się w muzyce filmowej i orkiestrowej.',
-    price: 200,
-    price_type: 'za godzinę',
-    categories: ['Kompozycja', 'Aranżacja'],
-    experience_years: 8,
-    tags: ['kompozycja', 'aranżacja', 'muzyka filmowa'],
-    created_at: '2023-05-20T14:30:00Z',
-    profile: {
-      username: 'composer',
-      full_name: 'Anna Nowak',
-      avatar_url: '/lovable-uploads/aa463c52-7637-4ee5-a553-736e045af0aa.png',
-      specialties: ['Kompozycja', 'Aranżacja', 'Pianista'],
-      role: 'Kompozytor'
-    }
-  },
-  {
-    id: '3',
-    user_id: '789',
-    title: 'Lekcje gry na gitarze i konsultacje muzyczne',
-    description: 'Indywidualne lekcje gry na gitarze oraz konsultacje z zakresu improwizacji i teorii muzyki. Wszystkie poziomy zaawansowania.',
-    price: 120,
-    price_type: 'za godzinę',
-    categories: ['Gra na gitarze', 'Teoria muzyki', 'Improwizacja'],
-    experience_years: 15,
-    tags: ['gitara', 'improwizacja', 'teoria muzyki'],
-    created_at: '2023-07-05T09:15:00Z',
-    profile: {
-      username: 'guitarmaster',
-      full_name: 'Piotr Wiśniewski',
-      avatar_url: '/lovable-uploads/16892876-2744-491f-acab-cbcf263983ed.png',
-      specialties: ['Gitara', 'Improwizacja'],
-      role: 'Muzyk, instruktor gitary'
-    }
-  }
-];
 
 // Kategorie konsultacji
 const consultationCategories = [
-  { id: 'composition', name: 'Kompozycja' },
-  { id: 'arrangement', name: 'Aranżacja' },
-  { id: 'production', name: 'Produkcja muzyczna' },
-  { id: 'mixing', name: 'Mix i mastering' },
-  { id: 'instruments', name: 'Instrumenty muzyczne' },
-  { id: 'vocals', name: 'Wokal' },
-  { id: 'theory', name: 'Teoria muzyki' },
-  { id: 'recording', name: 'Nagrywanie' },
-  { id: 'live_sound', name: 'Realizacja dźwięku na żywo' }
+  { id: 'all', name: 'Wszystkie kategorie', slug: 'all-categories', description: null },
+  { id: 'composition', name: 'Kompozycja', slug: 'composition', description: null },
+  { id: 'arrangement', name: 'Aranżacja', slug: 'arrangement', description: null },
+  { id: 'production', name: 'Produkcja muzyczna', slug: 'production', description: null },
+  { id: 'mixing', name: 'Mix i mastering', slug: 'mixing', description: null },
+  { id: 'instruments', name: 'Instrumenty muzyczne', slug: 'instruments', description: null },
+  { id: 'vocals', name: 'Wokal', slug: 'vocals', description: null },
+  { id: 'theory', name: 'Teoria muzyki', slug: 'theory', description: null },
+  { id: 'recording', name: 'Nagrywanie', slug: 'recording', description: null }
 ];
 
 export function ConsultationsTab() {
-  const { isLoggedIn } = useAuth();
-  
   // Stan do przechowywania danych
-  const [consultants, setConsultants] = useState<Consultant[]>(dummyConsultants);
-  const [filteredConsultants, setFilteredConsultants] = useState<Consultant[]>(dummyConsultants);
-  const [loading, setLoading] = useState(false);
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [filteredConsultations, setFilteredConsultations] = useState<Consultation[]>([]);
+  const [loading, setLoading] = useState(true);
   
   // Stan dla filtrów
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   
   // Stan dla paginacji
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const PAGE_SIZE = 9;
+  const PAGE_SIZE = 6;
   
-  // Stan dla dialogów
-  const [showAddConsultationDialog, setShowAddConsultationDialog] = useState(false);
-  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  // Stan dla UI
   const [viewMode, setViewMode] = useState<'grid' | 'filters'>('grid');
   
   useEffect(() => {
-    // Tutaj docelowo pobranie prawdziwych danych z Supabase
-    fetchConsultants();
+    fetchConsultations();
   }, []);
   
   useEffect(() => {
     applyFilters();
-  }, [consultants, searchQuery, selectedCategories, priceRange]);
+  }, [consultations, searchQuery, selectedCategory, selectedLocation, priceRange]);
   
-  const fetchConsultants = async () => {
+  const fetchConsultations = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Pobieramy konsultacje
+      const { data: consultationsData, error: consultationsError } = await supabase
         .from('consultations')
-        .select(`
-          *,
-          profiles:user_id(username, full_name, avatar_url, specialties, role)
-        `);
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      if (error) {
-        console.error("Błąd podczas pobierania konsultantów:", error);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się pobrać listy konsultacji.",
-          variant: "destructive",
-        });
-      } else {
-        console.log("Pobrane konsultacje:", data);
-        if (data && data.length > 0) {
-          setConsultants(data);
-        } else {
-          // Jeśli nie ma danych, używamy przykładowych danych
-          setConsultants(dummyConsultants);
-        }
+      if (consultationsError) {
+        throw consultationsError;
       }
-    } catch (error) {
-      console.error("Błąd podczas pobierania konsultantów:", error);
+      
+      // Dla każdej konsultacji pobieramy dane profilu użytkownika
+      if (consultationsData) {
+        const consultationsWithProfiles = await Promise.all(consultationsData.map(async (consultation) => {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('username, full_name, avatar_url')
+            .eq('id', consultation.user_id)
+            .single();
+            
+          return {
+            ...consultation,
+            profiles: profileError ? { 
+              username: null, 
+              full_name: null, 
+              avatar_url: null 
+            } : profileData
+          };
+        }));
+        
+        setConsultations(consultationsWithProfiles as Consultation[]);
+        setFilteredConsultations(consultationsWithProfiles as Consultation[]);
+      }
+    } catch (err) {
+      console.error('Nieoczekiwany błąd przy pobieraniu konsultacji:', err);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się pobrać listy konsultacji. Spróbuj odświeżyć stronę.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
   
   const applyFilters = () => {
-    let filtered = [...consultants];
+    let filtered = [...consultations];
     
-    // Filtrowanie według wyszukiwania
+    // Filtrowanie wg wyszukiwania
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(consultant => 
-        consultant.title.toLowerCase().includes(query) ||
-        consultant.description.toLowerCase().includes(query) ||
-        (consultant.profile?.full_name && consultant.profile.full_name.toLowerCase().includes(query)) ||
-        consultant.tags.some(tag => tag.toLowerCase().includes(query)) ||
-        consultant.categories.some(cat => cat.toLowerCase().includes(query))
+      filtered = filtered.filter(consultation => 
+        consultation.title.toLowerCase().includes(query) ||
+        (consultation.description && consultation.description.toLowerCase().includes(query))
       );
     }
     
-    // Filtrowanie według kategorii
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter(consultant => 
-        consultant.categories.some(cat => 
-          selectedCategories.some(selectedCat => 
-            cat.toLowerCase().includes(selectedCat.toLowerCase())
-          )
-        )
+    // Filtrowanie wg kategorii
+    if (selectedCategory && selectedCategory !== 'all') {
+      filtered = filtered.filter(consultation => 
+        consultation.categories && consultation.categories.some(cat => 
+          cat.toLowerCase() === selectedCategory.toLowerCase())
       );
     }
     
-    // Filtrowanie według zakresu cenowego
-    filtered = filtered.filter(consultant => 
-      consultant.price >= priceRange[0] && consultant.price <= priceRange[1]
+    // Filtrowanie wg lokalizacji
+    if (selectedLocation) {
+      filtered = filtered.filter(consultation => 
+        consultation.location && consultation.location.toLowerCase().includes(selectedLocation.toLowerCase())
+      );
+    }
+    
+    // Filtrowanie wg ceny
+    filtered = filtered.filter(consultation => 
+      consultation.price >= priceRange[0] && consultation.price <= priceRange[1]
     );
     
-    setFilteredConsultants(filtered);
-    
-    // Aktualizacja paginacji
+    setFilteredConsultations(filtered);
     setTotalPages(Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)));
+    
+    // Jeśli strona jest poza zakresem po zastosowaniu filtrów, wróć do pierwszej strony
     if (currentPage > Math.ceil(filtered.length / PAGE_SIZE)) {
       setCurrentPage(1);
     }
-  };
-  
-  const handleAddConsultationClick = () => {
-    if (isLoggedIn) {
-      setShowAddConsultationDialog(true);
-    } else {
-      setShowAuthDialog(true);
-    }
-  };
-  
-  const toggleCategory = (category: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
   };
   
   const handlePageChange = (page: number) => {
@@ -232,6 +164,14 @@ export function ConsultationsTab() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
+  // Funkcja do wyświetlania konsultacji aktualnej strony
+  const getCurrentPageConsultations = () => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const endIndex = startIndex + PAGE_SIZE;
+    return filteredConsultations.slice(startIndex, endIndex);
+  };
+  
+  // Renderowanie kontrolek paginacji
   const renderPaginationControls = () => {
     if (totalPages <= 1) return null;
     
@@ -273,15 +213,18 @@ export function ConsultationsTab() {
     );
   };
   
-  // Wyświetlanie aktualnej strony konsultantów
-  const getCurrentPageConsultants = () => {
-    const startIndex = (currentPage - 1) * PAGE_SIZE;
-    const endIndex = startIndex + PAGE_SIZE;
-    return filteredConsultants.slice(startIndex, endIndex);
+  const handleCategorySelect = (categoryId: string) => {
+    setSelectedCategory(categoryId === 'all' ? '' : categoryId);
   };
   
   return (
     <div>
+      <CategorySelection 
+        categories={consultationCategories}
+        selectedCategory={selectedCategory || 'all'}
+        onCategorySelect={handleCategorySelect}
+      />
+      
       <div className="lg:hidden mb-4">
         <div className="flex gap-2">
           <Button 
@@ -306,31 +249,44 @@ export function ConsultationsTab() {
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Panel filtrowania */}
         <div className={`lg:w-64 space-y-6 ${viewMode === 'filters' ? 'block' : 'hidden lg:block'}`}>
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg">Filtry</h3>
+          <div>
+            <h3 className="font-medium mb-4">Filtry</h3>
             
-            <div>
-              <p className="font-medium mb-2">Kategorie</p>
-              <div className="space-y-1">
-                {consultationCategories.map(category => (
-                  <div 
-                    key={category.id}
-                    className={`px-3 py-2 rounded-md cursor-pointer transition-colors ${
-                      selectedCategories.includes(category.name) 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'hover:bg-muted'
-                    }`}
-                    onClick={() => toggleCategory(category.name)}
-                  >
-                    {category.name}
-                  </div>
-                ))}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Lokalizacja</label>
+                <Input 
+                  placeholder="np. Warszawa, Kraków"
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
+                />
               </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Cena (PLN)</label>
+                <div className="flex items-center space-x-2">
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    placeholder="Od"
+                    value={priceRange[0]}
+                    onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
+                  />
+                  <span>-</span>
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    placeholder="Do"
+                    value={priceRange[1]}
+                    onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                  />
+                </div>
+              </div>
+              
+              <Button className="w-full" onClick={applyFilters}>
+                Zastosuj filtry
+              </Button>
             </div>
-            
-            <Button className="w-full" onClick={applyFilters}>
-              Zastosuj filtry
-            </Button>
           </div>
         </div>
         
@@ -346,46 +302,34 @@ export function ConsultationsTab() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            
-            <Button onClick={handleAddConsultationClick}>
-              Dodaj swoje konsultacje
-            </Button>
           </div>
           
           {/* Wybrane filtry */}
-          {selectedCategories.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {selectedCategories.map(category => (
-                <Badge 
-                  key={category} 
-                  variant="outline"
-                  className="px-3 py-1"
+          <div className="flex flex-wrap gap-2 mb-4">
+            {selectedLocation && (
+              <Badge variant="outline" className="px-3 py-1">
+                <MapPin className="h-3 w-3 mr-1" /> {selectedLocation}
+                <button 
+                  className="ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
+                  onClick={() => setSelectedLocation('')}
                 >
-                  {category}
-                  <button 
-                    className="ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
-                    onClick={() => toggleCategory(category)}
-                  >
-                    &times;
-                  </button>
-                </Badge>
-              ))}
-              
-              <Button 
-                variant="link" 
-                className="h-auto p-0 text-xs"
-                onClick={() => setSelectedCategories([])}
-              >
-                Wyczyść wszystkie
-              </Button>
-            </div>
-          )}
+                  &times;
+                </button>
+              </Badge>
+            )}
+            
+            {filteredConsultations.length > 0 && (
+              <div className="text-sm text-muted-foreground ml-2">
+                Znaleziono {filteredConsultations.length} konsultacji
+              </div>
+            )}
+          </div>
           
-          {/* Lista konsultantów */}
+          {/* Lista konsultacji */}
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[1, 2, 3, 4].map(i => (
-                <Card key={i} className="overflow-hidden">
+                <Card key={i}>
                   <CardContent className="p-0">
                     <div className="p-6">
                       <div className="flex items-center gap-4 mb-4">
@@ -397,51 +341,65 @@ export function ConsultationsTab() {
                       </div>
                       <Skeleton className="h-4 w-full mb-2" />
                       <Skeleton className="h-4 w-2/3 mb-4" />
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        <Skeleton className="h-6 w-16 rounded-full" />
-                        <Skeleton className="h-6 w-24 rounded-full" />
+                      <div className="flex justify-between">
+                        <Skeleton className="h-6 w-20" />
+                        <Skeleton className="h-10 w-24" />
                       </div>
-                      <Skeleton className="h-10 w-full mt-4" />
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
-          ) : getCurrentPageConsultants().length > 0 ? (
+          ) : getCurrentPageConsultations().length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {getCurrentPageConsultants().map(consultant => (
-                  <Card key={consultant.id} className="overflow-hidden hover:shadow-md transition-all">
+                {getCurrentPageConsultations().map(consultation => (
+                  <Card key={consultation.id} className="overflow-hidden hover:shadow-md transition-all">
                     <CardContent className="p-6">
                       <div className="flex items-center gap-4 mb-4">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={consultant.profile?.avatar_url} alt={consultant.profile?.full_name || "Konsultant"} />
-                          <AvatarFallback><User className="h-6 w-6" /></AvatarFallback>
+                        <Avatar>
+                          <AvatarImage 
+                            src={consultation.profiles?.avatar_url || undefined} 
+                            alt={consultation.profiles?.full_name || "Użytkownik"} 
+                          />
+                          <AvatarFallback><User /></AvatarFallback>
                         </Avatar>
                         <div>
-                          <h3 className="font-semibold">{consultant.profile?.full_name || "Konsultant"}</h3>
-                          <p className="text-sm text-muted-foreground">{consultant.profile?.role || "Specjalista"}</p>
+                          <h3 className="font-medium">{consultation.profiles?.full_name || "Użytkownik"}</h3>
+                          <p className="text-sm text-muted-foreground">@{consultation.profiles?.username || "użytkownik"}</p>
                         </div>
                       </div>
                       
-                      <h4 className="font-medium mb-2">{consultant.title}</h4>
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{consultant.description}</p>
+                      <h4 className="text-lg font-medium mb-2">{consultation.title}</h4>
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{consultation.description}</p>
                       
                       <div className="flex flex-wrap gap-2 mb-4">
-                        {consultant.categories.map((category, idx) => (
-                          <Badge key={idx} variant="secondary" className="px-2 py-1">
+                        {consultation.categories && consultation.categories.map((category, idx) => (
+                          <Badge key={idx} variant="secondary">
                             {category}
                           </Badge>
                         ))}
+                        
+                        {consultation.location && (
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {consultation.location}
+                          </Badge>
+                        )}
+                        
+                        {consultation.is_online && (
+                          <Badge variant="outline">
+                            Online
+                          </Badge>
+                        )}
                       </div>
                       
                       <div className="flex items-center justify-between mt-4">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">
-                            {consultant.price} PLN
-                          </span>
-                          <span className="text-muted-foreground">/ {consultant.price_type}</span>
+                        <div className="font-medium">
+                          {new Intl.NumberFormat('pl-PL', {
+                            style: 'currency',
+                            currency: 'PLN'
+                          }).format(consultation.price)}
                         </div>
                         
                         <Button>Kontakt</Button>
@@ -454,33 +412,18 @@ export function ConsultationsTab() {
               {renderPaginationControls()}
             </>
           ) : (
-            <div className="text-center py-12">
-              <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <div className="text-center py-12 border rounded-md">
+              <div className="mb-4">
+                <Search className="h-12 w-12 mx-auto text-muted-foreground" />
+              </div>
               <h3 className="text-xl font-medium mb-2">Nie znaleziono konsultacji</h3>
-              <p className="text-muted-foreground mb-6">
-                {searchQuery || selectedCategories.length > 0 
-                  ? "Spróbuj zmienić kryteria wyszukiwania aby zobaczyć więcej wyników." 
-                  : "Nie ma jeszcze żadnych konsultacji. Zostań pierwszym konsultantem!"}
+              <p className="text-muted-foreground mb-4">
+                Spróbuj zmienić kryteria wyszukiwania lub dodaj swoją pierwszą konsultację
               </p>
-              <Button onClick={handleAddConsultationClick}>
-                Dodaj swoje konsultacje
-              </Button>
             </div>
           )}
         </div>
       </div>
-      
-      <AuthRequiredDialog 
-        open={showAuthDialog} 
-        onOpenChange={setShowAuthDialog} 
-        title="Wymagane logowanie"
-        description="Aby dodać konsultacje, musisz być zalogowany."
-      />
-      
-      <AddConsultationDialog 
-        open={showAddConsultationDialog} 
-        onOpenChange={setShowAddConsultationDialog} 
-      />
     </div>
   );
 }
