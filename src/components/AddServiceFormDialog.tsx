@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -93,9 +92,7 @@ export function AddServiceFormDialog({ open, onOpenChange }: AddServiceFormDialo
         description,
         price: Number(price),
         category,
-        location: location || null,
-        created_at: new Date(),
-        updated_at: new Date()
+        location: location || null
       };
       
       const { data, error } = await supabase

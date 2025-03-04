@@ -1,4 +1,3 @@
-
 export interface Conversation {
   id: string;
   created_at: string;
@@ -47,4 +46,42 @@ export interface Product {
   title: string;
   price: number;
   image_url: string | null;
+}
+
+export interface Service {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  price: number;
+  category: string | null;
+  location: string | null;
+  image_url: string | null;
+  created_at: string;
+  updated_at: string;
+  profiles?: {
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+  }
+}
+
+export interface Consultation {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  price: number;
+  experience: string | null;
+  categories: string[] | null;
+  is_online: boolean | null;
+  location: string | null;
+  availability: string[] | null;
+  created_at: string;
+  updated_at: string;
+  profiles?: {
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+  }
 }

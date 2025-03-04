@@ -24,9 +24,9 @@ interface Service {
   created_at: string;
   user_id: string;
   profiles?: {
-    full_name: string;
-    username: string;
-    avatar_url: string;
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
   }
 }
 
@@ -79,27 +79,44 @@ export function ServicesMarketplace() {
   const fetchServices = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Najpierw pobieramy usługi bez powiązań
+      const { data: servicesData, error: servicesError } = await supabase
         .from('services')
-        .select(`
-          *,
-          profiles:user_id(username, full_name, avatar_url)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) {
-        console.error('Error fetching services:', error);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się pobrać listy usług. Spróbuj odświeżyć stronę.",
-          variant: "destructive",
-        });
-      } else {
-        console.log("Pobrane usługi:", data);
-        setServices(data || []);
+      if (servicesError) {
+        throw servicesError;
+      }
+      
+      // Dla każdej usługi pobieramy dane profilu użytkownika
+      if (servicesData) {
+        const servicesWithProfiles = await Promise.all(servicesData.map(async (service) => {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('username, full_name, avatar_url')
+            .eq('id', service.user_id)
+            .single();
+            
+          return {
+            ...service,
+            profiles: profileError ? { 
+              username: null, 
+              full_name: null, 
+              avatar_url: null 
+            } : profileData
+          };
+        }));
+        
+        setServices(servicesWithProfiles as Service[]);
       }
     } catch (err) {
       console.error('Nieoczekiwany błąd:', err);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się pobrać listy usług. Spróbuj odświeżyć stronę.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

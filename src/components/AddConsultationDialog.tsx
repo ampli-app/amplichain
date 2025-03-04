@@ -148,8 +148,6 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
         is_online: isOnline,
         location: isInPerson ? location : null,
         availability: [], // Docelowo można dodać wybór dostępności
-        created_at: new Date(),
-        updated_at: new Date()
       };
       
       const { data, error } = await supabase
