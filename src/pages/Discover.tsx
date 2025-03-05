@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -95,10 +96,10 @@ export default function Discover() {
           })));
         }
         
-        // Pobierz konsultacje
+        // Pobierz konsultacje - poprawiono zapytanie, aby używało 'categories' zamiast 'category'
         const { data: consultationsData, error: consultationsError } = await supabase
           .from('consultations')
-          .select('id, title, price, category')
+          .select('id, title, price, categories')
           .limit(5);
         
         if (consultationsError) throw consultationsError;
@@ -109,7 +110,8 @@ export default function Discover() {
             title: c.title,
             image: 'https://images.unsplash.com/photo-1542744173-05336fcc7ad4?q=80&w=2000&auto=format&fit=crop',
             price: c.price,
-            category: c.category
+            // Używamy pierwszej kategorii z tablicy categories jeśli istnieje, w przeciwnym razie "Inne"
+            category: c.categories && c.categories.length > 0 ? c.categories[0] : "Inne"
           })));
         }
         
