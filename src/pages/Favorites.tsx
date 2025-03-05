@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
 import { MarketplaceItem } from '@/components/MarketplaceItem';
 import { formatCurrency } from '@/lib/utils';
+import { Service, Consultation } from '@/types/messages';
 
 interface Product {
   id: string;
@@ -24,39 +25,6 @@ interface Product {
   review_count: number | null;
   user_id?: string;
   condition?: string;
-}
-
-interface Service {
-  id: string;
-  title: string;
-  price: number;
-  description: string | null;
-  category: string | null;
-  location: string | null;
-  image_url: string | null;
-  user_id: string;
-  profiles?: {
-    username: string | null;
-    full_name: string | null;
-    avatar_url: string | null;
-  }
-}
-
-interface Consultation {
-  id: string;
-  title: string;
-  price: number;
-  description: string | null;
-  experience: string | null;
-  categories: string[] | null;
-  is_online: boolean | null;
-  location: string | null;
-  user_id: string;
-  profiles?: {
-    username: string | null;
-    full_name: string | null;
-    avatar_url: string | null;
-  }
 }
 
 export default function Favorites() {
@@ -117,11 +85,30 @@ export default function Favorites() {
         if (serviceIds.length > 0) {
           const { data: services, error: servicesError } = await supabase
             .from('services')
-            .select('*, profiles:user_id(username, full_name, avatar_url)')
+            .select('*')
             .in('id', serviceIds);
             
           if (servicesError) throw servicesError;
-          setFavoriteServices(services || []);
+          
+          // Pobierz dane profilowe dla każdej usługi
+          const servicesWithProfiles = await Promise.all(services?.map(async (service) => {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('username, full_name, avatar_url')
+              .eq('id', service.user_id)
+              .single();
+              
+            return {
+              ...service,
+              profiles: profileError ? { 
+                username: null, 
+                full_name: null, 
+                avatar_url: null 
+              } : profileData
+            } as Service;
+          }) || []);
+          
+          setFavoriteServices(servicesWithProfiles);
         } else {
           setFavoriteServices([]);
         }
@@ -130,11 +117,30 @@ export default function Favorites() {
         if (consultationIds.length > 0) {
           const { data: consultations, error: consultationsError } = await supabase
             .from('consultations')
-            .select('*, profiles:user_id(username, full_name, avatar_url)')
+            .select('*')
             .in('id', consultationIds);
             
           if (consultationsError) throw consultationsError;
-          setFavoriteConsultations(consultations || []);
+          
+          // Pobierz dane profilowe dla każdej konsultacji
+          const consultationsWithProfiles = await Promise.all(consultations?.map(async (consultation) => {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('username, full_name, avatar_url')
+              .eq('id', consultation.user_id)
+              .single();
+              
+            return {
+              ...consultation,
+              profiles: profileError ? { 
+                username: null, 
+                full_name: null, 
+                avatar_url: null 
+              } : profileData
+            } as Consultation;
+          }) || []);
+          
+          setFavoriteConsultations(consultationsWithProfiles);
         } else {
           setFavoriteConsultations([]);
         }

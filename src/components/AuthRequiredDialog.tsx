@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,16 +17,29 @@ interface AuthRequiredDialogProps {
   onOpenChange: (open: boolean) => void;
   title?: string;
   description?: string;
+  redirectAfterClose?: string;
 }
 
 export function AuthRequiredDialog({
   open,
   onOpenChange,
   title = "Wymagane logowanie",
-  description = "Aby skorzystać z tej funkcji, musisz być zalogowany."
+  description = "Aby skorzystać z tej funkcji, musisz być zalogowany.",
+  redirectAfterClose
 }: AuthRequiredDialogProps) {
+  const navigate = useNavigate();
+  
+  const handleClose = () => {
+    onOpenChange(false);
+    if (redirectAfterClose) {
+      setTimeout(() => {
+        navigate(redirectAfterClose);
+      }, 100);
+    }
+  };
+  
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={redirectAfterClose ? handleClose : onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -51,7 +64,7 @@ export function AuthRequiredDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" onClick={handleClose}>
             Zamknij
           </Button>
         </DialogFooter>

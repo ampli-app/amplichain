@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -186,6 +185,10 @@ export function ServicesMarketplace() {
     }
   };
   
+  const handleCategorySelect = (categoryId: string) => {
+    setSelectedCategory(categoryId === 'all' ? '' : categoryId);
+  };
+  
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -217,7 +220,6 @@ export function ServicesMarketplace() {
     
     try {
       if (isFavorite) {
-        // Usuń z ulubionych
         await supabase
           .from('favorites')
           .delete()
@@ -236,7 +238,6 @@ export function ServicesMarketplace() {
           description: "Usługa została usunięta z Twoich ulubionych.",
         });
       } else {
-        // Dodaj do ulubionych
         await supabase
           .from('favorites')
           .insert({
