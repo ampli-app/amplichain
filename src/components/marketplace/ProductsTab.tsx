@@ -204,6 +204,12 @@ export function ProductsTab({
     setDisplayedProducts(filteredProducts.slice(startIndex, endIndex));
   };
 
+  const handlePriceRangeChange = (newRange: [number, number]) => {
+    setPriceRange(newRange);
+    setMinPrice(newRange[0].toString());
+    setMaxPrice(newRange[1].toString());
+  };
+
   const handlePriceInputChange = () => {
     const min = parseFloat(minPrice) || 0;
     const max = parseFloat(maxPrice) || maxProductPrice;
@@ -341,6 +347,9 @@ export function ProductsTab({
           selectedCategory={selectedCategory}
           onCategorySelect={handleCategorySelect}
           showAllCategoriesInBar={true}
+          priceRange={priceRange}
+          maxPrice={maxProductPrice}
+          onPriceRangeChange={handlePriceRangeChange}
         />
         
         <div className="flex flex-col lg:flex-row gap-8">

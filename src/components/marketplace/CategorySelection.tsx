@@ -5,6 +5,8 @@ import { FilterIcon, Music, Mic, Headphones, Guitar, Piano, Drum, ChevronLeft, C
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { useState, useRef, useEffect } from 'react';
+import { Slider } from '@/components/ui/slider';
+import { formatCurrency } from '@/lib/utils';
 
 interface Category {
   id: string;
@@ -18,6 +20,9 @@ interface CategorySelectionProps {
   selectedCategory: string;
   onCategorySelect: (categoryId: string) => void;
   showAllCategoriesInBar?: boolean;
+  priceRange?: [number, number];
+  maxPrice?: number;
+  onPriceRangeChange?: (range: [number, number]) => void;
 }
 
 // Funkcja pomocnicza, która przypisuje ikony do kategorii na podstawie nazwy
@@ -39,12 +44,16 @@ export function CategorySelection({
   categories,
   selectedCategory,
   onCategorySelect,
-  showAllCategoriesInBar = true
+  showAllCategoriesInBar = true,
+  priceRange = [0, 10000],
+  maxPrice = 10000,
+  onPriceRangeChange
 }: CategorySelectionProps) {
   const [open, setOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
+  const [localPriceRange, setLocalPriceRange] = useState<[number, number]>(priceRange);
 
   // Przygotowanie listy kategorii (bez "Wszystkie", które będzie osobnym przyciskiem)
   const filteredCategories = showAllCategoriesInBar
@@ -79,6 +88,11 @@ export function CategorySelection({
     }
   }, []);
 
+  // Aktualizuj lokalny zakres cen przy zmianie props
+  useEffect(() => {
+    setLocalPriceRange(priceRange);
+  }, [priceRange]);
+
   // Przewijanie w lewo i prawo
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
@@ -89,6 +103,13 @@ export function CategorySelection({
   const scrollRight = () => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollBy({ left: 200, behavior: 'smooth' });
+    }
+  };
+
+  const handleSliderChange = (value: [number, number]) => {
+    setLocalPriceRange(value);
+    if (onPriceRangeChange) {
+      onPriceRangeChange(value);
     }
   };
 
@@ -170,6 +191,26 @@ export function CategorySelection({
           </Button>
         )}
       </div>
+
+      {onPriceRangeChange && (
+        <div className="mt-6 px-2">
+          <div className="flex justify-between mb-2 text-sm text-muted-foreground">
+            <span>{formatCurrency(localPriceRange[0])}</span>
+            <span>{formatCurrency(localPriceRange[1])}</span>
+          </div>
+          <Slider
+            defaultValue={localPriceRange}
+            min={0}
+            max={maxPrice}
+            step={100}
+            onValueChange={handleSliderChange}
+            className="mb-2"
+          />
+          <div className="text-center text-sm text-muted-foreground mt-1">
+            Zakres cen
+          </div>
+        </div>
+      )}
     </div>
   );
 }
