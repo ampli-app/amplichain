@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface Group {
@@ -30,7 +30,7 @@ export function GroupsSection({ groups }: GroupsSectionProps) {
       </div>
       
       <div className="relative">
-        <ScrollArea className="w-full overflow-x-auto" orientation="horizontal" type="always">
+        <ScrollArea className="w-full overflow-x-auto" type="always">
           <div className="flex space-x-4 pb-6 min-w-full">
             {groups.slice(0, 10).map((group) => (
               <div key={group.id} className="w-[250px] flex-none">
@@ -63,6 +63,7 @@ export function GroupsSection({ groups }: GroupsSectionProps) {
               </div>
             ))}
           </div>
+          <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
     </section>

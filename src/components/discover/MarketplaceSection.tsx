@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MarketplaceItem } from '@/components/MarketplaceItem';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
@@ -143,7 +143,7 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
       </div>
       
       <div className="relative">
-        <ScrollArea className="w-full overflow-x-auto" orientation="horizontal" type="always">
+        <ScrollArea className="w-full overflow-x-auto" type="always">
           <div className="flex space-x-4 pb-6 min-w-full">
             {items.slice(0, 12).map((item, index) => (
               <div key={item.id} className="w-[200px] flex-none">
@@ -160,6 +160,7 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
               </div>
             ))}
           </div>
+          <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
     </div>
