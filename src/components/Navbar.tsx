@@ -51,7 +51,7 @@ export function Navbar() {
   const handleLogoClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (isLoggedIn) {
-      navigate('/discovery');
+      navigate('/discover');
     } else {
       navigate('/');
     }
@@ -169,10 +169,10 @@ export function Navbar() {
                 />
                 
                 <MobileNavItem 
-                  to="/discovery" 
+                  to="/discover" 
                   label="Odkrywaj" 
                   icon={<Compass className="h-4 w-4" />} 
-                  active={isActive('/discovery')} 
+                  active={isActive('/discover')} 
                 />
                 
                 <MobileNavItem 

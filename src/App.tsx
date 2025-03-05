@@ -11,7 +11,7 @@ import Profile from '@/pages/Profile';
 import NotFound from '@/pages/NotFound';
 import Groups from '@/pages/Groups';
 import Connections from '@/pages/Connections';
-import Discovery from '@/pages/Discovery';
+import Discover from '@/pages/Discover';
 import Messages from '@/pages/Messages';
 import Marketplace from '@/pages/Marketplace';
 import ProductDetail from '@/pages/ProductDetail';
@@ -35,7 +35,8 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/groups" element={<Groups />} />
           <Route path="/connections" element={<Connections />} />
-          <Route path="/discovery" element={<Discovery />} />
+          <Route path="/discover" element={<Discover />} />
+          <Route path="/discovery" element={<Discover />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/messages/product/:id" element={<Messages />} />
           <Route path="/messages/service/:id" element={<Messages />} />
