@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FilterIcon, Music, Mic, Headphones, Guitar, Piano, Drum, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -86,7 +85,7 @@ export function CategorySelection({
         scrollContainer.removeEventListener('scroll', checkScrollButtons);
       };
     }
-  }, []);
+  }, [categories]);
 
   // Aktualizuj lokalny zakres cen przy zmianie props
   useEffect(() => {
@@ -158,27 +157,26 @@ export function CategorySelection({
           </Button>
         )}
         
-        <ScrollArea className="w-full">
+        <div className="relative overflow-hidden mx-8">
           <div 
-            className="flex p-2" 
+            className="flex space-x-2 overflow-x-auto py-2 scrollbar-hide"
             ref={scrollContainerRef}
             onScroll={checkScrollButtons}
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            <div className="flex space-x-2 flex-nowrap pl-8 pr-8">
-              {filteredCategories.map((category) => (
-                <Button
-                  key={category.id}
-                  variant={selectedCategory === category.id ? 'default' : 'outline'}
-                  className="whitespace-nowrap rounded-full flex items-center gap-2 px-6"
-                  onClick={() => onCategorySelect(category.id)}
-                >
-                  {getCategoryIcon(category.name)}
-                  {category.name}
-                </Button>
-              ))}
-            </div>
+            {filteredCategories.map((category) => (
+              <Button
+                key={category.id}
+                variant={selectedCategory === category.id ? 'default' : 'outline'}
+                className="whitespace-nowrap rounded-full flex items-center gap-2 px-6 flex-shrink-0"
+                onClick={() => onCategorySelect(category.id)}
+              >
+                {getCategoryIcon(category.name)}
+                {category.name}
+              </Button>
+            ))}
           </div>
-        </ScrollArea>
+        </div>
         
         {showRightArrow && (
           <Button 
