@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,11 +45,7 @@ export function ServicesMarketplace() {
     { id: 'mixing', name: 'Mix i mastering', slug: 'mixing-mastering', description: null },
     { id: 'production', name: 'Produkcja muzyczna', slug: 'music-production', description: null },
     { id: 'lessons', name: 'Lekcje muzyki', slug: 'music-lessons', description: null },
-    { id: 'songwriting', name: 'Kompozycja', slug: 'songwriting', description: null },
-    { id: 'arrangement', name: 'Aranżacja', slug: 'arrangement', description: null },
-    { id: 'live', name: 'Występy na żywo', slug: 'live-performance', description: null },
-    { id: 'rental', name: 'Wynajem sprzętu', slug: 'equipment-rental', description: null },
-    { id: 'repair', name: 'Naprawa instrumentów', slug: 'instrument-repair', description: null }
+    { id: 'songwriting', name: 'Kompozycja', slug: 'songwriting', description: null }
   ];
   
   const getProperResultsText = (count: number) => {
@@ -382,12 +379,12 @@ export function ServicesMarketplace() {
                 {getCurrentPageServices().map(service => (
                   <Card key={service.id} className="relative overflow-hidden hover:shadow-md transition-all group">
                     <Button 
-                      variant={favorites[service.id] ? "destructive" : "secondary"}
+                      variant="secondary"
                       size="icon" 
-                      className="absolute top-3 right-3 opacity-70 hover:opacity-100 z-10"
+                      className={`absolute top-3 right-3 opacity-70 hover:opacity-100 z-10 ${favorites[service.id] ? "text-red-500 hover:text-red-600" : ""}`}
                       onClick={() => toggleFavorite(service.id, favorites[service.id] || false)}
                     >
-                      <Heart className="h-4 w-4" />
+                      <Heart className={`h-4 w-4 ${favorites[service.id] ? "fill-current" : ""}`} />
                     </Button>
                     
                     <Button 

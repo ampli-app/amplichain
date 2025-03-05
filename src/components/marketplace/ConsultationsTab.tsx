@@ -1,15 +1,18 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Search, Filter, MapPin, User, ArrowRight, ArrowLeft, Headphones } from 'lucide-react';
+import { Search, Filter, MapPin, User, ArrowRight, ArrowLeft, Headphones, Heart, Share2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CategorySelection } from './CategorySelection';
+import { MarketplaceFilters } from './MarketplaceFilters';
+import { useAuth } from '@/contexts/AuthContext';
+import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
 
 interface Consultation {
   id: string;
@@ -35,13 +38,11 @@ const consultationCategories = [
   { id: 'arrangement', name: 'Aranżacja', slug: 'arrangement', description: null },
   { id: 'production', name: 'Produkcja muzyczna', slug: 'production', description: null },
   { id: 'mixing', name: 'Mix i mastering', slug: 'mixing', description: null },
-  { id: 'instruments', name: 'Instrumenty muzyczne', slug: 'instruments', description: null },
-  { id: 'vocals', name: 'Wokal', slug: 'vocals', description: null },
-  { id: 'theory', name: 'Teoria muzyki', slug: 'theory', description: null },
-  { id: 'recording', name: 'Nagrywanie', slug: 'recording', description: null }
+  { id: 'instruments', name: 'Instrumenty muzyczne', slug: 'instruments', description: null }
 ];
 
 export function ConsultationsTab() {
+  const { user, isLoggedIn } = useAuth();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [filteredConsultations, setFilteredConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,20 +51,62 @@ export function ConsultationsTab() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+  const [minPrice, setMinPrice] = useState<string>('0');
+  const [maxPrice, setMaxPrice] = useState<string>('5000');
   
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const PAGE_SIZE = 6;
   
   const [viewMode, setViewMode] = useState<'grid' | 'filters'>('grid');
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   
   useEffect(() => {
     fetchConsultations();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchFavorites();
+    }
+  }, [user]);
   
   useEffect(() => {
     applyFilters();
   }, [consultations, searchQuery, selectedCategory, selectedLocation, priceRange]);
+
+  const getProperResultsText = (count: number) => {
+    if (count === 0) return "wyników";
+    if (count === 1) return "wynik";
+    if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 > 20)) return "wyniki";
+    return "wyników";
+  };
+  
+  const fetchFavorites = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('item_id')
+        .eq('user_id', user.id)
+        .eq('item_type', 'consultation');
+        
+      if (error) {
+        throw error;
+      }
+      
+      const newFavorites: Record<string, boolean> = {};
+      data?.forEach(fav => {
+        newFavorites[fav.item_id] = true;
+      });
+      
+      setFavorites(newFavorites);
+    } catch (err) {
+      console.error('Błąd podczas pobierania ulubionych:', err);
+    }
+  };
   
   const fetchConsultations = async () => {
     setLoading(true);
@@ -157,49 +200,74 @@ export function ConsultationsTab() {
     return filteredConsultations.slice(startIndex, endIndex);
   };
   
-  const renderPaginationControls = () => {
-    if (totalPages <= 1) return null;
-    
-    return (
-      <div className="flex justify-center mt-8">
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" /> Poprzednia
-          </Button>
-          
-          <div className="flex items-center space-x-1">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <Button
-                key={page}
-                variant={currentPage === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => handlePageChange(page)}
-              >
-                {page}
-              </Button>
-            ))}
-          </div>
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages}
-          >
-            Następna <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
-      </div>
-    );
-  };
-  
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(categoryId === 'all' ? '' : categoryId);
+  };
+
+  const handlePriceInputChange = () => {
+    const min = parseFloat(minPrice) || 0;
+    const max = parseFloat(maxPrice) || 5000;
+    
+    const limitedMax = Math.min(max, 999999);
+    
+    setPriceRange([min, limitedMax]);
+    if (limitedMax !== max) {
+      setMaxPrice(limitedMax.toString());
+    }
+  };
+
+  const toggleFavorite = async (consultationId: string, isFavorite: boolean) => {
+    if (!user) {
+      setShowAuthDialog(true);
+      return;
+    }
+    
+    try {
+      if (isFavorite) {
+        await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_id', consultationId)
+          .eq('item_type', 'consultation');
+          
+        setFavorites(prev => {
+          const newFavorites = { ...prev };
+          delete newFavorites[consultationId];
+          return newFavorites;
+        });
+        
+        toast({
+          title: "Usunięto z ulubionych",
+          description: "Konsultacja została usunięta z Twoich ulubionych.",
+        });
+      } else {
+        await supabase
+          .from('favorites')
+          .insert({
+            user_id: user.id,
+            item_id: consultationId,
+            item_type: 'consultation'
+          });
+          
+        setFavorites(prev => ({
+          ...prev,
+          [consultationId]: true
+        }));
+        
+        toast({
+          title: "Dodano do ulubionych",
+          description: "Konsultacja została dodana do Twoich ulubionych.",
+        });
+      }
+    } catch (err) {
+      console.error('Błąd podczas aktualizacji ulubionych:', err);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się zaktualizować ulubionych. Spróbuj ponownie.",
+        variant: "destructive",
+      });
+    }
   };
   
   return (
@@ -234,45 +302,22 @@ export function ConsultationsTab() {
       
       <div className="flex flex-col lg:flex-row gap-8">
         <div className={`lg:w-64 space-y-6 ${viewMode === 'filters' ? 'block' : 'hidden lg:block'}`}>
-          <div>
-            <h3 className="font-medium mb-4">Filtry</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Lokalizacja</label>
-                <Input 
-                  placeholder="np. Warszawa, Kraków"
-                  value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Cena (PLN)</label>
-                <div className="flex items-center space-x-2">
-                  <Input 
-                    type="number" 
-                    min="0" 
-                    placeholder="Od"
-                    value={priceRange[0]}
-                    onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                  />
-                  <span>-</span>
-                  <Input 
-                    type="number" 
-                    min="0" 
-                    placeholder="Do"
-                    value={priceRange[1]}
-                    onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                  />
-                </div>
-              </div>
-              
-              <Button className="w-full" onClick={applyFilters}>
-                Zastosuj filtry
-              </Button>
-            </div>
-          </div>
+          <MarketplaceFilters
+            priceRange={priceRange}
+            setPriceRange={setPriceRange}
+            minPrice={minPrice}
+            setMinPrice={setMinPrice}
+            maxPrice={maxPrice}
+            setMaxPrice={setMaxPrice}
+            showTestingOnly={false}
+            setShowTestingOnly={() => {}}
+            selectedConditions={[]}
+            setSelectedConditions={() => {}}
+            maxProductPrice={5000}
+            handlePriceInputChange={handlePriceInputChange}
+            handleApplyFilters={applyFilters}
+            productConditions={[]}
+          />
         </div>
         
         <div className={`flex-1 ${viewMode === 'grid' ? 'block' : 'hidden lg:block'}`}>
@@ -301,11 +346,9 @@ export function ConsultationsTab() {
               </Badge>
             )}
             
-            {filteredConsultations.length > 0 && (
-              <div className="text-sm text-muted-foreground ml-2">
-                Znaleziono {filteredConsultations.length} konsultacji
-              </div>
-            )}
+            <span className="text-sm text-muted-foreground ml-2">
+              {filteredConsultations.length} {getProperResultsText(filteredConsultations.length)}
+            </span>
           </div>
           
           {loading ? (
@@ -336,7 +379,32 @@ export function ConsultationsTab() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {getCurrentPageConsultations().map(consultation => (
-                  <Card key={consultation.id} className="overflow-hidden hover:shadow-md transition-all">
+                  <Card key={consultation.id} className="relative overflow-hidden hover:shadow-md transition-all">
+                    <Button 
+                      variant="secondary"
+                      size="icon" 
+                      className={`absolute top-3 right-3 opacity-70 hover:opacity-100 z-10 ${favorites[consultation.id] ? "text-red-500 hover:text-red-600" : ""}`}
+                      onClick={() => toggleFavorite(consultation.id, favorites[consultation.id] || false)}
+                    >
+                      <Heart className={`h-4 w-4 ${favorites[consultation.id] ? "fill-current" : ""}`} />
+                    </Button>
+                    
+                    <Button 
+                      variant="secondary" 
+                      size="icon" 
+                      className="absolute bottom-3 right-3 opacity-70 hover:opacity-100 z-10"
+                      onClick={() => {
+                        const consultationUrl = `${window.location.origin}/consultations/${consultation.id}`;
+                        navigator.clipboard.writeText(consultationUrl);
+                        toast({
+                          title: "Link skopiowany",
+                          description: "Link do konsultacji został skopiowany do schowka.",
+                        });
+                      }}
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                    
                     <CardContent className="p-6">
                       <div className="flex items-center gap-4 mb-4">
                         <Avatar>
@@ -377,7 +445,7 @@ export function ConsultationsTab() {
                       </div>
                       
                       <div className="flex items-center justify-between mt-4">
-                        <div className="font-medium">
+                        <div className="font-semibold text-lg bg-primary/10 px-2 py-1 rounded text-primary">
                           {new Intl.NumberFormat('pl-PL', {
                             style: 'currency',
                             currency: 'PLN'
@@ -391,7 +459,40 @@ export function ConsultationsTab() {
                 ))}
               </div>
               
-              {renderPaginationControls()}
+              <div className="flex justify-center mt-8">
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" /> Poprzednia
+                  </Button>
+                  
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Następna <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
             </>
           ) : (
             <div className="text-center py-12 border rounded-md">
@@ -406,6 +507,13 @@ export function ConsultationsTab() {
           )}
         </div>
       </div>
+
+      <AuthRequiredDialog 
+        open={showAuthDialog} 
+        onOpenChange={setShowAuthDialog} 
+        title="Wymagane logowanie"
+        description="Aby dodać do ulubionych, musisz być zalogowany."
+      />
     </div>
   );
 }

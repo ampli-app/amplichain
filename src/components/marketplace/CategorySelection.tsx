@@ -95,10 +95,10 @@ export function CategorySelection({
     setShowCategoriesDialog(false);
   };
 
-  // Filtrowanie kategorii dla paska - bez "Wszystkie kategorie" jeśli showAllCategoriesInBar=false
+  // Filtrowanie kategorii dla paska - max 6 kategorii
   const barCategories = showAllCategoriesInBar 
-    ? categories.slice(0, 10) 
-    : categories.filter(cat => cat.id !== 'all').slice(0, 10);
+    ? categories.slice(0, 6) 
+    : categories.filter(cat => cat.id !== 'all').slice(0, 6);
 
   return (
     <div className="flex flex-col items-start gap-2 mb-4">
@@ -113,12 +113,12 @@ export function CategorySelection({
       </Button>
       
       <div className="w-full bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1 rounded-md overflow-hidden">
-        <div className="flex overflow-x-auto py-2 px-1">
+        <div className="flex overflow-x-auto py-2 px-1 justify-start">
           {barCategories.map((category) => (
             <Button 
               key={category.id}
               variant={selectedCategory === category.id ? "default" : "ghost"}
-              className="flex-shrink-0 flex gap-1 items-center h-10 px-3 py-2 mx-1"
+              className="flex-shrink-0 flex gap-1 items-center h-10 px-3 py-2 mx-1 whitespace-nowrap"
               onClick={() => onCategorySelect(category.id)}
             >
               {getCategoryIcon(category.name)}
