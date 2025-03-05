@@ -4,9 +4,9 @@ import { GroupsSection } from './GroupsSection';
 import { FeedSection } from './FeedSection';
 import { SuggestedProfilesSection } from './SuggestedProfilesSection';
 import { PopularHashtagsSection } from './PopularHashtagsSection';
-import { FeatureCard } from './FeatureCard';
+import { DiscoverSlider } from './DiscoverSlider';
 import { useNavigate } from 'react-router-dom';
-import { MarketplaceItem, Group, useMarketplaceData } from '@/hooks/useMarketplaceData';
+import { useMarketplaceData } from '@/hooks/useMarketplaceData';
 
 export function DiscoverContent() {
   const { products, services, consultations, groups, loading } = useMarketplaceData();
@@ -14,13 +14,7 @@ export function DiscoverContent() {
 
   return (
     <>
-      <FeatureCard 
-        title="Dołącz do społeczności producentów"
-        description="Ponad 1000 profesjonalistów z branży muzycznej czeka na Ciebie. Wymieniaj się wiedzą, uzyskaj feedback i rozwiń swoje umiejętności."
-        backgroundImage="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop"
-        onClick={() => navigate('/groups')}
-        buttonText="Dołącz teraz"
-      />
+      <DiscoverSlider />
       
       <div className="space-y-8 mt-8">
         {/* Sekcja Marketplace - teraz na pełną szerokość */}

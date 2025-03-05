@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -9,11 +8,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSocial } from '@/contexts/SocialContext';
 import { toast } from '@/components/ui/use-toast';
 
-// Import types
 import { Product, Service, Consultation } from '@/types/messages';
 import { ProfileData } from '@/types/profile';
 
-// Import components
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { PortfolioTab } from '@/components/profile/PortfolioTab';
 import { ProductsTab } from '@/components/profile/ProductsTab';
@@ -23,7 +20,6 @@ import { MarketplaceTab } from '@/components/profile/MarketplaceTab';
 import { EditProfileModal } from '@/components/profile/EditProfileModal';
 import { ChangeAvatarModal } from '@/components/profile/ChangeAvatarModal';
 
-// Interfaces for other data types
 interface Education {
   id: string;
   institution: string;
@@ -74,7 +70,6 @@ export default function Profile() {
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'following' | 'connected' | 'pending_sent' | 'pending_received'>('none');
   const [isLoading, setIsLoading] = useState(true);
   
-  // Determine default tab based on URL params
   const defaultTab = searchParams.get('tab') || 'portfolio';
   const marketplaceTab = searchParams.get('marketplaceTab') || 'products';
 
@@ -154,6 +149,7 @@ export default function Profile() {
   };
 
   const fetchUserProducts = async (userId: string) => {
+    console.log("Fetching products for user:", userId);
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -161,13 +157,19 @@ export default function Profile() {
 
     if (error) {
       console.error('Error fetching user products:', error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się pobrać produktów użytkownika.",
+        variant: "destructive",
+      });
     } else {
-      console.log("User products fetched:", data?.length || 0);
+      console.log("User products fetched:", data?.length || 0, data);
       setUserProducts(data || []);
     }
   };
   
   const fetchUserServices = async (userId: string) => {
+    console.log("Fetching services for user:", userId);
     const { data, error } = await supabase
       .from('services')
       .select('*')
@@ -175,13 +177,19 @@ export default function Profile() {
 
     if (error) {
       console.error('Error fetching user services:', error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się pobrać usług użytkownika.",
+        variant: "destructive",
+      });
     } else {
-      console.log("User services fetched:", data?.length || 0);
+      console.log("User services fetched:", data?.length || 0, data);
       setUserServices(data || []);
     }
   };
   
   const fetchUserConsultations = async (userId: string) => {
+    console.log("Fetching consultations for user:", userId);
     const { data, error } = await supabase
       .from('consultations')
       .select('*')
@@ -189,8 +197,13 @@ export default function Profile() {
 
     if (error) {
       console.error('Error fetching user consultations:', error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się pobrać konsultacji użytkownika.",
+        variant: "destructive",
+      });
     } else {
-      console.log("User consultations fetched:", data?.length || 0);
+      console.log("User consultations fetched:", data?.length || 0, data);
       setUserConsultations(data || []);
     }
   };

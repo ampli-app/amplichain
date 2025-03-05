@@ -31,6 +31,12 @@ export function MarketplaceTab({
   const loadProductForEditing = (productId: string) => {
     navigate(`/edit-product/${productId}`);
   };
+
+  console.log("MarketplaceTab rendered with:", {
+    products: userProducts.length,
+    services: userServices.length,
+    consultations: userConsultations.length
+  });
   
   return (
     <div>
@@ -64,7 +70,7 @@ export function MarketplaceTab({
         <TabsContent value="products">
           <div className="flex justify-between mb-4">
             <h3 className="text-xl font-medium">Moje Produkty</h3>
-            <Button size="sm" onClick={() => navigate('/marketplace')}>
+            <Button size="sm" onClick={() => navigate('/add-product')}>
               <Plus className="h-4 w-4 mr-1" />
               Dodaj produkt
             </Button>
@@ -127,7 +133,7 @@ export function MarketplaceTab({
               <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground opacity-30 mb-4" />
               <h3 className="text-lg font-medium">Nie masz jeszcze żadnych produktów</h3>
               <p className="text-muted-foreground mb-4">Dodaj swój pierwszy produkt do Marketplace.</p>
-              <Button onClick={() => navigate('/marketplace')}>
+              <Button onClick={() => navigate('/add-product')}>
                 <Plus className="h-4 w-4 mr-1" />
                 Dodaj produkt
               </Button>
@@ -138,7 +144,7 @@ export function MarketplaceTab({
         <TabsContent value="services">
           <div className="flex justify-between mb-4">
             <h3 className="text-xl font-medium">Moje Usługi</h3>
-            <Button size="sm" onClick={() => navigate('/marketplace?tab=services')}>
+            <Button size="sm" onClick={() => navigate('/add-service')}>
               <Plus className="h-4 w-4 mr-1" />
               Dodaj usługę
             </Button>
@@ -201,7 +207,7 @@ export function MarketplaceTab({
               <Briefcase className="h-12 w-12 mx-auto text-muted-foreground opacity-30 mb-4" />
               <h3 className="text-lg font-medium">Nie masz jeszcze żadnych usług</h3>
               <p className="text-muted-foreground mb-4">Dodaj swoją pierwszą usługę do Marketplace.</p>
-              <Button onClick={() => navigate('/marketplace?tab=services')}>
+              <Button onClick={() => navigate('/add-service')}>
                 <Plus className="h-4 w-4 mr-1" />
                 Dodaj usługę
               </Button>
@@ -212,7 +218,7 @@ export function MarketplaceTab({
         <TabsContent value="consultations">
           <div className="flex justify-between mb-4">
             <h3 className="text-xl font-medium">Moje Konsultacje</h3>
-            <Button size="sm" onClick={() => navigate('/marketplace?tab=consultations')}>
+            <Button size="sm" onClick={() => navigate('/add-consultation')}>
               <Plus className="h-4 w-4 mr-1" />
               Dodaj konsultację
             </Button>
@@ -281,7 +287,7 @@ export function MarketplaceTab({
               <Headphones className="h-12 w-12 mx-auto text-muted-foreground opacity-30 mb-4" />
               <h3 className="text-lg font-medium">Nie masz jeszcze żadnych konsultacji</h3>
               <p className="text-muted-foreground mb-4">Dodaj swoją pierwszą ofertę konsultacji do Marketplace.</p>
-              <Button onClick={() => navigate('/marketplace?tab=consultations')}>
+              <Button onClick={() => navigate('/add-consultation')}>
                 <Plus className="h-4 w-4 mr-1" />
                 Dodaj konsultację
               </Button>
