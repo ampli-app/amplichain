@@ -9,6 +9,7 @@ import { CategorySelection } from './CategorySelection';
 import { MarketplaceFilters } from './MarketplaceFilters';
 import { ProductGrid } from './ProductGrid';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface Product {
   id: string;
@@ -55,6 +56,8 @@ export function ProductsTab({
   conditionMap
 }: ProductsTabProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [viewMode, setViewMode] = useState<'grid' | 'filters'>('grid');
   
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -99,6 +102,15 @@ export function ProductsTab({
       fetchFavorites();
     }
   }, [user]);
+
+  useEffect(() => {
+    // Sprawdź, czy istnieje parametr kategorii w URL
+    const searchParams = new URLSearchParams(location.search);
+    const categoryFromUrl = searchParams.get('category');
+    if (categoryFromUrl) {
+      setSelectedCategory(categoryFromUrl);
+    }
+  }, [location.search]);
 
   const fetchFavorites = async () => {
     if (!user) return;
@@ -221,6 +233,22 @@ export function ProductsTab({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
+  const handleCategorySelect = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    
+    // Aktualizuj URL z wybraną kategorią
+    const searchParams = new URLSearchParams(location.search);
+    if (categoryId) {
+      searchParams.set('category', categoryId);
+    } else {
+      searchParams.delete('category');
+    }
+    
+    const newQuery = searchParams.toString();
+    const newUrl = `${location.pathname}${newQuery ? `?${newQuery}` : ''}`;
+    navigate(newUrl, { replace: true });
+  };
+
   const getProperResultsText = (count: number) => {
     if (count === 0) return "wyników";
     if (count === 1) return "wynik";
@@ -313,7 +341,7 @@ export function ProductsTab({
         <CategorySelection
           categories={categories}
           selectedCategory={selectedCategory}
-          onCategorySelect={setSelectedCategory}
+          onCategorySelect={handleCategorySelect}
           showAllCategoriesInBar={false}
         />
         
