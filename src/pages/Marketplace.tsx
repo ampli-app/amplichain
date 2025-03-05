@@ -108,7 +108,14 @@ export default function Marketplace() {
           variant: "destructive",
         });
       } else {
+        // Dodaj "all" kategorię tylko jeśli nie istnieje
+        const allCategoryExists = data?.some(cat => cat.slug === 'all-categories');
         const filteredCategories = data?.filter(cat => cat.slug !== 'all-categories') || [];
+        
+        if (!allCategoryExists) {
+          // Nie dodajemy specjalnej kategorii "all", gdyż teraz pokazujemy wszystkie domyślnie
+        }
+        
         setCategories(filteredCategories);
       }
     } catch (err) {

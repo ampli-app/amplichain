@@ -342,7 +342,8 @@ export function ProductsTab({
           categories={categories}
           selectedCategory={selectedCategory}
           onCategorySelect={handleCategorySelect}
-          showAllCategoriesInBar={false}
+          showAllCategoriesInBar={true}
+          maxCategories={8}
         />
         
         <div className="flex flex-col lg:flex-row gap-8">
