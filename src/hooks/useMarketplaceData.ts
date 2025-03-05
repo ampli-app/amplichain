@@ -67,7 +67,7 @@ export function useMarketplaceData() {
         const { data: productsData, error: productsError } = await supabase
           .from('products')
           .select('id, title, image_url, price, category')
-          .limit(5);
+          .limit(12);
         
         if (productsError) throw productsError;
         
@@ -85,7 +85,7 @@ export function useMarketplaceData() {
         const { data: servicesData, error: servicesError } = await supabase
           .from('services')
           .select('id, title, image_url, price, category')
-          .limit(5);
+          .limit(12);
         
         if (servicesError) throw servicesError;
         
@@ -103,7 +103,7 @@ export function useMarketplaceData() {
         const { data: consultationsData, error: consultationsError } = await supabase
           .from('consultations')
           .select('id, title, price, categories')
-          .limit(5);
+          .limit(12);
         
         if (consultationsError) throw consultationsError;
         

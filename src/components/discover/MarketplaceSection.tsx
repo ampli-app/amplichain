@@ -72,6 +72,7 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
     
     try {
       if (isFavorite) {
+        // Usuwamy z ulubionych
         await supabase
           .from('favorites')
           .delete()
@@ -90,6 +91,7 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
           description: `${itemType === 'products' ? 'Produkt' : itemType === 'services' ? 'Usługa' : 'Konsultacja'} została usunięta z ulubionych.`,
         });
       } else {
+        // Dodajemy do ulubionych
         await supabase
           .from('favorites')
           .insert({
@@ -140,10 +142,10 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
         </Link>
       </div>
       
-      <ScrollArea className="w-full whitespace-nowrap pb-4" type="always">
-        <div className="flex space-x-4 pb-2">
+      <ScrollArea className="w-full" type="always">
+        <div className="flex space-x-4 pb-6">
           {items.slice(0, 12).map((item, index) => (
-            <div key={item.id} className="w-[220px] flex-none">
+            <div key={item.id} className="w-[200px] flex-none">
               <MarketplaceItem
                 id={item.id}
                 title={item.title}
@@ -153,7 +155,6 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
                 delay={index * 0.05}
                 isFavorite={favorites[item.id] || false}
                 onToggleFavorite={toggleFavorite}
-                favoriteButtonClass="absolute top-3 right-3 opacity-70 hover:opacity-100 z-10"
               />
             </div>
           ))}

@@ -61,11 +61,11 @@ export function ProductActions({ id, isUserProduct }: ProductActionsProps) {
           </Button>
         )}
         
-        {/* Share button */}
+        {/* Share button - dodana przestrzeń */}
         <Button 
           variant="secondary" 
           size="icon"
-          className="h-9 w-9 ml-2"
+          className="h-9 w-9"
           onClick={handleShare}
         >
           <Share2 className="h-4 w-4" />

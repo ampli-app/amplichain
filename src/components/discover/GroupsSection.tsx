@@ -29,10 +29,10 @@ export function GroupsSection({ groups }: GroupsSectionProps) {
         </Link>
       </div>
       
-      <ScrollArea className="w-full whitespace-nowrap pb-4" type="always">
-        <div className="flex space-x-4 pb-2">
+      <ScrollArea className="w-full" type="always">
+        <div className="flex space-x-4 pb-6">
           {groups.slice(0, 10).map((group) => (
-            <div key={group.id} className="w-[280px] flex-none">
+            <div key={group.id} className="w-[250px] flex-none">
               <Link 
                 to={`/groups/${group.id}`}
                 className="no-underline text-foreground"
