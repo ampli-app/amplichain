@@ -142,24 +142,26 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
         </Link>
       </div>
       
-      <ScrollArea className="w-full" type="always">
-        <div className="flex space-x-4 pb-6">
-          {items.slice(0, 12).map((item, index) => (
-            <div key={item.id} className="w-[200px] flex-none">
-              <MarketplaceItem
-                id={item.id}
-                title={item.title}
-                price={item.price || 0}
-                image={item.image}
-                category={item.category || "Inne"}
-                delay={index * 0.05}
-                isFavorite={favorites[item.id] || false}
-                onToggleFavorite={toggleFavorite}
-              />
-            </div>
-          ))}
-        </div>
-      </ScrollArea>
+      <div className="relative">
+        <ScrollArea className="w-full overflow-x-auto" orientation="horizontal" type="always">
+          <div className="flex space-x-4 pb-6 min-w-full">
+            {items.slice(0, 12).map((item, index) => (
+              <div key={item.id} className="w-[200px] flex-none">
+                <MarketplaceItem
+                  id={item.id}
+                  title={item.title}
+                  price={item.price || 0}
+                  image={item.image}
+                  category={item.category || "Inne"}
+                  delay={index * 0.05}
+                  isFavorite={favorites[item.id] || false}
+                  onToggleFavorite={toggleFavorite}
+                />
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
     </div>
   );
 }

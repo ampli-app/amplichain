@@ -29,40 +29,42 @@ export function GroupsSection({ groups }: GroupsSectionProps) {
         </Link>
       </div>
       
-      <ScrollArea className="w-full" type="always">
-        <div className="flex space-x-4 pb-6">
-          {groups.slice(0, 10).map((group) => (
-            <div key={group.id} className="w-[250px] flex-none">
-              <Link 
-                to={`/groups/${group.id}`}
-                className="no-underline text-foreground"
-              >
-                <Card className="h-full overflow-hidden hover:shadow-md transition-all">
-                  <div className="aspect-[1.5/1] overflow-hidden relative">
-                    <img 
-                      src={group.image} 
-                      alt={group.name}
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                    <div className="absolute bottom-0 left-0 p-4 w-full">
-                      <h3 className="text-white font-bold text-lg">{group.name}</h3>
-                      {group.memberCount && (
-                        <p className="text-white/80 text-sm">
-                          {group.memberCount} {group.memberCount === 1 ? 'członek' : 
-                            group.memberCount % 10 >= 2 && group.memberCount % 10 <= 4 && 
-                            (group.memberCount % 100 < 10 || group.memberCount % 100 > 20) ? 
-                            'członków' : 'członków'}
-                        </p>
-                      )}
+      <div className="relative">
+        <ScrollArea className="w-full overflow-x-auto" orientation="horizontal" type="always">
+          <div className="flex space-x-4 pb-6 min-w-full">
+            {groups.slice(0, 10).map((group) => (
+              <div key={group.id} className="w-[250px] flex-none">
+                <Link 
+                  to={`/groups/${group.id}`}
+                  className="no-underline text-foreground"
+                >
+                  <Card className="h-full overflow-hidden hover:shadow-md transition-all">
+                    <div className="aspect-[1.5/1] overflow-hidden relative">
+                      <img 
+                        src={group.image} 
+                        alt={group.name}
+                        className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                      <div className="absolute bottom-0 left-0 p-4 w-full">
+                        <h3 className="text-white font-bold text-lg">{group.name}</h3>
+                        {group.memberCount && (
+                          <p className="text-white/80 text-sm">
+                            {group.memberCount} {group.memberCount === 1 ? 'członek' : 
+                              group.memberCount % 10 >= 2 && group.memberCount % 10 <= 4 && 
+                              (group.memberCount % 100 < 10 || group.memberCount % 100 > 20) ? 
+                              'członków' : 'członków'}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              </Link>
-            </div>
-          ))}
-        </div>
-      </ScrollArea>
+                  </Card>
+                </Link>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
     </section>
   );
 }
