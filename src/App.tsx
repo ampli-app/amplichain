@@ -19,6 +19,7 @@ import EditProduct from '@/pages/EditProduct';
 import Checkout from '@/pages/Checkout';
 import CheckoutSuccess from '@/pages/CheckoutSuccess';
 import SocialFeed from '@/pages/SocialFeed';
+import Favorites from '@/pages/Favorites';
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
             <Route path="/messages/user/:id" element={<Messages />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/marketplace/:id" element={<ProductDetail />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/services/:id" element={<ProductDetail />} />
             <Route path="/consultations/:id" element={<ProductDetail />} />
             <Route path="/edit-product/:id" element={<EditProduct />} />
@@ -53,6 +55,7 @@ function App() {
             <Route path="/checkout/:id" element={<Checkout />} />
             <Route path="/checkout/:id/test" element={<Checkout />} />
             <Route path="/checkout/success/:id" element={<CheckoutSuccess />} />
+            <Route path="/favorites" element={<Favorites />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

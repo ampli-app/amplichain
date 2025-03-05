@@ -63,12 +63,12 @@ export function MarketplaceItem({
   
   const handleClick = () => {
     if (!isUserProduct) {
-      navigate(`/product/${id}`);
+      navigate(`/marketplace/${id}`);
     }
   };
   
   const handleViewProduct = () => {
-    navigate(`/product/${id}`);
+    navigate(`/marketplace/${id}`);
   };
   
   const handleEditProduct = () => {
