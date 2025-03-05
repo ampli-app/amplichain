@@ -18,7 +18,6 @@ interface CategorySelectionProps {
   selectedCategory: string;
   onCategorySelect: (categoryId: string) => void;
   showAllCategoriesInBar?: boolean;
-  maxCategories?: number;
 }
 
 // Funkcja pomocnicza, która przypisuje ikony do kategorii na podstawie nazwy
@@ -40,8 +39,7 @@ export function CategorySelection({
   categories,
   selectedCategory,
   onCategorySelect,
-  showAllCategoriesInBar = true,
-  maxCategories = 8
+  showAllCategoriesInBar = true
 }: CategorySelectionProps) {
   const [open, setOpen] = useState(false);
 
@@ -49,9 +47,6 @@ export function CategorySelection({
   const filteredCategories = showAllCategoriesInBar
     ? categories.filter(cat => cat.id !== 'all')
     : categories.filter(cat => cat.id !== 'all');
-  
-  // Ogranicz liczbę kategorii, jeśli potrzeba
-  const limitedCategories = filteredCategories.slice(0, maxCategories);
 
   const handleCategorySelect = (categoryId: string) => {
     onCategorySelect(categoryId);
@@ -95,7 +90,7 @@ export function CategorySelection({
         <ScrollArea className="w-full">
           <div className="flex p-2">
             <div className="flex space-x-2 flex-nowrap">
-              {limitedCategories.map((category) => (
+              {filteredCategories.map((category) => (
                 <Button
                   key={category.id}
                   variant={selectedCategory === category.id ? 'default' : 'outline'}

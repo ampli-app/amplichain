@@ -104,7 +104,6 @@ export function ProductsTab({
   }, [user]);
 
   useEffect(() => {
-    // Sprawdź, czy istnieje parametr kategorii w URL
     const searchParams = new URLSearchParams(location.search);
     const categoryFromUrl = searchParams.get('category');
     if (categoryFromUrl) {
@@ -236,7 +235,6 @@ export function ProductsTab({
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(categoryId);
     
-    // Aktualizuj URL z wybraną kategorią
     const searchParams = new URLSearchParams(location.search);
     if (categoryId) {
       searchParams.set('category', categoryId);
@@ -343,7 +341,6 @@ export function ProductsTab({
           selectedCategory={selectedCategory}
           onCategorySelect={handleCategorySelect}
           showAllCategoriesInBar={true}
-          maxCategories={8}
         />
         
         <div className="flex flex-col lg:flex-row gap-8">
