@@ -18,7 +18,7 @@ interface GroupsSectionProps {
 
 export function GroupsSection({ groups }: GroupsSectionProps) {
   return (
-    <div className="mb-12">
+    <div className="mb-10">
       <div className="flex justify-between items-center mb-3">
         <h3 className="text-lg font-medium">Popularne grupy</h3>
         <Link to="/groups" className="no-underline">
@@ -38,7 +38,7 @@ export function GroupsSection({ groups }: GroupsSectionProps) {
             <Card className="overflow-hidden hover:shadow-md transition-shadow h-full">
               <CardContent className="p-0 flex flex-col h-full">
                 <div 
-                  className="w-full h-32 bg-gray-200"
+                  className="w-full h-28 bg-gray-200"
                   style={{
                     backgroundImage: `url(${group.image})`,
                     backgroundSize: 'cover',
@@ -46,10 +46,10 @@ export function GroupsSection({ groups }: GroupsSectionProps) {
                   }}
                 >
                 </div>
-                <div className="p-4">
-                  <h4 className="font-medium text-base mb-1">{group.name}</h4>
+                <div className="p-3">
+                  <h4 className="font-medium text-sm mb-1">{group.name}</h4>
                   {group.memberCount && (
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" className="text-xs">
                       {group.memberCount} członków
                     </Badge>
                   )}

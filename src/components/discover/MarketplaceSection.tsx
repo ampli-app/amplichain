@@ -31,7 +31,7 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
   };
 
   return (
-    <div className="mb-12">
+    <div className="mb-10">
       <div className="flex justify-between items-center mb-3">
         <h3 className="text-lg font-medium">{title}</h3>
         <Link to={getViewAllPath()} className="no-underline">
@@ -41,7 +41,7 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
           </Button>
         </Link>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
         {items.map((item, index) => (
           <MarketplaceItem
             key={item.id}
@@ -51,7 +51,7 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
             image={item.image}
             category={item.category || "Inne"}
             delay={index * 0.05}
-            favoriteButtonClass="absolute top-3 right-3 opacity-70 hover:opacity-100 z-10"
+            favoriteButtonClass="absolute top-2 right-2 opacity-70 hover:opacity-100 z-10 scale-75"
           />
         ))}
       </div>
