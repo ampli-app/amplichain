@@ -1,10 +1,10 @@
 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FilterIcon, Music, Mic, Headphones, Guitar, Piano, Drum } from 'lucide-react';
+import { FilterIcon, Music, Mic, Headphones, Guitar, Piano, Drum, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface Category {
   id: string;
@@ -42,6 +42,9 @@ export function CategorySelection({
   showAllCategoriesInBar = true
 }: CategorySelectionProps) {
   const [open, setOpen] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(true);
 
   // Przygotowanie listy kategorii (bez "Wszystkie", które będzie osobnym przyciskiem)
   const filteredCategories = showAllCategoriesInBar
@@ -51,6 +54,42 @@ export function CategorySelection({
   const handleCategorySelect = (categoryId: string) => {
     onCategorySelect(categoryId);
     setOpen(false);
+  };
+
+  // Funkcja do sprawdzania widoczności przycisków przewijania
+  const checkScrollButtons = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(scrollLeft + clientWidth < scrollWidth);
+    }
+  };
+
+  // Obserwuj zmiany w przewijaniu
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', checkScrollButtons);
+      // Sprawdź początkowy stan
+      checkScrollButtons();
+      
+      return () => {
+        scrollContainer.removeEventListener('scroll', checkScrollButtons);
+      };
+    }
+  }, []);
+
+  // Przewijanie w lewo i prawo
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -200, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 200, behavior: 'smooth' });
+    }
   };
 
   return (
@@ -86,10 +125,25 @@ export function CategorySelection({
         </DialogContent>
       </Dialog>
       
-      <div className="bg-background my-4">
+      <div className="bg-background my-4 relative">
+        {showLeftArrow && (
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-full shadow-md bg-background"
+            onClick={scrollLeft}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+        )}
+        
         <ScrollArea className="w-full">
-          <div className="flex p-2">
-            <div className="flex space-x-2 flex-nowrap">
+          <div 
+            className="flex p-2" 
+            ref={scrollContainerRef}
+            onScroll={checkScrollButtons}
+          >
+            <div className="flex space-x-2 flex-nowrap pl-8 pr-8">
               {filteredCategories.map((category) => (
                 <Button
                   key={category.id}
@@ -104,6 +158,17 @@ export function CategorySelection({
             </div>
           </div>
         </ScrollArea>
+        
+        {showRightArrow && (
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 rounded-full shadow-md bg-background"
+            onClick={scrollRight}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        )}
       </div>
     </div>
   );
