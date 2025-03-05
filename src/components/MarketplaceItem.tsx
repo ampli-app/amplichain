@@ -67,11 +67,13 @@ export function MarketplaceItem({
     }
   };
   
-  const handleViewProduct = () => {
+  const handleViewProduct = (e: React.MouseEvent) => {
+    e.stopPropagation();
     navigate(`/marketplace/${id}`);
   };
   
-  const handleEditProduct = () => {
+  const handleEditProduct = (e: React.MouseEvent) => {
+    e.stopPropagation();
     navigate(`/edit-product/${id}`);
   };
   
@@ -84,7 +86,7 @@ export function MarketplaceItem({
   
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const productUrl = `${window.location.origin}/product/${id}`;
+    const productUrl = `${window.location.origin}/marketplace/${id}`;
     navigator.clipboard.writeText(productUrl);
     toast({
       title: "Link skopiowany",
@@ -119,30 +121,35 @@ export function MarketplaceItem({
       style={{ animationDelay: `${delay}s` }}
       onClick={handleClick}
     >
-      {isUserProduct && (
-        <Badge className="absolute top-3 left-3 z-10 bg-green-500 hover:bg-green-600">
-          Twój produkt
-        </Badge>
-      )}
+      {/* Znaczniki - zawsze po lewej stronie */}
+      <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
+        {forTesting && (
+          <Badge className="bg-amber-500 hover:bg-amber-500">
+            Dostępne do testów
+          </Badge>
+        )}
+        
+        {isUserProduct && (
+          <Badge className="bg-green-500 hover:bg-green-500">
+            Twój produkt
+          </Badge>
+        )}
+        
+        {sale && salePercentage && !isUserProduct && (
+          <Badge className="bg-red-500 hover:bg-red-500">
+            -{salePercentage}%
+          </Badge>
+        )}
+      </div>
       
-      {!isUserProduct && (
-        <Button 
-          variant="secondary"
-          size="icon" 
-          className={favoriteButtonClass}
-          onClick={handleToggleFavorite}
-        >
-          <Heart className={`h-4 w-4 text-red-500 ${isFavorite ? "fill-current" : ""}`} />
-        </Button>
-      )}
-      
+      {/* Przycisk ulubione - zawsze po prawej stronie */}
       <Button 
-        variant="secondary" 
+        variant="secondary"
         size="icon" 
-        className="absolute bottom-3 right-3 opacity-70 hover:opacity-100 z-10"
-        onClick={handleShare}
+        className={favoriteButtonClass}
+        onClick={handleToggleFavorite}
       >
-        <Share2 className="h-4 w-4" />
+        <Heart className={`h-4 w-4 text-red-500 ${isFavorite ? "fill-current" : ""}`} />
       </Button>
       
       <div className="relative aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
@@ -155,24 +162,6 @@ export function MarketplaceItem({
             target.src = '/placeholder.svg';
           }}
         />
-        
-        {sale && salePercentage && !isUserProduct && (
-          <Badge className="absolute top-3 left-3 bg-red-500 text-white">
-            -{salePercentage}%
-          </Badge>
-        )}
-        
-        {forTesting && !isUserProduct && (
-          <Badge className="absolute top-3 right-14 bg-amber-500 text-white">
-            Dostępne do testów
-          </Badge>
-        )}
-        
-        {isUserProduct && forTesting && (
-          <Badge className="absolute top-3 right-3 bg-amber-500 text-white">
-            Dostępne do testów
-          </Badge>
-        )}
       </div>
       
       <CardContent className="p-4">
@@ -182,43 +171,61 @@ export function MarketplaceItem({
           <Badge variant="outline">{category}</Badge>
         </div>
         
-        <div className="mt-2">
-          {sale && salePercentage ? (
-            <div className="flex items-center space-x-2">
-              <span className="text-lg font-bold text-primary">{formattedSalePrice}</span>
-              <span className="text-sm text-muted-foreground line-through">{formattedPrice}</span>
-            </div>
-          ) : (
-            <span className="text-lg font-bold text-primary">{formattedPrice}</span>
-          )}
+        <div className="mt-2 flex items-center justify-between">
+          <div>
+            {sale && salePercentage ? (
+              <div className="flex items-center space-x-2">
+                <span className="text-lg font-bold text-primary">{formattedSalePrice}</span>
+                <span className="text-sm text-muted-foreground line-through">{formattedPrice}</span>
+              </div>
+            ) : (
+              <span className="text-lg font-bold text-primary">{formattedPrice}</span>
+            )}
+          </div>
           
           {forTesting && testingPrice && (
-            <div className="mt-1 text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground">
               Test: {formattedTestingPrice}
             </div>
           )}
         </div>
         
-        {isUserProduct && (
-          <div className="flex gap-2 mt-4">
+        <div className="flex justify-between mt-4 gap-2">
+          {/* Przycisk "Zobacz produkt" zawsze widoczny */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-1"
+            onClick={handleViewProduct}
+          >
+            <Eye className="h-4 w-4" />
+            Zobacz produkt
+          </Button>
+          
+          <div className="flex gap-2">
+            {/* Przycisk "Edytuj" tylko dla własnych produktów */}
+            {isUserProduct && (
+              <Button 
+                variant="default" 
+                size="sm"
+                className="bg-[#9E9D1B] hover:bg-[#7e7c14] flex items-center gap-1"
+                onClick={handleEditProduct}
+              >
+                <Pencil className="h-4 w-4" />
+                Edytuj
+              </Button>
+            )}
+            
+            {/* Przycisk "Udostępnij" zawsze widoczny */}
             <Button 
-              variant="outline" 
-              className="flex-1"
-              onClick={handleViewProduct}
+              variant="secondary" 
+              size="icon" 
+              onClick={handleShare}
             >
-              <Eye className="h-4 w-4 mr-2" />
-              Zobacz produkt
-            </Button>
-            <Button 
-              variant="default" 
-              className="flex-1 bg-[#9E9D1B] hover:bg-[#7e7c14]"
-              onClick={handleEditProduct}
-            >
-              <Pencil className="h-4 w-4 mr-2" />
-              Edytuj
+              <Share2 className="h-4 w-4" />
             </Button>
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );
