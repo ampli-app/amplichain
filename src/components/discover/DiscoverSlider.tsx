@@ -37,11 +37,11 @@ export function DiscoverSlider() {
     }
   };
 
-  // Automatycznie przewijaj co 5 sekund
+  // Automatycznie przewijaj co 3 sekundy zamiast 5
   useEffect(() => {
     if (sliders.length <= 1) return;
     
-    const interval = setInterval(goToNext, 5000);
+    const interval = setInterval(goToNext, 3000);
     return () => clearInterval(interval);
   }, [sliders.length]);
 

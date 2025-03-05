@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface NavItemProps {
   icon?: LucideIcon;
@@ -13,14 +14,8 @@ interface NavItemProps {
 }
 
 export function NavItem({ icon: Icon, text, to, active, isNew, onClick }: NavItemProps) {
-  return (
-    <Button
-      variant="ghost"
-      className={`w-full justify-start gap-3 px-3 ${
-        active ? "bg-accent" : ""
-      }`}
-      onClick={onClick}
-    >
+  const content = (
+    <>
       {Icon && (
         <span
           className={`flex items-center justify-center ${
@@ -38,6 +33,32 @@ export function NavItem({ icon: Icon, text, to, active, isNew, onClick }: NavIte
         {text}
       </span>
       {isNew && <Badge className="ml-auto">Nowe</Badge>}
+    </>
+  );
+
+  if (to) {
+    return (
+      <Button
+        asChild
+        variant="ghost"
+        className={`w-full justify-start gap-3 px-3 ${
+          active ? "bg-accent" : ""
+        }`}
+      >
+        <Link to={to}>{content}</Link>
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      className={`w-full justify-start gap-3 px-3 ${
+        active ? "bg-accent" : ""
+      }`}
+      onClick={onClick}
+    >
+      {content}
     </Button>
   );
 }
