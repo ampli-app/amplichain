@@ -29,11 +29,11 @@ export function UserMenu({ avatarUrl }: UserMenuProps) {
   
   return (
     <div className="flex items-center gap-2">
-      <Link to="/favorites">
-        <Button variant="ghost" size="icon" className="rounded-full">
+      <Button variant="ghost" size="icon" asChild>
+        <Link to="/favorites">
           <Heart className="h-5 w-5" />
-        </Button>
-      </Link>
+        </Link>
+      </Button>
       
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

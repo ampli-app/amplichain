@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -107,6 +108,7 @@ export function MarketplaceTab({ profileId }: { profileId: string }) {
                   category={service.category || "Inne"}
                   location={service.location}
                   userId={service.user_id}
+                  priceType={service.price_type || "hourly"}
                 />
               ))}
             </div>

@@ -1,9 +1,10 @@
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LucideIcon } from "lucide-react";
 
 interface NavItemProps {
-  icon?: LucideIcon | null;
+  icon?: LucideIcon;
   text: string;
   to?: string;
   active?: boolean;
@@ -11,10 +12,7 @@ interface NavItemProps {
   onClick?: () => void;
 }
 
-// Aktualizujemy tylko część odpowiedzialną za ikony (zakładamy, że reszta jest już poprawna)
-// Dodajemy hover effect do heart icon, aby był taki sam jak dla pozostałych ikon
-export function NavItem({ icon, text, to, active, isNew, onClick }: NavItemProps) {
-  
+export function NavItem({ icon: Icon, text, to, active, isNew, onClick }: NavItemProps) {
   return (
     <Button
       variant="ghost"
@@ -23,13 +21,13 @@ export function NavItem({ icon, text, to, active, isNew, onClick }: NavItemProps
       }`}
       onClick={onClick}
     >
-      {icon && (
+      {Icon && (
         <span
           className={`flex items-center justify-center ${
             active ? "text-foreground" : "text-muted-foreground"
           }`}
         >
-          {icon}
+          <Icon className="h-4 w-4" />
         </span>
       )}
       <span

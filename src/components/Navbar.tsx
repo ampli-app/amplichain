@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -78,10 +79,10 @@ export function Navbar() {
           </div>
           
           <nav className="hidden md:flex items-center gap-1 h-14">
-            <NavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
-            <NavItem to="/marketplace" label="Marketplace" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
-            <NavItem to="/groups" label="Grupy" icon={<Users className="h-4 w-4" />} active={isActive('/groups')} />
-            <NavItem to="/connections" label="Sieć" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
+            <NavItem to="/feed" text="Feed" icon={Rss} active={isActive('/feed')} />
+            <NavItem to="/marketplace" text="Marketplace" icon={ShoppingBag} active={isActive('/marketplace')} />
+            <NavItem to="/groups" text="Grupy" icon={Users} active={isActive('/groups')} />
+            <NavItem to="/connections" text="Sieć" icon={Users} active={isActive('/connections')} />
           </nav>
           
           <div className="flex items-center gap-2">
