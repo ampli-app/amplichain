@@ -43,10 +43,10 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
         </Link>
       </div>
       
-      <ScrollArea className="w-full whitespace-nowrap pb-4">
-        <div className="flex space-x-4">
+      <ScrollArea className="w-full whitespace-nowrap pb-4" type="scroll">
+        <div className="flex space-x-4 pb-2">
           {items.slice(0, 12).map((item, index) => (
-            <div key={item.id} className="w-[260px] flex-none">
+            <div key={item.id} className="w-[220px] flex-none">
               <MarketplaceItem
                 id={item.id}
                 title={item.title}
@@ -54,7 +54,8 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
                 image={item.image}
                 category={item.category || "Inne"}
                 delay={index * 0.05}
-                favoriteButtonClass="hidden" // Ukrywamy przycisk ulubionych
+                // Restore the favorite button functionality
+                favoriteButtonClass="absolute top-3 right-3 opacity-70 hover:opacity-100 z-10"
               />
             </div>
           ))}

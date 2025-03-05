@@ -27,19 +27,19 @@ export function DiscoverContent() {
               <MarketplaceSection 
                 title="Produkty" 
                 itemType="products" 
-                items={products.map(item => ({...item, hideInDiscover: true}))} 
+                items={products} 
               />
               
               <MarketplaceSection 
                 title="Usługi" 
                 itemType="services" 
-                items={services.map(item => ({...item, hideInDiscover: true}))} 
+                items={services} 
               />
               
               <MarketplaceSection 
                 title="Konsultacje" 
                 itemType="consultations" 
-                items={consultations.map(item => ({...item, hideInDiscover: true}))} 
+                items={consultations} 
               />
             </>
           )}

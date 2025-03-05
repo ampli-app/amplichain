@@ -10,10 +10,7 @@ interface ProductBadgesProps {
 }
 
 export function ProductBadges({ forTesting, isUserProduct, sale, salePercentage, hideInDiscover = false }: ProductBadgesProps) {
-  if (hideInDiscover) {
-    return null;
-  }
-  
+  // Remove the early return that was hiding badges
   return (
     <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-2">
       {forTesting && (
