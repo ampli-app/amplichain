@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MarketplaceItem } from '@/components/MarketplaceItem';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Item {
   id: string;
@@ -41,20 +42,24 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
           </Button>
         </Link>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-        {items.map((item, index) => (
-          <MarketplaceItem
-            key={item.id}
-            id={item.id}
-            title={item.title}
-            price={item.price || 0}
-            image={item.image}
-            category={item.category || "Inne"}
-            delay={index * 0.05}
-            favoriteButtonClass="absolute top-2 right-2 opacity-70 hover:opacity-100 z-10 scale-75"
-          />
-        ))}
-      </div>
+      
+      <ScrollArea className="w-full whitespace-nowrap pb-4">
+        <div className="flex space-x-4">
+          {items.slice(0, 12).map((item, index) => (
+            <div key={item.id} className="w-[260px] flex-none">
+              <MarketplaceItem
+                id={item.id}
+                title={item.title}
+                price={item.price || 0}
+                image={item.image}
+                category={item.category || "Inne"}
+                delay={index * 0.05}
+                favoriteButtonClass="hidden" // Ukrywamy przycisk ulubionych
+              />
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
     </div>
   );
 }

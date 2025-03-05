@@ -17,7 +17,7 @@ export function DiscoverContent() {
       <DiscoverSlider />
       
       <div className="space-y-8 mt-8">
-        {/* Sekcja Marketplace - teraz na pełną szerokość */}
+        {/* Sekcja Marketplace - teraz na pełną szerokość z przewijaniem */}
         <section>
           <h2 className="text-xl font-bold mb-6">Popularne w Marketplace</h2>
           {loading ? (
@@ -27,25 +27,25 @@ export function DiscoverContent() {
               <MarketplaceSection 
                 title="Produkty" 
                 itemType="products" 
-                items={products} 
+                items={products.map(item => ({...item, hideInDiscover: true}))} 
               />
               
               <MarketplaceSection 
                 title="Usługi" 
                 itemType="services" 
-                items={services} 
+                items={services.map(item => ({...item, hideInDiscover: true}))} 
               />
               
               <MarketplaceSection 
                 title="Konsultacje" 
                 itemType="consultations" 
-                items={consultations} 
+                items={consultations.map(item => ({...item, hideInDiscover: true}))} 
               />
             </>
           )}
         </section>
         
-        {/* Sekcja Grupy - teraz na pełną szerokość */}
+        {/* Sekcja Grupy - teraz na pełną szerokość z przewijaniem */}
         <GroupsSection groups={groups} />
         
         {/* Układ dwukolumnowy dla Feed i bocznych informacji */}

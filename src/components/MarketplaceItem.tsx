@@ -29,6 +29,7 @@ export interface MarketplaceItemProps {
   isFavorite?: boolean;
   onToggleFavorite?: (id: string, isFavorite: boolean) => void;
   favoriteButtonClass?: string;
+  hideInDiscover?: boolean;
 }
 
 export function MarketplaceItem({ 
@@ -47,7 +48,8 @@ export function MarketplaceItem({
   delay = 0,
   isFavorite = false,
   onToggleFavorite,
-  favoriteButtonClass = "absolute top-3 right-3 opacity-70 hover:opacity-100 z-10"
+  favoriteButtonClass = "absolute top-3 right-3 opacity-70 hover:opacity-100 z-10",
+  hideInDiscover = false
 }: MarketplaceItemProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -71,23 +73,26 @@ export function MarketplaceItem({
         forTesting={forTesting} 
         isUserProduct={isUserProduct} 
         sale={sale} 
-        salePercentage={salePercentage} 
+        salePercentage={salePercentage}
+        hideInDiscover={hideInDiscover}
       />
       
       {/* Favorite button - always in the top-right corner */}
-      <Button 
-        variant="secondary"
-        size="icon" 
-        className={favoriteButtonClass}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (onToggleFavorite) {
-            onToggleFavorite(id, isFavorite);
-          }
-        }}
-      >
-        <Heart className={`h-4 w-4 ${isFavorite ? "fill-current text-red-500" : "text-zinc-400"}`} />
-      </Button>
+      {favoriteButtonClass !== "hidden" && (
+        <Button 
+          variant="secondary"
+          size="icon" 
+          className={favoriteButtonClass}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onToggleFavorite) {
+              onToggleFavorite(id, isFavorite);
+            }
+          }}
+        >
+          <Heart className={`h-4 w-4 ${isFavorite ? "fill-current text-red-500" : "text-zinc-400"}`} />
+        </Button>
+      )}
       
       {/* Product image */}
       <ProductImage image={image} title={title} />

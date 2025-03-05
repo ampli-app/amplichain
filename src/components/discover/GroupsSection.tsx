@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Group {
   id: string;
@@ -28,37 +28,41 @@ export function GroupsSection({ groups }: GroupsSectionProps) {
           </Button>
         </Link>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {groups.slice(0, 6).map((group) => (
-          <Link 
-            key={group.id} 
-            to={`/groups/${group.id}`}
-            className="no-underline"
-          >
-            <Card className="overflow-hidden hover:shadow-md transition-shadow h-full">
-              <CardContent className="p-0 flex flex-col h-full">
-                <div 
-                  className="w-full h-28 bg-gray-200"
-                  style={{
-                    backgroundImage: `url(${group.image})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}
-                >
-                </div>
-                <div className="p-3">
-                  <h4 className="font-medium text-sm mb-1">{group.name}</h4>
-                  {group.memberCount && (
-                    <Badge variant="secondary" className="text-xs">
-                      {group.memberCount} członków
-                    </Badge>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      
+      <ScrollArea className="w-full whitespace-nowrap pb-4">
+        <div className="flex space-x-4">
+          {groups.slice(0, 10).map((group) => (
+            <div key={group.id} className="w-[280px] flex-none">
+              <Link 
+                to={`/groups/${group.id}`}
+                className="no-underline"
+              >
+                <Card className="overflow-hidden hover:shadow-md transition-shadow h-full">
+                  <CardContent className="p-0 flex flex-col h-full">
+                    <div 
+                      className="w-full h-28 bg-gray-200"
+                      style={{
+                        backgroundImage: `url(${group.image})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                      }}
+                    >
+                    </div>
+                    <div className="p-3">
+                      <h4 className="font-medium text-sm mb-1">{group.name}</h4>
+                      {group.memberCount && (
+                        <p className="text-xs text-muted-foreground">
+                          {group.memberCount} członków
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
     </div>
   );
 }
