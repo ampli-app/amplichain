@@ -398,6 +398,7 @@ export function ProductsTab({
               handleAddProductClick={handleAddProductClick}
               favorites={favorites}
               onToggleFavorite={toggleFavorite}
+              isUserProducts={user && displayedProducts.some(p => p.user_id === user.id)}
             />
           </div>
         </div>

@@ -33,6 +33,7 @@ interface ProductGridProps {
   handleAddProductClick: () => void;
   favorites?: Record<string, boolean>;
   onToggleFavorite?: (productId: string, isFavorite: boolean) => void;
+  isUserProducts?: boolean;
 }
 
 export function ProductGrid({
@@ -45,7 +46,8 @@ export function ProductGrid({
   handlePageChange,
   handleAddProductClick,
   favorites = {},
-  onToggleFavorite
+  onToggleFavorite,
+  isUserProducts = false
 }: ProductGridProps) {
   if (loading) {
     return (
@@ -71,7 +73,9 @@ export function ProductGrid({
         <p className="text-zinc-600 mb-6">
           {filteredProducts.length === 0 && products.length > 0 
             ? "Spróbuj zmienić filtry aby zobaczyć więcej produktów." 
-            : "Nie ma jeszcze żadnych produktów. Dodaj pierwszy produkt!"}
+            : isUserProducts 
+              ? "Nie masz jeszcze żadnych produktów. Dodaj pierwszy produkt!"
+              : "Nie ma jeszcze żadnych produktów. Dodaj pierwszy produkt!"}
         </p>
         <Button onClick={handleAddProductClick}>Dodaj produkt</Button>
       </div>
