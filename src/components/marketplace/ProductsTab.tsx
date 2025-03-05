@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,10 +53,8 @@ export function ProductsTab({
   productConditions,
   conditionMap
 }: ProductsTabProps) {
-  // UI state
   const [viewMode, setViewMode] = useState<'grid' | 'filters'>('grid');
   
-  // Filter state
   const [selectedCategory, setSelectedCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 999999]);
@@ -67,12 +64,10 @@ export function ProductsTab({
   const [sortOption, setSortOption] = useState<string>("featured");
   const [showTestingOnly, setShowTestingOnly] = useState(false);
   
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const PAGE_SIZE = 9;
   
-  // Products state
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
   const [maxProductPrice, setMaxProductPrice] = useState(999999);
@@ -270,15 +265,17 @@ export function ProductsTab({
             
             <div className="mb-6">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="px-3 py-1">
-                  {categories.find(c => c.id === selectedCategory)?.name || 'Wybrana kategoria'}
-                  <button 
-                    className="ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
-                    onClick={() => setSelectedCategory('')}
-                  >
-                    &times;
-                  </button>
-                </Badge>
+                {selectedCategory && (
+                  <Badge variant="outline" className="px-3 py-1">
+                    {categories.find(c => c.id === selectedCategory)?.name || 'Wybrana kategoria'}
+                    <button 
+                      className="ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
+                      onClick={() => setSelectedCategory('')}
+                    >
+                      &times;
+                    </button>
+                  </Badge>
+                )}
                 <Separator orientation="vertical" className="h-6" />
                 <span className="text-sm text-zinc-500">
                   {filteredProducts.length} produktów
