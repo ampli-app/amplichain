@@ -260,6 +260,48 @@ export type Database = {
         }
         Relationships: []
       }
+      discover_sliders: {
+        Row: {
+          active: boolean | null
+          background_position: string | null
+          button_text: string
+          created_at: string
+          description: string
+          id: string
+          image_url: string
+          link: string
+          sort_order: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          background_position?: string | null
+          button_text: string
+          created_at?: string
+          description: string
+          id?: string
+          image_url: string
+          link: string
+          sort_order?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          background_position?: string | null
+          button_text?: string
+          created_at?: string
+          description?: string
+          id?: string
+          image_url?: string
+          link?: string
+          sort_order?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       education: {
         Row: {
           created_at: string | null

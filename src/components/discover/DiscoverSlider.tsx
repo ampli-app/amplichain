@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
-import { useDiscoverSliders, DiscoverSlider } from '@/hooks/useDiscoverSliders';
+import { useDiscoverSliders, type DiscoverSlider as DiscoverSliderType } from '@/hooks/useDiscoverSliders';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function DiscoverSlider() {
@@ -12,7 +12,7 @@ export function DiscoverSlider() {
   const [currentIndex, setCurrentIndex] = useState(0);
   
   // Ustaw domyślny slider, gdy dane są ładowane
-  const defaultSlider: DiscoverSlider = {
+  const defaultSlider: DiscoverSliderType = {
     id: 'default',
     title: 'Dołącz do społeczności producentów',
     description: 'Ponad 1000 profesjonalistów z branży muzycznej czeka na Ciebie. Wymieniaj się wiedzą, uzyskaj feedback i rozwiń swoje umiejętności.',
