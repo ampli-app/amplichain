@@ -347,9 +347,6 @@ export function ProductsTab({
           selectedCategory={selectedCategory}
           onCategorySelect={handleCategorySelect}
           showAllCategoriesInBar={true}
-          priceRange={priceRange}
-          maxPrice={maxProductPrice}
-          onPriceRangeChange={handlePriceRangeChange}
         />
         
         <div className="flex flex-col lg:flex-row gap-8">
