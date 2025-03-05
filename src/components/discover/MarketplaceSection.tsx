@@ -1,9 +1,8 @@
 
 import { Link } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MarketplaceItem } from '@/components/MarketplaceItem';
 
 interface Item {
   id: string;
@@ -11,6 +10,7 @@ interface Item {
   image: string;
   price?: number;
   author?: string;
+  category?: string;
 }
 
 interface MarketplaceSectionProps {
@@ -41,27 +41,18 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
           </Button>
         </Link>
       </div>
-      <div className="grid grid-cols-5 gap-4">
-        {items.map((item) => (
-          <Link 
-            key={item.id} 
-            to={`/${itemType === 'products' ? 'product' : itemType}/${item.id}`}
-            className="no-underline"
-          >
-            <Card className="h-40 overflow-hidden hover:shadow-md transition-shadow">
-              <CardContent className="p-0 h-full">
-                <div 
-                  className="w-full h-full bg-gray-200"
-                  style={{
-                    backgroundImage: `url(${item.image})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }}
-                >
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+      <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {items.map((item, index) => (
+          <MarketplaceItem
+            key={item.id}
+            id={item.id}
+            title={item.title}
+            price={item.price || 0}
+            image={item.image}
+            category={item.category || "Inne"}
+            delay={index * 0.05}
+            favoriteButtonClass="absolute top-3 right-3 opacity-70 hover:opacity-100 z-10"
+          />
         ))}
       </div>
     </div>
