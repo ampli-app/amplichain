@@ -16,7 +16,8 @@ import {
   LogOut, 
   Settings, 
   MessageSquare,
-  Compass
+  Compass,
+  Heart
 } from 'lucide-react';
 
 interface UserMenuProps {
@@ -51,6 +52,12 @@ export function UserMenu({ avatarUrl }: UserMenuProps) {
           <Link to="/messages" className="flex items-center cursor-pointer">
             <MessageSquare className="mr-2 h-4 w-4" />
             Wiadomości
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/favorites" className="flex items-center cursor-pointer">
+            <Heart className="mr-2 h-4 w-4" />
+            Ulubione
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

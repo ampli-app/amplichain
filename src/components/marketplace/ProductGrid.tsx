@@ -31,6 +31,8 @@ interface ProductGridProps {
   totalPages: number;
   handlePageChange: (page: number) => void;
   handleAddProductClick: () => void;
+  favorites?: Record<string, boolean>;
+  onToggleFavorite?: (productId: string, isFavorite: boolean) => void;
 }
 
 export function ProductGrid({
@@ -41,7 +43,9 @@ export function ProductGrid({
   currentPage,
   totalPages,
   handlePageChange,
-  handleAddProductClick
+  handleAddProductClick,
+  favorites = {},
+  onToggleFavorite
 }: ProductGridProps) {
   if (loading) {
     return (
@@ -93,6 +97,8 @@ export function ProductGrid({
             forTesting={item.for_testing || false}
             testingPrice={item.testing_price}
             delay={index * 0.05}
+            isFavorite={favorites[item.id] || false}
+            onToggleFavorite={onToggleFavorite}
           />
         ))}
       </div>

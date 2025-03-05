@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Tag, Calendar, Eye, Pencil, Share2 } from 'lucide-react';
+import { ShoppingCart, Tag, Calendar, Eye, Pencil, Share2, Heart, HeartOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
@@ -23,6 +23,8 @@ interface MarketplaceItemProps {
   forTesting?: boolean;
   testingPrice?: number | null;
   delay?: number;
+  isFavorite?: boolean;
+  onToggleFavorite?: (productId: string, isFavorite: boolean) => void;
 }
 
 export function MarketplaceItem({
@@ -38,7 +40,9 @@ export function MarketplaceItem({
   salePercentage,
   forTesting = false,
   testingPrice,
-  delay = 0
+  delay = 0,
+  isFavorite = false,
+  onToggleFavorite
 }: MarketplaceItemProps) {
   const { isLoggedIn, user } = useAuth();
   const navigate = useNavigate();
@@ -129,6 +133,20 @@ export function MarketplaceItem({
     );
   };
   
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (!isLoggedIn) {
+      setShowAuthDialog(true);
+      return;
+    }
+    
+    if (onToggleFavorite) {
+      onToggleFavorite(id, isFavorite);
+    }
+  };
+  
   return (
     <>
       <motion.div 
@@ -173,6 +191,18 @@ export function MarketplaceItem({
             onClick={handleShareClick}
           >
             <Share2 className="h-4 w-4" />
+          </Button>
+          
+          <Button 
+            variant={isFavorite ? "destructive" : "secondary"}
+            size="icon" 
+            className="absolute top-3 right-3 opacity-70 hover:opacity-100"
+            onClick={handleFavoriteClick}
+          >
+            {isFavorite ? 
+              <HeartOff className="h-4 w-4" /> : 
+              <Heart className="h-4 w-4" />
+            }
           </Button>
         </div>
         
@@ -265,7 +295,7 @@ export function MarketplaceItem({
         open={showAuthDialog} 
         onOpenChange={setShowAuthDialog} 
         title="Wymagane logowanie"
-        description="Aby dokonać zakupu, musisz być zalogowany."
+        description="Aby dodać produkt do ulubionych, musisz być zalogowany."
       />
     </>
   );

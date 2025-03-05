@@ -1,13 +1,15 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from "@/components/ui/separator";
-import { Filter, Search } from 'lucide-react';
+import { Search, Filter } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { CategorySelection } from './CategorySelection';
 import { MarketplaceFilters } from './MarketplaceFilters';
 import { ProductGrid } from './ProductGrid';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Product {
   id: string;
@@ -53,6 +55,7 @@ export function ProductsTab({
   productConditions,
   conditionMap
 }: ProductsTabProps) {
+  const { user } = useAuth();
   const [viewMode, setViewMode] = useState<'grid' | 'filters'>('grid');
   
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -71,6 +74,9 @@ export function ProductsTab({
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
   const [maxProductPrice, setMaxProductPrice] = useState(999999);
+  
+  // Stan dla ulubionych produktów
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (products && products.length > 0) {
@@ -89,6 +95,37 @@ export function ProductsTab({
   useEffect(() => {
     updateDisplayedProducts();
   }, [filteredProducts, currentPage]);
+  
+  useEffect(() => {
+    if (user) {
+      fetchFavorites();
+    }
+  }, [user]);
+
+  const fetchFavorites = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('item_id')
+        .eq('user_id', user.id)
+        .eq('item_type', 'product');
+        
+      if (error) {
+        throw error;
+      }
+      
+      const newFavorites: Record<string, boolean> = {};
+      data?.forEach(fav => {
+        newFavorites[fav.item_id] = true;
+      });
+      
+      setFavorites(newFavorites);
+    } catch (err) {
+      console.error('Błąd podczas pobierania ulubionych:', err);
+    }
+  };
 
   const applyFilters = () => {
     if (!products) return;
@@ -173,7 +210,7 @@ export function ProductsTab({
   const handleApplyFilters = () => {
     toast({
       title: "Filtry zastosowane",
-      description: `Znaleziono ${filteredProducts.length} produktów.`,
+      description: `Znaleziono ${filteredProducts.length} ${getProperResultsText(filteredProducts.length)}.`,
     });
     
     if (window.innerWidth < 768) {
@@ -184,6 +221,72 @@ export function ProductsTab({
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  const getProperResultsText = (count: number) => {
+    if (count === 1) return "wynik";
+    if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 > 20)) return "wyniki";
+    return "wyników";
+  };
+  
+  const toggleFavorite = async (productId: string, isFavorite: boolean) => {
+    if (!user) {
+      toast({
+        title: "Wymagane logowanie",
+        description: "Aby dodać produkt do ulubionych, musisz być zalogowany.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      if (isFavorite) {
+        // Usuń z ulubionych
+        await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_id', productId)
+          .eq('item_type', 'product');
+          
+        setFavorites(prev => {
+          const newFavorites = { ...prev };
+          delete newFavorites[productId];
+          return newFavorites;
+        });
+        
+        toast({
+          title: "Usunięto z ulubionych",
+          description: "Produkt został usunięty z Twoich ulubionych.",
+        });
+      } else {
+        // Dodaj do ulubionych
+        await supabase
+          .from('favorites')
+          .insert({
+            user_id: user.id,
+            item_id: productId,
+            item_type: 'product'
+          });
+          
+        setFavorites(prev => ({
+          ...prev,
+          [productId]: true
+        }));
+        
+        toast({
+          title: "Dodano do ulubionych",
+          description: "Produkt został dodany do Twoich ulubionych.",
+        });
+      }
+    } catch (err) {
+      console.error('Błąd podczas aktualizacji ulubionych:', err);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się zaktualizować ulubionych. Spróbuj ponownie.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -214,6 +317,7 @@ export function ProductsTab({
           categories={categories}
           selectedCategory={selectedCategory}
           onCategorySelect={setSelectedCategory}
+          showAllCategoriesInBar={true}
         />
         
         <div className="flex flex-col lg:flex-row gap-8">
@@ -276,9 +380,8 @@ export function ProductsTab({
                     </button>
                   </Badge>
                 )}
-                <Separator orientation="vertical" className="h-6" />
                 <span className="text-sm text-zinc-500">
-                  {filteredProducts.length} produktów
+                  {filteredProducts.length} {getProperResultsText(filteredProducts.length)}
                 </span>
               </div>
             </div>
@@ -292,6 +395,8 @@ export function ProductsTab({
               totalPages={totalPages}
               handlePageChange={handlePageChange}
               handleAddProductClick={handleAddProductClick}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
             />
           </div>
         </div>

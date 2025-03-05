@@ -13,7 +13,8 @@ import {
   User,
   LogOut,
   Settings,
-  Compass
+  Compass,
+  Heart
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSocial } from '@/contexts/SocialContext';
@@ -87,6 +88,12 @@ export function Navbar() {
           <div className="flex items-center gap-2">
             {isLoggedIn ? (
               <>
+                <Button asChild variant="ghost" size="icon">
+                  <Link to="/favorites">
+                    <Heart className="h-5 w-5" />
+                  </Link>
+                </Button>
+                
                 <Notifications />
                 
                 <Button asChild variant="ghost" size="icon">
@@ -152,6 +159,13 @@ export function Navbar() {
                   label="Wiadomości" 
                   icon={<MessageSquare className="h-4 w-4" />} 
                   active={isActive('/messages')} 
+                />
+                
+                <MobileNavItem 
+                  to="/favorites" 
+                  label="Ulubione" 
+                  icon={<Heart className="h-4 w-4" />} 
+                  active={isActive('/favorites')} 
                 />
                 
                 <MobileNavItem 
