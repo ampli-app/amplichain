@@ -52,6 +52,7 @@ export function CategorySelection({
       case 'gitary':
         return <Guitar className="h-5 w-5" />;
       case 'instrumenty':
+      case 'instrumenty muzyczne':
         return <Music className="h-5 w-5" />;
       case 'interfejsy audio':
         return <Music2 className="h-5 w-5" />;
@@ -113,18 +114,20 @@ export function CategorySelection({
       </Button>
       
       <div className="w-full bg-zinc-100/80 dark:bg-zinc-900/80 backdrop-blur-sm mb-1 rounded-md overflow-hidden">
-        <div className="flex overflow-x-auto py-2 px-1 justify-start">
-          {barCategories.map((category) => (
-            <Button 
-              key={category.id}
-              variant={selectedCategory === category.id ? "default" : "ghost"}
-              className="flex-shrink-0 flex gap-1 items-center h-10 px-3 py-2 mx-1 whitespace-nowrap"
-              onClick={() => onCategorySelect(category.id)}
-            >
-              {getCategoryIcon(category.name)}
-              <span>{category.name}</span>
-            </Button>
-          ))}
+        <div className="flex justify-center px-1 py-2">
+          <div className="flex overflow-x-auto space-x-1 max-w-full">
+            {barCategories.map((category) => (
+              <Button 
+                key={category.id}
+                variant={selectedCategory === category.id ? "default" : "ghost"}
+                className="flex-shrink-0 flex gap-1 items-center h-10 px-3 py-2 whitespace-nowrap"
+                onClick={() => onCategorySelect(category.id)}
+              >
+                {getCategoryIcon(category.name)}
+                <span>{category.name}</span>
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
       

@@ -1,15 +1,13 @@
 
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Tag, Calendar, Eye, Pencil, Share2, Heart, HeartOff } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Heart, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { motion } from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
-import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
+import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
 
-interface MarketplaceItemProps {
+export interface MarketplaceItemProps {
   id: string;
   title: string;
   price: number;
@@ -24,279 +22,155 @@ interface MarketplaceItemProps {
   testingPrice?: number | null;
   delay?: number;
   isFavorite?: boolean;
-  onToggleFavorite?: (productId: string, isFavorite: boolean) => void;
+  onToggleFavorite?: (id: string, isFavorite: boolean) => void;
+  favoriteButtonClass?: string;
 }
 
-export function MarketplaceItem({
-  id,
-  title,
-  price,
-  image,
-  category,
-  userId,
-  rating = 0,
-  reviewCount = 0,
-  sale = false,
-  salePercentage,
+export function MarketplaceItem({ 
+  id, 
+  title, 
+  price, 
+  image, 
+  category, 
+  userId, 
+  rating = 0, 
+  reviewCount = 0, 
+  sale = false, 
+  salePercentage, 
   forTesting = false,
   testingPrice,
   delay = 0,
   isFavorite = false,
-  onToggleFavorite
+  onToggleFavorite,
+  favoriteButtonClass = "absolute top-3 right-3 opacity-70 hover:opacity-100 z-10"
 }: MarketplaceItemProps) {
-  const { isLoggedIn, user } = useAuth();
+  const [mainImage, setMainImage] = useState<string>('');
   const navigate = useNavigate();
-  const [showAuthDialog, setShowAuthDialog] = useState(false);
   
-  // Check if this product belongs to the current user
-  const isUserProduct = user?.id === userId;
+  useEffect(() => {
+    if (typeof image === 'string') {
+      setMainImage(image);
+    } else if (Array.isArray(image) && image.length > 0) {
+      setMainImage(image[0]);
+    } else {
+      setMainImage('/placeholder.svg');
+    }
+  }, [image]);
+  
+  const handleClick = () => {
+    navigate(`/product/${id}`);
+  };
+  
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleFavorite) {
+      onToggleFavorite(id, isFavorite);
+    }
+  };
+  
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const productUrl = `${window.location.origin}/product/${id}`;
+    navigator.clipboard.writeText(productUrl);
+    toast({
+      title: "Link skopiowany",
+      description: "Link do produktu został skopiowany do schowka.",
+    });
+  };
+  
+  const calculateSalePrice = (originalPrice: number, salePercentage: number) => {
+    return originalPrice - (originalPrice * (salePercentage / 100));
+  };
   
   const formattedPrice = new Intl.NumberFormat('pl-PL', {
     style: 'currency',
     currency: 'PLN'
   }).format(price);
   
-  const formattedTestPrice = testingPrice 
-    ? new Intl.NumberFormat('pl-PL', {
-        style: 'currency',
-        currency: 'PLN'
-      }).format(testingPrice)
-    : null;
-  
-  const originalPrice = sale && salePercentage 
-    ? price / (1 - salePercentage / 100) 
-    : undefined;
+  const formattedSalePrice = sale && salePercentage ? 
+    new Intl.NumberFormat('pl-PL', {
+      style: 'currency',
+      currency: 'PLN'
+    }).format(calculateSalePrice(price, salePercentage)) : null;
     
-  const formattedOriginalPrice = originalPrice 
-    ? new Intl.NumberFormat('pl-PL', {
-        style: 'currency',
-        currency: 'PLN'
-      }).format(originalPrice)
-    : undefined;
-  
-  // Obsługa różnych formatów zdjęć
-  let imageToShow = '/placeholder.svg';
-  
-  if (typeof image === 'string') {
-    try {
-      // Próbujemy sprawdzić, czy to string JSON
-      const parsed = JSON.parse(image);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        imageToShow = parsed[0]; // Bierzemy pierwszy obraz z tablicy
-      } else {
-        // Jeśli to nie tablica lub pusta, używamy oryginalnego stringa
-        imageToShow = image;
-      }
-    } catch (e) {
-      // Jeśli to nie JSON, używamy oryginalnego stringa
-      imageToShow = image;
-    }
-  } else if (Array.isArray(image) && image.length > 0) {
-    // Jeśli to już tablica, użyj pierwszego elementu
-    imageToShow = image[0];
-  }
-  
-  const handleProductClick = () => {
-    // Allow all users to view products, no auth check needed
-    navigate(`/marketplace/${id}`);
-  };
-  
-  const handlePurchaseClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    // Zmiana: Zawsze przechodzimy do strony produktu, niezależnie od statusu logowania
-    navigate(`/marketplace/${id}`);
-  };
-  
-  const handleShareClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    
-    // Create the full URL to the product
-    const productUrl = `${window.location.origin}/marketplace/${id}`;
-    
-    // Copy to clipboard
-    navigator.clipboard.writeText(productUrl).then(
-      () => {
-        toast({
-          title: "Link skopiowany",
-          description: "Link do produktu został skopiowany do schowka.",
-        });
-      },
-      (err) => {
-        console.error('Could not copy text: ', err);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się skopiować linku.",
-          variant: "destructive",
-        });
-      }
-    );
-  };
-  
-  const handleFavoriteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    
-    if (!isLoggedIn) {
-      setShowAuthDialog(true);
-      return;
-    }
-    
-    if (onToggleFavorite) {
-      onToggleFavorite(id, isFavorite);
-    }
-  };
-  
+  const formattedTestingPrice = forTesting && testingPrice ? 
+    new Intl.NumberFormat('pl-PL', {
+      style: 'currency',
+      currency: 'PLN'
+    }).format(testingPrice) : null;
+
   return (
-    <>
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay }}
-        className="group rounded-xl border bg-card overflow-hidden hover:shadow-md transition-all duration-300 h-full flex flex-col"
+    <Card 
+      className={`overflow-hidden group cursor-pointer hover:shadow-md transition-all duration-300 animate-fade-up relative`}
+      style={{ animationDelay: `${delay}s` }}
+      onClick={handleClick}
+    >
+      <Button 
+        variant="secondary"
+        size="icon" 
+        className={favoriteButtonClass}
+        onClick={handleToggleFavorite}
       >
-        <div 
-          onClick={handleProductClick}
-          className="block relative aspect-square overflow-hidden bg-rhythm-100 cursor-pointer"
-        >
-          {sale && salePercentage && (
-            <Badge className="absolute top-3 left-3 z-10 bg-red-500 hover:bg-red-600">
-              {salePercentage}% ZNIŻKI
-            </Badge>
-          )}
-          
-          {forTesting && (
-            <Badge className="absolute top-3 right-3 z-10 bg-primary/10 text-primary border-primary/20">
-              <Calendar className="mr-1 h-3 w-3" />
-              Dostępne do testów
-            </Badge>
-          )}
-          
-          {isUserProduct && (
-            <Badge className="absolute top-3 left-3 z-10 bg-green-500 hover:bg-green-600">
-              Twój produkt
-            </Badge>
-          )}
-          
-          <img
-            src={imageToShow}
-            alt={title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-          
-          <Button 
-            variant="secondary" 
-            size="icon" 
-            className="absolute bottom-3 right-3 opacity-70 hover:opacity-100"
-            onClick={handleShareClick}
-          >
-            <Share2 className="h-4 w-4" />
-          </Button>
-          
-          <Button 
-            variant={isFavorite ? "destructive" : "secondary"}
-            size="icon" 
-            className="absolute top-3 right-3 opacity-70 hover:opacity-100"
-            onClick={handleFavoriteClick}
-          >
-            {isFavorite ? 
-              <HeartOff className="h-4 w-4" /> : 
-              <Heart className="h-4 w-4" />
-            }
-          </Button>
+        <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+      </Button>
+      
+      <Button 
+        variant="secondary" 
+        size="icon" 
+        className="absolute bottom-3 right-3 opacity-70 hover:opacity-100 z-10"
+        onClick={handleShare}
+      >
+        <Share2 className="h-4 w-4" />
+      </Button>
+      
+      <div className="relative aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+        <img 
+          src={mainImage || '/placeholder.svg'} 
+          alt={title}
+          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = '/placeholder.svg';
+          }}
+        />
+        
+        {sale && salePercentage && (
+          <Badge className="absolute top-3 left-3 bg-red-500 text-white">
+            -{salePercentage}%
+          </Badge>
+        )}
+        
+        {forTesting && (
+          <Badge className="absolute top-3 left-3 bg-amber-500 text-white">
+            Testuj przed zakupem
+          </Badge>
+        )}
+      </div>
+      
+      <CardContent className="p-4">
+        <h3 className="font-medium text-lg mb-1 line-clamp-1">{title}</h3>
+        
+        <div className="flex items-center mb-2">
+          <Badge variant="outline">{category}</Badge>
         </div>
         
-        <div className="p-5 flex-1 flex flex-col">
-          <div className="flex items-center mb-1">
-            <Badge variant="outline" className="flex items-center gap-1">
-              <Tag className="h-3 w-3" />
-              {category}
-            </Badge>
-          </div>
+        <div className="mt-2">
+          {sale && salePercentage ? (
+            <div className="flex items-center space-x-2">
+              <span className="text-lg font-bold text-primary">{formattedSalePrice}</span>
+              <span className="text-sm text-muted-foreground line-through">{formattedPrice}</span>
+            </div>
+          ) : (
+            <span className="text-lg font-bold text-primary">{formattedPrice}</span>
+          )}
           
-          <div 
-            className="block hover:text-primary transition-colors cursor-pointer"
-            onClick={handleProductClick}
-          >
-            <h3 className="font-medium mt-2 mb-1 line-clamp-2">{title}</h3>
-          </div>
-          
-          <div className="mt-auto">
-            {!isUserProduct && forTesting ? (
-              <>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-semibold text-lg bg-primary/10 px-2 py-1 rounded text-primary">
-                    {formattedPrice}
-                  </span>
-                  
-                  {sale && formattedOriginalPrice && (
-                    <span className="text-rhythm-500 line-through text-sm">
-                      {formattedOriginalPrice}
-                    </span>
-                  )}
-                </div>
-                
-                <div className="text-sm text-rhythm-500 mb-3">
-                  Możliwość testu: <span className="font-medium">{formattedTestPrice}</span> / tydzień
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center gap-2 mb-3">
-                <span className="font-semibold text-lg bg-primary/10 px-2 py-1 rounded text-primary">
-                  {formattedPrice}
-                </span>
-                {sale && formattedOriginalPrice && !isUserProduct && (
-                  <span className="text-rhythm-500 line-through text-sm">
-                    {formattedOriginalPrice}
-                  </span>
-                )}
-                {forTesting && (
-                  <div className="text-sm text-rhythm-500 ml-auto">
-                    {testingPrice ? (
-                      <span>Test: <span className="font-medium">{formattedTestPrice}</span></span>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {isUserProduct ? (
-              <div className="flex gap-2">
-                <Button 
-                  className="flex-1 gap-2" 
-                  onClick={handleProductClick}
-                  variant="outline"
-                >
-                  <Eye className="h-4 w-4" /> 
-                  Zobacz produkt
-                </Button>
-                <Button 
-                  className="flex-1 gap-2" 
-                  onClick={() => navigate(`/edit-product/${id}`)}
-                >
-                  <Pencil className="h-4 w-4" /> 
-                  Edytuj
-                </Button>
-              </div>
-            ) : (
-              <Button 
-                className="w-full gap-2 font-bold text-base"
-                onClick={handlePurchaseClick}
-              >
-                <ShoppingCart className="h-4 w-4" /> 
-                Zobacz produkt
-              </Button>
-            )}
-          </div>
+          {forTesting && testingPrice && (
+            <div className="mt-1 text-sm text-muted-foreground">
+              Test: {formattedTestingPrice}
+            </div>
+          )}
         </div>
-      </motion.div>
-      
-      <AuthRequiredDialog 
-        open={showAuthDialog} 
-        onOpenChange={setShowAuthDialog} 
-        title="Wymagane logowanie"
-        description="Aby dodać produkt do ulubionych, musisz być zalogowany."
-      />
-    </>
+      </CardContent>
+    </Card>
   );
 }

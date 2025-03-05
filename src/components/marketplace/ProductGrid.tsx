@@ -99,6 +99,7 @@ export function ProductGrid({
             delay={index * 0.05}
             isFavorite={favorites[item.id] || false}
             onToggleFavorite={onToggleFavorite}
+            favoriteButtonClass="absolute top-3 right-3 opacity-70 hover:opacity-100 z-10 text-red-500 hover:text-red-600"
           />
         ))}
       </div>
