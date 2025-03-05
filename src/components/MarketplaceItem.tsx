@@ -1,11 +1,12 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Share2 } from 'lucide-react';
+import { Heart, Share2, Eye, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface MarketplaceItemProps {
   id: string;
@@ -46,7 +47,10 @@ export function MarketplaceItem({
 }: MarketplaceItemProps) {
   const [mainImage, setMainImage] = useState<string>('');
   const navigate = useNavigate();
+  const { user } = useAuth();
   
+  const isUserProduct = user && userId === user.id;
+
   useEffect(() => {
     if (typeof image === 'string') {
       setMainImage(image);
@@ -58,7 +62,17 @@ export function MarketplaceItem({
   }, [image]);
   
   const handleClick = () => {
+    if (!isUserProduct) {
+      navigate(`/product/${id}`);
+    }
+  };
+  
+  const handleViewProduct = () => {
     navigate(`/product/${id}`);
+  };
+  
+  const handleEditProduct = () => {
+    navigate(`/edit-product/${id}`);
   };
   
   const handleToggleFavorite = (e: React.MouseEvent) => {
@@ -105,14 +119,22 @@ export function MarketplaceItem({
       style={{ animationDelay: `${delay}s` }}
       onClick={handleClick}
     >
-      <Button 
-        variant="secondary"
-        size="icon" 
-        className={favoriteButtonClass}
-        onClick={handleToggleFavorite}
-      >
-        <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
-      </Button>
+      {isUserProduct && (
+        <Badge className="absolute top-3 left-3 z-10 bg-green-500 hover:bg-green-600">
+          Twój produkt
+        </Badge>
+      )}
+      
+      {!isUserProduct && (
+        <Button 
+          variant="secondary"
+          size="icon" 
+          className={favoriteButtonClass}
+          onClick={handleToggleFavorite}
+        >
+          <Heart className={`h-4 w-4 text-red-500 ${isFavorite ? "fill-current" : ""}`} />
+        </Button>
+      )}
       
       <Button 
         variant="secondary" 
@@ -134,15 +156,21 @@ export function MarketplaceItem({
           }}
         />
         
-        {sale && salePercentage && (
+        {sale && salePercentage && !isUserProduct && (
           <Badge className="absolute top-3 left-3 bg-red-500 text-white">
             -{salePercentage}%
           </Badge>
         )}
         
-        {forTesting && (
-          <Badge className="absolute top-3 left-3 bg-amber-500 text-white">
-            Testuj przed zakupem
+        {forTesting && !isUserProduct && (
+          <Badge className="absolute top-3 right-14 bg-amber-500 text-white">
+            Dostępne do testów
+          </Badge>
+        )}
+        
+        {isUserProduct && forTesting && (
+          <Badge className="absolute top-3 right-3 bg-amber-500 text-white">
+            Dostępne do testów
           </Badge>
         )}
       </div>
@@ -170,6 +198,27 @@ export function MarketplaceItem({
             </div>
           )}
         </div>
+        
+        {isUserProduct && (
+          <div className="flex gap-2 mt-4">
+            <Button 
+              variant="outline" 
+              className="flex-1"
+              onClick={handleViewProduct}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Zobacz produkt
+            </Button>
+            <Button 
+              variant="default" 
+              className="flex-1 bg-[#9E9D1B] hover:bg-[#7e7c14]"
+              onClick={handleEditProduct}
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Edytuj
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

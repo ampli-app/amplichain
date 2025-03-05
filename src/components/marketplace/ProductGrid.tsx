@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { MarketplaceItem } from '@/components/MarketplaceItem';
 import { Button } from '@/components/ui/button';
 import { PaginationControls } from './PaginationControls';
@@ -49,6 +50,8 @@ export function ProductGrid({
   onToggleFavorite,
   isUserProducts = false
 }: ProductGridProps) {
+  const { user } = useAuth();
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -103,7 +106,7 @@ export function ProductGrid({
             delay={index * 0.05}
             isFavorite={favorites[item.id] || false}
             onToggleFavorite={onToggleFavorite}
-            favoriteButtonClass="absolute top-3 right-3 opacity-70 hover:opacity-100 z-10 text-red-500 hover:text-red-600"
+            favoriteButtonClass="absolute top-3 right-3 opacity-70 hover:opacity-100 z-10"
           />
         ))}
       </div>
