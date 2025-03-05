@@ -1,3 +1,4 @@
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
@@ -8,10 +9,8 @@ import { SocialProvider } from './contexts/SocialContext.tsx'
 import Login from './pages/Login.tsx'
 import Signup from './pages/Signup.tsx'
 import Profile from './pages/Profile.tsx'
-import Settings from './pages/Settings.tsx'
-import EditProfile from './pages/EditProfile.tsx'
 import Marketplace from './pages/Marketplace.tsx'
-import ProductDetails from './pages/ProductDetails.tsx'
+import ProductDetail from './pages/ProductDetail.tsx'
 import EditProduct from './pages/EditProduct.tsx'
 import Messages from './pages/Messages.tsx'
 import Discovery from './pages/Discovery.tsx'
@@ -38,20 +37,12 @@ const routes = [
     element: <Profile />,
   },
   {
-    path: '/settings',
-    element: <Settings />,
-  },
-  {
-    path: '/edit-profile',
-    element: <EditProfile />,
-  },
-  {
     path: '/marketplace',
     element: <Marketplace />,
   },
   {
     path: '/marketplace/:productId',
-    element: <ProductDetails />,
+    element: <ProductDetail />,
   },
   {
     path: '/edit-product/:productId',
