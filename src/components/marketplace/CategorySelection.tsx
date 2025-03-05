@@ -97,8 +97,8 @@ export function CategorySelection({
 
   // Filtrowanie kategorii dla paska - bez "Wszystkie kategorie" jeśli showAllCategoriesInBar=false
   const barCategories = showAllCategoriesInBar 
-    ? categories.slice(0, 7) 
-    : categories.filter(cat => cat.id !== 'all').slice(0, 7);
+    ? categories.slice(0, 10) 
+    : categories.filter(cat => cat.id !== 'all').slice(0, 10);
 
   return (
     <div className="flex flex-col items-start gap-2 mb-4">
@@ -118,7 +118,7 @@ export function CategorySelection({
             <Button 
               key={category.id}
               variant={selectedCategory === category.id ? "default" : "ghost"}
-              className="flex-shrink-0 flex gap-2 items-center h-10 px-4 py-2 mx-1"
+              className="flex-shrink-0 flex gap-1 items-center h-10 px-3 py-2 mx-1"
               onClick={() => onCategorySelect(category.id)}
             >
               {getCategoryIcon(category.name)}

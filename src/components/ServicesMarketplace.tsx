@@ -1,10 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Search, Filter, MapPin, User, ArrowRight, ArrowLeft, Briefcase } from 'lucide-react';
+import { Search, Filter, MapPin, User, ArrowRight, ArrowLeft, Briefcase, Heart, Share2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -13,10 +13,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AddServiceFormDialog } from '@/components/AddServiceFormDialog';
 import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
 import { CategorySelection } from '@/components/marketplace/CategorySelection';
+import { MarketplaceFilters } from '@/components/marketplace/MarketplaceFilters';
 import { Service } from '@/types/messages';
 
 export function ServicesMarketplace() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   
   const [services, setServices] = useState<Service[]>([]);
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
@@ -26,6 +27,8 @@ export function ServicesMarketplace() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+  const [minPrice, setMinPrice] = useState<string>('0');
+  const [maxPrice, setMaxPrice] = useState<string>('5000');
   
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -34,6 +37,7 @@ export function ServicesMarketplace() {
   const [showAddServiceDialog, setShowAddServiceDialog] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'filters'>('grid');
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
   const serviceCategories = [
     { id: 'all', name: 'Wszystkie kategorie', slug: 'all-categories', description: null },
@@ -48,14 +52,52 @@ export function ServicesMarketplace() {
     { id: 'repair', name: 'Naprawa instrumentów', slug: 'instrument-repair', description: null }
   ];
   
+  const getProperResultsText = (count: number) => {
+    if (count === 0) return "wyników";
+    if (count === 1) return "wynik";
+    if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 > 20)) return "wyniki";
+    return "wyników";
+  };
+  
   useEffect(() => {
     fetchServices();
   }, []);
-  
+
+  useEffect(() => {
+    if (user) {
+      fetchFavorites();
+    }
+  }, [user]);
+
   useEffect(() => {
     applyFilters();
   }, [services, searchQuery, selectedCategory, selectedLocation, priceRange]);
   
+  const fetchFavorites = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('item_id')
+        .eq('user_id', user.id)
+        .eq('item_type', 'service');
+        
+      if (error) {
+        throw error;
+      }
+      
+      const newFavorites: Record<string, boolean> = {};
+      data?.forEach(fav => {
+        newFavorites[fav.item_id] = true;
+      });
+      
+      setFavorites(newFavorites);
+    } catch (err) {
+      console.error('Błąd podczas pobierania ulubionych:', err);
+    }
+  };
+
   const fetchServices = async () => {
     setLoading(true);
     try {
@@ -154,50 +196,73 @@ export function ServicesMarketplace() {
     const endIndex = startIndex + PAGE_SIZE;
     return filteredServices.slice(startIndex, endIndex);
   };
-  
-  const renderPaginationControls = () => {
-    if (totalPages <= 1) return null;
+
+  const handlePriceInputChange = () => {
+    const min = parseFloat(minPrice) || 0;
+    const max = parseFloat(maxPrice) || 5000;
     
-    return (
-      <div className="flex justify-center mt-8">
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" /> Poprzednia
-          </Button>
-          
-          <div className="flex items-center space-x-1">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <Button
-                key={page}
-                variant={currentPage === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => handlePageChange(page)}
-              >
-                {page}
-              </Button>
-            ))}
-          </div>
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages}
-          >
-            Następna <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
-      </div>
-    );
+    const limitedMax = Math.min(max, 999999);
+    
+    setPriceRange([min, limitedMax]);
+    if (limitedMax !== max) {
+      setMaxPrice(limitedMax.toString());
+    }
   };
-  
-  const handleCategorySelect = (categoryId: string) => {
-    setSelectedCategory(categoryId === 'all' ? '' : categoryId);
+
+  const toggleFavorite = async (serviceId: string, isFavorite: boolean) => {
+    if (!user) {
+      setShowAuthDialog(true);
+      return;
+    }
+    
+    try {
+      if (isFavorite) {
+        // Usuń z ulubionych
+        await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_id', serviceId)
+          .eq('item_type', 'service');
+          
+        setFavorites(prev => {
+          const newFavorites = { ...prev };
+          delete newFavorites[serviceId];
+          return newFavorites;
+        });
+        
+        toast({
+          title: "Usunięto z ulubionych",
+          description: "Usługa została usunięta z Twoich ulubionych.",
+        });
+      } else {
+        // Dodaj do ulubionych
+        await supabase
+          .from('favorites')
+          .insert({
+            user_id: user.id,
+            item_id: serviceId,
+            item_type: 'service'
+          });
+          
+        setFavorites(prev => ({
+          ...prev,
+          [serviceId]: true
+        }));
+        
+        toast({
+          title: "Dodano do ulubionych",
+          description: "Usługa została dodana do Twoich ulubionych.",
+        });
+      }
+    } catch (err) {
+      console.error('Błąd podczas aktualizacji ulubionych:', err);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się zaktualizować ulubionych. Spróbuj ponownie.",
+        variant: "destructive",
+      });
+    }
   };
   
   return (
@@ -232,45 +297,22 @@ export function ServicesMarketplace() {
       
       <div className="flex flex-col lg:flex-row gap-8">
         <div className={`lg:w-64 space-y-6 ${viewMode === 'filters' ? 'block' : 'hidden lg:block'}`}>
-          <div>
-            <h3 className="font-medium mb-4">Filtry</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Lokalizacja</label>
-                <Input 
-                  placeholder="np. Warszawa, Kraków"
-                  value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Cena (PLN)</label>
-                <div className="flex items-center space-x-2">
-                  <Input 
-                    type="number" 
-                    min="0" 
-                    placeholder="Od"
-                    value={priceRange[0]}
-                    onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                  />
-                  <span>-</span>
-                  <Input 
-                    type="number" 
-                    min="0" 
-                    placeholder="Do"
-                    value={priceRange[1]}
-                    onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                  />
-                </div>
-              </div>
-              
-              <Button className="w-full" onClick={applyFilters}>
-                Zastosuj filtry
-              </Button>
-            </div>
-          </div>
+          <MarketplaceFilters
+            priceRange={priceRange}
+            setPriceRange={setPriceRange}
+            minPrice={minPrice}
+            setMinPrice={setMinPrice}
+            maxPrice={maxPrice}
+            setMaxPrice={setMaxPrice}
+            showTestingOnly={false}
+            setShowTestingOnly={() => {}}
+            selectedConditions={[]}
+            setSelectedConditions={() => {}}
+            maxProductPrice={5000}
+            handlePriceInputChange={handlePriceInputChange}
+            handleApplyFilters={applyFilters}
+            productConditions={[]}
+          />
         </div>
         
         <div className={`flex-1 ${viewMode === 'grid' ? 'block' : 'hidden lg:block'}`}>
@@ -304,11 +346,9 @@ export function ServicesMarketplace() {
               </Badge>
             )}
             
-            {filteredServices.length > 0 && (
-              <div className="text-sm text-muted-foreground ml-2">
-                Znaleziono {filteredServices.length} usług
-              </div>
-            )}
+            <span className="text-sm text-muted-foreground ml-2">
+              {filteredServices.length} {getProperResultsText(filteredServices.length)}
+            </span>
           </div>
           
           {loading ? (
@@ -339,7 +379,32 @@ export function ServicesMarketplace() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {getCurrentPageServices().map(service => (
-                  <Card key={service.id} className="overflow-hidden hover:shadow-md transition-all">
+                  <Card key={service.id} className="relative overflow-hidden hover:shadow-md transition-all group">
+                    <Button 
+                      variant={favorites[service.id] ? "destructive" : "secondary"}
+                      size="icon" 
+                      className="absolute top-3 right-3 opacity-70 hover:opacity-100 z-10"
+                      onClick={() => toggleFavorite(service.id, favorites[service.id] || false)}
+                    >
+                      <Heart className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button 
+                      variant="secondary" 
+                      size="icon" 
+                      className="absolute bottom-3 right-3 opacity-70 hover:opacity-100 z-10"
+                      onClick={() => {
+                        const serviceUrl = `${window.location.origin}/services/${service.id}`;
+                        navigator.clipboard.writeText(serviceUrl);
+                        toast({
+                          title: "Link skopiowany",
+                          description: "Link do usługi został skopiowany do schowka.",
+                        });
+                      }}
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                    
                     <CardContent className="p-6">
                       <div className="flex items-center gap-4 mb-4">
                         <Avatar>
@@ -374,7 +439,7 @@ export function ServicesMarketplace() {
                       </div>
                       
                       <div className="flex items-center justify-between mt-4">
-                        <div className="font-medium">
+                        <div className="font-semibold text-lg bg-primary/10 px-2 py-1 rounded text-primary">
                           {new Intl.NumberFormat('pl-PL', {
                             style: 'currency',
                             currency: 'PLN'
@@ -388,7 +453,40 @@ export function ServicesMarketplace() {
                 ))}
               </div>
               
-              {renderPaginationControls()}
+              <div className="flex justify-center mt-8">
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" /> Poprzednia
+                  </Button>
+                  
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Następna <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
             </>
           ) : (
             <div className="text-center py-12 border rounded-md">
