@@ -1,9 +1,9 @@
 
 import { Link } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface Group {
   id: string;
@@ -18,9 +18,9 @@ interface GroupsSectionProps {
 
 export function GroupsSection({ groups }: GroupsSectionProps) {
   return (
-    <div className="mb-10">
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="text-lg font-medium">Popularne grupy</h3>
+    <section className="mb-12">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">Popularne grupy</h2>
         <Link to="/groups" className="no-underline">
           <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
             Zobacz wszystkie
@@ -29,40 +29,40 @@ export function GroupsSection({ groups }: GroupsSectionProps) {
         </Link>
       </div>
       
-      <ScrollArea className="w-full whitespace-nowrap pb-4" type="scroll">
+      <ScrollArea className="w-full whitespace-nowrap pb-4" type="always">
         <div className="flex space-x-4 pb-2">
           {groups.slice(0, 10).map((group) => (
             <div key={group.id} className="w-[280px] flex-none">
               <Link 
                 to={`/groups/${group.id}`}
-                className="no-underline"
+                className="no-underline text-foreground"
               >
-                <Card className="overflow-hidden hover:shadow-md transition-shadow h-full">
-                  <CardContent className="p-0 flex flex-col h-full">
-                    <div 
-                      className="w-full h-28 bg-gray-200"
-                      style={{
-                        backgroundImage: `url(${group.image})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center'
-                      }}
-                    >
-                    </div>
-                    <div className="p-3">
-                      <h4 className="font-medium text-sm mb-1">{group.name}</h4>
+                <Card className="h-full overflow-hidden hover:shadow-md transition-all">
+                  <div className="aspect-[1.5/1] overflow-hidden relative">
+                    <img 
+                      src={group.image} 
+                      alt={group.name}
+                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    <div className="absolute bottom-0 left-0 p-4 w-full">
+                      <h3 className="text-white font-bold text-lg">{group.name}</h3>
                       {group.memberCount && (
-                        <p className="text-xs text-muted-foreground">
-                          {group.memberCount} członków
+                        <p className="text-white/80 text-sm">
+                          {group.memberCount} {group.memberCount === 1 ? 'członek' : 
+                            group.memberCount % 10 >= 2 && group.memberCount % 10 <= 4 && 
+                            (group.memberCount % 100 < 10 || group.memberCount % 100 > 20) ? 
+                            'członków' : 'członków'}
                         </p>
                       )}
                     </div>
-                  </CardContent>
+                  </div>
                 </Card>
               </Link>
             </div>
           ))}
         </div>
       </ScrollArea>
-    </div>
+    </section>
   );
 }

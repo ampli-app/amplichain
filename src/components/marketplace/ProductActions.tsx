@@ -65,7 +65,7 @@ export function ProductActions({ id, isUserProduct }: ProductActionsProps) {
         <Button 
           variant="secondary" 
           size="icon"
-          className="h-9 w-9"
+          className="h-9 w-9 ml-2"
           onClick={handleShare}
         >
           <Share2 className="h-4 w-4" />

@@ -1,9 +1,13 @@
 
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MarketplaceItem } from '@/components/MarketplaceItem';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/use-toast';
 
 interface Item {
   id: string;
@@ -21,6 +25,99 @@ interface MarketplaceSectionProps {
 }
 
 export function MarketplaceSection({ title, itemType, items }: MarketplaceSectionProps) {
+  const { user } = useAuth();
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (user) {
+      fetchFavorites();
+    }
+  }, [user]);
+
+  const fetchFavorites = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('item_id')
+        .eq('user_id', user.id)
+        .eq('item_type', itemType === 'products' ? 'product' : itemType === 'services' ? 'service' : 'consultation');
+        
+      if (error) {
+        throw error;
+      }
+      
+      const newFavorites: Record<string, boolean> = {};
+      data?.forEach(fav => {
+        newFavorites[fav.item_id] = true;
+      });
+      
+      setFavorites(newFavorites);
+    } catch (err) {
+      console.error('Błąd podczas pobierania ulubionych:', err);
+    }
+  };
+
+  const toggleFavorite = async (itemId: string, isFavorite: boolean) => {
+    if (!user) {
+      toast({
+        title: "Wymagane logowanie",
+        description: "Aby dodać do ulubionych, musisz być zalogowany.",
+      });
+      return;
+    }
+    
+    const itemType_db = itemType === 'products' ? 'product' : itemType === 'services' ? 'service' : 'consultation';
+    
+    try {
+      if (isFavorite) {
+        await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_id', itemId)
+          .eq('item_type', itemType_db);
+          
+        setFavorites(prev => {
+          const newFavorites = { ...prev };
+          delete newFavorites[itemId];
+          return newFavorites;
+        });
+        
+        toast({
+          title: "Usunięto z ulubionych",
+          description: `${itemType === 'products' ? 'Produkt' : itemType === 'services' ? 'Usługa' : 'Konsultacja'} została usunięta z ulubionych.`,
+        });
+      } else {
+        await supabase
+          .from('favorites')
+          .insert({
+            user_id: user.id,
+            item_id: itemId,
+            item_type: itemType_db
+          });
+          
+        setFavorites(prev => ({
+          ...prev,
+          [itemId]: true
+        }));
+        
+        toast({
+          title: "Dodano do ulubionych",
+          description: `${itemType === 'products' ? 'Produkt' : itemType === 'services' ? 'Usługa' : 'Konsultacja'} została dodana do ulubionych.`,
+        });
+      }
+    } catch (err) {
+      console.error('Błąd podczas aktualizacji ulubionych:', err);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się zaktualizować ulubionych. Spróbuj ponownie.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getViewAllPath = () => {
     if (itemType === 'products') {
       return '/marketplace?tab=products';
@@ -43,7 +140,7 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
         </Link>
       </div>
       
-      <ScrollArea className="w-full whitespace-nowrap pb-4" type="scroll">
+      <ScrollArea className="w-full whitespace-nowrap pb-4" type="always">
         <div className="flex space-x-4 pb-2">
           {items.slice(0, 12).map((item, index) => (
             <div key={item.id} className="w-[220px] flex-none">
@@ -54,7 +151,8 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
                 image={item.image}
                 category={item.category || "Inne"}
                 delay={index * 0.05}
-                // Restore the favorite button functionality
+                isFavorite={favorites[item.id] || false}
+                onToggleFavorite={toggleFavorite}
                 favoriteButtonClass="absolute top-3 right-3 opacity-70 hover:opacity-100 z-10"
               />
             </div>
