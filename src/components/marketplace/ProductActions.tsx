@@ -41,9 +41,10 @@ export function ProductActions({ id, isUserProduct }: ProductActionsProps) {
           size="sm"
           className="flex items-center gap-1 h-9"
           onClick={handleViewProduct}
+          title="Zobacz produkt"
         >
           <Eye className="h-4 w-4" />
-          Zobacz produkt
+          <span className="hidden sm:inline">Zobacz produkt</span>
         </Button>
       </div>
       
@@ -55,18 +56,20 @@ export function ProductActions({ id, isUserProduct }: ProductActionsProps) {
             size="sm"
             className="bg-[#9E9D1B] hover:bg-[#7e7c14] flex items-center gap-1 h-9"
             onClick={handleEditProduct}
+            title="Edytuj"
           >
             <Pencil className="h-4 w-4" />
-            Edytuj
+            <span className="hidden sm:inline">Edytuj</span>
           </Button>
         )}
         
-        {/* Share button - dodana przestrzeń */}
+        {/* Share button */}
         <Button 
           variant="secondary" 
           size="icon"
           className="h-9 w-9"
           onClick={handleShare}
+          title="Udostępnij"
         >
           <Share2 className="h-4 w-4" />
         </Button>
