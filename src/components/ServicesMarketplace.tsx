@@ -39,7 +39,6 @@ export function ServicesMarketplace() {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
   const serviceCategories = [
-    { id: 'all', name: 'Wszystkie kategorie', slug: 'all-categories', description: null },
     { id: 'recording', name: 'Studio nagrań', slug: 'recording-studio', description: null },
     { id: 'mixing', name: 'Mix i mastering', slug: 'mixing-mastering', description: null },
     { id: 'production', name: 'Produkcja muzyczna', slug: 'music-production', description: null },
@@ -266,7 +265,7 @@ export function ServicesMarketplace() {
     <div>
       <CategorySelection 
         categories={serviceCategories}
-        selectedCategory={selectedCategory || 'all'}
+        selectedCategory={selectedCategory}
         onCategorySelect={handleCategorySelect}
         showAllCategoriesInBar={false}
       />

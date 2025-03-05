@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,7 +74,6 @@ export function ProductsTab({
   const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
   const [maxProductPrice, setMaxProductPrice] = useState(999999);
   
-  // Stan dla ulubionych produktów
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -242,7 +240,6 @@ export function ProductsTab({
     
     try {
       if (isFavorite) {
-        // Usuń z ulubionych
         await supabase
           .from('favorites')
           .delete()
@@ -261,7 +258,6 @@ export function ProductsTab({
           description: "Produkt został usunięty z Twoich ulubionych.",
         });
       } else {
-        // Dodaj do ulubionych
         await supabase
           .from('favorites')
           .insert({
@@ -318,7 +314,7 @@ export function ProductsTab({
           categories={categories}
           selectedCategory={selectedCategory}
           onCategorySelect={setSelectedCategory}
-          showAllCategoriesInBar={true}
+          showAllCategoriesInBar={false}
         />
         
         <div className="flex flex-col lg:flex-row gap-8">

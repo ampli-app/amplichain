@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -273,7 +274,7 @@ export function ConsultationsTab() {
     <div>
       <CategorySelection 
         categories={consultationCategories}
-        selectedCategory={selectedCategory || 'all'}
+        selectedCategory={selectedCategory}
         onCategorySelect={handleCategorySelect}
         showAllCategoriesInBar={false}
       />
