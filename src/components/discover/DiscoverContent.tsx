@@ -22,45 +22,48 @@ export function DiscoverContent() {
         buttonText="Dołącz teraz"
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
-          <div className="space-y-8">
-            <section>
-              <h2 className="text-xl font-bold mb-6">Popularne w Marketplace</h2>
-              {loading ? (
-                <div className="text-center py-8">Ładowanie produktów...</div>
-              ) : (
-                <>
-                  <MarketplaceSection 
-                    title="Produkty" 
-                    itemType="products" 
-                    items={products} 
-                  />
-                  
-                  <MarketplaceSection 
-                    title="Usługi" 
-                    itemType="services" 
-                    items={services} 
-                  />
-                  
-                  <MarketplaceSection 
-                    title="Konsultacje" 
-                    itemType="consultations" 
-                    items={consultations} 
-                  />
-                </>
-              )}
-            </section>
-            
-            <GroupsSection groups={groups} />
-            
+      <div className="space-y-8 mt-8">
+        {/* Sekcja Marketplace - teraz na pełną szerokość */}
+        <section>
+          <h2 className="text-xl font-bold mb-6">Popularne w Marketplace</h2>
+          {loading ? (
+            <div className="text-center py-8">Ładowanie produktów...</div>
+          ) : (
+            <>
+              <MarketplaceSection 
+                title="Produkty" 
+                itemType="products" 
+                items={products} 
+              />
+              
+              <MarketplaceSection 
+                title="Usługi" 
+                itemType="services" 
+                items={services} 
+              />
+              
+              <MarketplaceSection 
+                title="Konsultacje" 
+                itemType="consultations" 
+                items={consultations} 
+              />
+            </>
+          )}
+        </section>
+        
+        {/* Sekcja Grupy - teraz na pełną szerokość */}
+        <GroupsSection groups={groups} />
+        
+        {/* Układ dwukolumnowy dla Feed i bocznych informacji */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2">
             <FeedSection />
           </div>
-        </div>
-        
-        <div className="space-y-8">
-          <SuggestedProfilesSection />
-          <PopularHashtagsSection />
+          
+          <div className="space-y-8">
+            <SuggestedProfilesSection />
+            <PopularHashtagsSection />
+          </div>
         </div>
       </div>
     </>
