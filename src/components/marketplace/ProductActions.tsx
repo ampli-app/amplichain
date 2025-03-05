@@ -1,5 +1,5 @@
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, Pencil, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
@@ -11,6 +11,8 @@ interface ProductActionsProps {
 
 export function ProductActions({ id, isUserProduct }: ProductActionsProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isDiscoverPage = location.pathname === '/discover';
   
   const handleViewProduct = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -44,7 +46,7 @@ export function ProductActions({ id, isUserProduct }: ProductActionsProps) {
           title="Zobacz produkt"
         >
           <Eye className="h-4 w-4" />
-          <span className="hidden sm:inline">Zobacz produkt</span>
+          <span className={isDiscoverPage ? "hidden" : "hidden sm:inline"}>Zobacz produkt</span>
         </Button>
       </div>
       
@@ -59,7 +61,7 @@ export function ProductActions({ id, isUserProduct }: ProductActionsProps) {
             title="Edytuj"
           >
             <Pencil className="h-4 w-4" />
-            <span className="hidden sm:inline">Edytuj</span>
+            <span className={isDiscoverPage ? "hidden" : "hidden sm:inline"}>Edytuj</span>
           </Button>
         )}
         

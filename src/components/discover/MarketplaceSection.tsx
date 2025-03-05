@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MarketplaceItem } from '@/components/MarketplaceItem';
@@ -26,6 +26,7 @@ interface MarketplaceSectionProps {
 
 export function MarketplaceSection({ title, itemType, items }: MarketplaceSectionProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -129,6 +130,10 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
       return '/marketplace?tab=consultations';
     }
   };
+  
+  const handleItemClick = (itemId: string) => {
+    navigate(`/marketplace/${itemId}`);
+  };
 
   return (
     <div className="mb-10">
@@ -146,7 +151,11 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
         <ScrollArea className="w-full overflow-x-auto" type="always">
           <div className="flex space-x-4 pb-6 min-w-full">
             {items.slice(0, 12).map((item, index) => (
-              <div key={item.id} className="w-[200px] flex-none">
+              <div 
+                key={item.id} 
+                className="w-[200px] flex-none"
+                onClick={() => handleItemClick(item.id)}
+              >
                 <MarketplaceItem
                   id={item.id}
                   title={item.title}
@@ -156,6 +165,7 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
                   delay={index * 0.05}
                   isFavorite={favorites[item.id] || false}
                   onToggleFavorite={toggleFavorite}
+                  hideInDiscover={false} // Upewnij się, że odznaki są zawsze widoczne
                 />
               </div>
             ))}
