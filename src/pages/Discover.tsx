@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -10,9 +10,11 @@ import { GroupsSection } from '@/components/discover/GroupsSection';
 import { FeedSection } from '@/components/discover/FeedSection';
 import { SuggestedProfilesSection } from '@/components/discover/SuggestedProfilesSection';
 import { PopularHashtagsSection } from '@/components/discover/PopularHashtagsSection';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
 
-// Przykładowe dane
-const PRODUCTS = [
+// Zastępcze dane na wypadek błędu pobierania
+const FALLBACK_PRODUCTS = [
   { id: '1', title: 'Mikrofon Neumann', image: 'https://images.unsplash.com/photo-1520116468816-95b69f847357?q=80&w=2000&auto=format&fit=crop' },
   { id: '2', title: 'Interfejs audio', image: 'https://images.unsplash.com/photo-1558612846-ec0107aaf552?q=80&w=2000&auto=format&fit=crop' },
   { id: '3', title: 'Kontroler MIDI', image: 'https://images.unsplash.com/photo-1553526665-10042bd50dd1?q=80&w=2000&auto=format&fit=crop' },
@@ -20,7 +22,7 @@ const PRODUCTS = [
   { id: '5', title: 'Słuchawki studyjne', image: 'https://images.unsplash.com/photo-1545127398-14699f92334b?q=80&w=2000&auto=format&fit=crop' }
 ];
 
-const SERVICES = [
+const FALLBACK_SERVICES = [
   { id: '1', title: 'Produkcja muzyczna', image: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop' },
   { id: '2', title: 'Miksowanie', image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2000&auto=format&fit=crop' },
   { id: '3', title: 'Mastering', image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2000&auto=format&fit=crop' },
@@ -28,7 +30,7 @@ const SERVICES = [
   { id: '5', title: 'Aranżacja', image: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?q=80&w=2000&auto=format&fit=crop' }
 ];
 
-const CONSULTATIONS = [
+const FALLBACK_CONSULTATIONS = [
   { id: '1', title: 'Konsultacja produkcyjna', image: 'https://images.unsplash.com/photo-1507941097613-9f2157b69235?q=80&w=2000&auto=format&fit=crop' },
   { id: '2', title: 'Doradztwo A&R', image: 'https://images.unsplash.com/photo-1453738773917-9c3eff1db985?q=80&w=2000&auto=format&fit=crop' },
   { id: '3', title: 'Rozwój kariery muzycznej', image: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=2000&auto=format&fit=crop' },
@@ -36,7 +38,7 @@ const CONSULTATIONS = [
   { id: '5', title: 'Doradztwo biznesowe', image: 'https://images.unsplash.com/photo-1542744173-05336fcc7ad4?q=80&w=2000&auto=format&fit=crop' }
 ];
 
-const GROUPS = [
+const FALLBACK_GROUPS = [
   { id: '1', name: 'Krąg Producentów', image: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop' },
   { id: '2', name: 'Spostrzeżenia A&R', image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2000&auto=format&fit=crop' },
   { id: '3', name: 'Laboratorium Inżynierii Dźwięku', image: 'https://images.unsplash.com/photo-1588479839125-731d7ae923f6?q=80&w=2000&auto=format&fit=crop' },
@@ -47,11 +49,91 @@ const GROUPS = [
 
 export default function Discover() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [products, setProducts] = useState(FALLBACK_PRODUCTS);
+  const [services, setServices] = useState(FALLBACK_SERVICES);
+  const [consultations, setConsultations] = useState(FALLBACK_CONSULTATIONS);
+  const [groups, setGroups] = useState(FALLBACK_GROUPS);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Pobierz produkty
+        const { data: productsData, error: productsError } = await supabase
+          .from('products')
+          .select('id, title, image_url, price')
+          .limit(5);
+        
+        if (productsError) throw productsError;
+        
+        if (productsData && productsData.length > 0) {
+          setProducts(productsData.map(p => ({
+            id: p.id,
+            title: p.title,
+            image: p.image_url || 'https://placehold.co/600x400?text=Brak+zdjęcia',
+            price: p.price
+          })));
+        }
+        
+        // Pobierz usługi
+        const { data: servicesData, error: servicesError } = await supabase
+          .from('services')
+          .select('id, title, image_url, price')
+          .limit(5);
+        
+        if (servicesError) throw servicesError;
+        
+        if (servicesData && servicesData.length > 0) {
+          setServices(servicesData.map(s => ({
+            id: s.id,
+            title: s.title,
+            image: s.image_url || 'https://placehold.co/600x400?text=Brak+zdjęcia',
+            price: s.price
+          })));
+        }
+        
+        // Pobierz konsultacje
+        const { data: consultationsData, error: consultationsError } = await supabase
+          .from('consultations')
+          .select('id, title, price')
+          .limit(5);
+        
+        if (consultationsError) throw consultationsError;
+        
+        if (consultationsData && consultationsData.length > 0) {
+          setConsultations(consultationsData.map(c => ({
+            id: c.id,
+            title: c.title,
+            image: 'https://images.unsplash.com/photo-1542744173-05336fcc7ad4?q=80&w=2000&auto=format&fit=crop',
+            price: c.price
+          })));
+        }
+        
+        // Tutaj można by było pobrać grupy, ale na razie zostawiamy przykładowe
+        
+      } catch (error) {
+        console.error('Błąd podczas pobierania danych:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się pobrać wszystkich danych. Wyświetlamy przykładowe treści.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
   
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    // Tutaj możesz zaimplementować logikę wyszukiwania
+    // Logika wyszukiwania - możemy po prostu przekierować do strony wyników wyszukiwania
+    if (query.trim().length > 0) {
+      navigate(`/search?q=${encodeURIComponent(query)}`);
+    }
   };
 
   return (
@@ -82,23 +164,23 @@ export default function Discover() {
                 <MarketplaceSection 
                   title="Produkty" 
                   itemType="products" 
-                  items={PRODUCTS} 
+                  items={products} 
                 />
                 
                 <MarketplaceSection 
                   title="Usługi" 
                   itemType="services" 
-                  items={SERVICES} 
+                  items={services} 
                 />
                 
                 <MarketplaceSection 
                   title="Konsultacje" 
                   itemType="consultations" 
-                  items={CONSULTATIONS} 
+                  items={consultations} 
                 />
               </section>
               
-              <GroupsSection groups={GROUPS} />
+              <GroupsSection groups={groups} />
               
               <FeedSection />
             </div>

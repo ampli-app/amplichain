@@ -1,6 +1,8 @@
 
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
+import { ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Group {
   id: string;
@@ -16,7 +18,15 @@ interface GroupsSectionProps {
 export function GroupsSection({ groups }: GroupsSectionProps) {
   return (
     <div className="mb-12">
-      <h3 className="text-lg font-medium mb-3">Popularne grupy</h3>
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-lg font-medium">Popularne grupy</h3>
+        <Link to="/groups" className="no-underline">
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+            Zobacz wszystkie
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
       <div className="grid grid-cols-3 gap-4">
         {groups.slice(0, 6).map((group) => (
           <Link 
