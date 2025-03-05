@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -88,12 +87,6 @@ export function Navbar() {
           <div className="flex items-center gap-2">
             {isLoggedIn ? (
               <>
-                <Button asChild variant="ghost" size="icon">
-                  <Link to="/favorites">
-                    <Heart className="h-5 w-5" />
-                  </Link>
-                </Button>
-                
                 <Notifications />
                 
                 <Button asChild variant="ghost" size="icon">
@@ -102,7 +95,6 @@ export function Navbar() {
                   </Link>
                 </Button>
                 
-                {/* Ukryj UserMenu w widoku mobilnym */}
                 <div className="hidden md:block">
                   <UserMenu avatarUrl={userProfile?.avatar} />
                 </div>

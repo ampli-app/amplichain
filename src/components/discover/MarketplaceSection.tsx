@@ -41,7 +41,6 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
           </Button>
         </Link>
       </div>
-      {/* Zmieniona siatka - większe karty */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {items.map((item, index) => (
           <MarketplaceItem
