@@ -86,7 +86,7 @@ export function MarketplaceItem({
           }
         }}
       >
-        <Heart className={`h-4 w-4 text-red-500 ${isFavorite ? "fill-current" : ""}`} />
+        <Heart className={`h-4 w-4 ${isFavorite ? "fill-current text-red-500" : "text-zinc-400"}`} />
       </Button>
       
       {/* Product image */}

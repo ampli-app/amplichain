@@ -19,10 +19,10 @@ export function ServiceCard({ service, isFavorite, onToggleFavorite }: ServiceCa
       <Button 
         variant="secondary"
         size="icon" 
-        className={`absolute top-3 right-3 opacity-70 hover:opacity-100 z-10 ${isFavorite ? "text-red-500 hover:text-red-600" : ""}`}
+        className="absolute top-3 right-3 opacity-70 hover:opacity-100 z-10"
         onClick={() => onToggleFavorite(service.id, isFavorite)}
       >
-        <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+        <Heart className={`h-4 w-4 ${isFavorite ? "fill-current text-red-500" : "text-zinc-400"}`} />
       </Button>
       
       <Button 
