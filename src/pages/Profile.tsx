@@ -481,12 +481,7 @@ export default function Profile() {
             {isOwnProfile && (
               <TabsContent value="marketplace">
                 <MarketplaceTab 
-                  userProducts={userProducts}
-                  userServices={userServices}
-                  userConsultations={userConsultations}
-                  handleDeleteProduct={handleDeleteProduct}
-                  handleDeleteService={handleDeleteService}
-                  handleDeleteConsultation={handleDeleteConsultation}
+                  profileId={user?.id || ""}
                 />
               </TabsContent>
             )}
