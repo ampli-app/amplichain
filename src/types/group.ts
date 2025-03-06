@@ -54,6 +54,7 @@ export interface GroupPost {
     votes: number;
   }>;
   userVoted?: string;
+  userLiked?: boolean;
 }
 
 export interface Group {

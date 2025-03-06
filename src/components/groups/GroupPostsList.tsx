@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { GroupPost } from '@/types/group';
 import { PostItem } from './posts/PostItem';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/use-toast';
 
 interface GroupPostsListProps {
   posts: GroupPost[];
@@ -11,124 +13,249 @@ interface GroupPostsListProps {
 }
 
 export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: GroupPostsListProps) {
+  const { user } = useAuth();
   const [posts, setPosts] = useState<GroupPost[]>(initialPosts);
   const [loading, setLoading] = useState(groupId ? true : false);
 
   useEffect(() => {
     // Jeśli mamy groupId, pobieramy posty z Supabase
     if (groupId) {
-      const fetchPosts = async () => {
-        setLoading(true);
-        try {
-          const { data: postsData, error } = await supabase
-            .from('group_posts')
-            .select(`
-              id,
-              content,
-              created_at,
-              is_poll,
-              user_id,
-              group_post_media (id, url, type),
-              group_post_files (id, name, url, type, size),
-              group_post_poll_options (
-                id, 
-                text,
-                group_post_poll_votes (id, user_id)
-              ),
-              group_post_likes (id, user_id),
-              group_post_comments (id)
-            `)
-            .eq('group_id', groupId)
-            .order('created_at', { ascending: false });
-
-          if (error) {
-            console.error('Błąd podczas pobierania postów:', error);
-            return;
-          }
-
-          // Pobierz dane autorów postów
-          const userIds = [...new Set(postsData?.map(post => post.user_id) || [])];
-          const { data: usersData, error: usersError } = await supabase
-            .from('profiles')
-            .select('id, full_name, avatar_url')
-            .in('id', userIds);
-
-          if (usersError) {
-            console.error('Błąd podczas pobierania danych użytkowników:', usersError);
-          }
-
-          // Przetwórz dane na format GroupPost
-          const formattedPosts: GroupPost[] = postsData?.map(post => {
-            const authorProfile = usersData?.find(user => user.id === post.user_id);
-            
-            // Utwórz obiekt autora z danymi z profilu lub domyślnymi wartościami
-            const author = authorProfile ? {
-              id: authorProfile.id,
-              name: authorProfile.full_name || 'Nieznany użytkownik',
-              avatar: authorProfile.avatar_url || ''
-            } : { 
-              id: post.user_id, 
-              name: 'Nieznany użytkownik', 
-              avatar: '' 
-            };
-            
-            const media = post.group_post_media?.map(media => ({
-              url: media.url,
-              type: media.type as 'image' | 'video'
-            })) || [];
-            
-            const files = post.group_post_files?.map(file => ({
-              name: file.name,
-              url: file.url,
-              type: file.type,
-              size: file.size
-            })) || [];
-            
-            const pollOptions = post.is_poll ? post.group_post_poll_options?.map(option => ({
-              id: option.id,
-              text: option.text,
-              votes: option.group_post_poll_votes?.length || 0
-            })) : undefined;
-            
-            // Sprawdź, czy użytkownik zagłosował
-            const userVoted = post.is_poll ? 
-              (post.group_post_poll_options?.find(option => 
-                option.group_post_poll_votes?.some(vote => vote.user_id === author.id)
-              )?.id || undefined) : 
-              undefined;
-            
-            const timeAgo = formatTimeAgo(new Date(post.created_at));
-            
-            return {
-              id: post.id,
-              content: post.content,
-              author,
-              createdAt: post.created_at,
-              timeAgo,
-              media: media.length > 0 ? media : undefined,
-              files: files.length > 0 ? files : undefined,
-              likes: post.group_post_likes?.length || 0,
-              comments: post.group_post_comments?.length || 0,
-              isPoll: post.is_poll || false,
-              pollOptions,
-              userVoted
-            };
-          }) || [];
-
-          setPosts(formattedPosts);
-        } catch (error) {
-          console.error('Nieoczekiwany błąd:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
-
       fetchPosts();
     } else {
       // Jeśli nie mamy groupId, używamy przekazanych postów
       setPosts(initialPosts);
     }
   }, [groupId, initialPosts]);
+  
+  // Funkcja do pobierania postów z Supabase
+  const fetchPosts = async () => {
+    if (!groupId) return;
+    
+    setLoading(true);
+    try {
+      const { data: postsData, error } = await supabase
+        .from('group_posts')
+        .select(`
+          id,
+          content,
+          created_at,
+          is_poll,
+          user_id,
+          group_post_media (id, url, type),
+          group_post_files (id, name, url, type, size),
+          group_post_poll_options (
+            id, 
+            text,
+            group_post_poll_votes (id, user_id)
+          ),
+          group_post_likes (id, user_id),
+          group_post_comments (id)
+        `)
+        .eq('group_id', groupId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Błąd podczas pobierania postów:', error);
+        return;
+      }
+
+      // Pobierz dane autorów postów
+      const userIds = [...new Set(postsData?.map(post => post.user_id) || [])];
+      const { data: usersData, error: usersError } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', userIds);
+
+      if (usersError) {
+        console.error('Błąd podczas pobierania danych użytkowników:', usersError);
+      }
+
+      // Przetwórz dane na format GroupPost
+      const formattedPosts: GroupPost[] = postsData?.map(post => {
+        const authorProfile = usersData?.find(user => user.id === post.user_id);
+        
+        // Utwórz obiekt autora z danymi z profilu lub domyślnymi wartościami
+        const author = authorProfile ? {
+          id: authorProfile.id,
+          name: authorProfile.full_name || 'Nieznany użytkownik',
+          avatar: authorProfile.avatar_url || ''
+        } : { 
+          id: post.user_id, 
+          name: 'Nieznany użytkownik', 
+          avatar: '' 
+        };
+        
+        const media = post.group_post_media?.map(media => ({
+          url: media.url,
+          type: media.type as 'image' | 'video'
+        })) || [];
+        
+        const files = post.group_post_files?.map(file => ({
+          name: file.name,
+          url: file.url,
+          type: file.type,
+          size: file.size
+        })) || [];
+        
+        const pollOptions = post.is_poll ? post.group_post_poll_options?.map(option => ({
+          id: option.id,
+          text: option.text,
+          votes: option.group_post_poll_votes?.length || 0
+        })) : undefined;
+        
+        // Sprawdź, czy użytkownik zagłosował
+        const userVoted = post.is_poll && user ? 
+          (post.group_post_poll_options?.find(option => 
+            option.group_post_poll_votes?.some(vote => vote.user_id === user.id)
+          )?.id || undefined) : 
+          undefined;
+        
+        const timeAgo = formatTimeAgo(new Date(post.created_at));
+        
+        // Sprawdź, czy bieżący użytkownik polubił post
+        const userLiked = user ? post.group_post_likes?.some(like => like.user_id === user.id) : false;
+        
+        return {
+          id: post.id,
+          content: post.content,
+          author,
+          createdAt: post.created_at,
+          timeAgo,
+          media: media.length > 0 ? media : undefined,
+          files: files.length > 0 ? files : undefined,
+          likes: post.group_post_likes?.length || 0,
+          comments: post.group_post_comments?.length || 0,
+          isPoll: post.is_poll || false,
+          pollOptions,
+          userVoted,
+          userLiked
+        };
+      }) || [];
+
+      setPosts(formattedPosts);
+    } catch (error) {
+      console.error('Nieoczekiwany błąd:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Dodaj funkcję do obsługi polubień
+  const handleLikeToggle = async (postId: string, isLiked: boolean) => {
+    if (!user) {
+      toast({
+        title: "Wymagane logowanie",
+        description: "Musisz być zalogowany, aby polubić post",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      if (isLiked) {
+        // Usuń polubienie
+        await supabase
+          .from('group_post_likes')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', user.id);
+      } else {
+        // Dodaj polubienie
+        await supabase
+          .from('group_post_likes')
+          .insert({
+            post_id: postId,
+            user_id: user.id
+          });
+      }
+      
+      // Odśwież posty po aktualizacji
+      fetchPosts();
+      
+    } catch (error) {
+      console.error('Błąd podczas aktualizacji polubienia:', error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się zaktualizować polubienia",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Funkcja do dodawania komentarza
+  const handleAddComment = async (postId: string, content: string) => {
+    if (!user) {
+      toast({
+        title: "Wymagane logowanie",
+        description: "Musisz być zalogowany, aby dodać komentarz",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!content.trim()) return;
+    
+    try {
+      await supabase
+        .from('group_post_comments')
+        .insert({
+          post_id: postId,
+          user_id: user.id,
+          content: content.trim()
+        });
+      
+      // Odśwież posty po dodaniu komentarza
+      fetchPosts();
+      
+      return true;
+    } catch (error) {
+      console.error('Błąd podczas dodawania komentarza:', error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się dodać komentarza",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+  
+  // Funkcja do dodawania odpowiedzi na komentarz
+  const handleAddReply = async (postId: string, parentCommentId: string, content: string) => {
+    if (!user) {
+      toast({
+        title: "Wymagane logowanie",
+        description: "Musisz być zalogowany, aby odpowiedzieć na komentarz",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!content.trim()) return;
+    
+    try {
+      await supabase
+        .from('group_post_comments')
+        .insert({
+          post_id: postId,
+          user_id: user.id,
+          content: content.trim(),
+          parent_id: parentCommentId
+        });
+      
+      // Odśwież posty po dodaniu odpowiedzi
+      fetchPosts();
+      
+      return true;
+    } catch (error) {
+      console.error('Błąd podczas dodawania odpowiedzi:', error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się dodać odpowiedzi",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
 
   const filteredPosts = posts.filter(post => 
     post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -170,7 +297,15 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
   return (
     <div className="space-y-6">
       {filteredPosts.map((post, index) => (
-        <PostItem key={post.id} post={post} index={index} />
+        <PostItem 
+          key={post.id} 
+          post={post} 
+          index={index} 
+          onLikeToggle={handleLikeToggle}
+          onAddComment={handleAddComment}
+          onAddReply={handleAddReply}
+          groupId={groupId}
+        />
       ))}
     </div>
   );

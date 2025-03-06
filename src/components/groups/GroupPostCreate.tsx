@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { Group } from '@/types/group';
 import { useSocial } from '@/contexts/SocialContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Image, 
   FileText, 
@@ -21,6 +22,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { supabase } from '@/integrations/supabase/client';
+import { useParams } from 'react-router-dom';
 
 interface GroupPostCreateProps {
   group: Group;
@@ -32,15 +35,19 @@ type MediaFile = {
   name?: string;
   size?: number;
   fileType?: string;
+  file?: File; // Dodane pole do przechowywania oryginalnego pliku
 };
 
 export function GroupPostCreate({ group }: GroupPostCreateProps) {
   const { currentUser } = useSocial();
+  const { user } = useAuth();
+  const { id: groupId } = useParams<{ id: string }>();
   const [content, setContent] = useState('');
   const [isPollMode, setIsPollMode] = useState(false);
   const [pollOptions, setPollOptions] = useState(['', '']);
   const [media, setMedia] = useState<MediaFile[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const togglePollMode = () => {
@@ -110,7 +117,8 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
         type: mediaType,
         name: file.name,
         size: file.size,
-        fileType: file.type
+        fileType: file.type,
+        file: file
       }]);
     });
     
@@ -132,7 +140,54 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
   
-  const handleSubmit = () => {
+  // Funkcja do przesyłania plików do Supabase Storage
+  const uploadMediaToStorage = async (file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `group_media/${groupId}/${fileName}`;
+      
+      // Prześlij plik do Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('public')
+        .upload(filePath, file);
+      
+      if (error) {
+        console.error('Błąd podczas przesyłania pliku:', error);
+        return null;
+      }
+      
+      // Pobierz publiczny URL pliku
+      const { data: { publicUrl } } = supabase.storage
+        .from('public')
+        .getPublicUrl(filePath);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('Nieoczekiwany błąd podczas przesyłania pliku:', error);
+      return null;
+    }
+  };
+  
+  const handleSubmit = async () => {
+    if (!user) {
+      toast({
+        title: "Wymagane logowanie",
+        description: "Musisz być zalogowany, aby utworzyć post",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!groupId) {
+      toast({
+        title: "Błąd",
+        description: "Nie można utworzyć posta - brak identyfikatora grupy",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (isPollMode) {
       // Validate poll options
       const filledOptions = pollOptions.filter(option => option.trim() !== '');
@@ -155,18 +210,116 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
       return;
     }
     
-    // In a real app, here we would send the post to the server
-    toast({
-      title: "Post utworzony",
-      description: "Twój post został pomyślnie opublikowany w grupie",
-    });
+    setLoading(true);
     
-    // Reset form
-    setContent('');
-    setIsPollMode(false);
-    setPollOptions(['', '']);
-    setMedia([]);
-    setIsExpanded(false);
+    try {
+      // 1. Utwórz post
+      const { data: postData, error: postError } = await supabase
+        .from('group_posts')
+        .insert({
+          group_id: groupId,
+          user_id: user.id,
+          content: content.trim(),
+          is_poll: isPollMode
+        })
+        .select('id')
+        .single();
+      
+      if (postError) {
+        throw new Error(`Błąd podczas tworzenia posta: ${postError.message}`);
+      }
+      
+      const postId = postData.id;
+      
+      // 2. Jeśli to ankieta, dodaj opcje
+      if (isPollMode) {
+        const validOptions = pollOptions.filter(option => option.trim() !== '');
+        
+        const pollOptionsData = validOptions.map(option => ({
+          post_id: postId,
+          text: option.trim()
+        }));
+        
+        const { error: pollOptionsError } = await supabase
+          .from('group_post_poll_options')
+          .insert(pollOptionsData);
+        
+        if (pollOptionsError) {
+          throw new Error(`Błąd podczas dodawania opcji ankiety: ${pollOptionsError.message}`);
+        }
+      }
+      
+      // 3. Jeśli są media, prześlij je do Storage i zapisz w bazie danych
+      if (media.length > 0) {
+        // Prześlij pliki do Supabase Storage
+        const mediaPromises = media.map(async (mediaItem) => {
+          if (mediaItem.file) {
+            const publicUrl = await uploadMediaToStorage(mediaItem.file);
+            
+            if (publicUrl) {
+              if (mediaItem.type === 'document') {
+                // Zapisz jako plik
+                return supabase
+                  .from('group_post_files')
+                  .insert({
+                    post_id: postId,
+                    name: mediaItem.name || 'Plik',
+                    url: publicUrl,
+                    type: mediaItem.fileType || 'application/octet-stream',
+                    size: mediaItem.size || 0
+                  });
+              } else {
+                // Zapisz jako media (zdjęcie lub wideo)
+                return supabase
+                  .from('group_post_media')
+                  .insert({
+                    post_id: postId,
+                    url: publicUrl,
+                    type: mediaItem.type
+                  });
+              }
+            }
+          }
+          return null;
+        });
+        
+        const mediaResults = await Promise.all(mediaPromises);
+        const mediaErrors = mediaResults
+          .filter(result => result && result.error)
+          .map(result => result?.error);
+        
+        if (mediaErrors.length > 0) {
+          console.error('Błędy podczas zapisywania mediów:', mediaErrors);
+        }
+      }
+      
+      // Pokaż komunikat sukcesu
+      toast({
+        title: "Post utworzony",
+        description: "Twój post został pomyślnie opublikowany w grupie",
+      });
+      
+      // Resetuj formularz
+      setContent('');
+      setIsPollMode(false);
+      setPollOptions(['', '']);
+      setMedia([]);
+      setIsExpanded(false);
+      
+      // Odśwież posty - symulacja odświeżenia strony, ponieważ zakładamy,
+      // że inne komponenty będą aktualizować widok postów
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Błąd podczas tworzenia posta:', error);
+      toast({
+        title: "Błąd",
+        description: error instanceof Error ? error.message : "Wystąpił błąd podczas tworzenia posta",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -187,6 +340,7 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
             placeholder={`Napisz coś do grupy "${group.name}"...`}
             className="resize-none mb-3 min-h-24"
             onFocus={() => setIsExpanded(true)}
+            disabled={loading}
           />
           
           {isPollMode && (
@@ -200,6 +354,7 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
                     onChange={(e) => updatePollOption(index, e.target.value)}
                     placeholder={`Opcja ${index + 1}`}
                     className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    disabled={loading}
                   />
                   {pollOptions.length > 2 && (
                     <Button 
@@ -207,6 +362,7 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       onClick={() => removePollOption(index)}
+                      disabled={loading}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -218,7 +374,7 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
                 size="sm"
                 type="button"
                 onClick={addPollOption}
-                disabled={pollOptions.length >= 10}
+                disabled={pollOptions.length >= 10 || loading}
                 className="w-full justify-center"
               >
                 Dodaj opcję
@@ -235,6 +391,7 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
                     size="icon" 
                     className="absolute top-2 right-2 h-7 w-7 opacity-90 z-10"
                     onClick={() => removeMedia(index)}
+                    disabled={loading}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -273,6 +430,7 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
                       variant="outline" 
                       size="sm" 
                       className="gap-1.5 text-rhythm-600"
+                      disabled={loading}
                     >
                       <ChevronDown className="h-4 w-4" />
                       <span className="hidden md:inline">Rodzaj posta</span>
@@ -302,7 +460,7 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
                   size="sm" 
                   className="gap-1.5 text-rhythm-600"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={media.length >= 6}
+                  disabled={media.length >= 6 || loading}
                 >
                   <Image className="h-4 w-4" />
                   <span className="hidden md:inline">Media ({media.length}/6)</span>
@@ -314,6 +472,7 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
                   accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
                   multiple
                   onChange={handleFileUpload}
+                  disabled={loading}
                 />
               </div>
               
@@ -322,11 +481,11 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
                 size="sm"
                 className="gap-1.5"
                 onClick={handleSubmit}
-                disabled={(isPollMode && pollOptions.filter(o => o.trim()).length < 2) && 
-                          (!content.trim() && media.length === 0)}
+                disabled={loading || ((isPollMode && pollOptions.filter(o => o.trim()).length < 2) && 
+                          (!content.trim() && media.length === 0))}
               >
                 <Send className="h-4 w-4" />
-                Opublikuj
+                {loading ? 'Wysyłanie...' : 'Opublikuj'}
               </Button>
             </div>
           )}

@@ -7,12 +7,12 @@ import { User, CornerDownRight, Send } from 'lucide-react';
 
 interface Comment {
   id: string;
-  author: { name: string; avatar: string };
+  author: { id: string; name: string; avatar: string };
   content: string;
   timeAgo: string;
   replies: Array<{
     id: string;
-    author: { name: string; avatar: string };
+    author: { id: string; name: string; avatar: string };
     content: string;
     timeAgo: string;
   }>;
@@ -25,6 +25,7 @@ interface CommentsListProps {
   replyText: string;
   setReplyText: (text: string) => void;
   onAddReply: (commentId: string) => void;
+  disabled?: boolean;
 }
 
 export function CommentsList({ 
@@ -33,7 +34,8 @@ export function CommentsList({
   setReplyingTo, 
   replyText, 
   setReplyText, 
-  onAddReply 
+  onAddReply,
+  disabled = false
 }: CommentsListProps) {
   return (
     <div className="space-y-4 mt-4">
@@ -76,12 +78,13 @@ export function CommentsList({
                       className="min-h-[36px] py-2 text-sm resize-none"
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
+                      disabled={disabled}
                     />
                     <Button 
                       size="sm" 
                       className="h-9 px-3 self-end"
                       onClick={() => onAddReply(comment.id)}
-                      disabled={!replyText.trim()}
+                      disabled={!replyText.trim() || disabled}
                     >
                       <Send className="h-3 w-3" />
                     </Button>
@@ -104,7 +107,7 @@ export function CommentsList({
 interface CommentRepliesProps {
   replies: Array<{
     id: string;
-    author: { name: string; avatar: string };
+    author: { id: string; name: string; avatar: string };
     content: string;
     timeAgo: string;
   }>;

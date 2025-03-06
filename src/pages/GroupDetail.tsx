@@ -256,11 +256,12 @@ export default function GroupDetail() {
               
               {/* Main content */}
               <div className="lg:col-span-2 space-y-6">
+                <GroupTabs group={group} />
+                
+                {/* Post creation form moved below tabs */}
                 {group.isMember && (
                   <GroupPostCreate group={group} />
                 )}
-                
-                <GroupTabs group={group} />
               </div>
             </div>
           </div>
