@@ -45,19 +45,14 @@ export function GroupMembersList({ groupId, searchQuery }: GroupMembersListProps
         // Pobierz ID zalogowanego użytkownika
         const { data: { user } } = await supabase.auth.getUser();
         
-        // Pobierz członków grupy - poprawione zapytanie
+        // Pobierz członków grupy
         const { data: membersData, error } = await supabase
           .from('group_members')
           .select(`
             id,
             role,
             joined_at,
-            user_id,
-            profiles: user_id (
-              id,
-              full_name,
-              avatar_url
-            )
+            user_id
           `)
           .eq('group_id', groupId)
           .order('joined_at', { ascending: true });
@@ -75,14 +70,26 @@ export function GroupMembersList({ groupId, searchQuery }: GroupMembersListProps
           setIsGroupAdmin(isAdmin);
         }
         
-        // Przetwórz dane na format Member
+        // Pobierz profile wszystkich członków
+        const userIds = membersData.map(member => member.user_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', userIds);
+          
+        if (profilesError) {
+          console.error('Błąd podczas pobierania profili:', profilesError);
+        }
+        
+        // Połącz dane członków z profilami
         const formattedMembers: Member[] = membersData.map(member => {
+          const profile = profilesData?.find(p => p.id === member.user_id);
           return {
             id: member.id,
             user: {
               id: member.user_id,
-              name: member.profiles?.full_name || 'Użytkownik',
-              avatar: member.profiles?.avatar_url || '',
+              name: profile?.full_name || 'Użytkownik',
+              avatar: profile?.avatar_url || '',
             },
             role: member.role as 'admin' | 'moderator' | 'member',
             joinedAt: new Date(member.joined_at).toLocaleDateString(),
