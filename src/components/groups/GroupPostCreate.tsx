@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+
+import { useState, useRef } from 'react';
 import { Group } from '@/types/group';
 import { useSocial } from '@/contexts/SocialContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,10 +8,8 @@ import {
   FileText, 
   BarChart2, 
   Send, 
-  X, 
   ChevronDown,
-  User,
-  Hash
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,19 +23,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from '@/integrations/supabase/client';
 import { useParams } from 'react-router-dom';
+import { useHashtagSuggestions } from '@/hooks/useHashtagSuggestions';
+import { HashtagSuggestions } from '@/components/common/HashtagSuggestions';
+import { PollOptions } from '@/components/social/PollOptions';
+import { MediaPreview, type MediaFile } from '@/components/social/MediaPreview';
+import { handleFileUpload, uploadMediaToStorage } from '@/utils/mediaUtils';
 
 interface GroupPostCreateProps {
   group: Group;
 }
-
-type MediaFile = {
-  url: string;
-  type: 'image' | 'video' | 'document';
-  name?: string;
-  size?: number;
-  fileType?: string;
-  file?: File;
-};
 
 export function GroupPostCreate({ group }: GroupPostCreateProps) {
   const { currentUser } = useSocial();
@@ -50,104 +45,29 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
-  // Dodane dla funkcjonalności hashtagów
-  const [hashtagSuggestions, setHashtagSuggestions] = useState<{id: string, name: string}[]>([]);
-  const [showHashtagSuggestions, setShowHashtagSuggestions] = useState(false);
-  const [hashtagQuery, setHashtagQuery] = useState('');
   const [cursorPosition, setCursorPosition] = useState(0);
-  const [isLoadingHashtags, setIsLoadingHashtags] = useState(false);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
   
-  // Funkcja do śledzenia pozycji kursora w textarea
+  const { 
+    hashtagSuggestions, 
+    showHashtagSuggestions, 
+    isLoadingHashtags,
+    suggestionsRef,
+    insertHashtag
+  } = useHashtagSuggestions({ 
+    content, 
+    cursorPosition
+  });
+  
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
     setContent(newContent);
     setCursorPosition(e.target.selectionStart);
-    
-    // Sprawdź, czy użytkownik wpisuje hashtag
-    const textBeforeCursor = newContent.substring(0, e.target.selectionStart);
-    const hashtagMatch = textBeforeCursor.match(/#(\w*)$/);
-    
-    if (hashtagMatch) {
-      const query = hashtagMatch[1];
-      setHashtagQuery(query);
-      fetchHashtagSuggestions(query);
-      setShowHashtagSuggestions(true);
-    } else {
-      setShowHashtagSuggestions(false);
-    }
   };
   
-  // Zamknij sugestie po kliknięciu poza nimi
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
-        setShowHashtagSuggestions(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-  
-  // Funkcja pobierająca sugestie hashtagów z Supabase
-  const fetchHashtagSuggestions = async (query: string) => {
-    if (query.length === 0) {
-      setHashtagSuggestions([]);
-      return;
-    }
-    
-    setIsLoadingHashtags(true);
-    try {
-      const { data, error } = await supabase
-        .from('hashtags')
-        .select('id, name')
-        .ilike('name', `${query}%`)
-        .order('name')
-        .limit(5);
-      
-      if (error) {
-        console.error('Błąd podczas pobierania sugestii hashtagów:', error);
-        return;
-      }
-      
-      setHashtagSuggestions(data || []);
-    } catch (error) {
-      console.error('Nieoczekiwany błąd:', error);
-    } finally {
-      setIsLoadingHashtags(false);
-    }
-  };
-  
-  // Funkcja do wstawiania wybranego hashtagu do treści
-  const insertHashtag = (hashtag: string) => {
-    const textBeforeCursor = content.substring(0, cursorPosition);
-    const hashtagMatch = textBeforeCursor.match(/#(\w*)$/);
-    
-    if (hashtagMatch) {
-      const startPos = cursorPosition - hashtagMatch[1].length;
-      const newContent = 
-        content.substring(0, startPos) + 
-        hashtag + ' ' + 
-        content.substring(cursorPosition);
-      
-      setContent(newContent);
-      
-      // Po wstawieniu tagu ustawić kursor na odpowiedniej pozycji
-      setTimeout(() => {
-        if (textareaRef.current) {
-          const newCursorPosition = startPos + hashtag.length + 1;
-          textareaRef.current.focus();
-          textareaRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
-          setCursorPosition(newCursorPosition);
-        }
-      }, 0);
-    }
-    
-    setShowHashtagSuggestions(false);
+  const handleSelectHashtag = (hashtag: string) => {
+    const { newContent, newPosition } = insertHashtag(content, hashtag, textareaRef);
+    setContent(newContent);
+    setCursorPosition(newPosition);
   };
   
   const togglePollMode = () => {
@@ -157,124 +77,12 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
     setIsPollMode(!isPollMode);
   };
   
-  const addPollOption = () => {
-    if (pollOptions.length < 10) {
-      setPollOptions([...pollOptions, '']);
-    } else {
-      toast({
-        title: "Limit opcji",
-        description: "Możesz dodać maksymalnie 10 opcji do ankiety",
-      });
-    }
-  };
-  
-  const removePollOption = (index: number) => {
-    if (pollOptions.length > 2) {
-      const newOptions = [...pollOptions];
-      newOptions.splice(index, 1);
-      setPollOptions(newOptions);
-    } else {
-      toast({
-        title: "Minimum opcji",
-        description: "Ankieta musi mieć co najmniej 2 opcje",
-      });
-    }
-  };
-  
-  const updatePollOption = (index: number, value: string) => {
-    const newOptions = [...pollOptions];
-    newOptions[index] = value;
-    setPollOptions(newOptions);
-  };
-  
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-    
-    // Check if we don't exceed the maximum files limit (6)
-    if (media.length + files.length > 6) {
-      toast({
-        title: "Limit plików",
-        description: "Możesz dodać maksymalnie 6 plików do jednego posta",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    Array.from(files).forEach(file => {
-      const isImage = file.type.startsWith('image/');
-      const isVideo = file.type.startsWith('video/');
-      const isDocument = !isImage && !isVideo;
-      
-      const mediaType = isImage ? 'image' as const : 
-                        isVideo ? 'video' as const : 
-                        'document' as const;
-      
-      const url = URL.createObjectURL(file);
-      
-      setMedia(prev => [...prev, { 
-        url, 
-        type: mediaType,
-        name: file.name,
-        size: file.size,
-        fileType: file.type,
-        file: file
-      }]);
-    });
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-  
   const removeMedia = (index: number) => {
     setMedia(prev => prev.filter((_, i) => i !== index));
   };
   
-  const formatFileSize = (bytes: number | undefined) => {
-    if (!bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-  
-  // Funkcja do przesyłania plików do Supabase Storage
-  const uploadMediaToStorage = async (file: File): Promise<string | null> => {
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `group_media/${groupId}/${fileName}`;
-      
-      // Prześlij plik do Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('public')
-        .upload(filePath, file);
-      
-      if (error) {
-        console.error('Błąd podczas przesyłania pliku:', error);
-        return null;
-      }
-      
-      // Pobierz publiczny URL pliku
-      const { data: { publicUrl } } = supabase.storage
-        .from('public')
-        .getPublicUrl(filePath);
-      
-      return publicUrl;
-    } catch (error) {
-      console.error('Nieoczekiwany błąd podczas przesyłania pliku:', error);
-      return null;
-    }
-  };
-  
-  const extractHashtags = (content: string): string[] => {
-    const hashtagRegex = /#(\w+)/g;
-    const matches = content.match(hashtagRegex);
-    if (!matches) return [];
-    
-    return [...new Set(matches.map(tag => tag.substring(1).toLowerCase()))];
+  const handleMediaUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    handleFileUpload(event, media, setMedia, fileInputRef);
   };
   
   const handleSubmit = async () => {
@@ -362,7 +170,7 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
         // Prześlij pliki do Supabase Storage
         const mediaPromises = media.map(async (mediaItem) => {
           if (mediaItem.file) {
-            const publicUrl = await uploadMediaToStorage(mediaItem.file);
+            const publicUrl = await uploadMediaToStorage(mediaItem.file, `group_media/${groupId}`);
             
             if (publicUrl) {
               if (mediaItem.type === 'document') {
@@ -452,118 +260,27 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
             disabled={loading}
           />
           
-          {/* Podpowiedzi hashtagów */}
-          {showHashtagSuggestions && (
-            <div 
-              ref={suggestionsRef}
-              className="absolute z-10 bg-white dark:bg-gray-800 border rounded-md shadow-lg max-h-60 overflow-y-auto w-64"
-              style={{ top: textareaRef.current ? `${textareaRef.current.offsetHeight + 5}px` : '100%', left: '20px' }}
-            >
-              <div className="p-2 border-b text-xs font-medium text-rhythm-500 flex items-center">
-                <Hash className="h-3 w-3 mr-1" />
-                Popularne hashtagi
-              </div>
-              
-              {isLoadingHashtags ? (
-                <div className="p-3 text-center text-sm text-rhythm-500">
-                  Ładowanie...
-                </div>
-              ) : hashtagSuggestions.length > 0 ? (
-                <ul>
-                  {hashtagSuggestions.map((hashtag) => (
-                    <li 
-                      key={hashtag.id}
-                      className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm transition-colors"
-                      onClick={() => insertHashtag(hashtag.name)}
-                    >
-                      #{hashtag.name}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="p-3 text-center text-sm text-rhythm-500">
-                  Brak pasujących hashtagów
-                </div>
-              )}
-            </div>
-          )}
+          <HashtagSuggestions 
+            showSuggestions={showHashtagSuggestions}
+            suggestionsRef={suggestionsRef}
+            suggestions={hashtagSuggestions}
+            isLoading={isLoadingHashtags}
+            onSelectHashtag={handleSelectHashtag}
+          />
           
           {isPollMode && (
-            <div className="space-y-3 mb-4 bg-slate-50 dark:bg-slate-900 p-4 rounded-md">
-              <h3 className="font-medium">Opcje ankiety:</h3>
-              {pollOptions.map((option, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={option}
-                    onChange={(e) => updatePollOption(index, e.target.value)}
-                    placeholder={`Opcja ${index + 1}`}
-                    className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    disabled={loading}
-                  />
-                  {pollOptions.length > 2 && (
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => removePollOption(index)}
-                      disabled={loading}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                type="button"
-                onClick={addPollOption}
-                disabled={pollOptions.length >= 10 || loading}
-                className="w-full justify-center"
-              >
-                Dodaj opcję
-              </Button>
-            </div>
+            <PollOptions 
+              options={pollOptions}
+              onUpdateOptions={setPollOptions}
+              disabled={loading}
+            />
           )}
           
-          {media.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-3">
-              {media.map((item, index) => (
-                <div key={index} className="relative rounded-md overflow-hidden">
-                  <Button 
-                    variant="destructive" 
-                    size="icon" 
-                    className="absolute top-2 right-2 h-7 w-7 opacity-90 z-10"
-                    onClick={() => removeMedia(index)}
-                    disabled={loading}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                  
-                  {item.type === 'image' ? (
-                    <img 
-                      src={item.url} 
-                      alt={`Załącznik ${index + 1}`} 
-                      className="w-full h-auto max-h-48 object-cover rounded-md" 
-                    />
-                  ) : item.type === 'video' ? (
-                    <video 
-                      src={item.url}
-                      controls
-                      className="w-full h-auto max-h-48 object-cover rounded-md"
-                    />
-                  ) : (
-                    <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md flex flex-col items-center justify-center min-h-[100px]">
-                      <FileText className="h-10 w-10 mb-2 text-slate-500" />
-                      <p className="text-sm font-medium truncate max-w-full">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatFileSize(item.size)}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <MediaPreview 
+            media={media}
+            onRemoveMedia={removeMedia}
+            disabled={loading}
+          />
           
           {isExpanded && (
             <div className="flex justify-between items-center mt-3">
@@ -616,7 +333,7 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
                   className="hidden" 
                   accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
                   multiple
-                  onChange={handleFileUpload}
+                  onChange={handleMediaUpload}
                   disabled={loading}
                 />
               </div>
