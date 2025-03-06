@@ -30,6 +30,8 @@ export const handleFileUpload = (
     return;
   }
   
+  const newMedia: MediaFile[] = [...currentMedia];
+  
   Array.from(files).forEach(file => {
     const isImage = file.type.startsWith('image/');
     const isVideo = file.type.startsWith('video/');
@@ -41,15 +43,17 @@ export const handleFileUpload = (
     
     const url = URL.createObjectURL(file);
     
-    setMedia(prev => [...prev, { 
+    newMedia.push({ 
       url, 
       type: mediaType,
       name: file.name,
       size: file.size,
       fileType: file.type,
       file: file
-    }]);
+    });
   });
+  
+  setMedia(newMedia);
   
   // Reset file input
   if (fileInputRef.current) {
