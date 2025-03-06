@@ -30,7 +30,7 @@ export default function GroupDetail() {
       
       setLoadingGroup(true);
       try {
-        console.log('Fetching group with ID:', id);
+        console.log('Pobieranie grupy o ID:', id);
         
         // Pobierz dane grupy
         const { data: groupData, error } = await supabase
@@ -51,7 +51,7 @@ export default function GroupDetail() {
           return;
         }
         
-        console.log('Fetched group data:', groupData);
+        console.log('Pobrane dane grupy:', groupData);
         
         // Pobierz liczbę członków w osobnym zapytaniu
         const { count: memberCount, error: membersError } = await supabase
@@ -63,26 +63,27 @@ export default function GroupDetail() {
           console.error('Błąd podczas pobierania liczby członków:', membersError);
         }
         
-        console.log('Member count:', memberCount);
+        console.log('Liczba członków:', memberCount);
         
         // Sprawdź, czy zalogowany użytkownik jest członkiem grupy i jaką ma rolę
         let userIsMember = false;
         let userIsAdmin = false;
         
         if (user?.id) {
-          const { data: memberData, error: memberError } = await supabase
-            .from('group_members')
-            .select('role')
-            .eq('group_id', id)
-            .eq('user_id', user.id)
-            .maybeSingle();
-            
-          if (memberError) {
+          try {
+            // Najpierw pobierz role bezpośrednio z funkcji SQL
+            const { data: roleData, error: roleError } = await supabase
+              .rpc('get_user_group_role', { group_id: id, user_id: user.id });
+              
+            if (roleError) {
+              console.error('Błąd podczas sprawdzania roli użytkownika:', roleError);
+            } else {
+              console.log('Dane roli użytkownika:', roleData);
+              userIsMember = !!roleData;
+              userIsAdmin = roleData === 'admin';
+            }
+          } catch (memberError) {
             console.error('Błąd podczas sprawdzania członkostwa:', memberError);
-          } else {
-            userIsMember = !!memberData;
-            userIsAdmin = memberData?.role === 'admin';
-            console.log('User membership data:', { userIsMember, userIsAdmin, memberData });
           }
         }
         
@@ -108,7 +109,7 @@ export default function GroupDetail() {
           files: []
         };
         
-        console.log('Formatted group:', formattedGroup);
+        console.log('Sformatowana grupa:', formattedGroup);
         setGroup(formattedGroup);
       } catch (error) {
         console.error('Nieoczekiwany błąd:', error);
