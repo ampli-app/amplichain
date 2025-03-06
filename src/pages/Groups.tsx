@@ -1,21 +1,28 @@
 
+import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { GroupSearch } from '@/components/groups/GroupSearch';
-import { GroupCategoryFilter } from '@/components/groups/GroupCategoryFilter';
 import { GroupsGrid } from '@/components/groups/GroupsGrid';
 import { GroupLoadingSkeleton } from '@/components/groups/GroupLoadingSkeleton';
 import { useGroupsData } from '@/hooks/useGroupsData';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Groups() {
+  const { user } = useAuth();
   const {
     searchQuery,
     setSearchQuery,
-    selectedCategory,
-    setSelectedCategory,
     filteredGroups,
     loading
   } = useGroupsData();
+
+  // Filter groups by user membership
+  const userGroups = filteredGroups.filter(group => group.isMember);
+  const discoverGroups = filteredGroups.filter(group => !group.isMember);
+  
+  // Check if there are any user groups to show the section
+  const showUserGroups = userGroups.length > 0;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -33,22 +40,29 @@ export default function Groups() {
               </div>
             </div>
             
-            <div className="mb-8 space-y-4">
+            <div className="mb-8">
               <GroupSearch 
                 searchQuery={searchQuery} 
                 setSearchQuery={setSearchQuery} 
-              />
-              
-              <GroupCategoryFilter 
-                selectedCategory={selectedCategory} 
-                setSelectedCategory={setSelectedCategory} 
               />
             </div>
             
             {loading ? (
               <GroupLoadingSkeleton />
             ) : (
-              <GroupsGrid groups={filteredGroups} />
+              <div className="space-y-12">
+                {showUserGroups && (
+                  <div>
+                    <h2 className="text-2xl font-bold mb-6">Twoje grupy</h2>
+                    <GroupsGrid groups={userGroups} />
+                  </div>
+                )}
+                
+                <div>
+                  <h2 className="text-2xl font-bold mb-6">Odkrywaj społeczności</h2>
+                  <GroupsGrid groups={discoverGroups} />
+                </div>
+              </div>
             )}
           </div>
         </div>
