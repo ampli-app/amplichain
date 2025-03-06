@@ -1,10 +1,8 @@
-
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
   Star, 
-  ArrowRight, 
-  CheckCircle,
+  ArrowRight,
   Users
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -19,14 +17,6 @@ interface GroupCardProps {
 export function GroupCard({ group, delay = 0 }: GroupCardProps) {
   // Check if this group has more than 3 members to mark it as popular
   const isPopular = group.memberCount > 3;
-  
-  // Default features for all groups
-  const features = [
-    'Wsparcie społeczności',
-    'Wymiana wiedzy',
-    'Dyskusje tematyczne',
-    'Wydarzenia i wyzwania'
-  ];
   
   return (
     <motion.div 
@@ -65,15 +55,6 @@ export function GroupCard({ group, delay = 0 }: GroupCardProps) {
         
         <h3 className="text-xl font-semibold mb-2">{group.name}</h3>
         <p className="text-rhythm-600 mb-4">{group.description}</p>
-        
-        <div className="space-y-2 mb-6">
-          {features.map((feature, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm">
-              <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-              <span>{feature}</span>
-            </div>
-          ))}
-        </div>
         
         <Button className="w-full group" asChild>
           <Link to={`/groups/${group.id}`}>
