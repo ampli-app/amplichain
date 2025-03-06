@@ -5,9 +5,10 @@ import { Group } from '@/types/group';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Users, Bell, BellOff, Share2, User } from 'lucide-react';
+import { Settings, Users, Bell, BellOff, Share2, User, Lock } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface GroupHeaderProps {
   group: Group;
@@ -15,7 +16,9 @@ interface GroupHeaderProps {
 
 export function GroupHeader({ group }: GroupHeaderProps) {
   const navigate = useNavigate();
+  const { isLoggedIn, user } = useAuth();
   const [isJoined, setIsJoined] = useState(group.isMember);
+  const [joinRequestPending, setJoinRequestPending] = useState(false);
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   
@@ -53,15 +56,40 @@ export function GroupHeader({ group }: GroupHeaderProps) {
             }
           };
           checkMembership();
+          
+          // Sprawdź czy istnieje oczekująca prośba dołączenia do grupy
+          if (group.isPrivate) {
+            const checkJoinRequest = async () => {
+              try {
+                const { data, error } = await supabase
+                  .from('group_join_requests')
+                  .select('status')
+                  .eq('group_id', group.id)
+                  .eq('user_id', user.id)
+                  .eq('status', 'pending')
+                  .maybeSingle();
+                  
+                if (error) {
+                  console.error('Błąd podczas sprawdzania prośby o dołączenie:', error);
+                  return;
+                }
+                
+                setJoinRequestPending(!!data);
+              } catch (err) {
+                console.error('Nieoczekiwany błąd podczas sprawdzania prośby o dołączenie:', err);
+              }
+            };
+            checkJoinRequest();
+          }
         }
       }
     };
     
     checkUser();
-  }, [group.id]);
+  }, [group.id, group.isPrivate]);
   
   const handleJoinGroup = async () => {
-    if (!currentUser) {
+    if (!isLoggedIn || !currentUser) {
       toast({
         title: "Wymagane logowanie",
         description: "Zaloguj się, aby dołączyć do grupy",
@@ -93,7 +121,66 @@ export function GroupHeader({ group }: GroupHeaderProps) {
         return;
       }
       
-      // Jeśli nie jest członkiem, dodaj go
+      // Sprawdź czy grupa jest prywatna
+      if (group.isPrivate) {
+        // Sprawdź czy już istnieje prośba o dołączenie
+        const { data: existingRequest, error: requestCheckError } = await supabase
+          .from('group_join_requests')
+          .select('*')
+          .eq('group_id', group.id)
+          .eq('user_id', currentUser)
+          .maybeSingle();
+          
+        if (requestCheckError) {
+          console.error('Błąd podczas sprawdzania prośby o dołączenie:', requestCheckError);
+        }
+        
+        // Jeśli prośba już istnieje, poinformuj użytkownika
+        if (existingRequest) {
+          if (existingRequest.status === 'pending') {
+            setJoinRequestPending(true);
+            toast({
+              title: "Prośba już wysłana",
+              description: `Twoja prośba o dołączenie do "${group.name}" oczekuje na akceptację.`
+            });
+          } else if (existingRequest.status === 'rejected') {
+            toast({
+              title: "Prośba odrzucona",
+              description: `Twoja prośba o dołączenie do "${group.name}" została wcześniej odrzucona.`,
+              variant: "destructive"
+            });
+          }
+          return;
+        }
+        
+        // Dodaj prośbę o dołączenie dla grupy prywatnej
+        const { error: requestError } = await supabase
+          .from('group_join_requests')
+          .insert({
+            group_id: group.id,
+            user_id: currentUser,
+            status: 'pending'
+          });
+          
+        if (requestError) {
+          console.error('Błąd podczas wysyłania prośby o dołączenie:', requestError);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się wysłać prośby o dołączenie do grupy",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        setJoinRequestPending(true);
+        toast({
+          title: "Prośba wysłana",
+          description: `Twoja prośba o dołączenie do "${group.name}" została wysłana.`
+        });
+        return;
+      }
+      
+      // Dla grup publicznych, dodaj użytkownika od razu
       const { error } = await supabase
         .from('group_members')
         .insert({
@@ -247,7 +334,12 @@ export function GroupHeader({ group }: GroupHeaderProps) {
             <div className="bg-background/95 backdrop-blur-sm rounded-lg p-4 shadow-sm">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl md:text-3xl font-bold">{group.name}</h1>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl md:text-3xl font-bold">{group.name}</h1>
+                    {group.isPrivate && (
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
                   <div className="flex items-center gap-3 mt-2">
                     <Badge variant={group.isPrivate ? "outline" : "secondary"}>
                       {group.isPrivate ? 'Prywatna' : 'Publiczna'}
@@ -315,9 +407,12 @@ export function GroupHeader({ group }: GroupHeaderProps) {
                       size="sm"
                       className="gap-1"
                       onClick={handleJoinGroup}
+                      disabled={joinRequestPending}
                     >
                       <User className="h-4 w-4" />
-                      Dołącz do grupy
+                      {group.isPrivate 
+                        ? (joinRequestPending ? 'Prośba wysłana' : 'Poproś o dołączenie') 
+                        : 'Dołącz do grupy'}
                     </Button>
                   )}
                   

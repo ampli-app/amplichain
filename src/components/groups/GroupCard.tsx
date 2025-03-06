@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { 
   Star, 
   ArrowRight,
-  Users
+  Users,
+  Lock
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Group } from '@/types/group';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface GroupCardProps {
   group: Group;
@@ -17,6 +19,8 @@ interface GroupCardProps {
 
 export function GroupCard({ group, delay = 0 }: GroupCardProps) {
   const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
+  
   // Check if this group has more than 3 members to mark it as popular
   const isPopular = group.memberCount > 3;
   
@@ -38,6 +42,13 @@ export function GroupCard({ group, delay = 0 }: GroupCardProps) {
       {isPopular && (
         <Badge className="absolute top-4 right-4 z-10 bg-primary">
           Popularne
+        </Badge>
+      )}
+      
+      {group.isPrivate && (
+        <Badge className="absolute top-4 left-4 z-10 bg-zinc-700 flex items-center gap-1">
+          <Lock className="h-3 w-3" />
+          Prywatna
         </Badge>
       )}
       
@@ -64,7 +75,11 @@ export function GroupCard({ group, delay = 0 }: GroupCardProps) {
         <h3 className="text-xl font-semibold mb-2">{group.name}</h3>
         <p className="text-rhythm-600 mb-4">{group.description}</p>
         
-        <Button className="w-full group" asChild onClick={(e) => e.stopPropagation()}>
+        <Button 
+          className="w-full group" 
+          asChild
+          onClick={(e) => e.stopPropagation()}
+        >
           <Link to={`/groups/${group.id}`}>
             {group.isMember ? 'Przejdź do grupy' : 'Dołącz do społeczności'}
             <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />

@@ -9,8 +9,9 @@ import { GroupHeader } from '@/components/groups/GroupHeader';
 import { GroupPostCreate } from '@/components/groups/GroupPostCreate';
 import { GroupTabs } from '@/components/groups/GroupTabs';
 import { Group } from '@/types/group';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Lock, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
 
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +21,7 @@ export default function GroupDetail() {
   const [loadingGroup, setLoadingGroup] = useState(true);
   const [isMember, setIsMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [joinRequestPending, setJoinRequestPending] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -68,6 +70,7 @@ export default function GroupDetail() {
         // Sprawdź, czy zalogowany użytkownik jest członkiem grupy i jaką ma rolę
         let userIsMember = false;
         let userIsAdmin = false;
+        let hasJoinRequest = false;
         
         if (user?.id) {
           try {
@@ -86,6 +89,21 @@ export default function GroupDetail() {
               userIsMember = !!memberData;
               userIsAdmin = memberData?.role === 'admin';
             }
+            
+            // Sprawdź czy istnieje oczekująca prośba o dołączenie
+            if (groupData.is_private && !userIsMember) {
+              const { data: requestData, error: requestError } = await supabase
+                .from('group_join_requests')
+                .select('status')
+                .eq('group_id', id)
+                .eq('user_id', user.id)
+                .eq('status', 'pending')
+                .maybeSingle();
+                
+              if (!requestError && requestData) {
+                hasJoinRequest = true;
+              }
+            }
           } catch (memberError) {
             console.error('Błąd podczas sprawdzania członkostwa:', memberError);
           }
@@ -93,6 +111,7 @@ export default function GroupDetail() {
         
         setIsMember(userIsMember);
         setIsAdmin(userIsAdmin);
+        setJoinRequestPending(hasJoinRequest);
         
         // Przetwórz dane na format Group
         const formattedGroup: Group = {
@@ -161,6 +180,9 @@ export default function GroupDetail() {
     );
   }
 
+  // Wyświetlenie ograniczonego widoku dla grupy prywatnej
+  const showLimitedView = group.isPrivate && !isMember && !isAdmin;
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -168,46 +190,81 @@ export default function GroupDetail() {
       <main className="flex-1 pt-16 pb-16">
         <GroupHeader group={group} />
         
-        <div className="container px-4 mx-auto mt-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Sidebar - visible only on large screens */}
-            <div className="hidden lg:block">
-              <div className="space-y-6 sticky top-24">
-                <div className="bg-background rounded-xl border shadow-sm p-6">
-                  <h3 className="text-lg font-semibold mb-3">O grupie</h3>
-                  <p className="text-rhythm-600 mb-4">{group.description}</p>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-rhythm-500">Kategoria:</span>
-                      <span className="font-medium">{group.category}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-rhythm-500">Członkowie:</span>
-                      <span className="font-medium">{group.memberCount}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-rhythm-500">Utworzono:</span>
-                      <span className="font-medium">{new Date(group.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-rhythm-500">Typ grupy:</span>
-                      <span className="font-medium">{group.isPrivate ? 'Prywatna' : 'Publiczna'}</span>
+        {showLimitedView ? (
+          <div className="container px-4 mx-auto mt-12">
+            <div className="max-w-2xl mx-auto bg-background rounded-xl border p-8 text-center">
+              <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h2 className="text-2xl font-bold mb-2">Grupa prywatna</h2>
+              <p className="text-muted-foreground mb-6">
+                Ta grupa jest prywatna. Musisz być członkiem grupy, aby uzyskać dostęp do jej zawartości.
+              </p>
+              
+              {isLoggedIn ? (
+                <Button 
+                  size="lg" 
+                  className="mx-auto gap-2"
+                  disabled={joinRequestPending}
+                  onClick={() => {
+                    // Symulacja kliknięcia przycisku dołączenia w nagłówku
+                    const joinButton = document.querySelector('[data-join-button]') as HTMLButtonElement;
+                    if (joinButton) joinButton.click();
+                  }}
+                >
+                  <User className="h-4 w-4" />
+                  {joinRequestPending ? 'Prośba wysłana' : 'Poproś o dołączenie do grupy'}
+                </Button>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">Zaloguj się, aby poprosić o dołączenie do tej grupy</p>
+                  <Link to="/login">
+                    <Button>Zaloguj się</Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="container px-4 mx-auto mt-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Sidebar - visible only on large screens */}
+              <div className="hidden lg:block">
+                <div className="space-y-6 sticky top-24">
+                  <div className="bg-background rounded-xl border shadow-sm p-6">
+                    <h3 className="text-lg font-semibold mb-3">O grupie</h3>
+                    <p className="text-rhythm-600 mb-4">{group.description}</p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-rhythm-500">Kategoria:</span>
+                        <span className="font-medium">{group.category}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-rhythm-500">Członkowie:</span>
+                        <span className="font-medium">{group.memberCount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-rhythm-500">Utworzono:</span>
+                        <span className="font-medium">{new Date(group.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-rhythm-500">Typ grupy:</span>
+                        <span className="font-medium">{group.isPrivate ? 'Prywatna' : 'Publiczna'}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-            
-            {/* Main content */}
-            <div className="lg:col-span-2 space-y-6">
-              {group.isMember && (
-                <GroupPostCreate group={group} />
-              )}
               
-              <GroupTabs group={group} />
+              {/* Main content */}
+              <div className="lg:col-span-2 space-y-6">
+                {group.isMember && (
+                  <GroupPostCreate group={group} />
+                )}
+                
+                <GroupTabs group={group} />
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </main>
       
       <Footer />
