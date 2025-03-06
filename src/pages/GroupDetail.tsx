@@ -39,13 +39,14 @@ export default function GroupDetail() {
         
         if (error) {
           console.error('Błąd podczas pobierania grupy:', error);
+          setLoadingGroup(false);
           return;
         }
         
-        // Pobierz liczbę członków
+        // Pobierz liczbę członków w osobnym zapytaniu
         const { count: memberCount, error: membersError } = await supabase
           .from('group_members')
-          .select('id', { count: 'exact', head: true })
+          .select('*', { count: 'exact', head: true })
           .eq('group_id', id);
           
         if (membersError) {
@@ -53,6 +54,9 @@ export default function GroupDetail() {
         }
         
         // Sprawdź, czy zalogowany użytkownik jest członkiem grupy i jaką ma rolę
+        let userIsMember = false;
+        let userIsAdmin = false;
+        
         if (user?.id) {
           const { data: memberData, error: memberError } = await supabase
             .from('group_members')
@@ -64,10 +68,13 @@ export default function GroupDetail() {
           if (memberError) {
             console.error('Błąd podczas sprawdzania członkostwa:', memberError);
           } else {
-            setIsMember(!!memberData);
-            setIsAdmin(memberData?.role === 'admin');
+            userIsMember = !!memberData;
+            userIsAdmin = memberData?.role === 'admin';
           }
         }
+        
+        setIsMember(userIsMember);
+        setIsAdmin(userIsAdmin);
         
         // Przetwórz dane na format Group
         const formattedGroup: Group = {
@@ -75,12 +82,12 @@ export default function GroupDetail() {
           name: groupData.name,
           description: groupData.description || '',
           coverImage: groupData.cover_image || '',
-          profileImage: groupData.profile_image,
+          profileImage: groupData.profile_image || '',
           memberCount: memberCount || 0,
           category: groupData.category || '',
           isPrivate: groupData.is_private || false,
-          isMember: !!isMember,
-          isAdmin: !!isAdmin,
+          isMember: userIsMember,
+          isAdmin: userIsAdmin,
           createdAt: new Date(groupData.created_at).toISOString(),
           posts: [],
           members: [],
@@ -97,7 +104,7 @@ export default function GroupDetail() {
     };
     
     fetchGroup();
-  }, [id, user?.id, isMember, isAdmin]);
+  }, [id, user?.id]);
 
   if (loadingGroup) {
     return (

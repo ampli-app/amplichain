@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -17,11 +18,11 @@ import {
   HeadphonesIcon,
   Guitar,
   Drum,
-  Piano,
-  PlusCircle
+  Piano
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
 
 interface Group {
   id: string;
@@ -243,9 +244,11 @@ function GroupCard({ group, delay = 0 }: { group: Group, delay?: number }) {
           ))}
         </div>
         
-        <Button className="w-full group">
-          Dołącz do społeczności
-          <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+        <Button className="w-full group" asChild>
+          <Link to={`/groups/${group.id}`}>
+            Dołącz do społeczności
+            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
         </Button>
       </div>
     </motion.div>
@@ -264,19 +267,10 @@ export default function Groups() {
     const fetchGroups = async () => {
       setLoading(true);
       try {
+        // Pobierz dane grup bezpośrednio bez odniesienia do group_members
         const { data: groupsData, error } = await supabase
           .from('groups')
-          .select(`
-            id,
-            name,
-            description,
-            cover_image,
-            profile_image,
-            category,
-            is_private,
-            created_at,
-            group_members (id)
-          `);
+          .select('*');
         
         if (error) {
           console.error('Błąd podczas pobierania grup:', error);
@@ -284,12 +278,27 @@ export default function Groups() {
           return;
         }
         
-        const formattedGroups: Group[] = groupsData.map(group => ({
+        // Pobierz liczbę członków dla każdej grupy w osobnym zapytaniu
+        const groupsWithMemberCounts = await Promise.all(
+          groupsData.map(async (group) => {
+            const { count, error: countError } = await supabase
+              .from('group_members')
+              .select('*', { count: 'exact', head: true })
+              .eq('group_id', group.id);
+              
+            return {
+              ...group,
+              memberCount: count || 0
+            };
+          })
+        );
+        
+        const formattedGroups: Group[] = groupsWithMemberCounts.map(group => ({
           id: group.id,
           title: group.name,
           description: group.description || 'Brak opisu',
           image: group.cover_image || 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop',
-          members: group.group_members?.length || 0,
+          members: group.memberCount || 0,
           rating: 4.7,
           features: [
             'Wsparcie społeczności',
@@ -297,7 +306,7 @@ export default function Groups() {
             'Dyskusje tematyczne',
             'Wydarzenia i wyzwania'
           ],
-          popular: group.group_members?.length > 3,
+          popular: group.memberCount > 3,
           category: group.category || 'all',
           tags: [group.category || 'Muzyka'].concat(['Społeczność', 'Rozwój'])
         }));
@@ -380,14 +389,6 @@ export default function Groups() {
                   Dołącz do społeczności tematycznych i rozwijaj swoje pasje muzyczne.
                 </p>
               </div>
-              
-              <Button 
-                className="self-center md:self-auto gap-2"
-                size="lg"
-              >
-                <PlusCircle className="h-4 w-4" />
-                Utwórz grupę
-              </Button>
             </div>
             
             <div className="mb-8 space-y-4">
@@ -420,8 +421,7 @@ export default function Groups() {
               <div className="text-center py-16 bg-gray-50 dark:bg-gray-900 rounded-lg">
                 <Users className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                 <h3 className="text-xl font-medium mb-2">Brak pasujących grup</h3>
-                <p className="text-gray-500 mb-6">Spróbuj zmienić kryteria wyszukiwania lub utwórz własną grupę</p>
-                <Button>Utwórz nową grupę</Button>
+                <p className="text-gray-500 mb-6">Spróbuj zmienić kryteria wyszukiwania</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
