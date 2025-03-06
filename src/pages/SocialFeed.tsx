@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -54,19 +55,19 @@ export default function SocialFeed() {
                 <div className="mb-6 p-3 w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
                   <Rss className="w-8 h-8 text-primary" />
                 </div>
-                <h1 className="text-2xl font-bold mb-2">Join the Conversation</h1>
+                <h1 className="text-2xl font-bold mb-2">Dołącz do konwersacji</h1>
                 <p className="text-rhythm-600 mb-6">
-                  Sign in to access your personalized feed, share updates, and engage with other music industry professionals.
+                  Zaloguj się, aby uzyskać dostęp do spersonalizowanego feedu, udostępniać aktualizacje i angażować się z innymi profesjonalistami z branży muzycznej.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button asChild>
                     <Link to="/login" className="flex items-center gap-2">
                       <LogIn className="h-4 w-4" />
-                      Sign In
+                      Zaloguj się
                     </Link>
                   </Button>
                   <Button asChild variant="outline">
-                    <Link to="/signup">Create Account</Link>
+                    <Link to="/signup">Utwórz konto</Link>
                   </Button>
                 </div>
               </div>
@@ -95,7 +96,7 @@ export default function SocialFeed() {
                   <div className="flex gap-3">
                     <Button variant="outline" size="sm" className="gap-1">
                       <Filter className="h-4 w-4" />
-                      Filter
+                      Filtruj
                     </Button>
                     <Button 
                       size="sm" 
@@ -116,15 +117,15 @@ export default function SocialFeed() {
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="all" className="flex items-center gap-1.5">
                       <Globe className="h-4 w-4" />
-                      <span>All</span>
+                      <span>Wszyscy</span>
                     </TabsTrigger>
                     <TabsTrigger value="following" className="flex items-center gap-1.5">
                       <Star className="h-4 w-4" />
-                      <span>Following</span>
+                      <span>Obserwowani</span>
                     </TabsTrigger>
                     <TabsTrigger value="connections" className="flex items-center gap-1.5">
                       <Users className="h-4 w-4" />
-                      <span>Connections</span>
+                      <span>Połączeni</span>
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
