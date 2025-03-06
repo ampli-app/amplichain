@@ -12,14 +12,32 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface GroupTabsProps {
   group: Group;
+  activeTab?: string;
+  setActiveTab?: (value: string) => void;
 }
 
-export function GroupTabs({ group }: GroupTabsProps) {
+export function GroupTabs({ group, activeTab = "posts", setActiveTab }: GroupTabsProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('posts');
+  const [localActiveTab, setLocalActiveTab] = useState(activeTab);
   const [membersCount, setMembersCount] = useState(0);
   const [mediaCount, setMediaCount] = useState(0);
   const [filesCount, setFilesCount] = useState(0);
+  
+  // Handle either local or parent state for active tab
+  const handleTabChange = (value: string) => {
+    if (setActiveTab) {
+      setActiveTab(value);
+    } else {
+      setLocalActiveTab(value);
+    }
+  };
+  
+  // Update local tab state if parent prop changes
+  useEffect(() => {
+    if (activeTab) {
+      setLocalActiveTab(activeTab);
+    }
+  }, [activeTab]);
   
   useEffect(() => {
     const fetchCounts = async () => {
@@ -83,7 +101,11 @@ export function GroupTabs({ group }: GroupTabsProps) {
   }, [group.id]);
 
   return (
-    <Tabs defaultValue="posts" value={activeTab} onValueChange={setActiveTab}>
+    <Tabs 
+      defaultValue="posts" 
+      value={localActiveTab} 
+      onValueChange={handleTabChange}
+    >
       <div className="sticky top-0 bg-background z-10 border-b pb-4 mb-6">
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

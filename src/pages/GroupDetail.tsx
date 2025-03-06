@@ -22,6 +22,7 @@ export default function GroupDetail() {
   const [isMember, setIsMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [joinRequestPending, setJoinRequestPending] = useState(false);
+  const [activeTab, setActiveTab] = useState("posts");
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -256,12 +257,12 @@ export default function GroupDetail() {
               
               {/* Main content */}
               <div className="lg:col-span-2 space-y-6">
-                <GroupTabs group={group} />
-                
-                {/* Post creation form moved below tabs */}
-                {group.isMember && (
+                {/* Post creation form moved above tabs but only visible when Posts tab is active */}
+                {group.isMember && activeTab === "posts" && (
                   <GroupPostCreate group={group} />
                 )}
+                
+                <GroupTabs group={group} activeTab={activeTab} setActiveTab={setActiveTab} />
               </div>
             </div>
           </div>
