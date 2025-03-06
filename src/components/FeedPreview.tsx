@@ -25,7 +25,7 @@ export function FeedPreview() {
         setLoading(true);
         
         const { data: postsData, error: postsError } = await supabase
-          .from('posts')
+          .from('feed_posts')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(3);
@@ -62,18 +62,52 @@ export function FeedPreview() {
               userProfile.role = profileData.role || '';
             }
             
-            // Pobierz liczbę komentarzy (teraz zawsze zero po usunięciu tabeli)
-            const commentsCount = 0;
+            // Pobierz liczbę komentarzy
+            const { count: commentsCount, error: commentsError } = await supabase
+              .from('feed_post_comments')
+              .select('id', { count: 'exact', head: true })
+              .eq('post_id', post.id);
+            
+            if (commentsError) {
+              console.error('Error fetching comments count:', commentsError);
+            }
+            
+            // Pobierz liczbę polubień
+            const { count: likesCount, error: likesError } = await supabase
+              .from('feed_post_likes')
+              .select('id', { count: 'exact', head: true })
+              .eq('post_id', post.id);
+            
+            if (likesError) {
+              console.error('Error fetching likes count:', likesError);
+            }
+            
+            // Pobierz media
+            const { data: mediaData, error: mediaError } = await supabase
+              .from('feed_post_media')
+              .select('url, type')
+              .eq('post_id', post.id);
+            
+            if (mediaError) {
+              console.error('Error fetching post media:', mediaError);
+            }
             
             // Pobierz hashtagi
-            const { data: tagData } = await supabase
-              .from('post_hashtags')
+            const { data: tagData, error: tagError } = await supabase
+              .from('feed_post_hashtags')
               .select(`
-                hashtags:hashtag_id (name)
+                hashtag_id,
+                hashtags (name)
               `)
               .eq('post_id', post.id);
             
-            const hashtags = tagData ? tagData.map((t) => t.hashtags?.name).filter(Boolean) : [];
+            if (tagError) {
+              console.error('Error fetching post hashtags:', tagError);
+            }
+            
+            const hashtags = tagData 
+              ? tagData.map((t) => t.hashtags?.name).filter(Boolean) as string[]
+              : [];
             
             // Oblicz czas względny
             const createdDate = new Date(post.created_at);
@@ -101,10 +135,14 @@ export function FeedPreview() {
               },
               timeAgo,
               content: post.content,
-              mediaUrl: post.media_url,
-              likes: 0,
-              comments: commentsCount,
-              hashtags
+              createdAt: post.created_at,
+              likes: likesCount || 0,
+              comments: commentsCount || 0,
+              hashtags,
+              media: mediaData && mediaData.length > 0 ? mediaData.map(m => ({
+                url: m.url,
+                type: m.type as 'image' | 'video'
+              })) : undefined
             };
           })
         );
@@ -179,10 +217,10 @@ export function FeedPreview() {
                     dangerouslySetInnerHTML={{ __html: formatContent(post.content) }}
                   />
                   
-                  {post.mediaUrl && (
+                  {post.media && post.media.length > 0 && (
                     <div className="mb-4 rounded-md overflow-hidden">
                       <img 
-                        src={post.mediaUrl} 
+                        src={post.media[0].url} 
                         alt="Post media" 
                         className="w-full h-auto max-h-96 object-cover" 
                       />

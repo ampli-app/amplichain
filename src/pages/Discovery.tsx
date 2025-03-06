@@ -1,240 +1,264 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
-import { Card, CardContent } from "@/components/ui/card"
-import { Heart, Save, MessageCircle, PlusCircle, Filter, UserPlus, CheckCircle, UserCheck, Users, User, Globe, ChevronDown, Copy, Check, CheckCheck } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSocial } from '@/contexts/SocialContext';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Separator } from "@/components/ui/separator"
-import { Textarea } from "@/components/ui/textarea"
-import { toast } from "@/components/ui/use-toast"
-import { formatDistanceToNow } from 'date-fns';
-import { pl } from 'date-fns/locale';
-import { format } from 'date-fns';
-import { Link } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
-import { CreatePostModal } from '@/components/CreatePostModal';
-import { SocialFeedContent } from '@/components/social/SocialFeedContent';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { DiscoverHero } from '@/components/discover/DiscoverHero';
+import { DiscoverSlider } from '@/components/discover/DiscoverSlider';
+import { SuggestedProfilesSection } from '@/components/discover/SuggestedProfilesSection';
+import { PopularHashtagsSection } from '@/components/discover/PopularHashtagsSection';
+import { GroupsSection } from '@/components/discover/GroupsSection';
+import { FeedSection } from '@/components/discover/FeedSection';
+import { MarketplaceSection } from '@/components/discover/MarketplaceSection';
+import { FeatureCard } from '@/components/discover/FeatureCard';
+import { supabase } from '@/integrations/supabase/client';
+import { useDiscoverSliders } from '@/hooks/useDiscoverSliders';
 import { Post } from '@/types/social';
 
-interface UserProfile {
-  id: string;
-  full_name: string;
-  username: string;
-  avatar_url: string;
-  role: string;
-  bio: string;
-  website: string;
-  location: string;
-  created_at: string;
-  updated_at: string;
-  email: string;
-}
-
-const calculateTimeAgo = (createdAt: string): string => {
-  const createdDate = new Date(createdAt);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - createdDate.getTime()) / 1000);
-
-  if (diffInSeconds < 60) {
-    return `${diffInSeconds} sek. temu`;
-  } else if (diffInSeconds < 3600) {
-    return `${Math.floor(diffInSeconds / 60)} min. temu`;
-  } else if (diffInSeconds < 86400) {
-    return `${Math.floor(diffInSeconds / 3600)} godz. temu`;
-  } else {
-    return `${Math.floor(diffInSeconds / 86400)} dni temu`;
-  }
-};
-
-export default function Discovery() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [profiles, setProfiles] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function Discover() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
-  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
-  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
-  const { posts: socialPosts } = useSocial();
+  const [activeTab, setActiveTab] = useState('all');
+  const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
+  const { sliders, loading: slidersLoading } = useDiscoverSliders();
   
   useEffect(() => {
-    const fetchPosts = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('posts')
-          .select('*')
-          .order('created_at', { ascending: false });
-        if (error) throw error;
-        
-        // Transform the raw post data to match Post type
-        const transformedPosts: Post[] = (data || []).map(post => ({
-          id: post.id,
-          userId: post.user_id,
-          author: {
-            name: 'Loading...', // Will be populated later
-            avatar: '/placeholder.svg',
-            role: ''
-          },
-          timeAgo: calculateTimeAgo(post.created_at),
-          content: post.content,
-          mediaUrl: post.media_url || undefined,
-          likes: 0,
-          comments: 0,
-          hashtags: []
-        }));
-        
-        setPosts(transformedPosts);
-      } catch (error: any) {
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPosts();
+    // Ładuj dane tylko raz przy montowaniu
+    loadData();
   }, []);
-
-  useEffect(() => {
-    const fetchProfiles = async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*');
-      if (error) {
-        console.error('Error fetching profiles:', error);
-      } else if (data) {
-        // Transform the data to match UserProfile type
-        const transformedProfiles: UserProfile[] = data.map(profile => ({
-          id: profile.id,
-          full_name: profile.full_name || '',
-          username: profile.username || '',
-          avatar_url: profile.avatar_url || '',
-          role: profile.role || '',
-          bio: profile.bio || '',
-          website: profile.website || '',
-          location: profile.location || '',
-          created_at: profile.joined_date || '',
-          updated_at: profile.updated_at || '',
-          email: '' // This field might not be in your profiles table, but required by UserProfile
-        }));
-        
-        setProfiles(transformedProfiles);
+  
+  const loadData = async () => {
+    await fetchTrendingPosts();
+  };
+  
+  // Pobierz popularne posty
+  const fetchTrendingPosts = async () => {
+    try {
+      const { data: postsData, error: postsError } = await supabase
+        .from('feed_posts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(3);
+      
+      if (postsError) {
+        console.error('Error fetching posts:', postsError);
+        return;
       }
-    };
-
-    fetchProfiles();
-  }, []);
-
+      
+      const formattedPosts = await Promise.all(
+        (postsData || []).map(async (post) => {
+          // Pobierz profil użytkownika
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('full_name, avatar_url, role')
+            .eq('id', post.user_id)
+            .maybeSingle();
+          
+          if (profileError) {
+            console.error('Error fetching profile:', profileError);
+          }
+          
+          // Oblicz czas względny
+          const createdDate = new Date(post.created_at);
+          const now = new Date();
+          const diffInSeconds = Math.floor((now.getTime() - createdDate.getTime()) / 1000);
+          
+          let timeAgo;
+          if (diffInSeconds < 60) {
+            timeAgo = `${diffInSeconds} sek. temu`;
+          } else if (diffInSeconds < 3600) {
+            timeAgo = `${Math.floor(diffInSeconds / 60)} min. temu`;
+          } else if (diffInSeconds < 86400) {
+            timeAgo = `${Math.floor(diffInSeconds / 3600)} godz. temu`;
+          } else {
+            timeAgo = `${Math.floor(diffInSeconds / 86400)} dni temu`;
+          }
+          
+          // Pobierz media
+          const { data: mediaData, error: mediaError } = await supabase
+            .from('feed_post_media')
+            .select('url, type')
+            .eq('post_id', post.id);
+            
+          if (mediaError) {
+            console.error('Error fetching media:', mediaError);
+          }
+          
+          // Pobierz liczbę komentarzy
+          const { count: commentsCount, error: commentsError } = await supabase
+            .from('feed_post_comments')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+            
+          if (commentsError) {
+            console.error('Error fetching comments count:', commentsError);
+          }
+          
+          // Pobierz liczbę polubień
+          const { count: likesCount, error: likesError } = await supabase
+            .from('feed_post_likes')
+            .select('id', { count: 'exact', head: true })
+            .eq('post_id', post.id);
+            
+          if (likesError) {
+            console.error('Error fetching likes count:', likesError);
+          }
+          
+          // Pobierz hashtagi
+          const { data: tagData, error: tagError } = await supabase
+            .from('feed_post_hashtags')
+            .select(`
+              hashtag_id,
+              hashtags (name)
+            `)
+            .eq('post_id', post.id);
+          
+          if (tagError) {
+            console.error('Error fetching hashtags:', tagError);
+          }
+          
+          const hashtags = tagData 
+            ? tagData.map((t) => t.hashtags?.name).filter(Boolean) as string[]
+            : [];
+          
+          return {
+            id: post.id,
+            userId: post.user_id,
+            author: {
+              name: profileData?.full_name || 'Użytkownik',
+              avatar: profileData?.avatar_url || '/placeholder.svg',
+              role: profileData?.role || '',
+            },
+            content: post.content,
+            createdAt: post.created_at,
+            timeAgo,
+            likes: likesCount || 0,
+            comments: commentsCount || 0,
+            hashtags,
+            media: mediaData && mediaData.length > 0 ? mediaData.map(m => ({
+              url: m.url,
+              type: m.type as 'image' | 'video'
+            })) : undefined,
+            // Dla kompatybilności z pozostałymi komponentami
+            isPoll: post.is_poll || false
+          };
+        })
+      );
+      
+      setTrendingPosts(formattedPosts);
+    } catch (error) {
+      console.error('Unexpected error fetching trending posts:', error);
+    }
+  };
+  
+  const handleSearch = () => {
+    console.log('Szukaj:', searchQuery);
+  };
+  
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Odkrywaj</h1>
-          <p className="text-gray-600 dark:text-gray-400">Poznaj nowych mentorów, oferty i treści</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
-            {socialPosts && socialPosts.length > 0 ? (
-              <SocialFeedContent posts={socialPosts} />
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500">Ładowanie postów...</p>
-              </div>
-            )}
+      
+      <main className="flex-1 pt-20 pb-16">
+        <div className="container px-4 mx-auto">
+          <div className="mb-6">
+            <div className="relative max-w-md mx-auto">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                className="pl-10 pr-24"
+                placeholder="Szukaj w serwisie..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+              <Button
+                className="absolute right-0 top-0 h-full rounded-l-none"
+                onClick={handleSearch}
+              >
+                Szukaj
+              </Button>
+            </div>
           </div>
           
-          <div className="space-y-6">
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="text-xl font-semibold mb-4">Sugerowane profile</h2>
-                <div className="space-y-4">
-                  {profiles.slice(0, 5).map((profile) => (
-                    <div key={profile.id} className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={profile.avatar_url || '/placeholder.svg'} alt={profile.full_name} />
-                        <AvatarFallback>{profile.full_name?.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate">{profile.full_name}</h3>
-                        <p className="text-sm text-gray-500 truncate">{profile.role}</p>
-                      </div>
-                      <Button variant="outline" size="sm" className="flex-shrink-0">
-                        <UserPlus className="h-4 w-4 mr-1" />
-                        Śledź
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4">
-                  <Button variant="link" className="p-0 h-auto" asChild>
-                    <Link to="/connections">Zobacz więcej</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+          <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+            <div className="flex justify-center mb-6">
+              <TabsList>
+                <TabsTrigger value="all">Wszystko</TabsTrigger>
+                <TabsTrigger value="feed">Posty</TabsTrigger>
+                <TabsTrigger value="groups">Grupy</TabsTrigger>
+                <TabsTrigger value="marketplace">Produkty</TabsTrigger>
+                <TabsTrigger value="users">Użytkownicy</TabsTrigger>
+              </TabsList>
+            </div>
             
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="text-xl font-semibold mb-4">Popularne hashtagi</h2>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="hover:bg-secondary/80 cursor-pointer">
-                    #mentoring
-                  </Badge>
-                  <Badge variant="secondary" className="hover:bg-secondary/80 cursor-pointer">
-                    #przedsiębiorczość
-                  </Badge>
-                  <Badge variant="secondary" className="hover:bg-secondary/80 cursor-pointer">
-                    #networking
-                  </Badge>
-                  <Badge variant="secondary" className="hover:bg-secondary/80 cursor-pointer">
-                    #rozwój
-                  </Badge>
-                  <Badge variant="secondary" className="hover:bg-secondary/80 cursor-pointer">
-                    #wiedza
-                  </Badge>
-                  <Badge variant="secondary" className="hover:bg-secondary/80 cursor-pointer">
-                    #technologia
-                  </Badge>
-                  <Badge variant="secondary" className="hover:bg-secondary/80 cursor-pointer">
-                    #innowacje
-                  </Badge>
-                  <Badge variant="secondary" className="hover:bg-secondary/80 cursor-pointer">
-                    #biznes
-                  </Badge>
+            <TabsContent value="all" className="space-y-12">
+              {!slidersLoading && sliders.length > 0 && (
+                <div className="mb-12">
+                  <DiscoverSlider sliders={sliders} />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              )}
+              
+              <DiscoverHero 
+                title="Odkrywaj, Łącz, Twórz"
+                description="Znajdź inspirujące osoby, grupy i produkty w swojej branży. Przeglądaj popularne treści i dołącz do społeczności."
+              />
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <FeatureCard
+                  icon="users"
+                  title="Połącz się z profesjonalistami"
+                  description="Buduj sieć kontaktów z ekspertami z Twojej branży."
+                  link="/connections"
+                  linkText="Poznaj osoby"
+                />
+                <FeatureCard
+                  icon="groups"
+                  title="Dołącz do grup branżowych"
+                  description="Znajdź społeczności związane z Twoimi zainteresowaniami."
+                  link="/groups"
+                  linkText="Przeglądaj grupy"
+                />
+                <FeatureCard
+                  icon="shopping"
+                  title="Odkryj produkty i usługi"
+                  description="Przeglądaj oferty specjalistów z Twojej branży."
+                  link="/marketplace"
+                  linkText="Idź do marketplace"
+                />
+              </div>
+              
+              <SuggestedProfilesSection />
+              
+              <FeedSection />
+              
+              <PopularHashtagsSection />
+              
+              <GroupsSection />
+              
+              <MarketplaceSection />
+            </TabsContent>
+            
+            <TabsContent value="feed">
+              <FeedSection />
+            </TabsContent>
+            
+            <TabsContent value="groups">
+              <GroupsSection fullView />
+            </TabsContent>
+            
+            <TabsContent value="marketplace">
+              <MarketplaceSection fullView />
+            </TabsContent>
+            
+            <TabsContent value="users">
+              <SuggestedProfilesSection fullView />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
+      
       <Footer />
     </div>
   );

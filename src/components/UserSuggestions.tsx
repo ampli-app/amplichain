@@ -1,103 +1,148 @@
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useSocial } from '@/contexts/SocialContext';
+import { UserPlus, Check, Users, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useSocial, SocialUser } from '@/contexts/SocialContext';
-import { UserPlus, User, Users } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import { Loader2 } from 'lucide-react';
+import { SocialUser } from '@/contexts/social/types';
 
 export function UserSuggestions() {
-  const { users, followUser, sendConnectionRequest, loading } = useSocial();
+  const { users, followUser, sendConnectionRequest } = useSocial();
+  const [loading, setLoading] = useState(true);
   const [suggestedUsers, setSuggestedUsers] = useState<SocialUser[]>([]);
   
+  // Przygotuj sugestie użytkowników
   useEffect(() => {
-    // Filtruj i ustaw sugerowanych użytkowników
-    const nonConnectedUsers = users
-      .filter(user => !user.isCurrentUser && user.connectionStatus === 'none')
-      .slice(0, 3); // Tylko 3 sugestie
+    const getRandomSuggestions = () => {
+      const filteredUsers = users.filter(user => 
+        user.connectionStatus === 'none' && !user.isCurrentUser
+      );
+      
+      // Losowo wybierz 3 użytkowników
+      const shuffled = [...filteredUsers].sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, 3);
+    };
     
-    setSuggestedUsers(nonConnectedUsers);
+    if (users.length > 0) {
+      setSuggestedUsers(getRandomSuggestions());
+      setLoading(false);
+    }
   }, [users]);
   
-  const handleSendConnectionRequest = async (userId: string) => {
-    try {
-      await sendConnectionRequest(userId);
-    } catch (error) {
-      console.error("Błąd podczas wysyłania zaproszenia:", error);
-      toast({
-        title: "Błąd",
-        description: "Nie udało się wysłać zaproszenia do połączenia. Spróbuj ponownie później.",
-        variant: "destructive",
-      });
-    }
+  const handleConnect = async (userId: string) => {
+    await sendConnectionRequest(userId);
+  };
+  
+  const handleFollow = async (userId: string) => {
+    await followUser(userId);
   };
   
   if (loading) {
     return (
-      <div className="glass-card rounded-xl border p-5">
-        <h3 className="font-semibold mb-4">Sugerowane dla Ciebie</h3>
-        <div className="space-y-4">
-          <div className="animate-pulse flex items-center gap-3">
-            <div className="rounded-full bg-slate-200 h-10 w-10"></div>
-            <div className="flex-1">
-              <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
-              <div className="h-3 bg-slate-200 rounded w-1/2"></div>
-            </div>
-          </div>
-          <div className="animate-pulse flex items-center gap-3">
-            <div className="rounded-full bg-slate-200 h-10 w-10"></div>
-            <div className="flex-1">
-              <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
-              <div className="h-3 bg-slate-200 rounded w-1/2"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Osoby, które mogą Cię zainteresować</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
     );
   }
   
-  if (suggestedUsers.length === 0) return null;
+  if (suggestedUsers.length === 0) {
+    return null;
+  }
   
   return (
-    <div className="glass-card rounded-xl border p-5">
-      <h3 className="font-semibold mb-4">Sugerowane dla Ciebie</h3>
-      <div className="space-y-4">
-        {suggestedUsers.map((user) => (
-          <div key={user.id} className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-              <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{user.name}</p>
-              <p className="text-sm text-rhythm-500 truncate">{user.role}</p>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Osoby, które mogą Cię zainteresować</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {suggestedUsers.map(user => (
+          <div key={user.id} className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar>
+                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <Link 
+                  to={`/profile/${user.id}`} 
+                  className="font-medium hover:underline"
+                >
+                  {user.name}
+                </Link>
+                <p className="text-xs text-muted-foreground">{user.role}</p>
+              </div>
             </div>
+            
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex-shrink-0 gap-1.5"
-                onClick={() => followUser(user.id)}
-              >
-                <UserPlus className="h-4 w-4" />
-                Obserwuj
-              </Button>
-              <Button 
-                variant="default" 
-                size="sm" 
-                className="flex-shrink-0 gap-1.5"
-                onClick={() => handleSendConnectionRequest(user.id)}
-              >
-                <Users className="h-4 w-4" />
-                Połącz
-              </Button>
+              {user.connectionStatus === 'none' && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8"
+                    onClick={() => handleFollow(user.id)}
+                  >
+                    <UserPlus className="h-3.5 w-3.5 mr-1" />
+                    Obserwuj
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    className="h-8"
+                    onClick={() => handleConnect(user.id)}
+                  >
+                    <Users className="h-3.5 w-3.5 mr-1" />
+                    Połącz
+                  </Button>
+                </>
+              )}
+              
+              {user.connectionStatus === 'following' && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8" 
+                  disabled
+                >
+                  <Check className="h-3.5 w-3.5 mr-1" />
+                  Obserwujesz
+                </Button>
+              )}
+              
+              {user.connectionStatus === 'pending_sent' && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8" 
+                  disabled
+                >
+                  <UserCheck className="h-3.5 w-3.5 mr-1" />
+                  Wysłano
+                </Button>
+              )}
+              
+              {user.connectionStatus === 'connected' && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8" 
+                  disabled
+                >
+                  <UserCheck className="h-3.5 w-3.5 mr-1" />
+                  Połączony
+                </Button>
+              )}
             </div>
           </div>
         ))}
-      </div>
-      <Button variant="link" size="sm" className="w-full mt-2" asChild>
-        <a href="/connections">Zobacz więcej sugestii</a>
-      </Button>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
