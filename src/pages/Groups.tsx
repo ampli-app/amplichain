@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -45,155 +44,6 @@ const groupCategories = [
   { id: "piano", name: "Pianino", icon: <Piano className="h-4 w-4" /> },
   { id: "drums", name: "Perkusja", icon: <Drum className="h-4 w-4" /> },
   { id: "all", name: "Wszystkie", icon: <Users className="h-4 w-4" /> }
-];
-
-const mockGroups: Group[] = [
-  {
-    id: "1",
-    title: "Koło producentów muzycznych",
-    description: "Ucz się od najlepszych producentów i otrzymuj feedback do swojej twórczości.",
-    image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop",
-    members: 1250,
-    rating: 4.9,
-    features: [
-      "Cotygodniowe sesje na żywo",
-      "Recenzje i feedback do utworów",
-      "Zasoby dla producentów",
-      "Networking branżowy"
-    ],
-    popular: true,
-    category: "production",
-    tags: ["Produkcja", "Miks", "Mastering", "DAW"]
-  },
-  {
-    id: "2",
-    title: "Społeczność A&R",
-    description: "Odkryj, czego szukają przedstawiciele A&R w nowych artystach.",
-    image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2000&auto=format&fit=crop",
-    members: 850,
-    rating: 4.7,
-    features: [
-      "Wskazówki od przedstawicieli A&R",
-      "Feedback do demo",
-      "Analiza trendów rynkowych",
-      "Rozwój artystyczny"
-    ],
-    category: "vocals",
-    tags: ["A&R", "Rozwój artysty", "Demo", "Wytwórnie"]
-  },
-  {
-    id: "3",
-    title: "Laboratorium inżynierii dźwięku",
-    description: "Opanuj techniczną stronę muzyki z ekspertami realizacji dźwięku.",
-    image: "https://images.unsplash.com/photo-1588479839125-731d7ae923f6?q=80&w=2000&auto=format&fit=crop",
-    members: 950,
-    rating: 4.8,
-    features: [
-      "Tutoriale sprzętowe",
-      "Warsztaty miksowania",
-      "Akustyka i design studia",
-      "Rozwiązywanie problemów technicznych"
-    ],
-    category: "engineering",
-    tags: ["Realizacja dźwięku", "Sprzęt", "Akustyka", "Studio"]
-  },
-  {
-    id: "4",
-    title: "Społeczność managementu muzycznego",
-    description: "Poznaj biznesową stronę branży muzycznej.",
-    image: "https://images.unsplash.com/photo-1560184611-ff3e53f00e8f?q=80&w=2000&auto=format&fit=crop",
-    members: 620,
-    rating: 4.6,
-    features: [
-      "Strategie rozwoju kariery",
-      "Negocjacje kontraktów",
-      "Planowanie tras koncertowych",
-      "Budowanie marki artysty"
-    ],
-    category: "all",
-    tags: ["Management", "Biznes muzyczny", "Kontrakty", "Trasy"]
-  },
-  {
-    id: "5",
-    title: "Społeczność tekściarzy",
-    description: "Rozwijaj swój warsztat z pomocą doświadczonych autorów tekstów.",
-    image: "https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?q=80&w=2000&auto=format&fit=crop",
-    members: 1100,
-    rating: 4.9,
-    features: [
-      "Sesje współpisania",
-      "Warsztaty tekstowo-melodyczne",
-      "Możliwości wydawnicze",
-      "Wyzwania pisarskie"
-    ],
-    popular: true,
-    category: "vocals",
-    tags: ["Teksty", "Songwriting", "Kompozycja", "Melodia"]
-  },
-  {
-    id: "6",
-    title: "Społeczność marketingu muzycznego",
-    description: "Naucz się efektywnie promować swoją muzykę.",
-    image: "https://images.unsplash.com/photo-1661956600684-97d3a4320e45?q=80&w=2000&auto=format&fit=crop",
-    members: 780,
-    rating: 4.7,
-    features: [
-      "Optymalizacja social media",
-      "Strategie pitchingu do playlist",
-      "PR i prasa branżowa",
-      "Angażowanie fanów"
-    ],
-    category: "all",
-    tags: ["Marketing", "Social media", "PR", "Streaming"]
-  },
-  {
-    id: "7",
-    title: "Fani gitary akustycznej",
-    description: "Społeczność miłośników i wykonawców muzyki gitarowej akustycznej.",
-    image: "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?q=80&w=2000&auto=format&fit=crop",
-    members: 890,
-    rating: 4.8,
-    features: [
-      "Porady techniczne",
-      "Wyzwania gitarowe",
-      "Wymiana wiedzy o sprzęcie",
-      "Wsparcie dla początkujących"
-    ],
-    category: "guitar",
-    tags: ["Gitara akustyczna", "Fingerstyle", "Folk", "Akustyczna"]
-  },
-  {
-    id: "8",
-    title: "Grupa perkusistów i rytmików",
-    description: "Społeczność poświęcona wszystkiemu, co związane z rytmem i perkusją.",
-    image: "https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?q=80&w=2000&auto=format&fit=crop",
-    members: 730,
-    rating: 4.7,
-    features: [
-      "Techniki perkusyjne",
-      "Nauka rytmów",
-      "Porady sprzętowe",
-      "Ćwiczenia koordynacyjne"
-    ],
-    category: "drums",
-    tags: ["Perkusja", "Rytm", "Groove", "Technika"]
-  },
-  {
-    id: "9",
-    title: "Społeczność pianistów i keyboardzistów",
-    description: "Dla wszystkich pasjonatów instrumentów klawiszowych.",
-    image: "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?q=80&w=2000&auto=format&fit=crop",
-    members: 850,
-    rating: 4.8,
-    features: [
-      "Techniki gry",
-      "Teoria muzyki",
-      "Porady sprzętowe",
-      "Aranżacje klawiszowe"
-    ],
-    category: "piano",
-    tags: ["Pianino", "Keyboard", "Syntezator", "Aranżacja"]
-  }
 ];
 
 function GroupCard({ group, delay = 0 }: { group: Group, delay?: number }) {
@@ -267,54 +117,52 @@ export default function Groups() {
     const fetchGroups = async () => {
       setLoading(true);
       try {
-        // Pobierz dane grup bezpośrednio bez odniesienia do group_members
+        console.log('Fetching groups...');
         const { data: groupsData, error } = await supabase
           .from('groups')
           .select('*');
         
         if (error) {
           console.error('Błąd podczas pobierania grup:', error);
-          setGroups(mockGroups);
           return;
         }
         
-        // Pobierz liczbę członków dla każdej grupy w osobnym zapytaniu
-        const groupsWithMemberCounts = await Promise.all(
+        console.log('Fetched groups:', groupsData);
+        
+        const groupsWithDetails = await Promise.all(
           groupsData.map(async (group) => {
             const { count, error: countError } = await supabase
               .from('group_members')
               .select('*', { count: 'exact', head: true })
               .eq('group_id', group.id);
               
+            if (countError) {
+              console.error(`Błąd podczas pobierania liczby członków dla grupy ${group.id}:`, countError);
+            }
+            
             return {
-              ...group,
-              memberCount: count || 0
+              id: group.id,
+              title: group.name,
+              description: group.description || 'Brak opisu',
+              image: group.cover_image || 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop',
+              members: count || 0,
+              rating: 4.7,
+              features: [
+                'Wsparcie społeczności',
+                'Wymiana wiedzy',
+                'Dyskusje tematyczne',
+                'Wydarzenia i wyzwania'
+              ],
+              popular: count ? count > 3 : false,
+              category: group.category || 'all',
+              tags: [group.category || 'Muzyka'].concat(['Społeczność', 'Rozwój'])
             };
           })
         );
         
-        const formattedGroups: Group[] = groupsWithMemberCounts.map(group => ({
-          id: group.id,
-          title: group.name,
-          description: group.description || 'Brak opisu',
-          image: group.cover_image || 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop',
-          members: group.memberCount || 0,
-          rating: 4.7,
-          features: [
-            'Wsparcie społeczności',
-            'Wymiana wiedzy',
-            'Dyskusje tematyczne',
-            'Wydarzenia i wyzwania'
-          ],
-          popular: group.memberCount > 3,
-          category: group.category || 'all',
-          tags: [group.category || 'Muzyka'].concat(['Społeczność', 'Rozwój'])
-        }));
-        
-        setGroups(formattedGroups);
+        setGroups(groupsWithDetails);
       } catch (error) {
         console.error('Nieoczekiwany błąd:', error);
-        setGroups(mockGroups);
       } finally {
         setLoading(false);
       }

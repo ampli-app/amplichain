@@ -30,18 +30,28 @@ export default function GroupDetail() {
       
       setLoadingGroup(true);
       try {
+        console.log('Fetching group with ID:', id);
+        
         // Pobierz dane grupy
         const { data: groupData, error } = await supabase
           .from('groups')
           .select('*')
           .eq('id', id)
-          .single();
+          .maybeSingle();
         
         if (error) {
           console.error('Błąd podczas pobierania grupy:', error);
           setLoadingGroup(false);
           return;
         }
+        
+        if (!groupData) {
+          console.log('Grupa nie znaleziona');
+          setLoadingGroup(false);
+          return;
+        }
+        
+        console.log('Fetched group data:', groupData);
         
         // Pobierz liczbę członków w osobnym zapytaniu
         const { count: memberCount, error: membersError } = await supabase
@@ -52,6 +62,8 @@ export default function GroupDetail() {
         if (membersError) {
           console.error('Błąd podczas pobierania liczby członków:', membersError);
         }
+        
+        console.log('Member count:', memberCount);
         
         // Sprawdź, czy zalogowany użytkownik jest członkiem grupy i jaką ma rolę
         let userIsMember = false;
@@ -70,6 +82,7 @@ export default function GroupDetail() {
           } else {
             userIsMember = !!memberData;
             userIsAdmin = memberData?.role === 'admin';
+            console.log('User membership data:', { userIsMember, userIsAdmin, memberData });
           }
         }
         
@@ -95,6 +108,7 @@ export default function GroupDetail() {
           files: []
         };
         
+        console.log('Formatted group:', formattedGroup);
         setGroup(formattedGroup);
       } catch (error) {
         console.error('Nieoczekiwany błąd:', error);
