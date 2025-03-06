@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -22,8 +21,8 @@ import {
   PlusCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
-// Interfejs dla grupy
 interface Group {
   id: string;
   title: string;
@@ -37,7 +36,6 @@ interface Group {
   tags: string[];
 }
 
-// Kategorie grup
 const groupCategories = [
   { id: "production", name: "Produkcja", icon: <Music className="h-4 w-4" /> },
   { id: "vocals", name: "Wokal", icon: <Mic className="h-4 w-4" /> },
@@ -48,7 +46,6 @@ const groupCategories = [
   { id: "all", name: "Wszystkie", icon: <Users className="h-4 w-4" /> }
 ];
 
-// Przykładowe dane dla grup - docelowo powinny być pobierane z bazy danych
 const mockGroups: Group[] = [
   {
     id: "1",
@@ -198,7 +195,6 @@ const mockGroups: Group[] = [
   }
 ];
 
-// Komponent karty dla grupy
 function GroupCard({ group, delay = 0 }: { group: Group, delay?: number }) {
   return (
     <motion.div 
@@ -265,11 +261,9 @@ export default function Groups() {
   useEffect(() => {
     window.scrollTo(0, 0);
     
-    // Pobierz grupy z Supabase
     const fetchGroups = async () => {
       setLoading(true);
       try {
-        // Pobierz grupy z Supabase
         const { data: groupsData, error } = await supabase
           .from('groups')
           .select(`
@@ -286,33 +280,32 @@ export default function Groups() {
         
         if (error) {
           console.error('Błąd podczas pobierania grup:', error);
-          setGroups(mockGroups); // Użyj danych testowych jako fallback
+          setGroups(mockGroups);
           return;
         }
         
-        // Przetwórz dane na format wymagany przez UI
         const formattedGroups: Group[] = groupsData.map(group => ({
           id: group.id,
           title: group.name,
           description: group.description || 'Brak opisu',
           image: group.cover_image || 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop',
           members: group.group_members?.length || 0,
-          rating: 4.7, // Przykładowa ocena
+          rating: 4.7,
           features: [
             'Wsparcie społeczności',
             'Wymiana wiedzy',
             'Dyskusje tematyczne',
             'Wydarzenia i wyzwania'
           ],
-          popular: group.group_members?.length > 3, // Grupa jest popularna, jeśli ma więcej niż 3 członków
+          popular: group.group_members?.length > 3,
           category: group.category || 'all',
-          tags: [group.category || 'Muzyka'].concat(['Społeczność', 'Rozwój']) // Przykładowe tagi
+          tags: [group.category || 'Muzyka'].concat(['Społeczność', 'Rozwój'])
         }));
         
         setGroups(formattedGroups);
       } catch (error) {
         console.error('Nieoczekiwany błąd:', error);
-        setGroups(mockGroups); // Użyj danych testowych jako fallback
+        setGroups(mockGroups);
       } finally {
         setLoading(false);
       }
@@ -321,7 +314,6 @@ export default function Groups() {
     fetchGroups();
   }, []);
 
-  // Filtrowanie grup na podstawie wyszukiwania i kategorii
   const filteredGroups = groups.filter(group => {
     const matchesSearch = searchQuery === '' || 
       group.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -333,7 +325,6 @@ export default function Groups() {
     return matchesSearch && matchesCategory;
   });
 
-  // Renderowanie skeletonów podczas ładowania
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">

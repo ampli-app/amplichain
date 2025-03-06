@@ -1,12 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+  CardContent 
 } from '@/components/ui/card';
 import { 
   DropdownMenu, 
@@ -85,8 +81,8 @@ export function GroupMembersList({ groupId, searchQuery }: GroupMembersListProps
             id: member.id,
             user: {
               id: member.user_id,
-              name: profile.full_name || 'Użytkownik',
-              avatar: profile.avatar_url || '',
+              name: profile?.full_name || 'Użytkownik',
+              avatar: profile?.avatar_url || '',
             },
             role: member.role as 'admin' | 'moderator' | 'member',
             joinedAt: new Date(member.joined_at).toLocaleDateString(),

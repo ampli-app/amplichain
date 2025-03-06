@@ -59,7 +59,14 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
 
           // Przetwórz dane na format GroupPost
           const formattedPosts: GroupPost[] = postsData?.map(post => {
-            const author = usersData?.find(user => user.id === post.user_id) || { 
+            const authorProfile = usersData?.find(user => user.id === post.user_id);
+            
+            // Utwórz obiekt autora z danymi z profilu lub domyślnymi wartościami
+            const author = authorProfile ? {
+              id: authorProfile.id,
+              name: authorProfile.full_name || 'Nieznany użytkownik',
+              avatar: authorProfile.avatar_url || ''
+            } : { 
               id: post.user_id, 
               name: 'Nieznany użytkownik', 
               avatar: '' 
@@ -95,11 +102,7 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
             return {
               id: post.id,
               content: post.content,
-              author: {
-                id: author.id,
-                name: author.full_name || 'Użytkownik',
-                avatar: author.avatar_url || ''
-              },
+              author,
               createdAt: post.created_at,
               timeAgo,
               media: media.length > 0 ? media : undefined,

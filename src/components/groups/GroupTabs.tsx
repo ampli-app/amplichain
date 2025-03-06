@@ -23,44 +23,59 @@ export function GroupTabs({ group }: GroupTabsProps) {
   
   useEffect(() => {
     const fetchCounts = async () => {
-      // Pobierz liczbę członków
-      const { count: membersCount, error: membersError } = await supabase
-        .from('group_members')
-        .select('id', { count: 'exact', head: true })
-        .eq('group_id', group.id);
-      
-      if (membersError) {
-        console.error('Błąd podczas pobierania liczby członków:', membersError);
-      } else if (membersCount !== null) {
-        setMembersCount(membersCount);
-      }
-      
-      // Pobierz liczbę mediów
-      const { count: mediaCount, error: mediaError } = await supabase
-        .from('group_post_media')
-        .select('id', { count: 'exact', head: true })
-        .in('post_id', function(builder) {
-          builder.select('id').from('group_posts').eq('group_id', group.id);
-        });
-      
-      if (mediaError) {
-        console.error('Błąd podczas pobierania liczby mediów:', mediaError);
-      } else if (mediaCount !== null) {
-        setMediaCount(mediaCount);
-      }
-      
-      // Pobierz liczbę plików
-      const { count: filesCount, error: filesError } = await supabase
-        .from('group_post_files')
-        .select('id', { count: 'exact', head: true })
-        .in('post_id', function(builder) {
-          builder.select('id').from('group_posts').eq('group_id', group.id);
-        });
-      
-      if (filesError) {
-        console.error('Błąd podczas pobierania liczby plików:', filesError);
-      } else if (filesCount !== null) {
-        setFilesCount(filesCount);
+      try {
+        // Pobierz liczbę członków
+        const { count: membersCount, error: membersError } = await supabase
+          .from('group_members')
+          .select('id', { count: 'exact', head: true })
+          .eq('group_id', group.id);
+        
+        if (membersError) {
+          console.error('Błąd podczas pobierania liczby członków:', membersError);
+        } else if (membersCount !== null) {
+          setMembersCount(membersCount);
+        }
+        
+        // Pobierz liczbę mediów
+        const { data: postIds, error: postsError } = await supabase
+          .from('group_posts')
+          .select('id')
+          .eq('group_id', group.id);
+          
+        if (postsError) {
+          console.error('Błąd podczas pobierania postów:', postsError);
+          return;
+        }
+        
+        if (postIds && postIds.length > 0) {
+          const postIdArray = postIds.map(post => post.id);
+          
+          // Pobierz liczbę mediów
+          const { count: mediaCount, error: mediaError } = await supabase
+            .from('group_post_media')
+            .select('id', { count: 'exact', head: true })
+            .in('post_id', postIdArray);
+          
+          if (mediaError) {
+            console.error('Błąd podczas pobierania liczby mediów:', mediaError);
+          } else if (mediaCount !== null) {
+            setMediaCount(mediaCount);
+          }
+          
+          // Pobierz liczbę plików
+          const { count: filesCount, error: filesError } = await supabase
+            .from('group_post_files')
+            .select('id', { count: 'exact', head: true })
+            .in('post_id', postIdArray);
+          
+          if (filesError) {
+            console.error('Błąd podczas pobierania liczby plików:', filesError);
+          } else if (filesCount !== null) {
+            setFilesCount(filesCount);
+          }
+        }
+      } catch (error) {
+        console.error('Nieoczekiwany błąd podczas pobierania danych:', error);
       }
     };
     

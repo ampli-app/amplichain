@@ -32,6 +32,26 @@ export function GroupFilesList({ groupId, searchQuery }: GroupFilesListProps) {
     const fetchFiles = async () => {
       setLoading(true);
       try {
+        // Najpierw pobierz wszystkie ID postów dla danej grupy
+        const { data: postIds, error: postsError } = await supabase
+          .from('group_posts')
+          .select('id')
+          .eq('group_id', groupId);
+          
+        if (postsError) {
+          console.error('Błąd podczas pobierania postów:', postsError);
+          return;
+        }
+        
+        if (!postIds || postIds.length === 0) {
+          setFiles([]);
+          setLoading(false);
+          return;
+        }
+        
+        const postIdArray = postIds.map(post => post.id);
+        
+        // Następnie pobierz pliki dla tych postów
         const { data: filesData, error } = await supabase
           .from('group_post_files')
           .select(`
@@ -46,9 +66,7 @@ export function GroupFilesList({ groupId, searchQuery }: GroupFilesListProps) {
               content
             )
           `)
-          .in('post_id', function(builder) {
-            builder.select('id').from('group_posts').eq('group_id', groupId);
-          })
+          .in('post_id', postIdArray)
           .order('created_at', { ascending: false });
         
         if (error) {

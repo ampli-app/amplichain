@@ -28,6 +28,26 @@ export function GroupMediaGrid({ groupId, searchQuery }: GroupMediaGridProps) {
     const fetchMedia = async () => {
       setLoading(true);
       try {
+        // Najpierw pobierz wszystkie ID postów dla danej grupy
+        const { data: postIds, error: postsError } = await supabase
+          .from('group_posts')
+          .select('id')
+          .eq('group_id', groupId);
+          
+        if (postsError) {
+          console.error('Błąd podczas pobierania postów:', postsError);
+          return;
+        }
+        
+        if (!postIds || postIds.length === 0) {
+          setMedia([]);
+          setLoading(false);
+          return;
+        }
+        
+        const postIdArray = postIds.map(post => post.id);
+        
+        // Następnie pobierz media dla tych postów
         const { data: mediaData, error } = await supabase
           .from('group_post_media')
           .select(`
@@ -40,9 +60,7 @@ export function GroupMediaGrid({ groupId, searchQuery }: GroupMediaGridProps) {
               content
             )
           `)
-          .in('post_id', function(builder) {
-            builder.select('id').from('group_posts').eq('group_id', groupId);
-          })
+          .in('post_id', postIdArray)
           .order('created_at', { ascending: false });
         
         if (error) {
