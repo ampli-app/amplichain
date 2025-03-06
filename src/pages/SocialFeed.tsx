@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -11,13 +10,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { Globe, Users, Star, Filter, LogIn, Rss, PlusCircle } from 'lucide-react';
 import { CreatePostModal } from '@/components/CreatePostModal';
-import { supabase } from '@/integrations/supabase/client';
+import { useSocial } from '@/contexts/SocialContext';
 
 export default function SocialFeed() {
   const { isLoggedIn } = useAuth();
+  const { getPopularHashtags } = useSocial();
   const [feedType, setFeedType] = useState<'all' | 'following' | 'connections'>('all');
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
-  const [popularHashtags, setPopularHashtags] = useState<{name: string, postsCount: number}[]>([]);
+  const [popularHashtags, setPopularHashtags] = useState<{id: string, name: string, postsCount: number}[]>([]);
   const [reload, setReload] = useState(false);
   
   useEffect(() => {
@@ -27,30 +27,10 @@ export default function SocialFeed() {
   
   const loadHashtags = async () => {
     try {
-      const { data, error } = await supabase
-        .from('hashtags')
-        .select(`
-          id,
-          name,
-          feed_post_hashtags(count)
-        `)
-        .order('name');
-        
-      if (error) {
-        console.error('Błąd podczas pobierania hashtagów:', error);
-        return;
-      }
-      
-      const formattedHashtags = data.map(tag => ({
-        name: tag.name,
-        postsCount: tag.feed_post_hashtags?.length || 0
-      }))
-      .sort((a, b) => b.postsCount - a.postsCount)
-      .slice(0, 5);
-      
-      setPopularHashtags(formattedHashtags);
+      const hashtags = await getPopularHashtags();
+      setPopularHashtags(hashtags);
     } catch (error) {
-      console.error('Nieoczekiwany błąd:', error);
+      console.error('Nieoczekiwany błąd podczas ładowania hashtagów:', error);
     }
   };
   
@@ -161,8 +141,8 @@ export default function SocialFeed() {
                 <div className="glass-card rounded-xl border p-5">
                   <h3 className="font-semibold mb-4">Popularne hashtagi</h3>
                   <div className="space-y-3">
-                    {popularHashtags.map((tag, index) => (
-                      <div key={index}>
+                    {popularHashtags.map((tag) => (
+                      <div key={tag.id}>
                         <Link 
                           to={`/hashtag/${tag.name}`}
                           className="font-medium hover:text-primary transition-colors"

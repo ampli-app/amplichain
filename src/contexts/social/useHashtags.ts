@@ -22,7 +22,7 @@ export const useHashtags = (userId: string | undefined) => {
         return [];
       }
       
-      // Znajdź posty z tym hashtagiem
+      // Znajdź posty z tym hashtagiem - dodajemy aliasy do zapytania, aby uniknąć niejednoznaczności
       const { data: hashtagPostsData, error: hashtagPostsError } = await supabase
         .from('feed_post_hashtags')
         .select('post_id')
@@ -148,12 +148,13 @@ export const useHashtags = (userId: string | undefined) => {
   // Pobierz popularne hashtagi
   const getPopularHashtags = async (): Promise<Hashtag[]> => {
     try {
+      // Użyjmy bardziej precyzyjnego zapytania z aliasami dla tabel
       const { data, error } = await supabase
         .from('hashtags')
         .select(`
           id,
           name,
-          feed_post_hashtags(count)
+          feed_post_hashtags!inner(hashtag_id)
         `)
         .order('name');
         
@@ -162,11 +163,14 @@ export const useHashtags = (userId: string | undefined) => {
         return [];
       }
       
-      const hashtags: Hashtag[] = data.map(tag => ({
-        id: tag.id,
-        name: tag.name,
-        postsCount: tag.feed_post_hashtags?.length || 0
-      }))
+      // Przetwórz dane i policz posty dla każdego hashtaga
+      const hashtags: Hashtag[] = data.map(tag => {
+        return {
+          id: tag.id,
+          name: tag.name,
+          postsCount: Array.isArray(tag.feed_post_hashtags) ? tag.feed_post_hashtags.length : 0
+        };
+      })
       .sort((a, b) => b.postsCount - a.postsCount)
       .slice(0, 10);
       

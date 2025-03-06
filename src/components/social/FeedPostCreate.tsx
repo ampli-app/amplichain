@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { useSocial } from '@/contexts/SocialContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -84,7 +83,6 @@ export function FeedPostCreate({ onPostCreated }: { onPostCreated?: () => void }
     const files = event.target.files;
     if (!files || files.length === 0) return;
     
-    // Check if we don't exceed the maximum files limit (6)
     if (media.length + files.length > 6) {
       toast({
         title: "Limit plików",
@@ -115,7 +113,6 @@ export function FeedPostCreate({ onPostCreated }: { onPostCreated?: () => void }
       }]);
     });
     
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -133,14 +130,12 @@ export function FeedPostCreate({ onPostCreated }: { onPostCreated?: () => void }
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
   
-  // Funkcja do przesyłania plików do Supabase Storage
   const uploadMediaToStorage = async (file: File): Promise<string | null> => {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `feed_media/${fileName}`;
       
-      // Prześlij plik do Supabase Storage
       const { data, error } = await supabase.storage
         .from('public')
         .upload(filePath, file);
@@ -150,7 +145,6 @@ export function FeedPostCreate({ onPostCreated }: { onPostCreated?: () => void }
         return null;
       }
       
-      // Pobierz publiczny URL pliku
       const { data: { publicUrl } } = supabase.storage
         .from('public')
         .getPublicUrl(filePath);
@@ -160,6 +154,14 @@ export function FeedPostCreate({ onPostCreated }: { onPostCreated?: () => void }
       console.error('Nieoczekiwany błąd podczas przesyłania pliku:', error);
       return null;
     }
+  };
+  
+  const extractHashtags = (content: string): string[] => {
+    const hashtagRegex = /#(\w+)/g;
+    const matches = content.match(hashtagRegex);
+    if (!matches) return [];
+    
+    return [...new Set(matches.map(tag => tag.substring(1).toLowerCase()))];
   };
   
   const handleSubmit = async () => {
@@ -173,7 +175,6 @@ export function FeedPostCreate({ onPostCreated }: { onPostCreated?: () => void }
     }
     
     if (isPollMode) {
-      // Validate poll options
       const filledOptions = pollOptions.filter(option => option.trim() !== '');
       if (filledOptions.length < 2) {
         toast({
@@ -197,7 +198,6 @@ export function FeedPostCreate({ onPostCreated }: { onPostCreated?: () => void }
     setLoading(true);
     
     try {
-      // 1. Utwórz post
       const { data: postData, error: postError } = await supabase
         .from('feed_posts')
         .insert({
@@ -214,7 +214,6 @@ export function FeedPostCreate({ onPostCreated }: { onPostCreated?: () => void }
       
       const postId = postData.id;
       
-      // 2. Jeśli to ankieta, dodaj opcje
       if (isPollMode) {
         const validOptions = pollOptions.filter(option => option.trim() !== '');
         
@@ -232,16 +231,58 @@ export function FeedPostCreate({ onPostCreated }: { onPostCreated?: () => void }
         }
       }
       
-      // 3. Jeśli są media, prześlij je do Storage i zapisz w bazie danych
+      const hashtags = extractHashtags(content);
+      if (hashtags.length > 0) {
+        for (const tag of hashtags) {
+          let hashtagId;
+          const { data: existingHashtag, error: hashtagError } = await supabase
+            .from('hashtags')
+            .select('id')
+            .eq('name', tag)
+            .maybeSingle();
+            
+          if (hashtagError) {
+            console.error(`Błąd podczas sprawdzania hashtaga ${tag}:`, hashtagError);
+            continue;
+          }
+          
+          if (existingHashtag) {
+            hashtagId = existingHashtag.id;
+          } else {
+            const { data: newHashtag, error: createError } = await supabase
+              .from('hashtags')
+              .insert({ name: tag })
+              .select('id')
+              .single();
+              
+            if (createError) {
+              console.error(`Błąd podczas tworzenia hashtaga ${tag}:`, createError);
+              continue;
+            }
+            
+            hashtagId = newHashtag.id;
+          }
+          
+          const { error: linkError } = await supabase
+            .from('feed_post_hashtags')
+            .insert({
+              post_id: postId,
+              hashtag_id: hashtagId
+            });
+            
+          if (linkError) {
+            console.error(`Błąd podczas łączenia posta z hashtagiem ${tag}:`, linkError);
+          }
+        }
+      }
+      
       if (media.length > 0) {
-        // Prześlij pliki do Supabase Storage
         const mediaPromises = media.map(async (mediaItem) => {
           if (mediaItem.file) {
             const publicUrl = await uploadMediaToStorage(mediaItem.file);
             
             if (publicUrl) {
               if (mediaItem.type === 'document') {
-                // Zapisz jako plik
                 return supabase
                   .from('feed_post_files')
                   .insert({
@@ -252,7 +293,6 @@ export function FeedPostCreate({ onPostCreated }: { onPostCreated?: () => void }
                     size: mediaItem.size || 0
                   });
               } else {
-                // Zapisz jako media (zdjęcie lub wideo)
                 return supabase
                   .from('feed_post_media')
                   .insert({
@@ -276,20 +316,17 @@ export function FeedPostCreate({ onPostCreated }: { onPostCreated?: () => void }
         }
       }
       
-      // Pokaż komunikat sukcesu
       toast({
         title: "Post utworzony",
         description: "Twój post został pomyślnie opublikowany",
       });
       
-      // Resetuj formularz
       setContent('');
       setIsPollMode(false);
       setPollOptions(['', '']);
       setMedia([]);
       setIsExpanded(false);
       
-      // Wywołaj callback, jeśli został przekazany
       if (onPostCreated) {
         onPostCreated();
       }
@@ -367,7 +404,6 @@ export function FeedPostCreate({ onPostCreated }: { onPostCreated?: () => void }
             </div>
           )}
           
-          {/* Wyświetlanie dodanych plików */}
           {media.length > 0 && (
             <div className="mb-4 grid grid-cols-2 gap-2">
               {media.map((item, index) => (
