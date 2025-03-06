@@ -2,7 +2,7 @@
 import { GroupFile } from '@/types/group';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, FileText, FilePdf, FileArchive, FileCode, File } from 'lucide-react';
+import { Download, FileText, File, FileCode } from 'lucide-react';
 
 interface GroupFilesListProps {
   files: GroupFile[];
@@ -33,9 +33,9 @@ export function GroupFilesList({ files, searchQuery }: GroupFilesListProps) {
   }
   
   const getFileIcon = (fileType: string) => {
-    if (fileType.includes('pdf')) return <FilePdf className="h-6 w-6 text-red-500" />;
+    if (fileType.includes('pdf')) return <FileText className="h-6 w-6 text-red-500" />;
     if (fileType.includes('word') || fileType.includes('document')) return <FileText className="h-6 w-6 text-blue-500" />;
-    if (fileType.includes('zip') || fileType.includes('archive')) return <FileArchive className="h-6 w-6 text-amber-500" />;
+    if (fileType.includes('zip') || fileType.includes('archive')) return <File className="h-6 w-6 text-amber-500" />;
     if (fileType.includes('code') || fileType.includes('json') || fileType.includes('xml')) return <FileCode className="h-6 w-6 text-green-500" />;
     return <File className="h-6 w-6 text-gray-500" />;
   };

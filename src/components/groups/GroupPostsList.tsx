@@ -10,7 +10,8 @@ import {
   Share2, 
   MoreHorizontal, 
   User,
-  Calendar
+  Calendar,
+  FileText
 } from 'lucide-react';
 import { 
   DropdownMenu, 
