@@ -17,16 +17,27 @@ interface GroupCardProps {
 }
 
 export function GroupCard({ group, delay = 0 }: GroupCardProps) {
+  // Check if this group has more than 3 members to mark it as popular
+  const isPopular = group.memberCount > 3;
+  
+  // Default features for all groups
+  const features = [
+    'Wsparcie społeczności',
+    'Wymiana wiedzy',
+    'Dyskusje tematyczne',
+    'Wydarzenia i wyzwania'
+  ];
+  
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
       className={`relative rounded-xl overflow-hidden group transition-all duration-300 hover:shadow-xl ${
-        group.popular ? 'border-2 border-primary/50' : 'border border-rhythm-200'
+        isPopular ? 'border-2 border-primary/50' : 'border border-rhythm-200'
       }`}
     >
-      {group.popular && (
+      {isPopular && (
         <Badge className="absolute top-4 right-4 z-10 bg-primary">
           Popularne
         </Badge>
@@ -34,8 +45,8 @@ export function GroupCard({ group, delay = 0 }: GroupCardProps) {
       
       <div className="aspect-[16/9] overflow-hidden">
         <img 
-          src={group.image} 
-          alt={group.title}
+          src={group.coverImage} 
+          alt={group.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
       </div>
@@ -44,19 +55,19 @@ export function GroupCard({ group, delay = 0 }: GroupCardProps) {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2 text-sm text-rhythm-500">
             <Users className="h-4 w-4" />
-            <span>{group.members.toLocaleString()} członków</span>
+            <span>{group.memberCount.toLocaleString()} członków</span>
           </div>
           <div className="flex items-center gap-1">
             <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-            <span className="font-medium">{group.rating}</span>
+            <span className="font-medium">4.7</span> {/* Default rating */}
           </div>
         </div>
         
-        <h3 className="text-xl font-semibold mb-2">{group.title}</h3>
+        <h3 className="text-xl font-semibold mb-2">{group.name}</h3>
         <p className="text-rhythm-600 mb-4">{group.description}</p>
         
         <div className="space-y-2 mb-6">
-          {group.features.map((feature, i) => (
+          {features.map((feature, i) => (
             <div key={i} className="flex items-center gap-2 text-sm">
               <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
               <span>{feature}</span>

@@ -3,23 +3,10 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Group } from '@/types/group';
 
-export interface GroupData {
-  id: string;
-  title: string;
-  description: string;
-  image: string;
-  members: number;
-  rating: number;
-  features: string[];
-  popular?: boolean;
-  category: string;
-  tags: string[];
-}
-
 export function useGroupsData() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [groups, setGroups] = useState<GroupData[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -52,23 +39,24 @@ export function useGroupsData() {
               console.error(`Błąd podczas pobierania liczby członków dla grupy ${group.id}:`, countError);
             }
             
+            // Transform the data to match the Group type
             return {
               id: group.id,
-              title: group.name,
+              name: group.name,
               description: group.description || 'Brak opisu',
-              image: group.cover_image || 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop',
-              members: count || 0,
-              rating: 4.7,
-              features: [
-                'Wsparcie społeczności',
-                'Wymiana wiedzy',
-                'Dyskusje tematyczne',
-                'Wydarzenia i wyzwania'
-              ],
-              popular: count ? count > 3 : false,
+              coverImage: group.cover_image || 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop',
+              profileImage: group.profile_image,
+              memberCount: count || 0,
               category: group.category || 'all',
-              tags: [group.category || 'Muzyka'].concat(['Społeczność', 'Rozwój'])
-            };
+              isPrivate: group.is_private || false,
+              isMember: false, // Will be set correctly in GroupDetail
+              isAdmin: false, // Will be set correctly in GroupDetail
+              createdAt: group.created_at,
+              posts: [],
+              members: [],
+              media: [],
+              files: []
+            } as Group;
           })
         );
         
@@ -85,9 +73,9 @@ export function useGroupsData() {
 
   const filteredGroups = groups.filter(group => {
     const matchesSearch = searchQuery === '' || 
-      group.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       group.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      group.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      group.category.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesCategory = selectedCategory === 'all' || group.category === selectedCategory;
     
