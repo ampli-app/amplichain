@@ -22,7 +22,7 @@ export const useHashtags = (userId: string | undefined) => {
         return [];
       }
       
-      // Znajdź posty z tym hashtagiem - używaj aliasów, aby uniknąć niejednoznaczności
+      // Znajdź posty z tym hashtagiem
       const { data: hashtagPostsData, error: hashtagPostsError } = await supabase
         .from('feed_post_hashtags')
         .select('post_id')
@@ -148,13 +148,13 @@ export const useHashtags = (userId: string | undefined) => {
   // Pobierz popularne hashtagi
   const getPopularHashtags = async (): Promise<Hashtag[]> => {
     try {
-      // Użyjmy bardziej precyzyjnego zapytania z aliasami dla tabel
+      // Użyjmy bardziej precyzyjnego zapytania bez aliasów
       const { data, error } = await supabase
-        .from('hashtags AS h')
+        .from('hashtags')
         .select(`
-          h.id,
-          h.name,
-          feed_post_hashtags!inner (hashtag_id)
+          id,
+          name,
+          feed_post_hashtags!inner(hashtag_id)
         `)
         .order('name');
         

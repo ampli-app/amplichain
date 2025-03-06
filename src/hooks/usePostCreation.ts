@@ -142,17 +142,23 @@ export function usePostCreation({ onPostCreated }: UsePostCreationProps) {
             hashtagId = newTag.id;
           }
           
-          // 3.4 Powiąż hashtag z postem - używając pełnych nazw kolumn
-          const { error: linkError } = await supabase
-            .from('feed_post_hashtags')
-            .insert([{ 
-              post_id: postId,
-              hashtag_id: hashtagId 
-            }])
-            .onConflict(['post_id', 'hashtag_id']).ignore();
-          
-          if (linkError) {
-            console.error(`Błąd podczas łączenia posta z hashtagiem ${tag}:`, linkError);
+          // 3.4 Powiąż hashtag z postem - używając dwóch oddzielnych zapytań: INSERT i ignore dla konfliktów
+          try {
+            const { error: linkError } = await supabase
+              .from('feed_post_hashtags')
+              .insert([{ 
+                post_id: postId,
+                hashtag_id: hashtagId 
+              }]);
+            
+            if (linkError && linkError.code === '23505') {
+              // Ten kod oznacza naruszenie ograniczenia unikalności - możemy go zignorować
+              console.log(`Hashtag ${tag} już istnieje dla tego posta, ignorowanie...`);
+            } else if (linkError) {
+              console.error(`Błąd podczas łączenia posta z hashtagiem ${tag}:`, linkError);
+            }
+          } catch (error) {
+            console.error(`Nieoczekiwany błąd podczas łączenia posta z hashtagiem ${tag}:`, error);
           }
         }
       }
