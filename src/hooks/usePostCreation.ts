@@ -142,10 +142,14 @@ export function usePostCreation({ onPostCreated }: UsePostCreationProps) {
             hashtagId = newTag.id;
           }
           
-          // 3.4 Powiąż hashtag z postem
+          // 3.4 Powiąż hashtag z postem - używając pełnych nazw kolumn
           const { error: linkError } = await supabase
             .from('feed_post_hashtags')
-            .insert([{ post_id: postId, hashtag_id: hashtagId }]);
+            .insert([{ 
+              post_id: postId,
+              hashtag_id: hashtagId 
+            }])
+            .onConflict(['post_id', 'hashtag_id']).ignore();
           
           if (linkError) {
             console.error(`Błąd podczas łączenia posta z hashtagiem ${tag}:`, linkError);
