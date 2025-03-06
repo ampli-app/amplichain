@@ -1,48 +1,404 @@
 
-import { useState } from 'react';
-import { User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Heart, MessageCircle, Share2, MoreHorizontal, Calendar } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { Card } from '@/components/ui/card';
+import { toast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
-import { useSocial } from '@/contexts/SocialContext';
 import { Post } from '@/types/social';
-import { PostHeader } from './PostHeader';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { PostContent } from './PostContent';
-import { PostActions } from './PostActions';
+import { CommentsList } from '../groups/comments/CommentsList';
+import { CommentInput } from '../groups/comments/CommentInput';
 
 interface PostItemProps {
   post: Post;
   index: number;
+  onLikeToggle?: (postId: string, isLiked: boolean) => Promise<void>;
+  onAddComment?: (postId: string, content: string) => Promise<boolean | undefined>;
+  onAddReply?: (postId: string, parentCommentId: string, content: string) => Promise<boolean | undefined>;
 }
 
-export function PostItem({ post, index }: PostItemProps) {
-  const { loading } = useSocial();
+export function PostItem({ 
+  post, 
+  index, 
+  onLikeToggle, 
+  onAddComment, 
+  onAddReply 
+}: PostItemProps) {
+  const { user } = useAuth();
+  const [liked, setLiked] = useState(post.userLiked || false);
+  const [likesCount, setLikesCount] = useState(post.likes);
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [comments, setComments] = useState<Array<{
+    id: string;
+    author: { id: string; name: string; avatar: string };
+    content: string;
+    timeAgo: string;
+    replies: Array<{
+      id: string;
+      author: { id: string; name: string; avatar: string };
+      content: string;
+      timeAgo: string;
+    }>;
+  }>>([]);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [loadingComments, setLoadingComments] = useState(false);
+  
+  // Pobierz komentarze z Supabase przy pierwszym renderze
+  useEffect(() => {
+    if (showComments && post.comments > 0) {
+      fetchComments();
+    }
+  }, [showComments, post.id]);
+  
+  // Funkcja do pobierania komentarzy i odpowiedzi
+  const fetchComments = async () => {
+    if (!post.id) return;
+    
+    setLoadingComments(true);
+    try {
+      // Pobierz komentarze główne
+      const { data: commentsData, error } = await supabase
+        .from('feed_post_comments')
+        .select(`
+          id,
+          content,
+          created_at,
+          user_id,
+          parent_id
+        `)
+        .eq('post_id', post.id)
+        .is('parent_id', null)
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error('Błąd podczas pobierania komentarzy:', error);
+        setLoadingComments(false);
+        return;
+      }
+      
+      // Pobierz odpowiedzi na komentarze
+      const { data: repliesData, error: repliesError } = await supabase
+        .from('feed_post_comments')
+        .select(`
+          id,
+          content,
+          created_at,
+          user_id,
+          parent_id
+        `)
+        .eq('post_id', post.id)
+        .not('parent_id', 'is', null)
+        .order('created_at', { ascending: true });
+        
+      if (repliesError) {
+        console.error('Błąd podczas pobierania odpowiedzi:', repliesError);
+      }
+      
+      // Pobierz dane autorów komentarzy i odpowiedzi
+      const userIds = [
+        ...new Set([
+          ...(commentsData?.map(comment => comment.user_id) || []),
+          ...(repliesData?.map(reply => reply.user_id) || [])
+        ])
+      ];
+      
+      const { data: usersData, error: usersError } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', userIds);
+        
+      if (usersError) {
+        console.error('Błąd podczas pobierania danych użytkowników:', usersError);
+      }
+      
+      // Formatuj komentarze z dołączonymi odpowiedziami
+      const formattedComments = commentsData?.map(comment => {
+        const authorProfile = usersData?.find(user => user.id === comment.user_id);
+        const commentReplies = repliesData
+          ?.filter(reply => reply.parent_id === comment.id)
+          .map(reply => {
+            const replyAuthorProfile = usersData?.find(user => user.id === reply.user_id);
+            return {
+              id: reply.id,
+              author: {
+                id: reply.user_id,
+                name: replyAuthorProfile?.full_name || 'Nieznany użytkownik',
+                avatar: replyAuthorProfile?.avatar_url || ''
+              },
+              content: reply.content,
+              timeAgo: formatTimeAgo(new Date(reply.created_at))
+            };
+          }) || [];
+          
+        return {
+          id: comment.id,
+          author: {
+            id: comment.user_id,
+            name: authorProfile?.full_name || 'Nieznany użytkownik',
+            avatar: authorProfile?.avatar_url || ''
+          },
+          content: comment.content,
+          timeAgo: formatTimeAgo(new Date(comment.created_at)),
+          replies: commentReplies
+        };
+      }) || [];
+      
+      setComments(formattedComments);
+    } catch (error) {
+      console.error('Nieoczekiwany błąd podczas pobierania komentarzy:', error);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+  
+  const handleLike = async () => {
+    setLoading(true);
+    try {
+      if (onLikeToggle) {
+        await onLikeToggle(post.id, liked);
+        
+        // Zaktualizuj lokalny stan
+        if (liked) {
+          setLikesCount(prev => prev - 1);
+        } else {
+          setLikesCount(prev => prev + 1);
+        }
+        setLiked(!liked);
+      }
+    } catch (error) {
+      console.error('Błąd podczas aktualizacji polubienia:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleShare = () => {
+    const url = window.location.href;
+    
+    // Spróbuj użyć API Clipboard do skopiowania
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        toast({
+          title: "Link skopiowany",
+          description: "Link do posta został skopiowany do schowka.",
+        });
+      }).catch(() => {
+        // Jeśli API Clipboard zawiedzie, wyświetl link
+        toast({
+          title: "Kopiowanie nieudane",
+          description: "Spróbuj skopiować link ręcznie: " + url,
+        });
+      });
+    } else {
+      // Fallback dla przeglądarek bez dostępu do Clipboard API
+      toast({
+        title: "Link do udostępnienia",
+        description: url,
+      });
+    }
+  };
+  
+  const handleAddComment = async () => {
+    if (!commentText.trim()) return;
+    
+    setLoading(true);
+    try {
+      if (onAddComment) {
+        const success = await onAddComment(post.id, commentText);
+        if (success) {
+          setCommentText('');
+          // Odśwież komentarze
+          await fetchComments();
+        }
+      }
+    } catch (error) {
+      console.error('Błąd podczas dodawania komentarza:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleAddReply = async (commentId: string) => {
+    if (!replyText.trim()) return;
+    
+    setLoading(true);
+    try {
+      if (onAddReply) {
+        const success = await onAddReply(post.id, commentId, replyText);
+        if (success) {
+          setReplyText('');
+          setReplyingTo(null);
+          // Odśwież komentarze
+          await fetchComments();
+        }
+      }
+    } catch (error) {
+      console.error('Błąd podczas dodawania odpowiedzi:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to format time
+  function formatTimeAgo(date: Date): string {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+    const diffMonth = Math.floor(diffDay / 30);
+    const diffYear = Math.floor(diffMonth / 12);
+
+    if (diffYear > 0) {
+      return `${diffYear} ${diffYear === 1 ? 'rok' : diffYear < 5 ? 'lata' : 'lat'} temu`;
+    } else if (diffMonth > 0) {
+      return `${diffMonth} ${diffMonth === 1 ? 'miesiąc' : diffMonth < 5 ? 'miesiące' : 'miesięcy'} temu`;
+    } else if (diffDay > 0) {
+      return `${diffDay} ${diffDay === 1 ? 'dzień' : 'dni'} temu`;
+    } else if (diffHour > 0) {
+      return `${diffHour} ${diffHour === 1 ? 'godz.' : 'godz.'} temu`;
+    } else if (diffMin > 0) {
+      return `${diffMin} ${diffMin === 1 ? 'min.' : 'min.'} temu`;
+    } else {
+      return 'przed chwilą';
+    }
+  }
   
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="bg-background rounded-xl border w-full overflow-hidden"
     >
-      <div className="p-6">
+      <Card className="p-6">
         <div className="flex items-start gap-4">
-          <Avatar className="h-12 w-12 flex-shrink-0">
+          <Avatar className="h-10 w-10 flex-shrink-0">
             <AvatarImage src={post.author.avatar} alt={post.author.name} />
-            <AvatarFallback>
-              <User className="h-6 w-6" />
-            </AvatarFallback>
+            <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
           </Avatar>
           
           <div className="flex-1 min-w-0">
-            <PostHeader post={post} />
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-semibold">{post.author.name}</h3>
+                <div className="text-sm text-rhythm-500 flex items-center gap-2">
+                  <span>{post.author.role}</span>
+                  <span className="text-xs">•</span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {post.timeAgo}
+                  </span>
+                </div>
+              </div>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full">
+                    <span className="sr-only">Opcje posta</span>
+                    <MoreHorizontal className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>Zapisz post</DropdownMenuItem>
+                  <DropdownMenuItem>Zgłoś post</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            
             <PostContent post={post} />
             
-            <PostActions 
-              comments={post.comments}
-            />
+            <div className="flex items-center justify-between border-t pt-3 text-sm">
+              <div className="flex items-center gap-6">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`flex items-center gap-1 h-8 px-2 ${liked ? 'text-red-500' : ''}`}
+                  onClick={handleLike}
+                  disabled={loading}
+                >
+                  <Heart className={`h-4 w-4 ${liked ? 'fill-red-500' : ''}`} />
+                  <span>{likesCount}</span>
+                </Button>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="flex items-center gap-1 h-8 px-2"
+                  onClick={() => setShowComments(!showComments)}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span>{post.comments}</span>
+                </Button>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="flex items-center gap-1 h-8 px-2"
+                  onClick={handleShare}
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            
+            {/* Comment input - always visible */}
+            <div className="mt-4 pt-3 border-t">
+              <CommentInput 
+                onAddComment={handleAddComment}
+                commentText={commentText}
+                setCommentText={setCommentText}
+                disabled={loading}
+              />
+              
+              {/* Comments section - expandable */}
+              {(showComments) && (
+                <>
+                  {loadingComments ? (
+                    <div className="mt-4 space-y-4">
+                      {[1, 2].map(i => (
+                        <div key={i} className="animate-pulse flex gap-3">
+                          <div className="rounded-full bg-gray-200 dark:bg-gray-700 h-8 w-8"></div>
+                          <div className="flex-1">
+                            <div className="bg-gray-200 dark:bg-gray-700 h-24 rounded-lg mb-2"></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : comments.length > 0 ? (
+                    <CommentsList 
+                      comments={comments}
+                      replyingTo={replyingTo}
+                      setReplyingTo={setReplyingTo}
+                      replyText={replyText}
+                      setReplyText={setReplyText}
+                      onAddReply={handleAddReply}
+                      disabled={loading}
+                    />
+                  ) : (
+                    <div className="text-center py-4 text-sm text-muted-foreground">
+                      Brak komentarzy. Bądź pierwszy!
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </Card>
     </motion.div>
   );
 }

@@ -3,22 +3,22 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
-import { SocialFeedContent } from '@/components/social/SocialFeedContent';
+import { FeedPostsList } from '@/components/social/FeedPostsList';
 import { UserSuggestions } from '@/components/UserSuggestions';
-import { CreatePost } from '@/components/CreatePost';
+import { FeedPostCreate } from '@/components/social/FeedPostCreate';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { useSocial } from '@/contexts/SocialContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Globe, Users, Star, Filter, LogIn, Rss, PlusCircle } from 'lucide-react';
 import { CreatePostModal } from '@/components/CreatePostModal';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function SocialFeed() {
   const { isLoggedIn } = useAuth();
-  const { posts, getPopularHashtags } = useSocial();
   const [feedType, setFeedType] = useState<'all' | 'following' | 'connections'>('all');
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   const [popularHashtags, setPopularHashtags] = useState<{name: string, postsCount: number}[]>([]);
+  const [reload, setReload] = useState(false);
   
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -26,11 +26,39 @@ export default function SocialFeed() {
   }, []);
   
   const loadHashtags = async () => {
-    const hashtags = await getPopularHashtags();
-    setPopularHashtags(hashtags.map(h => ({
-      name: h.name,
-      postsCount: h.postsCount
-    })));
+    try {
+      const { data, error } = await supabase
+        .from('hashtags')
+        .select(`
+          id,
+          name,
+          feed_post_hashtags(count)
+        `)
+        .order('name');
+        
+      if (error) {
+        console.error('Błąd podczas pobierania hashtagów:', error);
+        return;
+      }
+      
+      const formattedHashtags = data.map(tag => ({
+        name: tag.name,
+        postsCount: tag.feed_post_hashtags?.length || 0
+      }))
+      .sort((a, b) => b.postsCount - a.postsCount)
+      .slice(0, 5);
+      
+      setPopularHashtags(formattedHashtags);
+    } catch (error) {
+      console.error('Nieoczekiwany błąd:', error);
+    }
+  };
+  
+  const handlePostCreated = () => {
+    // Odśwież listę postów
+    setReload(prev => !prev);
+    // Odśwież listę hashtagów
+    loadHashtags();
   };
 
   // If user is not logged in, show a prompt to log in
@@ -70,12 +98,6 @@ export default function SocialFeed() {
       </div>
     );
   }
-
-  const filteredPosts = posts.filter(post => {
-    if (feedType === 'all') return true;
-    // W rzeczywistej aplikacji filtrowanie byłoby oparte na rzeczywistym statusie połączenia
-    return true;
-  });
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -127,9 +149,9 @@ export default function SocialFeed() {
                   </TabsList>
                 </Tabs>
                 
-                <CreatePost />
+                <FeedPostCreate onPostCreated={handlePostCreated} />
                 
-                <SocialFeedContent posts={filteredPosts} />
+                <FeedPostsList posts={[]} key={String(reload)} />
               </div>
               
               {/* Sidebar */}

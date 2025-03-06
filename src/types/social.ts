@@ -9,12 +9,28 @@ export interface Post {
   };
   timeAgo: string;
   content: string;
-  mediaUrl?: string;
-  mediaType?: 'image' | 'video';
+  createdAt: string;
+  isPoll?: boolean;
+  pollOptions?: Array<{
+    id: string;
+    text: string;
+    votes: number;
+  }>;
+  userVoted?: string;
+  userLiked?: boolean;
   likes: number;
   comments: number;
   hashtags?: string[];
-  mediaFiles?: Array<{url: string, type: 'image' | 'video'}>;
+  media?: Array<{
+    url: string;
+    type: 'image' | 'video';
+  }>;
+  files?: Array<{
+    name: string;
+    url: string;
+    type: string;
+    size: number;
+  }>;
 }
 
 export interface Comment {

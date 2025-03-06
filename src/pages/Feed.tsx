@@ -6,18 +6,23 @@ import { FeedPreview } from '@/components/FeedPreview';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Filter } from 'lucide-react';
 import { CreatePostModal } from '@/components/CreatePostModal';
-import { SocialFeedContent } from '@/components/social/SocialFeedContent';
-import { useSocial } from '@/contexts/SocialContext';
+import { FeedPostsList } from '@/components/social/FeedPostsList';
+import { FeedPostCreate } from '@/components/social/FeedPostCreate';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Feed() {
   const { isLoggedIn } = useAuth();
-  const { posts, loading } = useSocial();
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  const [reload, setReload] = useState(false);
   
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const handlePostCreated = () => {
+    // Ustaw reload na true, aby wymusić ponowne załadowanie postów
+    setReload(prev => !prev);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -45,15 +50,13 @@ export default function Feed() {
               </div>
             </div>
             
-            <div className="w-full">
+            <div className="w-full space-y-6">
+              {isLoggedIn && (
+                <FeedPostCreate onPostCreated={handlePostCreated} />
+              )}
+              
               {isLoggedIn ? (
-                loading ? (
-                  <div className="text-center py-8">Ładowanie postów...</div>
-                ) : posts.length > 0 ? (
-                  <SocialFeedContent posts={posts} />
-                ) : (
-                  <FeedPreview />
-                )
+                <FeedPostsList posts={[]} key={String(reload)} />
               ) : (
                 <FeedPreview />
               )}
