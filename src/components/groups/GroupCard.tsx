@@ -41,7 +41,7 @@ export function GroupCard({ group, delay = 0 }: GroupCardProps) {
         />
       </div>
       
-      <div className="p-6">
+      <div className="p-6 flex flex-col h-64"> {/* Dodana stała wysokość i flex column */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2 text-sm text-rhythm-500">
             <Users className="h-4 w-4" />
@@ -54,9 +54,11 @@ export function GroupCard({ group, delay = 0 }: GroupCardProps) {
         </div>
         
         <h3 className="text-xl font-semibold mb-2">{group.name}</h3>
-        <p className="text-rhythm-600 mb-4">{group.description}</p>
+        <div className="overflow-y-auto mb-4 flex-grow"> {/* Kontener na opis z przewijaniem */}
+          <p className="text-rhythm-600">{group.description}</p>
+        </div>
         
-        <Button className="w-full group" asChild>
+        <Button className="w-full group mt-auto" asChild> {/* Dodane mt-auto */}
           <Link to={`/groups/${group.id}`}>
             Dołącz do społeczności
             <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
