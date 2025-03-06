@@ -71,16 +71,20 @@ export default function GroupDetail() {
         
         if (user?.id) {
           try {
-            // Najpierw pobierz role bezpośrednio z funkcji SQL
-            const { data: roleData, error: roleError } = await supabase
-              .rpc('get_user_group_role', { group_id: id, user_id: user.id });
+            // Bezpośrednie zapytanie o członkostwo zamiast funkcji SQL
+            const { data: memberData, error: memberError } = await supabase
+              .from('group_members')
+              .select('role')
+              .eq('group_id', id)
+              .eq('user_id', user.id)
+              .maybeSingle();
               
-            if (roleError) {
-              console.error('Błąd podczas sprawdzania roli użytkownika:', roleError);
+            if (memberError) {
+              console.error('Błąd podczas sprawdzania członkostwa:', memberError);
             } else {
-              console.log('Dane roli użytkownika:', roleData);
-              userIsMember = !!roleData;
-              userIsAdmin = roleData === 'admin';
+              console.log('Dane członkostwa użytkownika:', memberData);
+              userIsMember = !!memberData;
+              userIsAdmin = memberData?.role === 'admin';
             }
           } catch (memberError) {
             console.error('Błąd podczas sprawdzania członkostwa:', memberError);

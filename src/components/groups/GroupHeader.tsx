@@ -24,11 +24,41 @@ export function GroupHeader({ group }: GroupHeaderProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUser(user.id);
+        
+        // Sprawdź bezpośrednio członkostwo w grupie przy ładowaniu
+        if (user.id) {
+          const checkMembership = async () => {
+            try {
+              const { data, error } = await supabase
+                .from('group_members')
+                .select('*')
+                .eq('group_id', group.id)
+                .eq('user_id', user.id)
+                .maybeSingle();
+                
+              if (error) {
+                console.error('Błąd podczas sprawdzania członkostwa:', error);
+                return;
+              }
+              
+              // Aktualizuj stan na podstawie bezpośredniego sprawdzenia w bazie
+              setIsJoined(!!data);
+              
+              // Pobierz ustawienia powiadomień, jeśli użytkownik jest członkiem
+              if (data) {
+                setIsNotificationsEnabled(data.notifications_enabled);
+              }
+            } catch (err) {
+              console.error('Nieoczekiwany błąd podczas sprawdzania członkostwa:', err);
+            }
+          };
+          checkMembership();
+        }
       }
     };
     
     checkUser();
-  }, []);
+  }, [group.id]);
   
   const handleJoinGroup = async () => {
     if (!currentUser) {
@@ -41,6 +71,29 @@ export function GroupHeader({ group }: GroupHeaderProps) {
     }
     
     try {
+      // Sprawdź najpierw czy użytkownik już jest członkiem
+      const { data: existingMembership, error: checkError } = await supabase
+        .from('group_members')
+        .select('*')
+        .eq('group_id', group.id)
+        .eq('user_id', currentUser)
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error('Błąd podczas sprawdzania członkostwa:', checkError);
+      }
+      
+      // Jeśli użytkownik już jest członkiem, zaktualizuj stan i zakończ
+      if (existingMembership) {
+        setIsJoined(true);
+        toast({
+          title: "Już jesteś członkiem",
+          description: `Już należysz do grupy "${group.name}"`,
+        });
+        return;
+      }
+      
+      // Jeśli nie jest członkiem, dodaj go
       const { error } = await supabase
         .from('group_members')
         .insert({
