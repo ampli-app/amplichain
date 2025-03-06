@@ -10,6 +10,7 @@ import Login from '@/pages/Login';
 import Profile from '@/pages/Profile';
 import NotFound from '@/pages/NotFound';
 import Groups from '@/pages/Groups';
+import GroupDetail from '@/pages/GroupDetail'; // New import
 import Connections from '@/pages/Connections';
 import Discover from '@/pages/Discover';
 import Messages from '@/pages/Messages';
@@ -34,6 +35,7 @@ function App() {
           <Route path="/profile/:id" element={<Profile />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/groups" element={<Groups />} />
+          <Route path="/groups/:id" element={<GroupDetail />} /> {/* New route */}
           <Route path="/connections" element={<Connections />} />
           <Route path="/discover" element={<Discover />} />
           <Route path="/discovery" element={<Discover />} />

@@ -10,7 +10,6 @@ interface ProductBadgesProps {
 }
 
 export function ProductBadges({ forTesting, isUserProduct, sale, salePercentage, hideInDiscover = false }: ProductBadgesProps) {
-  // Usunięto wcześniejszy warunek, który ukrywał odznaki
   return (
     <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-2">
       {forTesting && (
