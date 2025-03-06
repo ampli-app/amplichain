@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSocial } from '@/contexts/SocialContext';
@@ -10,106 +10,94 @@ import { GroupPostCreate } from '@/components/groups/GroupPostCreate';
 import { GroupTabs } from '@/components/groups/GroupTabs';
 import { Group } from '@/types/group';
 import { Loader2 } from 'lucide-react';
-
-// Mock data for demo purposes - would be replaced with real data from API
-const mockGroup: Group = {
-  id: '1',
-  name: 'Koło producentów muzycznych',
-  description: 'Ucz się od najlepszych producentów i otrzymuj feedback do swojej twórczości.',
-  coverImage: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop',
-  profileImage: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=100&auto=format&fit=crop',
-  memberCount: 1250,
-  category: 'Produkcja',
-  isPrivate: false,
-  isMember: true,
-  isAdmin: false,
-  createdAt: '2023-01-15',
-  posts: [
-    {
-      id: '1',
-      content: 'Cześć wszystkim! Podzielcie się swoimi ostatnimi produkcjami w komentarzach. Chętnie posłucham i dam feedback! #produkcja #feedback',
-      author: {
-        id: '101',
-        name: 'Marcin Kowalski',
-        avatar: 'https://randomuser.me/api/portraits/men/32.jpg'
-      },
-      createdAt: '2023-06-01T10:30:00',
-      timeAgo: '2 godz. temu',
-      media: [
-        {
-          url: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04',
-          type: 'image'
-        }
-      ],
-      likes: 24,
-      comments: 8
-    },
-    {
-      id: '2',
-      content: 'Jakie są wasze ulubione pluginy do masteringu? Zbieram opinię do artykułu, który przygotowuję.',
-      author: {
-        id: '102',
-        name: 'Anna Nowak',
-        avatar: 'https://randomuser.me/api/portraits/women/44.jpg'
-      },
-      createdAt: '2023-06-01T08:15:00',
-      timeAgo: '4 godz. temu',
-      isPoll: true,
-      pollOptions: [
-        { id: 'p1', text: 'FabFilter Pro-L 2', votes: 42 },
-        { id: 'p2', text: 'Ozone 10', votes: 38 },
-        { id: 'p3', text: 'Waves L2', votes: 27 },
-        { id: 'p4', text: 'Inne (napisz w komentarzu)', votes: 15 }
-      ],
-      likes: 18,
-      comments: 12
-    }
-  ],
-  members: [
-    { id: '101', name: 'Marcin Kowalski', avatar: 'https://randomuser.me/api/portraits/men/32.jpg', role: 'admin', joinedAt: '2023-01-15' },
-    { id: '102', name: 'Anna Nowak', avatar: 'https://randomuser.me/api/portraits/women/44.jpg', role: 'moderator', joinedAt: '2023-01-20' },
-    { id: '103', name: 'Piotr Wiśniewski', avatar: 'https://randomuser.me/api/portraits/men/22.jpg', role: 'member', joinedAt: '2023-02-05' },
-    { id: '104', name: 'Katarzyna Jankowska', avatar: 'https://randomuser.me/api/portraits/women/67.jpg', role: 'member', joinedAt: '2023-02-12' },
-    { id: '105', name: 'Tomasz Zieliński', avatar: 'https://randomuser.me/api/portraits/men/91.jpg', role: 'member', joinedAt: '2023-03-01' }
-  ],
-  media: [
-    { id: 'm1', url: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04', type: 'image', postId: '1', createdAt: '2023-06-01T10:30:00' },
-    { id: 'm2', url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4', type: 'image', postId: '3', createdAt: '2023-05-28T14:20:00' },
-    { id: 'm3', url: 'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0', type: 'image', postId: '5', createdAt: '2023-05-25T09:10:00' }
-  ],
-  files: [
-    { id: 'f1', name: 'Poradnik masteringu.pdf', url: '#', type: 'application/pdf', size: 2500000, postId: '10', createdAt: '2023-05-20T11:45:00' },
-    { id: 'f2', name: 'Harmonogram spotkań.docx', url: '#', type: 'application/msword', size: 150000, postId: '12', createdAt: '2023-05-18T15:30:00' },
-    { id: 'f3', name: 'Preset do EQ.zip', url: '#', type: 'application/zip', size: 5000000, postId: '15', createdAt: '2023-05-15T08:20:00' }
-  ]
-};
+import { supabase } from '@/integrations/supabase/client';
 
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const { isLoggedIn, user } = useAuth();
-  const { loading } = useSocial();
+  const { loading: socialLoading } = useSocial();
   const [group, setGroup] = useState<Group | null>(null);
   const [loadingGroup, setLoadingGroup] = useState(true);
+  const [isMember, setIsMember] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
     
-    // Simulate loading the group data - would be replaced with API call
+    // Pobierz dane grupy z Supabase
     const fetchGroup = async () => {
+      if (!id) return;
+      
       setLoadingGroup(true);
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setGroup(mockGroup);
+        // Pobierz dane grupy
+        const { data: groupData, error } = await supabase
+          .from('groups')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (error) {
+          console.error('Błąd podczas pobierania grupy:', error);
+          return;
+        }
+        
+        // Pobierz liczbę członków
+        const { count: memberCount, error: membersError } = await supabase
+          .from('group_members')
+          .select('id', { count: 'exact', head: true })
+          .eq('group_id', id);
+          
+        if (membersError) {
+          console.error('Błąd podczas pobierania liczby członków:', membersError);
+        }
+        
+        // Sprawdź, czy zalogowany użytkownik jest członkiem grupy i jaką ma rolę
+        if (user?.id) {
+          const { data: memberData, error: memberError } = await supabase
+            .from('group_members')
+            .select('role')
+            .eq('group_id', id)
+            .eq('user_id', user.id)
+            .maybeSingle();
+            
+          if (memberError) {
+            console.error('Błąd podczas sprawdzania członkostwa:', memberError);
+          } else {
+            setIsMember(!!memberData);
+            setIsAdmin(memberData?.role === 'admin');
+          }
+        }
+        
+        // Przetwórz dane na format Group
+        const formattedGroup: Group = {
+          id: groupData.id,
+          name: groupData.name,
+          description: groupData.description || '',
+          coverImage: groupData.cover_image || '',
+          profileImage: groupData.profile_image,
+          memberCount: memberCount || 0,
+          category: groupData.category || '',
+          isPrivate: groupData.is_private || false,
+          isMember: !!isMember,
+          isAdmin: !!isAdmin,
+          createdAt: new Date(groupData.created_at).toISOString(),
+          posts: [],
+          members: [],
+          media: [],
+          files: []
+        };
+        
+        setGroup(formattedGroup);
       } catch (error) {
-        console.error('Error loading group:', error);
+        console.error('Nieoczekiwany błąd:', error);
       } finally {
         setLoadingGroup(false);
       }
     };
     
     fetchGroup();
-  }, [id]);
+  }, [id, user?.id, isMember, isAdmin]);
 
   if (loadingGroup) {
     return (

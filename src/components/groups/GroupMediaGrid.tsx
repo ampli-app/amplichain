@@ -1,26 +1,93 @@
 
-import { useState } from 'react';
-import { GroupMedia } from '@/types/group';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogClose 
-} from '@/components/ui/dialog';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { X, ExternalLink, Download } from 'lucide-react';
+import { ExternalLink, Image, Video } from 'lucide-react';
 
 interface GroupMediaGridProps {
-  media: GroupMedia[];
+  groupId: string;
   searchQuery: string;
 }
 
-export function GroupMediaGrid({ media, searchQuery }: GroupMediaGridProps) {
-  const [selectedMedia, setSelectedMedia] = useState<GroupMedia | null>(null);
+type GroupMedia = {
+  id: string;
+  url: string;
+  type: 'image' | 'video';
+  postId: string;
+  createdAt: string;
+  post?: {
+    content: string;
+  };
+};
+
+export function GroupMediaGrid({ groupId, searchQuery }: GroupMediaGridProps) {
+  const [media, setMedia] = useState<GroupMedia[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMedia = async () => {
+      setLoading(true);
+      try {
+        const { data: mediaData, error } = await supabase
+          .from('group_post_media')
+          .select(`
+            id,
+            url,
+            type,
+            post_id,
+            created_at,
+            post:post_id (
+              content
+            )
+          `)
+          .in('post_id', function(builder) {
+            builder.select('id').from('group_posts').eq('group_id', groupId);
+          })
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('Błąd podczas pobierania mediów:', error);
+          return;
+        }
+        
+        const formattedMedia: GroupMedia[] = mediaData.map(item => ({
+          id: item.id,
+          url: item.url,
+          type: item.type as 'image' | 'video',
+          postId: item.post_id,
+          createdAt: new Date(item.created_at).toLocaleDateString(),
+          post: item.post ? {
+            content: item.post.content
+          } : undefined
+        }));
+        
+        setMedia(formattedMedia);
+      } catch (error) {
+        console.error('Nieoczekiwany błąd:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchMedia();
+  }, [groupId]);
   
-  // For real implementation, we would filter based on post content
-  const filteredMedia = searchQuery ? 
-    media.filter(item => item.url.toLowerCase().includes(searchQuery.toLowerCase())) : 
-    media;
+  // Filtrowanie mediów na podstawie zapytania (jeśli post zawiera tekst)
+  const filteredMedia = media.filter(item => 
+    !searchQuery || 
+    (item.post?.content && 
+      item.post.content.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+  
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {[1, 2, 3, 4, 5, 6].map(i => (
+          <div key={i} className="animate-pulse aspect-square bg-gray-200 dark:bg-gray-700 rounded-md"></div>
+        ))}
+      </div>
+    );
+  }
   
   if (filteredMedia.length === 0) {
     return (
@@ -32,93 +99,55 @@ export function GroupMediaGrid({ media, searchQuery }: GroupMediaGridProps) {
           </>
         ) : (
           <>
+            <Image className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
             <h3 className="text-lg font-medium mb-2">Brak mediów</h3>
-            <p className="text-muted-foreground">W tej grupie nie zostały jeszcze udostępnione żadne zdjęcia ani filmy.</p>
+            <p className="text-muted-foreground">W tej grupie nie ma jeszcze zdjęć ani filmów</p>
           </>
         )}
       </div>
     );
   }
-  
-  const openMedia = (media: GroupMedia) => {
-    setSelectedMedia(media);
-  };
-  
-  const closeMedia = () => {
-    setSelectedMedia(null);
-  };
-  
+
   return (
-    <>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filteredMedia.map((item) => (
-          <div 
-            key={item.id} 
-            className="aspect-square rounded-md overflow-hidden cursor-pointer relative group"
-            onClick={() => openMedia(item)}
-          >
-            {item.type === 'image' ? (
-              <img 
-                src={item.url} 
-                alt="Media" 
-                className="w-full h-full object-cover"
-              />
-            ) : (
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      {filteredMedia.map(item => (
+        <div key={item.id} className="group relative aspect-square overflow-hidden rounded-md bg-muted">
+          {item.type === 'image' ? (
+            <img 
+              src={item.url} 
+              alt="Media" 
+              className="h-full w-full object-cover transition-all group-hover:scale-105" 
+            />
+          ) : (
+            <div className="relative h-full w-full">
               <video 
-                src={item.url} 
-                className="w-full h-full object-cover"
+                src={item.url}
+                className="h-full w-full object-cover"
+                controls={false}
               />
-            )}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-              <Button 
-                variant="secondary" 
-                size="icon" 
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <ExternalLink className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      <Dialog open={!!selectedMedia} onOpenChange={closeMedia}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden">
-          <div className="relative">
-            <DialogClose className="absolute top-2 right-2 z-10">
-              <Button variant="destructive" size="icon">
-                <X className="h-4 w-4" />
-              </Button>
-            </DialogClose>
-            
-            <div className="bg-black flex items-center justify-center min-h-[300px] max-h-[80vh]">
-              {selectedMedia?.type === 'image' ? (
-                <img 
-                  src={selectedMedia?.url} 
-                  alt="Media" 
-                  className="max-w-full max-h-[80vh] object-contain"
-                />
-              ) : (
-                <video 
-                  src={selectedMedia?.url} 
-                  controls
-                  className="max-w-full max-h-[80vh]"
-                />
-              )}
-            </div>
-            
-            <div className="p-4 bg-background flex justify-between items-center">
-              <div className="text-sm text-muted-foreground">
-                Opublikowano: {new Date(selectedMedia?.createdAt || '').toLocaleDateString()}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Video className="h-10 w-10 text-white opacity-80" />
               </div>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <Download className="h-4 w-4" />
-                Pobierz
-              </Button>
             </div>
+          )}
+          
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-black/50 text-white border-white hover:bg-black/70 hover:text-white"
+              onClick={() => window.open(item.url, '_blank')}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Otwórz
+            </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          
+          <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+            <p className="text-xs truncate">{item.createdAt}</p>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

@@ -432,6 +432,317 @@ export type Database = {
           },
         ]
       }
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          joined_at: string
+          notifications_enabled: boolean
+          role: Database["public"]["Enums"]["group_role"]
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          joined_at?: string
+          notifications_enabled?: boolean
+          role?: Database["public"]["Enums"]["group_role"]
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          joined_at?: string
+          notifications_enabled?: boolean
+          role?: Database["public"]["Enums"]["group_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_post_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          parent_id: string | null
+          post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_post_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "group_post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "group_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_post_files: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          post_id: string
+          size: number
+          type: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          post_id: string
+          size: number
+          type: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          post_id?: string
+          size?: number
+          type?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_post_files_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "group_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "group_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_post_media: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          type: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          type: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          type?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_post_media_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "group_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_post_poll_options: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          text: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_post_poll_options_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "group_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_post_poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_post_poll_votes_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "group_post_poll_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_posts: {
+        Row: {
+          content: string
+          created_at: string
+          group_id: string
+          id: string
+          is_poll: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          group_id: string
+          id?: string
+          is_poll?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_poll?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_posts_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          category: string | null
+          cover_image: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_private: boolean | null
+          name: string
+          profile_image: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          cover_image?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_private?: boolean | null
+          name: string
+          profile_image?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          cover_image?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_private?: boolean | null
+          name?: string
+          profile_image?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       hashtags: {
         Row: {
           created_at: string
@@ -798,6 +1109,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_moderate_group: {
+        Args: {
+          group_id: string
+          user_id: string
+        }
+        Returns: boolean
+      }
       find_or_create_conversation: {
         Args: {
           p_user_id1: string
@@ -813,9 +1131,33 @@ export type Database = {
         }
         Returns: string[]
       }
+      get_user_group_role: {
+        Args: {
+          group_id: string
+          user_id: string
+        }
+        Returns: string
+      }
+      is_admin_in_any_group: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
+      is_global_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_group_member: {
+        Args: {
+          group_id: string
+          user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      group_role: "admin" | "moderator" | "member"
     }
     CompositeTypes: {
       [_ in never]: never

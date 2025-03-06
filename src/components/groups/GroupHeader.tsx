@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Group } from '@/types/group';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Settings, Users, Bell, BellOff, Share2, User } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GroupHeaderProps {
   group: Group;
@@ -16,31 +17,133 @@ export function GroupHeader({ group }: GroupHeaderProps) {
   const navigate = useNavigate();
   const [isJoined, setIsJoined] = useState(group.isMember);
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
   
-  const handleJoinGroup = () => {
-    setIsJoined(true);
-    toast({
-      title: "Dołączono do grupy",
-      description: `Zostałeś członkiem grupy "${group.name}"`,
-    });
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUser(user.id);
+      }
+    };
+    
+    checkUser();
+  }, []);
+  
+  const handleJoinGroup = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Wymagane logowanie",
+        description: "Zaloguj się, aby dołączyć do grupy",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('group_members')
+        .insert({
+          group_id: group.id,
+          user_id: currentUser,
+          role: 'member'
+        });
+        
+      if (error) {
+        console.error('Błąd podczas dołączania do grupy:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się dołączyć do grupy",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setIsJoined(true);
+      toast({
+        title: "Dołączono do grupy",
+        description: `Zostałeś członkiem grupy "${group.name}"`,
+      });
+    } catch (error) {
+      console.error('Nieoczekiwany błąd:', error);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił nieoczekiwany błąd",
+        variant: "destructive"
+      });
+    }
   };
   
-  const handleLeaveGroup = () => {
-    setIsJoined(false);
-    toast({
-      title: "Opuszczono grupę",
-      description: `Opuściłeś grupę "${group.name}"`,
-    });
+  const handleLeaveGroup = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const { error } = await supabase
+        .from('group_members')
+        .delete()
+        .eq('group_id', group.id)
+        .eq('user_id', currentUser);
+        
+      if (error) {
+        console.error('Błąd podczas opuszczania grupy:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się opuścić grupy",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setIsJoined(false);
+      toast({
+        title: "Opuszczono grupę",
+        description: `Opuściłeś grupę "${group.name}"`,
+      });
+    } catch (error) {
+      console.error('Nieoczekiwany błąd:', error);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił nieoczekiwany błąd",
+        variant: "destructive"
+      });
+    }
   };
   
-  const toggleNotifications = () => {
-    setIsNotificationsEnabled(!isNotificationsEnabled);
-    toast({
-      title: isNotificationsEnabled ? "Powiadomienia wyłączone" : "Powiadomienia włączone",
-      description: isNotificationsEnabled 
-        ? "Nie będziesz otrzymywać powiadomień z tej grupy" 
-        : "Będziesz otrzymywać powiadomienia z tej grupy",
-    });
+  const toggleNotifications = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const { error } = await supabase
+        .from('group_members')
+        .update({ notifications_enabled: !isNotificationsEnabled })
+        .eq('group_id', group.id)
+        .eq('user_id', currentUser);
+        
+      if (error) {
+        console.error('Błąd podczas aktualizacji powiadomień:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się zaktualizować ustawień powiadomień",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setIsNotificationsEnabled(!isNotificationsEnabled);
+      toast({
+        title: isNotificationsEnabled ? "Powiadomienia wyłączone" : "Powiadomienia włączone",
+        description: isNotificationsEnabled 
+          ? "Nie będziesz otrzymywać powiadomień z tej grupy" 
+          : "Będziesz otrzymywać powiadomienia z tej grupy",
+      });
+    } catch (error) {
+      console.error('Nieoczekiwany błąd:', error);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił nieoczekiwany błąd",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleShareGroup = () => {

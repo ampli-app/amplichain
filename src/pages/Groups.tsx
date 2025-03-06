@@ -265,13 +265,57 @@ export default function Groups() {
   useEffect(() => {
     window.scrollTo(0, 0);
     
-    // Symulacja ładowania danych
+    // Pobierz grupy z Supabase
     const fetchGroups = async () => {
       setLoading(true);
-      setTimeout(() => {
-        setGroups(mockGroups);
+      try {
+        // Pobierz grupy z Supabase
+        const { data: groupsData, error } = await supabase
+          .from('groups')
+          .select(`
+            id,
+            name,
+            description,
+            cover_image,
+            profile_image,
+            category,
+            is_private,
+            created_at,
+            group_members (id)
+          `);
+        
+        if (error) {
+          console.error('Błąd podczas pobierania grup:', error);
+          setGroups(mockGroups); // Użyj danych testowych jako fallback
+          return;
+        }
+        
+        // Przetwórz dane na format wymagany przez UI
+        const formattedGroups: Group[] = groupsData.map(group => ({
+          id: group.id,
+          title: group.name,
+          description: group.description || 'Brak opisu',
+          image: group.cover_image || 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2000&auto=format&fit=crop',
+          members: group.group_members?.length || 0,
+          rating: 4.7, // Przykładowa ocena
+          features: [
+            'Wsparcie społeczności',
+            'Wymiana wiedzy',
+            'Dyskusje tematyczne',
+            'Wydarzenia i wyzwania'
+          ],
+          popular: group.group_members?.length > 3, // Grupa jest popularna, jeśli ma więcej niż 3 członków
+          category: group.category || 'all',
+          tags: [group.category || 'Muzyka'].concat(['Społeczność', 'Rozwój']) // Przykładowe tagi
+        }));
+        
+        setGroups(formattedGroups);
+      } catch (error) {
+        console.error('Nieoczekiwany błąd:', error);
+        setGroups(mockGroups); // Użyj danych testowych jako fallback
+      } finally {
         setLoading(false);
-      }, 800);
+      }
     };
     
     fetchGroups();
