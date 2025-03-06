@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
@@ -44,7 +45,7 @@ export function GroupMembersList({ groupId, searchQuery }: GroupMembersListProps
         // Pobierz ID zalogowanego użytkownika
         const { data: { user } } = await supabase.auth.getUser();
         
-        // Pobierz członków grupy
+        // Pobierz członków grupy - poprawione zapytanie
         const { data: membersData, error } = await supabase
           .from('group_members')
           .select(`
@@ -52,7 +53,7 @@ export function GroupMembersList({ groupId, searchQuery }: GroupMembersListProps
             role,
             joined_at,
             user_id,
-            profiles:user_id (
+            profiles: user_id (
               id,
               full_name,
               avatar_url
@@ -76,13 +77,12 @@ export function GroupMembersList({ groupId, searchQuery }: GroupMembersListProps
         
         // Przetwórz dane na format Member
         const formattedMembers: Member[] = membersData.map(member => {
-          const profile = member.profiles;
           return {
             id: member.id,
             user: {
               id: member.user_id,
-              name: profile?.full_name || 'Użytkownik',
-              avatar: profile?.avatar_url || '',
+              name: member.profiles?.full_name || 'Użytkownik',
+              avatar: member.profiles?.avatar_url || '',
             },
             role: member.role as 'admin' | 'moderator' | 'member',
             joinedAt: new Date(member.joined_at).toLocaleDateString(),
