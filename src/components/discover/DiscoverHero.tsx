@@ -2,7 +2,7 @@
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
-interface DiscoverHeroProps {
+export interface DiscoverHeroProps {
   onSearch: (query: string) => void;
 }
 

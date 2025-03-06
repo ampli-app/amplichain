@@ -53,3 +53,7 @@ export interface SocialContextType {
   getPopularHashtags: () => Promise<Hashtag[]>;
   loading: boolean;
 }
+
+// Eksportuj wszystkie typy
+export * from './types';
+

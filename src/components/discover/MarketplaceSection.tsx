@@ -19,12 +19,13 @@ interface Item {
 }
 
 interface MarketplaceSectionProps {
-  title: string;
-  itemType: 'products' | 'services' | 'consultations';
-  items: Item[];
+  title?: string;
+  itemType?: 'products' | 'services' | 'consultations';
+  items?: Item[];
+  fullView?: boolean;
 }
 
-export function MarketplaceSection({ title, itemType, items }: MarketplaceSectionProps) {
+export function MarketplaceSection({ title = "Marketplace", itemType = 'products', items = [], fullView = false }: MarketplaceSectionProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
@@ -135,6 +136,35 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
     navigate(`/marketplace/${itemId}`);
   };
 
+  // Dodane renderowanie dla widoku pełnego (fullView)
+  if (fullView) {
+    return (
+      <div className="mb-10">
+        <h2 className="text-xl font-bold mb-6">{title}</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          {items.map((item, index) => (
+            <div 
+              key={item.id} 
+              onClick={() => handleItemClick(item.id)}
+            >
+              <MarketplaceItem
+                id={item.id}
+                title={item.title}
+                price={item.price || 0}
+                image={item.image}
+                category={item.category || "Inne"}
+                delay={index * 0.05}
+                isFavorite={favorites[item.id] || false}
+                onToggleFavorite={toggleFavorite}
+                hideInDiscover={false}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mb-10">
       <div className="flex justify-between items-center mb-3">
@@ -165,7 +195,7 @@ export function MarketplaceSection({ title, itemType, items }: MarketplaceSectio
                   delay={index * 0.05}
                   isFavorite={favorites[item.id] || false}
                   onToggleFavorite={toggleFavorite}
-                  hideInDiscover={false} // Upewnij się, że odznaki są zawsze widoczne
+                  hideInDiscover={false}
                 />
               </div>
             ))}

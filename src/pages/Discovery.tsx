@@ -17,12 +17,15 @@ import { FeatureCard } from '@/components/discover/FeatureCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useDiscoverSliders } from '@/hooks/useDiscoverSliders';
 import { Post } from '@/types/social';
+import { DiscoverSlider as DiscoverSliderType } from '@/types/discover';
 
 export default function Discover() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
   const { sliders, loading: slidersLoading } = useDiscoverSliders();
+  const [groups, setGroups] = useState([]);
+  const [marketplaceItems, setMarketplaceItems] = useState([]);
   
   useEffect(() => {
     // Ładuj dane tylko raz przy montowaniu
@@ -31,6 +34,26 @@ export default function Discover() {
   
   const loadData = async () => {
     await fetchTrendingPosts();
+    await fetchGroups();
+    await fetchMarketplaceItems();
+  };
+  
+  const fetchGroups = async () => {
+    // Tutaj powinno być faktyczne pobieranie grup
+    setGroups([
+      { id: '1', name: 'Grupa Projektowanie UI/UX', image: '/placeholder.svg', memberCount: 156 },
+      { id: '2', name: 'Rozwój kariery IT', image: '/placeholder.svg', memberCount: 342 },
+      { id: '3', name: 'JavaScript Developers', image: '/placeholder.svg', memberCount: 521 },
+    ]);
+  };
+  
+  const fetchMarketplaceItems = async () => {
+    // Tutaj powinno być faktyczne pobieranie elementów marketplace
+    setMarketplaceItems([
+      { id: '1', title: 'Produkt 1', image: '/placeholder.svg', price: 199 },
+      { id: '2', title: 'Produkt 2', image: '/placeholder.svg', price: 299 },
+      { id: '3', title: 'Produkt 3', image: '/placeholder.svg', price: 349 },
+    ]);
   };
   
   // Pobierz popularne posty
@@ -120,7 +143,7 @@ export default function Discover() {
           }
           
           const hashtags = tagData 
-            ? tagData.map((t) => t.hashtags?.name).filter(Boolean) as string[]
+            ? tagData.map((t: any) => t.hashtags?.name).filter(Boolean) as string[]
             : [];
           
           return {
@@ -137,11 +160,10 @@ export default function Discover() {
             likes: likesCount || 0,
             comments: commentsCount || 0,
             hashtags,
-            media: mediaData && mediaData.length > 0 ? mediaData.map(m => ({
+            media: mediaData && mediaData.length > 0 ? mediaData.map((m: any) => ({
               url: m.url,
               type: m.type as 'image' | 'video'
             })) : undefined,
-            // Dla kompatybilności z pozostałymi komponentami
             isPoll: post.is_poll || false
           };
         })
@@ -153,8 +175,8 @@ export default function Discover() {
     }
   };
   
-  const handleSearch = () => {
-    console.log('Szukaj:', searchQuery);
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
   };
   
   return (
@@ -171,11 +193,10 @@ export default function Discover() {
                 placeholder="Szukaj w serwisie..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
               <Button
                 className="absolute right-0 top-0 h-full rounded-l-none"
-                onClick={handleSearch}
+                onClick={() => handleSearch(searchQuery)}
               >
                 Szukaj
               </Button>
@@ -196,14 +217,11 @@ export default function Discover() {
             <TabsContent value="all" className="space-y-12">
               {!slidersLoading && sliders.length > 0 && (
                 <div className="mb-12">
-                  <DiscoverSlider sliders={sliders} />
+                  <DiscoverSlider />
                 </div>
               )}
               
-              <DiscoverHero 
-                title="Odkrywaj, Łącz, Twórz"
-                description="Znajdź inspirujące osoby, grupy i produkty w swojej branży. Przeglądaj popularne treści i dołącz do społeczności."
-              />
+              <DiscoverHero onSearch={handleSearch} />
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <FeatureCard
@@ -235,9 +253,9 @@ export default function Discover() {
               
               <PopularHashtagsSection />
               
-              <GroupsSection />
+              <GroupsSection groups={groups} />
               
-              <MarketplaceSection />
+              <MarketplaceSection title="Polecane produkty" itemType="products" items={marketplaceItems} />
             </TabsContent>
             
             <TabsContent value="feed">
@@ -245,15 +263,15 @@ export default function Discover() {
             </TabsContent>
             
             <TabsContent value="groups">
-              <GroupsSection fullView />
+              <GroupsSection groups={groups} fullView={true} />
             </TabsContent>
             
             <TabsContent value="marketplace">
-              <MarketplaceSection fullView />
+              <MarketplaceSection title="Wszystkie produkty" itemType="products" items={marketplaceItems} fullView={true} />
             </TabsContent>
             
             <TabsContent value="users">
-              <SuggestedProfilesSection fullView />
+              <SuggestedProfilesSection fullView={true} />
             </TabsContent>
           </Tabs>
         </div>
