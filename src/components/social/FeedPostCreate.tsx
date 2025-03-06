@@ -116,6 +116,7 @@ export function FeedPostCreate({ onPostCreated }: FeedPostCreateProps) {
     setLoading(true);
     
     try {
+      // 1. Utwórz post w tabeli feed_posts
       const { data: postData, error: postError } = await supabase
         .from('feed_posts')
         .insert({
@@ -132,6 +133,7 @@ export function FeedPostCreate({ onPostCreated }: FeedPostCreateProps) {
       
       const postId = postData.id;
       
+      // 2. Jeśli to ankieta, dodaj opcje
       if (isPollMode) {
         const validOptions = pollOptions.filter(option => option.trim() !== '');
         
@@ -149,51 +151,55 @@ export function FeedPostCreate({ onPostCreated }: FeedPostCreateProps) {
         }
       }
       
+      // 3. Ręczne przetwarzanie hashtagów zamiast polegania na triggerze
       const hashtags = extractHashtags(content);
       if (hashtags.length > 0) {
         for (const tag of hashtags) {
-          let hashtagId;
-          const { data: existingHashtag, error: hashtagError } = await supabase
+          // 3.1 Sprawdź czy hashtag już istnieje
+          const { data: existingTag, error: lookupError } = await supabase
             .from('hashtags')
             .select('id')
-            .eq('name', tag)
+            .eq('name', tag.toLowerCase())
             .maybeSingle();
             
-          if (hashtagError) {
-            console.error(`Błąd podczas sprawdzania hashtaga ${tag}:`, hashtagError);
+          if (lookupError) {
+            console.error(`Błąd podczas sprawdzania hashtaga ${tag}:`, lookupError);
             continue;
           }
           
-          if (existingHashtag) {
-            hashtagId = existingHashtag.id;
+          let hashtagId;
+          
+          if (existingTag) {
+            // 3.2 Jeśli hashtag istnieje, użyj jego ID
+            hashtagId = existingTag.id;
           } else {
-            const { data: newHashtag, error: createError } = await supabase
+            // 3.3 Jeśli hashtag nie istnieje, utwórz nowy
+            const { data: newTag, error: insertError } = await supabase
               .from('hashtags')
-              .insert({ name: tag })
+              .insert([{ name: tag.toLowerCase() }])
               .select('id')
               .single();
-              
-            if (createError) {
-              console.error(`Błąd podczas tworzenia hashtaga ${tag}:`, createError);
+            
+            if (insertError) {
+              console.error(`Błąd podczas tworzenia hashtaga ${tag}:`, insertError);
               continue;
             }
             
-            hashtagId = newHashtag.id;
+            hashtagId = newTag.id;
           }
           
+          // 3.4 Powiąż hashtag z postem
           const { error: linkError } = await supabase
             .from('feed_post_hashtags')
-            .insert({
-              post_id: postId,
-              hashtag_id: hashtagId
-            });
-            
+            .insert([{ post_id: postId, hashtag_id: hashtagId }]);
+          
           if (linkError) {
             console.error(`Błąd podczas łączenia posta z hashtagiem ${tag}:`, linkError);
           }
         }
       }
       
+      // 4. Przetwarzanie mediów
       if (media.length > 0) {
         const mediaPromises = media.map(async (mediaItem) => {
           if (mediaItem.file) {
