@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { extractHashtags } from '@/utils/mediaUtils';
 
@@ -64,14 +63,13 @@ export async function processHashtags(content: string, postId: string) {
         hashtagId = newTag.id;
       }
       
-      // Użyj bezpieczniejszego zapytania z jawnie nazwanymi parametrami
+      // Bezpośrednie zapytanie z dokładnymi nazwami kolumn
       const { error: linkError } = await supabase
         .from('feed_post_hashtags')
         .insert({
           post_id: postId,
           hashtag_id: hashtagId
-        })
-        .select(); // Dodaj .select() aby uniknąć niejednoznaczności w zapytaniu
+        });
       
       if (linkError) {
         // Jeśli jest to błąd naruszenia ograniczenia unikalności, możemy go zignorować
