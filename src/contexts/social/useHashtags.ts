@@ -154,7 +154,7 @@ export const useHashtags = (userId: string | undefined) => {
         .select(`
           id,
           name,
-          feed_post_hashtags!inner(hashtag_id)
+          feed_post_hashtags!inner(feed_post_hashtags.hashtag_id)
         `)
         .order('name');
         
