@@ -28,6 +28,7 @@ export const removeConnection = async (
       .maybeSingle();
 
     if (connectionData) {
+      // Usuń połączenie
       const { error } = await supabase
         .from('connections')
         .delete()
@@ -43,24 +44,48 @@ export const removeConnection = async (
         return;
       }
 
+      // Usuń również obserwację - tylko inicjator usunięcia przestaje obserwować
+      const { error: unfollowError } = await supabase
+        .from('followings')
+        .delete()
+        .eq('follower_id', user.id)
+        .eq('following_id', userId);
+
+      if (unfollowError) {
+        console.error('Error unfollowing after connection removal:', unfollowError);
+        // Kontynuujemy mimo błędu unfollow - połączenie zostało już usunięte
+      } else {
+        console.log(`User ${user.id} stopped following user ${userId}`);
+      }
+
+      // Zaktualizuj stan UI po usunięciu połączenia
       setUsers(prevUsers => 
-        prevUsers.map(u => 
-          u.id === userId 
-            ? { ...u, connectionStatus: 'following', connectionsCount: Math.max(0, u.connectionsCount - 1) } 
-            : u
-        )
+        prevUsers.map(u => {
+          if (u.id === userId) {
+            // Usuń status połączenia, ale zaktualizuj licznik obserwujących,
+            // ponieważ usuwający przestał obserwować
+            return { 
+              ...u, 
+              connectionStatus: 'none', 
+              connectionsCount: Math.max(0, u.connectionsCount - 1),
+              followersCount: Math.max(0, u.followersCount - 1)
+            };
+          }
+          return u;
+        })
       );
 
       if (currentUser) {
         setCurrentUser({
           ...currentUser,
-          connectionsCount: Math.max(0, currentUser.connectionsCount - 1)
+          connectionsCount: Math.max(0, currentUser.connectionsCount - 1),
+          followingCount: Math.max(0, currentUser.followingCount - 1)
         });
       }
 
       toast({
         title: "Sukces",
-        description: "Połączenie zostało usunięte. Nadal obserwujesz tego użytkownika i on nadal Cię obserwuje.",
+        description: "Połączenie zostało usunięte. Przestałeś obserwować tego użytkownika, ale on nadal może Cię obserwować.",
       });
     } else {
       const { data: pendingRequest } = await supabase
@@ -72,6 +97,7 @@ export const removeConnection = async (
         .maybeSingle();
 
       if (pendingRequest) {
+        // Usuń zaproszenie wysłane przez użytkownika
         const { error } = await supabase
           .from('connection_requests')
           .delete()
@@ -87,17 +113,43 @@ export const removeConnection = async (
           return;
         }
 
+        // Usuń również obserwację, gdy anulujemy zaproszenie
+        const { error: unfollowError } = await supabase
+          .from('followings')
+          .delete()
+          .eq('follower_id', user.id)
+          .eq('following_id', userId);
+
+        if (unfollowError) {
+          console.error('Error unfollowing after request cancellation:', unfollowError);
+          // Kontynuujemy mimo błędu unfollow
+        } else {
+          console.log(`User ${user.id} stopped following user ${userId} after cancelling request`);
+        }
+
         setUsers(prevUsers => 
-          prevUsers.map(u => 
-            u.id === userId 
-              ? { ...u, connectionStatus: 'none' } 
-              : u
-          )
+          prevUsers.map(u => {
+            if (u.id === userId) {
+              return { 
+                ...u, 
+                connectionStatus: 'none',
+                followersCount: Math.max(0, u.followersCount - 1)
+              };
+            }
+            return u;
+          })
         );
+
+        if (currentUser) {
+          setCurrentUser({
+            ...currentUser,
+            followingCount: Math.max(0, currentUser.followingCount - 1)
+          });
+        }
 
         toast({
           title: "Sukces",
-          description: "Zaproszenie zostało anulowane.",
+          description: "Zaproszenie zostało anulowane. Przestałeś również obserwować tego użytkownika.",
         });
       } else {
         const { data: receivedRequest } = await supabase
@@ -109,6 +161,7 @@ export const removeConnection = async (
           .maybeSingle();
 
         if (receivedRequest) {
+          // Odrzuć otrzymane zaproszenie
           const { error } = await supabase
             .from('connection_requests')
             .delete()
