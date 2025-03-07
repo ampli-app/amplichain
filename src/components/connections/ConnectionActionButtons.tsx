@@ -26,7 +26,7 @@ export function ConnectionActionButtons({
   // Uwaga: Teraz automatycznie obserwujemy użytkownika po wysłaniu zaproszenia do połączenia
   const isFollowing = user.isFollowing || 
                      user.connectionStatus === 'connected' ||
-                     user.connectionStatus === 'pending_sent' 
+                     user.connectionStatus === 'pending_sent';
     //||
                     // (user.connectionStatus === 'pending_received' && user.isFollower);
 
