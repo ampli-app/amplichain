@@ -133,6 +133,12 @@ export default function Connections() {
   const handleUnfollow = async (userId: string) => {
     await unfollowUser(userId);
     setFollowingState(prev => ({...prev, [userId]: false}));
+    
+    // Aktualizuj stan na poziomie interfejsu użytkownika
+    setFilteredUsers(prev => prev.map(user => 
+      user.id === userId ? { ...user, isFollowing: false } : user
+    ));
+    
     toast({
       title: "Obserwacja zakończona",
       description: "Pomyślnie przestałeś obserwować użytkownika.",

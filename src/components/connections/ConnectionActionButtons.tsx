@@ -33,13 +33,8 @@ export function ConnectionActionButtons({
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [dialogAction, setDialogAction] = useState<'cancel_invitation' | 'remove_connection'>('remove_connection');
   
-  // Określamy, czy użytkownik jest obserwowany
-  // Uwaga: Teraz automatycznie obserwujemy użytkownika po wysłaniu zaproszenia do połączenia
-  const isFollowing = user.isFollowing || 
-                     user.connectionStatus === 'connected' ||
-                     user.connectionStatus === 'pending_sent';
-    //||
-                    // (user.connectionStatus === 'pending_received' && user.isFollower);
+  // Określamy, czy użytkownik jest obserwowany - używamy teraz jawnej flagi isFollowing z obiektu user
+  const isFollowing = user.isFollowing;
 
   const handleRemoveClick = (userId: string, action: 'cancel_invitation' | 'remove_connection') => {
     // Otwórz dialog potwierdzenia zamiast od razu usuwać połączenie
