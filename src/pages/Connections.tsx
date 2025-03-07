@@ -102,7 +102,7 @@ const ConnectionActionButtons = ({
   const renderFollowButton = () => {
     if (user.connectionStatus === 'connected') return null;
     
-    return user.isFollower ? (
+    return user.connectionStatus === 'following' ? (
       <Button 
         variant="ghost" 
         size="sm"
