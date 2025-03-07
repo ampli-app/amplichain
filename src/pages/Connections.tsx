@@ -37,6 +37,7 @@ const ConnectionActionButtons = ({
   const renderConnectionButtons = () => {
     switch(user.connectionStatus) {
       case 'none':
+      case 'following':
         return (
           <Button 
             size="sm" 
