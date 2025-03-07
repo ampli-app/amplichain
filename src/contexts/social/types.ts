@@ -13,6 +13,7 @@ export interface SocialUser {
   connectionStatus?: UserConnectionStatus;
   isCurrentUser?: boolean;
   isFollower?: boolean;
+  isFollowing?: boolean;
   followersCount: number;
   followingCount: number;
   connectionsCount: number;
@@ -56,4 +57,3 @@ export interface SocialContextType {
 
 // Eksportuj wszystkie typy
 export * from './types';
-
