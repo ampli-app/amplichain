@@ -40,6 +40,7 @@ export async function processHashtags(content: string, postId: string) {
   
   try {
     await Promise.all(promises);
+    console.log('Hashtagi poprawnie powiązane z postem:', hashtags);
   } catch (error) {
     console.error('Błąd podczas przetwarzania hashtagów:', error);
   }
@@ -87,5 +88,7 @@ export async function savePostMedia(postId: string, media: Array<any>) {
   
   if (mediaErrors.length > 0) {
     console.error('Błędy podczas zapisywania mediów:', mediaErrors);
+  } else {
+    console.log('Media zapisane pomyślnie');
   }
 }

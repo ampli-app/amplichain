@@ -20,11 +20,11 @@ export async function fetchPostsByHashtag(hashtagName: string, userId?: string):
       return [];
     }
     
-    // Znajdź posty z tym hashtagiem - używamy aliasów dla kolumn, aby uniknąć niejednoznaczności
+    // Znajdź posty z tym hashtagiem - bez używania aliasów
     const { data: postIds, error: postsError } = await supabase
-      .from('feed_post_hashtags as fph')
-      .select('fph.post_id')
-      .eq('fph.hashtag_id', hashtagData.id);
+      .from('feed_post_hashtags')
+      .select('post_id')
+      .eq('hashtag_id', hashtagData.id);
     
     if (postsError || !postIds.length) {
       console.error('Błąd podczas wyszukiwania postów z hashtagiem:', postsError);
@@ -150,13 +150,13 @@ export async function fetchPopularHashtags(): Promise<Hashtag[]> {
       return [];
     }
     
-    // Pobierz liczbę postów dla każdego hashtaga
+    // Pobierz liczbę postów dla każdego hashtaga (bez używania aliasów)
     const hashtagsWithCounts = await Promise.all(
       hashtagsData.map(async (tag) => {
         const { count, error: countError } = await supabase
-          .from('feed_post_hashtags as fph')
+          .from('feed_post_hashtags')
           .select('*', { count: 'exact', head: true })
-          .eq('fph.hashtag_id', tag.id);
+          .eq('hashtag_id', tag.id);
           
         return {
           id: tag.id,

@@ -67,7 +67,9 @@ export const uploadMediaToStorage = async (file: File, pathPrefix: string): Prom
     const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `${pathPrefix}/${fileName}`;
     
-    // Używamy bucketa 'media' zamiast 'public'
+    console.log('Przesyłanie pliku do bucketa media:', filePath);
+    
+    // Używamy bucketa 'media'
     const { data, error } = await supabase.storage
       .from('media')
       .upload(filePath, file);
@@ -82,6 +84,7 @@ export const uploadMediaToStorage = async (file: File, pathPrefix: string): Prom
       .from('media')
       .getPublicUrl(filePath);
     
+    console.log('Plik przesłany pomyślnie, URL:', publicUrl);
     return publicUrl;
   } catch (error) {
     console.error('Nieoczekiwany błąd podczas przesyłania pliku:', error);
