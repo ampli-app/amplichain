@@ -86,6 +86,31 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
         console.error('Błąd podczas pobierania danych użytkowników:', usersError);
       }
       
+      // Pobierz hashtagi dla każdego posta
+      const postIds = postsData?.map(post => post.id) || [];
+      const { data: hashtagsData, error: hashtagsError } = await supabase
+        .from('feed_post_hashtags')
+        .select(`
+          post_id,
+          hashtags (id, name)
+        `)
+        .in('post_id', postIds);
+        
+      if (hashtagsError) {
+        console.error('Błąd podczas pobierania hashtagów:', hashtagsError);
+      }
+      
+      // Pogrupuj hashtagi według post_id
+      const hashtagsByPostId: Record<string, string[]> = {};
+      hashtagsData?.forEach(item => {
+        if (item.post_id && item.hashtags) {
+          if (!hashtagsByPostId[item.post_id]) {
+            hashtagsByPostId[item.post_id] = [];
+          }
+          hashtagsByPostId[item.post_id].push(item.hashtags.name);
+        }
+      });
+      
       // Przetwórz dane na format Post
       const formattedPosts: Post[] = postsData?.map(post => {
         const authorProfile = usersData?.find(user => user.id === post.user_id);
@@ -101,6 +126,7 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
           role: ''
         };
         
+        // Pobierz media posta (zdjęcia i wideo)
         const media = post.feed_post_media?.map(media => ({
           url: media.url,
           type: media.type as 'image' | 'video'
@@ -145,7 +171,8 @@ export const SocialProvider = ({ children }: { children: ReactNode }) => {
           likes: post.feed_post_likes?.length || 0,
           comments: post.feed_post_comments?.length || 0,
           media: media.length > 0 ? media : undefined,
-          files: files.length > 0 ? files : undefined
+          files: files.length > 0 ? files : undefined,
+          hashtags: hashtagsByPostId[post.id] || []
         };
       }) || [];
       

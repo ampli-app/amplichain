@@ -30,6 +30,8 @@ export async function processHashtags(content: string, postId: string) {
   const hashtags = extractHashtags(content);
   if (hashtags.length === 0) return;
   
+  console.log('Przetwarzam hashtagi:', hashtags, 'dla posta:', postId);
+  
   // Używamy poprawnej funkcji RPC link_hashtag_to_post, która oczekuje parametrów p_post_id i p_hashtag_name
   const promises = hashtags.map(tag => {
     return supabase.rpc('link_hashtag_to_post', { 
@@ -52,11 +54,15 @@ export async function processHashtags(content: string, postId: string) {
 export async function savePostMedia(postId: string, media: Array<any>) {
   if (media.length === 0) return;
   
+  console.log('Zapisuję media dla posta:', postId, 'liczba mediów:', media.length);
+  
   const mediaPromises = media.map(async (mediaItem) => {
     if (mediaItem.file) {
       const publicUrl = await uploadMediaToStorage(mediaItem.file, 'feed_media');
       
       if (publicUrl) {
+        console.log('Otrzymano URL pliku:', publicUrl, 'typ:', mediaItem.type);
+        
         if (mediaItem.type === 'document') {
           return supabase
             .from('feed_post_files')

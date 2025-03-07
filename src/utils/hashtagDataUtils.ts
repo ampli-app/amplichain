@@ -8,6 +8,8 @@ import { formatTimeAgo } from './timeFormatUtils';
  */
 export async function fetchPostsByHashtag(hashtagName: string, userId?: string): Promise<Post[]> {
   try {
+    console.log('Wyszukiwanie postów z hashtagiem:', hashtagName);
+    
     // Znajdź id hashtaga
     const { data: hashtagData, error: hashtagError } = await supabase
       .from('hashtags')
@@ -33,6 +35,7 @@ export async function fetchPostsByHashtag(hashtagName: string, userId?: string):
     
     // Pobierz pełne dane postów
     const postIdsArray = postIds.map(item => item.post_id);
+    console.log('Znaleziono IDs postów:', postIdsArray);
     
     const { data: postsData, error: postsDataError } = await supabase
       .from('feed_posts')
@@ -72,7 +75,7 @@ export async function fetchPostsByHashtag(hashtagName: string, userId?: string):
     }
     
     // Konwertuj dane do formatu Post
-    return postsData.map(post => {
+    const formattedPosts = postsData.map(post => {
       const authorProfile = usersData?.find(user => user.id === post.user_id);
       
       const author = authorProfile ? {
@@ -129,6 +132,9 @@ export async function fetchPostsByHashtag(hashtagName: string, userId?: string):
         hashtags: [hashtagName]
       };
     });
+    
+    console.log('Znaleziono postów z hashtagiem:', formattedPosts.length);
+    return formattedPosts;
   } catch (error) {
     console.error('Nieoczekiwany błąd podczas pobierania postów z hashtagiem:', error);
     return [];
@@ -140,6 +146,8 @@ export async function fetchPostsByHashtag(hashtagName: string, userId?: string):
  */
 export async function fetchPopularHashtags(): Promise<Hashtag[]> {
   try {
+    console.log('Pobieranie popularnych hashtagów');
+    
     // Pobierz wszystkie hashtagi
     const { data: hashtagsData, error: hashtagsError } = await supabase
       .from('hashtags')
@@ -167,10 +175,12 @@ export async function fetchPopularHashtags(): Promise<Hashtag[]> {
     );
     
     // Posortuj hashtagi według liczby postów malejąco i ogranicz do 10
-    return hashtagsWithCounts
+    const result = hashtagsWithCounts
       .sort((a, b) => b.postsCount - a.postsCount)
       .slice(0, 10);
       
+    console.log('Znaleziono popularne hashtagi:', result.length);
+    return result;
   } catch (error) {
     console.error('Nieoczekiwany błąd podczas pobierania popularnych hashtagów:', error);
     return [];
