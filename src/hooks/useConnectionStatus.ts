@@ -93,10 +93,7 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
       if (isFollowing) {
         await unfollowUser(userId);
         setIsFollowing(false);
-        // Aktualizuj status połączenia tylko jeśli jest 'following'
-        if (connectionStatus === 'following') {
-          setConnectionStatus('none');
-        }
+        // Zachowaj status połączenia
       } else {
         await followUser(userId);
         setIsFollowing(true);

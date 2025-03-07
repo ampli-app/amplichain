@@ -41,15 +41,10 @@ export const useFollowActions = (
       setUsers(prevUsers => 
         prevUsers.map(u => {
           if (u.id === userId) {
-            // Dla użytkowników z pending_received zachowaj ten status
-            // ale dla pozostałych, jeśli status to 'none', zmień go na 'following'
-            let newConnectionStatus = u.connectionStatus;
-            if (u.connectionStatus === 'none') {
-              newConnectionStatus = 'following';
-            }
+            // Zachowaj istniejący status połączenia, ale zaznacz że jest obserwowany
             return { 
               ...u, 
-              connectionStatus: newConnectionStatus, 
+              isFollower: true,
               followersCount: u.followersCount + 1 
             };
           }
@@ -89,20 +84,7 @@ export const useFollowActions = (
         return;
       }
 
-      const { data: connectionData } = await supabase
-        .from('connections')
-        .select('*')
-        .or(`and(user_id1.eq.${user.id},user_id2.eq.${userId}),and(user_id1.eq.${userId},user_id2.eq.${user.id})`)
-        .single();
-
-      if (connectionData) {
-        toast({
-          title: "Nie można przestać obserwować",
-          description: "Nie możesz przestać obserwować użytkownika, z którym masz połączenie. Najpierw usuń połączenie.",
-          variant: "destructive",
-        });
-        return;
-      }
+      // Usunięto blokadę na usunięcie obserwacji, gdy istnieje połączenie
 
       const { error } = await supabase
         .from('followings')
@@ -123,15 +105,10 @@ export const useFollowActions = (
       setUsers(prevUsers => 
         prevUsers.map(u => {
           if (u.id === userId) {
-            // Ustaw connectionStatus na 'none' tylko jeśli był 'following'
-            // Zachowaj inne statusy jak 'pending_received'
-            let newConnectionStatus = u.connectionStatus;
-            if (newConnectionStatus === 'following') {
-              newConnectionStatus = 'none';
-            }
+            // Zachowaj status połączenia, ale zmień flagę obserwacji
             return { 
               ...u, 
-              connectionStatus: newConnectionStatus, 
+              isFollower: false,
               followersCount: Math.max(0, u.followersCount - 1) 
             };
           }

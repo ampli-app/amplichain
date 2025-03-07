@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { UserPlus, UserMinus, UserCheck, Clock, X } from 'lucide-react';
 import { SocialUser } from '@/contexts/social/types';
@@ -105,8 +104,6 @@ export function ConnectionActionButtons({
   };
 
   const renderFollowButton = () => {
-    if (user.connectionStatus === 'connected') return null;
-    
     return isFollowing ? (
       <Button 
         variant="ghost" 
