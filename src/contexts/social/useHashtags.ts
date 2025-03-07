@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Post, Hashtag } from '@/types/social';
@@ -105,7 +104,6 @@ export const useHashtags = (userId: string | undefined) => {
           votes: option.feed_post_poll_votes?.length || 0
         })) : undefined;
         
-        // Sprawdź, czy użytkownik zagłosował
         const userVoted = post.is_poll && userId ? 
           (post.feed_post_poll_options?.find(option => 
             option.feed_post_poll_votes?.some(vote => vote.user_id === userId)
@@ -114,7 +112,6 @@ export const useHashtags = (userId: string | undefined) => {
         
         const timeAgo = formatTimeAgo(new Date(post.created_at));
         
-        // Sprawdź, czy bieżący użytkownik polubił post
         const userLiked = userId ? post.feed_post_likes?.some(like => like.user_id === userId) : false;
         
         return {
@@ -148,7 +145,6 @@ export const useHashtags = (userId: string | undefined) => {
   // Pobierz popularne hashtagi
   const getPopularHashtags = async (): Promise<Hashtag[]> => {
     try {
-      // Używamy standardowego zapytania bez aliasów
       const { data, error } = await supabase
         .from('hashtags')
         .select(`
