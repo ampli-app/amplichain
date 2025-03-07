@@ -1,21 +1,35 @@
 
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-const POPULAR_HASHTAGS = [
-  'mentoring',
-  'przedsiębiorczość',
-  'networking',
-  'muzyka',
-  'studia',
-  'technologia',
-  'innowacje',
-  'biznes'
-];
+import { useAuth } from '@/contexts/AuthContext';
+import { useHashtags } from '@/contexts/social/useHashtags';
+import { Hashtag } from '@/types/social';
 
 export function PopularHashtagsSection() {
+  const { user } = useAuth();
+  const { getPopularHashtags } = useHashtags(user?.id);
+  const [popularHashtags, setPopularHashtags] = useState<Hashtag[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadHashtags() {
+      try {
+        setLoading(true);
+        const hashtags = await getPopularHashtags();
+        setPopularHashtags(hashtags);
+      } catch (error) {
+        console.error('Błąd podczas ładowania hashtagów:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadHashtags();
+  }, [getPopularHashtags]);
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -28,13 +42,19 @@ export function PopularHashtagsSection() {
         </Link>
       </div>
       <div className="flex flex-wrap gap-2">
-        {POPULAR_HASHTAGS.map((tag) => (
-          <Link key={tag} to={`/hashtag/${tag}`}>
-            <Badge variant="secondary" className="hover:bg-secondary/90 cursor-pointer">
-              #{tag}
-            </Badge>
-          </Link>
-        ))}
+        {loading ? (
+          <p className="text-sm text-rhythm-500">Ładowanie hashtagów...</p>
+        ) : popularHashtags.length > 0 ? (
+          popularHashtags.map((tag) => (
+            <Link key={tag.id} to={`/hashtag/${tag.name}`}>
+              <Badge variant="secondary" className="hover:bg-secondary/90 cursor-pointer">
+                #{tag.name}
+              </Badge>
+            </Link>
+          ))
+        ) : (
+          <p className="text-sm text-rhythm-500">Brak popularnych hashtagów</p>
+        )}
       </div>
     </div>
   );
