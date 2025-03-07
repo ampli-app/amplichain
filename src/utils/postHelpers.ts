@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { extractHashtags } from '@/utils/mediaUtils';
 
@@ -29,7 +30,7 @@ export async function processHashtags(content: string, postId: string) {
   if (hashtags.length === 0) return;
   
   const promises = hashtags.map(tag => {
-    return supabase.rpc('link_hashtag_to_post', { 
+    return supabase.rpc('link_post_hashtag', { 
       p_post_id: postId, 
       p_hashtag_name: tag.toLowerCase() 
     });
