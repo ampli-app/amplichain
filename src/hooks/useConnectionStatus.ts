@@ -29,7 +29,7 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
       const socialProfile = await fetchUserProfile(userId);
       if (socialProfile) {
         setConnectionStatus(socialProfile.connectionStatus || 'none');
-        setIsFollowing(socialProfile.isFollower || false);
+        setIsFollowing(socialProfile.connectionStatus === 'following' || ['connected', 'pending_sent'].includes(socialProfile.connectionStatus));
       }
     } catch (err) {
       console.error('Error fetching social profile:', err);
@@ -42,32 +42,24 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
     try {
       switch (connectionStatus) {
         case 'none':
-          await sendConnectionRequest(userId);
-          setConnectionStatus('pending_sent');
-          break;
         case 'following':
           await sendConnectionRequest(userId);
           setConnectionStatus('pending_sent');
           break;
         case 'connected':
           await removeConnection(userId);
-          // Po usunięciu połączenia, status powinien być 'following', ponieważ nadal obserwujemy użytkownika
-          setConnectionStatus(isFollowing ? 'following' : 'none');
+          // Zachowaj stan obserwowania
+          setConnectionStatus('following');
           break;
         case 'pending_sent':
-          // Tutaj anulujemy zaproszenie - usuwamy connection_request
           await removeConnection(userId);
-          setConnectionStatus(isFollowing ? 'following' : 'none');
+          setConnectionStatus('following');
           break;
         case 'pending_received':
-          // W przypadku odrzucenia zaproszenia przez użytkownika
           await removeConnection(userId);
-          setConnectionStatus(isFollowing ? 'following' : 'none');
+          setConnectionStatus('none');
           break;
       }
-      
-      // Odśwież profil, aby mieć pewność, że stan jest aktualny
-      fetchSocialProfile();
     } catch (err) {
       console.error('Error in handleConnectionAction:', err);
       toast({
@@ -85,21 +77,18 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
       if (isFollowing) {
         await unfollowUser(userId);
         setIsFollowing(false);
-        // Jeśli tylko obserwujemy i przestajemy obserwować, status powinien być 'none'
+        // Aktualizuj status połączenia tylko jeśli jest 'following'
         if (connectionStatus === 'following') {
           setConnectionStatus('none');
         }
       } else {
         await followUser(userId);
         setIsFollowing(true);
-        // Jeśli nie mamy żadnego połączenia i zaczynamy obserwować, status powinien być 'following'
+        // Aktualizuj status połączenia na 'following' tylko jeśli był 'none'
         if (connectionStatus === 'none') {
           setConnectionStatus('following');
         }
       }
-      
-      // Odśwież profil, aby mieć pewność, że stan jest aktualny
-      fetchSocialProfile();
     } catch (err) {
       console.error('Error in handleFollow:', err);
       toast({

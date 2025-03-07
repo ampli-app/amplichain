@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -277,10 +278,11 @@ export const useUserActions = (user: any | null, setUsers: React.Dispatch<React.
         return;
       }
 
+      // Natychmiastowa aktualizacja stanu użytkowników
       setUsers(prevUsers => 
         prevUsers.map(u => 
           u.id === userId 
-            ? { ...u, connectionStatus: 'following', followersCount: u.followersCount + 1 } 
+            ? { ...u, connectionStatus: u.connectionStatus === 'none' ? 'following' : u.connectionStatus, followersCount: u.followersCount + 1 } 
             : u
         )
       );
@@ -296,7 +298,6 @@ export const useUserActions = (user: any | null, setUsers: React.Dispatch<React.
         title: "Sukces",
         description: "Pomyślnie obserwujesz użytkownika.",
       });
-}, 2000);
     } catch (err) {
       console.error('Unexpected error following user:', err);
       toast({
