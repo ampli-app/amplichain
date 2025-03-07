@@ -1,6 +1,6 @@
 
 import { Button } from '@/components/ui/button';
-import { Pencil, UserPlus, UserCheck, UserMinus, Clock } from 'lucide-react';
+import { Pencil, UserPlus, UserMinus, UserCheck, Clock, MessageCircle } from 'lucide-react';
 
 interface ProfileActionsProps {
   isOwnProfile: boolean;
@@ -9,6 +9,7 @@ interface ProfileActionsProps {
   onEditProfileClick: () => void;
   handleConnectionAction: () => void;
   handleFollow: () => void;
+  handleSendMessage: () => void;
 }
 
 export function ProfileActions({
@@ -17,7 +18,8 @@ export function ProfileActions({
   isFollowing,
   onEditProfileClick,
   handleConnectionAction,
-  handleFollow
+  handleFollow,
+  handleSendMessage
 }: ProfileActionsProps) {
   
   const getConnectionButtonText = () => {
@@ -62,7 +64,7 @@ export function ProfileActions({
     );
   }
   
-  // Dla innych użytkowników zawsze pokazujemy oba przyciski
+  // Dla innych użytkowników pokazujemy wszystkie przyciski
   return (
     <div className="flex flex-col gap-2">
       <Button 
@@ -90,6 +92,15 @@ export function ProfileActions({
             Obserwuj
           </>
         )}
+      </Button>
+
+      <Button 
+        variant="secondary"
+        className="gap-2 w-full"
+        onClick={handleSendMessage}
+      >
+        <MessageCircle className="h-4 w-4" />
+        Wyślij wiadomość
       </Button>
     </div>
   );

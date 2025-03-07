@@ -11,4 +11,5 @@ export interface ProfileData {
   joined_date: string;
   followers: number;
   following: number;
+  connections: number;
 }

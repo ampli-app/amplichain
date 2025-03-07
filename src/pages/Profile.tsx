@@ -26,8 +26,9 @@ export default function Profile() {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isChangeAvatarOpen, setIsChangeAvatarOpen] = useState(false);
+  const [commonConnections, setCommonConnections] = useState(0);
   
-  const defaultTab = searchParams.get('tab') || 'portfolio';
+  const defaultTab = searchParams.get('tab') || 'info';
   const marketplaceTab = searchParams.get('marketplaceTab') || 'products';
 
   // Determine if this is the user's own profile
@@ -47,8 +48,63 @@ export default function Profile() {
       setIsOwnProfile(true);
     } else {
       setIsOwnProfile(false);
+      
+      // Jeśli to profil innego użytkownika, pobierz informacje o wspólnych połączeniach
+      if (user && targetUserId) {
+        fetchCommonConnections(user.id, targetUserId);
+      }
     }
   }, [isLoggedIn, navigate, userId, user]);
+
+  // Funkcja do pobierania wspólnych połączeń
+  const fetchCommonConnections = async (currentUserId: string, targetUserId: string) => {
+    try {
+      // Pobierz połączenia bieżącego użytkownika
+      const { data: currentUserConnections, error: currentUserError } = await supabase
+        .from('connections')
+        .select('user_id1, user_id2')
+        .or(`user_id1.eq.${currentUserId},user_id2.eq.${currentUserId}`);
+        
+      if (currentUserError) {
+        console.error('Error fetching current user connections:', currentUserError);
+        return;
+      }
+      
+      // Pobierz połączenia docelowego użytkownika
+      const { data: targetUserConnections, error: targetUserError } = await supabase
+        .from('connections')
+        .select('user_id1, user_id2')
+        .or(`user_id1.eq.${targetUserId},user_id2.eq.${targetUserId}`);
+        
+      if (targetUserError) {
+        console.error('Error fetching target user connections:', targetUserError);
+        return;
+      }
+      
+      // Utwórz zbiór ID połączeń bieżącego użytkownika
+      const currentUserConnectionIds = new Set<string>();
+      currentUserConnections.forEach(conn => {
+        if (conn.user_id1 === currentUserId) {
+          currentUserConnectionIds.add(conn.user_id2);
+        } else {
+          currentUserConnectionIds.add(conn.user_id1);
+        }
+      });
+      
+      // Znajdź wspólne połączenia
+      let common = 0;
+      targetUserConnections.forEach(conn => {
+        const connectedUserId = conn.user_id1 === targetUserId ? conn.user_id2 : conn.user_id1;
+        if (currentUserConnectionIds.has(connectedUserId)) {
+          common++;
+        }
+      });
+      
+      setCommonConnections(common);
+    } catch (error) {
+      console.error('Unexpected error fetching common connections:', error);
+    }
+  };
 
   // Get the profile ID to use for data fetching
   const profileId = userId || (user?.id);
@@ -121,6 +177,7 @@ export default function Profile() {
             handleConnectionAction={handleConnectionAction}
             handleFollow={handleFollow}
             isFollowing={isFollowing}
+            commonConnections={commonConnections}
           />
           
           <ProfileTabs
