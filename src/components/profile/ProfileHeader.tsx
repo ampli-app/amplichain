@@ -12,7 +12,9 @@ import {
   Users,
   Share2,
   Camera,
-  User
+  User,
+  UserPlus,
+  UserCheck
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { ProfileData } from '@/types/profile';
@@ -25,6 +27,7 @@ interface ProfileHeaderProps {
   onAvatarClick: () => void;
   handleConnectionAction: () => void;
   handleFollow: () => void;
+  isFollowing?: boolean;
 }
 
 export function ProfileHeader({ 
@@ -34,7 +37,8 @@ export function ProfileHeader({
   onEditProfileClick, 
   onAvatarClick,
   handleConnectionAction,
-  handleFollow
+  handleFollow,
+  isFollowing = false
 }: ProfileHeaderProps) {
   
   const handleShareProfile = () => {
@@ -56,6 +60,32 @@ export function ProfileHeader({
         });
       }
     );
+  };
+
+  const getConnectionButtonText = () => {
+    switch(connectionStatus) {
+      case 'connected':
+        return "Usuń z kontaktów";
+      case 'pending_sent':
+        return "Anuluj zaproszenie";
+      case 'pending_received':
+        return "Odpowiedz na zaproszenie";
+      default:
+        return "Dodaj do kontaktów";
+    }
+  };
+
+  const getConnectionButtonIcon = () => {
+    switch(connectionStatus) {
+      case 'connected':
+        return <UserMinus className="h-4 w-4" />;
+      case 'pending_sent':
+        return <Clock className="h-4 w-4" />;
+      case 'pending_received':
+        return <UserCheck className="h-4 w-4" />;
+      default:
+        return <UserPlus className="h-4 w-4" />;
+    }
   };
 
   return (
@@ -162,19 +192,26 @@ export function ProfileHeader({
                     className="gap-2 w-full"
                     onClick={handleConnectionAction}
                   >
-                    <Users className="h-4 w-4" />
-                    {connectionStatus === 'connected' ? "Usuń z kontaktów" :
-                     connectionStatus === 'pending_sent' ? "Anuluj zaproszenie" :
-                     connectionStatus === 'pending_received' ? "Odpowiedz na zaproszenie" :
-                     "Dodaj do kontaktów"}
+                    {getConnectionButtonIcon()}
+                    {getConnectionButtonText()}
                   </Button>
                   
                   <Button 
-                    variant={connectionStatus === 'following' ? "outline" : "secondary"}
+                    variant={isFollowing ? "outline" : "secondary"}
                     className="gap-2 w-full"
                     onClick={handleFollow}
                   >
-                    {connectionStatus === 'following' ? "Obserwujesz" : "Obserwuj"}
+                    {isFollowing ? (
+                      <>
+                        <UserCheck className="h-4 w-4" />
+                        Obserwujesz
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-4 w-4" />
+                        Obserwuj
+                      </>
+                    )}
                   </Button>
                 </div>
               )}

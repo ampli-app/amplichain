@@ -13,7 +13,7 @@ interface SuggestedProfilesSectionProps {
 }
 
 export function SuggestedProfilesSection({ fullView = false }: SuggestedProfilesSectionProps) {
-  const { users, followUser, sendConnectionRequest } = useSocial();
+  const { users, followUser, unfollowUser, sendConnectionRequest } = useSocial();
   const [suggestedUsers, setSuggestedUsers] = useState<SocialUser[]>([]);
   
   useEffect(() => {
@@ -42,8 +42,12 @@ export function SuggestedProfilesSection({ fullView = false }: SuggestedProfiles
     sendConnectionRequest(userId);
   };
   
-  const handleFollow = (userId: string) => {
-    followUser(userId);
+  const handleFollow = (userId: string, isFollowing: boolean) => {
+    if (isFollowing) {
+      unfollowUser(userId);
+    } else {
+      followUser(userId);
+    }
   };
   
   // Widok pełny dla strony Discover
@@ -71,7 +75,7 @@ export function SuggestedProfilesSection({ fullView = false }: SuggestedProfiles
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => handleFollow(user.id)}
+                        onClick={() => handleFollow(user.id, false)}
                       >
                         <UserPlus className="h-4 w-4 mr-1" />
                         Obserwuj
@@ -87,14 +91,23 @@ export function SuggestedProfilesSection({ fullView = false }: SuggestedProfiles
                   )}
                   
                   {user.connectionStatus === 'following' && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      disabled
-                    >
-                      <Check className="h-4 w-4 mr-1" />
-                      Obserwujesz
-                    </Button>
+                    <>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleFollow(user.id, true)}
+                      >
+                        <Check className="h-4 w-4 mr-1" />
+                        Obserwujesz
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleConnect(user.id)}
+                      >
+                        <Users className="h-4 w-4 mr-1" />
+                        Połącz
+                      </Button>
+                    </>
                   )}
                   
                   {user.connectionStatus === 'pending_sent' && (
@@ -159,7 +172,7 @@ export function SuggestedProfilesSection({ fullView = false }: SuggestedProfiles
                     variant="outline" 
                     size="sm" 
                     className="h-8"
-                    onClick={() => handleFollow(user.id)}
+                    onClick={() => handleFollow(user.id, false)}
                   >
                     <UserPlus className="h-3.5 w-3.5 mr-1" />
                     Obserwuj
@@ -176,15 +189,25 @@ export function SuggestedProfilesSection({ fullView = false }: SuggestedProfiles
               )}
               
               {user.connectionStatus === 'following' && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8" 
-                  disabled
-                >
-                  <Check className="h-3.5 w-3.5 mr-1" />
-                  Obserwujesz
-                </Button>
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8" 
+                    onClick={() => handleFollow(user.id, true)}
+                  >
+                    <Check className="h-3.5 w-3.5 mr-1" />
+                    Obserwujesz
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    className="h-8"
+                    onClick={() => handleConnect(user.id)}
+                  >
+                    <Users className="h-3.5 w-3.5 mr-1" />
+                    Połącz
+                  </Button>
+                </>
               )}
               
               {user.connectionStatus === 'pending_sent' && (

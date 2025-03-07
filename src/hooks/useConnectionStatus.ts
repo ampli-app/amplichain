@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSocial } from '@/contexts/SocialContext';
+import { toast } from '@/components/ui/use-toast';
 
 export function useConnectionStatus(userId: string | undefined, isOwnProfile: boolean) {
   const { 
@@ -13,6 +14,7 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
   } = useSocial();
   
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'following' | 'connected' | 'pending_sent' | 'pending_received'>('none');
+  const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
     if (!isOwnProfile && userId && currentUser) {
@@ -27,50 +29,88 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
       const socialProfile = await fetchUserProfile(userId);
       if (socialProfile) {
         setConnectionStatus(socialProfile.connectionStatus || 'none');
+        setIsFollowing(socialProfile.connectionStatus === 'following');
       }
     } catch (err) {
       console.error('Error fetching social profile:', err);
     }
   };
 
-  const handleConnectionAction = () => {
+  const handleConnectionAction = async () => {
     if (!userId) return;
     
-    switch (connectionStatus) {
-      case 'none':
-        sendConnectionRequest(userId);
-        setConnectionStatus('pending_sent');
-        break;
-      case 'following':
-        unfollowUser(userId);
-        setConnectionStatus('none');
-        break;
-      case 'connected':
-        removeConnection(userId);
-        setConnectionStatus('none');
-        break;
-      case 'pending_sent':
-        setConnectionStatus('none');
-        break;
-      // For pending_received, the user should accept/decline via notifications
+    try {
+      switch (connectionStatus) {
+        case 'none':
+          await sendConnectionRequest(userId);
+          setConnectionStatus('pending_sent');
+          break;
+        case 'following':
+          // Działanie pozostaje takie samo jak było
+          await unfollowUser(userId);
+          setConnectionStatus('none');
+          setIsFollowing(false);
+          break;
+        case 'connected':
+          await removeConnection(userId);
+          // Po usunięciu połączenia użytkownik pozostaje obserwujący
+          setConnectionStatus('following');
+          setIsFollowing(true);
+          break;
+        case 'pending_sent':
+          // Anuluj zaproszenie (użyj tego samego removeConnection)
+          await removeConnection(userId);
+          setConnectionStatus('none');
+          break;
+      }
+      
+      // Odśwież profil, aby mieć pewność, że stan jest aktualny
+      fetchSocialProfile();
+    } catch (err) {
+      console.error('Error in handleConnectionAction:', err);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił problem podczas wykonywania akcji.",
+        variant: "destructive",
+      });
     }
   };
   
-  const handleFollow = () => {
+  const handleFollow = async () => {
     if (!userId) return;
     
-    if (connectionStatus === 'following') {
-      unfollowUser(userId);
-      setConnectionStatus('none');
-    } else {
-      followUser(userId);
-      setConnectionStatus('following');
+    try {
+      if (isFollowing) {
+        await unfollowUser(userId);
+        setIsFollowing(false);
+        if (connectionStatus === 'following') {
+          setConnectionStatus('none');
+        }
+      } else {
+        await followUser(userId);
+        setIsFollowing(true);
+        if (connectionStatus === 'none') {
+          setConnectionStatus('following');
+        }
+      }
+      
+      // Odśwież profil, aby mieć pewność, że stan jest aktualny
+      fetchSocialProfile();
+    } catch (err) {
+      console.error('Error in handleFollow:', err);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił problem podczas wykonywania akcji obserwacji.",
+        variant: "destructive",
+      });
     }
   };
 
   return {
     connectionStatus,
+    isFollowing,
     handleConnectionAction,
-    handleFollow
+    handleFollow,
+    refreshConnectionStatus: fetchSocialProfile
   };
 }

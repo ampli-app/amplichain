@@ -9,13 +9,14 @@ import {
   TabsList, 
   TabsTrigger 
 } from '@/components/ui/tabs';
-import { UserPlus, UserMinus, Search, User, UserCheck, Clock, X } from 'lucide-react';
+import { UserPlus, UserMinus, Search, User, UserCheck, Clock, X, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { UserConnectionStatus, SocialUser } from '@/contexts/social/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
+import { toast } from '@/components/ui/use-toast';
 
 // Komponent interfejsu użytkownika do łączenia/rozłączania
 const ConnectionActionButtons = ({ 
@@ -54,10 +55,10 @@ const ConnectionActionButtons = ({
             variant="outline" 
             size="sm" 
             className="whitespace-nowrap"
-            disabled
+            onClick={() => onRemove(user.id)}
           >
             <Clock className="h-4 w-4 mr-2" />
-            Oczekujące
+            Anuluj zaproszenie
           </Button>
         );
       case 'pending_received':
@@ -139,7 +140,8 @@ export default function Connections() {
     declineConnectionRequest, 
     removeConnection,
     followUser,
-    unfollowUser
+    unfollowUser,
+    currentUser
   } = useSocial();
   
   const [activeTab, setActiveTab] = useState('all');
@@ -160,6 +162,12 @@ export default function Connections() {
       );
     } else if (activeTab === 'followers') {
       result = result.filter(user => user.isFollower);
+    } else if (activeTab === 'following') {
+      // Dodana nowa zakładka dla obserwowanych użytkowników
+      result = result.filter(user => 
+        user.connectionStatus === 'following' || 
+        (currentUser && currentUser.followingCount > 0)
+      );
     }
     
     // Filtruj według wyszukiwania
@@ -173,7 +181,7 @@ export default function Connections() {
     }
     
     setFilteredUsers(result);
-  }, [users, activeTab, search]);
+  }, [users, activeTab, search, currentUser]);
   
   const handleConnect = async (userId: string) => {
     await sendConnectionRequest(userId);
@@ -189,6 +197,11 @@ export default function Connections() {
   
   const handleRemove = async (userId: string) => {
     await removeConnection(userId);
+    // Wyświetl powiadomienie o usunięciu połączenia
+    toast({
+      title: "Połączenie usunięte",
+      description: "Pomyślnie usunięto połączenie z użytkownikiem.",
+    });
   };
   
   const handleFollow = async (userId: string) => {
@@ -197,6 +210,11 @@ export default function Connections() {
   
   const handleUnfollow = async (userId: string) => {
     await unfollowUser(userId);
+    // Wyświetl powiadomienie o zaprzestaniu obserwacji
+    toast({
+      title: "Obserwacja zakończona",
+      description: "Pomyślnie przestałeś obserwować użytkownika.",
+    });
   };
   
   return (
@@ -246,6 +264,12 @@ export default function Connections() {
                 Obserwujący
                 <Badge className="ml-2 bg-primary/10 text-primary hover:bg-primary/10 border-none">
                   {users.filter(u => u.isFollower).length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="following">
+                Obserwowani
+                <Badge className="ml-2 bg-primary/10 text-primary hover:bg-primary/10 border-none">
+                  {currentUser?.followingCount || 0}
                 </Badge>
               </TabsTrigger>
             </TabsList>
