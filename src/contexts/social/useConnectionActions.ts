@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { SocialUser } from './types';
@@ -75,8 +74,6 @@ export const useConnectionActions = (
         return;
       }
 
-      // Usunięto automatyczne tworzenie obserwacji przy wysyłaniu zaproszenia
-
       const { error: insertError } = await supabase
         .from('connection_requests')
         .insert({
@@ -95,7 +92,6 @@ export const useConnectionActions = (
         return;
       }
 
-      // Zmieniono logikę tak, aby samo wysłanie zaproszenia nie tworzyło obserwacji
       setUsers(prevUsers => 
         prevUsers.map(u => {
           if (u.id === userId) {
@@ -175,14 +171,11 @@ export const useConnectionActions = (
 
       console.log('Connection request updated to accepted');
       
-      // Poprawiona kolejność user_id1 i user_id2 aby zawsze mniejszy ID był user_id1
-      // i to jest kluczowe dla poprawnego działania
       const user_id1 = user.id < userId ? user.id : userId;
       const user_id2 = user.id < userId ? userId : user.id;
 
       console.log(`Creating connection with user_id1: ${user_id1}, user_id2: ${user_id2}`);
 
-      // Sprawdź, czy połączenie już nie istnieje
       const { data: existingConnection } = await supabase
         .from('connections')
         .select('*')
@@ -191,7 +184,6 @@ export const useConnectionActions = (
         .maybeSingle();
 
       if (!existingConnection) {
-        // Jeśli połączenie nie istnieje, utwórz je
         const { error: connectionError } = await supabase
           .from('connections')
           .insert({
@@ -215,8 +207,6 @@ export const useConnectionActions = (
         console.log('Connection already exists, skipping creation');
       }
 
-      // Dodaj wzajemną obserwację, jeśli jeszcze nie istnieje
-      // Sprawdź, czy already user_id obserwuje userId
       const { data: alreadyFollowing, error: checkFollowingError } = await supabase
         .from('followings')
         .select('*')
@@ -230,16 +220,13 @@ export const useConnectionActions = (
 
       console.log('Already following?', alreadyFollowing);
 
-      // Jeśli user_id jeszcze nie obserwuje userId, dodaj obserwację
       if (!alreadyFollowing) {
         const { error: followError } = await supabase
           .from('followings')
           .insert({
             follower_id: user.id,
             following_id: userId
-          })
-          .onConflict(['follower_id', 'following_id'])
-          .ignore(); // Ignoruj błąd duplikatu
+          });
 
         if (followError) {
           console.error('Error creating following relationship:', followError);
@@ -248,7 +235,6 @@ export const useConnectionActions = (
         }
       }
 
-      // Sprawdź, czy already userId obserwuje user_id
       const { data: alreadyFollowed, error: checkFollowedError } = await supabase
         .from('followings')
         .select('*')
@@ -262,16 +248,13 @@ export const useConnectionActions = (
 
       console.log('Already followed?', alreadyFollowed);
 
-      // Jeśli userId jeszcze nie obserwuje user_id, dodaj obserwację
       if (!alreadyFollowed) {
         const { error: beingFollowedError } = await supabase
           .from('followings')
           .insert({
             follower_id: userId,
             following_id: user.id
-          })
-          .onConflict(['follower_id', 'following_id'])
-          .ignore(); // Ignoruj błąd duplikatu
+          });
 
         if (beingFollowedError) {
           console.error('Error creating being followed relationship:', beingFollowedError);
@@ -287,7 +270,7 @@ export const useConnectionActions = (
                 ...u, 
                 connectionStatus: 'connected', 
                 connectionsCount: u.connectionsCount + 1,
-                isFollower: true // ustawienie isFollower na true, ponieważ teraz na pewno nas obserwuje
+                isFollower: true
               } 
             : u
         )
@@ -329,7 +312,6 @@ export const useConnectionActions = (
         return;
       }
 
-      // Zamiast aktualizować status na 'rejected', usuwamy zaproszenie
       const { error } = await supabase
         .from('connection_requests')
         .delete()
@@ -382,7 +364,6 @@ export const useConnectionActions = (
         return;
       }
 
-      // Sprawdź, czy istnieje aktywne połączenie
       const { data: connectionData } = await supabase
         .from('connections')
         .select('*')
@@ -390,7 +371,6 @@ export const useConnectionActions = (
         .maybeSingle();
 
       if (connectionData) {
-        // Jeśli istnieje połączenie, usuń je
         const { error } = await supabase
           .from('connections')
           .delete()
@@ -426,7 +406,6 @@ export const useConnectionActions = (
           description: "Połączenie zostało usunięte. Nadal obserwujesz tego użytkownika i on nadal Cię obserwuje.",
         });
       } else {
-        // Sprawdź, czy istnieje oczekujące zaproszenie
         const { data: pendingRequest } = await supabase
           .from('connection_requests')
           .select('*')
@@ -436,7 +415,6 @@ export const useConnectionActions = (
           .maybeSingle();
 
         if (pendingRequest) {
-          // Usuwamy zaproszenie, które zostało wysłane
           const { error } = await supabase
             .from('connection_requests')
             .delete()
@@ -465,7 +443,6 @@ export const useConnectionActions = (
             description: "Zaproszenie zostało anulowane.",
           });
         } else {
-          // Sprawdź, czy istnieje otrzymane zaproszenie
           const { data: receivedRequest } = await supabase
             .from('connection_requests')
             .select('*')
@@ -475,7 +452,6 @@ export const useConnectionActions = (
             .maybeSingle();
 
           if (receivedRequest) {
-            // Usuwamy otrzymane zaproszenie (odrzucamy je)
             const { error } = await supabase
               .from('connection_requests')
               .delete()
