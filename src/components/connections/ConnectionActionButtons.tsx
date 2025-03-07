@@ -32,6 +32,7 @@ export function ConnectionActionButtons({
   onUnfollow 
 }: ConnectionActionButtonsProps) {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [dialogAction, setDialogAction] = useState<'cancel_invitation' | 'remove_connection'>('remove_connection');
   
   // Określamy, czy użytkownik jest obserwowany
   // Uwaga: Teraz automatycznie obserwujemy użytkownika po wysłaniu zaproszenia do połączenia
@@ -41,8 +42,9 @@ export function ConnectionActionButtons({
     //||
                     // (user.connectionStatus === 'pending_received' && user.isFollower);
 
-  const handleRemoveClick = (userId: string) => {
+  const handleRemoveClick = (userId: string, action: 'cancel_invitation' | 'remove_connection') => {
     // Otwórz dialog potwierdzenia zamiast od razu usuwać połączenie
+    setDialogAction(action);
     setConfirmDialogOpen(true);
   };
 
@@ -82,7 +84,7 @@ export function ConnectionActionButtons({
             variant="outline" 
             size="sm" 
             className="whitespace-nowrap w-full"
-            onClick={() => handleRemoveClick(user.id)}
+            onClick={() => handleRemoveClick(user.id, 'cancel_invitation')}
           >
             <Clock className="h-4 w-4 mr-2" />
             Anuluj
@@ -116,7 +118,7 @@ export function ConnectionActionButtons({
             variant="outline" 
             size="sm"
             className="whitespace-nowrap w-full"
-            onClick={() => handleRemoveClick(user.id)}
+            onClick={() => handleRemoveClick(user.id, 'remove_connection')}
           >
             <UserMinus className="h-4 w-4 mr-2" />
             Usuń
@@ -151,6 +153,20 @@ export function ConnectionActionButtons({
     );
   };
   
+  const getDialogTitle = () => {
+    return dialogAction === 'cancel_invitation' ? 'Potwierdź anulowanie' : 'Potwierdź usunięcie';
+  };
+
+  const getDialogDescription = () => {
+    return dialogAction === 'cancel_invitation' 
+      ? `Czy na pewno chcesz anulować zaproszenie do połączenia z ${user.name}?`
+      : `Czy na pewno chcesz usunąć połączenie z ${user.name}?`;
+  };
+
+  const getConfirmButtonText = () => {
+    return dialogAction === 'cancel_invitation' ? 'Tak, anuluj' : 'Tak, usuń';
+  };
+  
   return (
     <>
       <div className="flex flex-col w-full space-y-2">
@@ -161,9 +177,9 @@ export function ConnectionActionButtons({
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Potwierdź usunięcie</DialogTitle>
+            <DialogTitle>{getDialogTitle()}</DialogTitle>
             <DialogDescription>
-              Czy na pewno chcesz usunąć połączenie z {user.name}?
+              {getDialogDescription()}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -171,7 +187,7 @@ export function ConnectionActionButtons({
               Anuluj
             </Button>
             <Button variant="destructive" onClick={handleConfirmRemove}>
-              Tak, usuń
+              {getConfirmButtonText()}
             </Button>
           </DialogFooter>
         </DialogContent>
