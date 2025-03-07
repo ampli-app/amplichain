@@ -64,16 +64,16 @@ export async function processHashtags(content: string, postId: string) {
         hashtagId = newTag.id;
       }
       
-      // Powiąż hashtag z postem
-      const { error: linkError } = await supabase
-        .from('feed_post_hashtags')
-        .insert({
-          post_id: postId,
-          hashtag_id: hashtagId
-        });
+      // Zamiast bezpośredniego zapytania SQL, użyjmy funkcji unikającej niejednoznaczności kolumn
+      const { error: linkError } = await supabase.rpc(
+        'link_post_hashtag',
+        { 
+          p_post_id: postId,
+          p_hashtag_id: hashtagId
+        }
+      );
       
-      // Jeśli mamy błąd naruszenia ograniczenia unikalności, to po prostu go ignorujemy
-      if (linkError && linkError.code !== '23505') {
+      if (linkError) {
         console.error(`Błąd podczas łączenia posta z hashtagiem ${tag}:`, linkError);
       }
     } catch (error) {
