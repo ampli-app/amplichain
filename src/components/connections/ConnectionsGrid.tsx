@@ -38,24 +38,24 @@ export function ConnectionsGrid({
       {users.map(user => (
         <div 
           key={user.id}
-          className="border rounded-lg p-4 flex items-center justify-between"
+          className="border rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
           <div className="flex items-center gap-3">
-            <Avatar className="h-14 w-14">
+            <Avatar className="h-14 w-14 flex-shrink-0">
               <AvatarImage src={user.avatar} alt={user.name} />
               <AvatarFallback>
                 <User className="h-6 w-6" />
               </AvatarFallback>
             </Avatar>
             
-            <div>
+            <div className="min-w-0">
               <Link 
                 to={`/profile/${user.id}`}
-                className="font-medium text-lg hover:underline"
+                className="font-medium text-lg hover:underline truncate block"
               >
                 {user.name}
               </Link>
-              <p className="text-sm text-muted-foreground">{user.role}</p>
+              <p className="text-sm text-muted-foreground truncate">{user.role}</p>
               
               {user.connectionStatus === 'pending_received' && (
                 <Badge variant="outline" className="mt-1">Prośba o połączenie</Badge>

@@ -41,8 +41,12 @@ export const useFollowActions = (
       setUsers(prevUsers => 
         prevUsers.map(u => {
           if (u.id === userId) {
-            // Zachowaj bieżący connectionStatus, ale dodaj flag following jeśli status to 'none'
-            const newConnectionStatus = u.connectionStatus === 'none' ? 'following' : u.connectionStatus;
+            // Dla użytkowników z pending_received zachowaj ten status
+            // ale dla pozostałych, jeśli status to 'none', zmień go na 'following'
+            let newConnectionStatus = u.connectionStatus;
+            if (u.connectionStatus === 'none') {
+              newConnectionStatus = 'following';
+            }
             return { 
               ...u, 
               connectionStatus: newConnectionStatus, 
@@ -119,8 +123,12 @@ export const useFollowActions = (
       setUsers(prevUsers => 
         prevUsers.map(u => {
           if (u.id === userId) {
-            // Ustaw connectionStatus na 'none' tylko jeśli był 'following', zachowaj inne statusy
-            const newConnectionStatus = u.connectionStatus === 'following' ? 'none' : u.connectionStatus;
+            // Ustaw connectionStatus na 'none' tylko jeśli był 'following'
+            // Zachowaj inne statusy jak 'pending_received'
+            let newConnectionStatus = u.connectionStatus;
+            if (newConnectionStatus === 'following') {
+              newConnectionStatus = 'none';
+            }
             return { 
               ...u, 
               connectionStatus: newConnectionStatus, 

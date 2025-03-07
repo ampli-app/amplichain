@@ -22,12 +22,25 @@ export function ConnectionActionButtons({
   onFollow, 
   onUnfollow 
 }: ConnectionActionButtonsProps) {
-  // Sprawdzamy, czy użytkownik jest obserwowany
-  const isUserFollowing = user.connectionStatus === 'following';
+  // Określamy, czy użytkownik jest obserwowany na podstawie relacji w bazie danych
+  // lub jeśli mamy aktywne połączenie (connected), które automatycznie oznacza obserwację
+  const isFollowing = user.connectionStatus === 'following' || 
+                     user.connectionStatus === 'connected' || 
+                     user.connectionStatus === 'pending_sent';
 
   const renderConnectionButtons = () => {
     switch(user.connectionStatus) {
       case 'none':
+        return (
+          <Button 
+            size="sm" 
+            className="whitespace-nowrap"
+            onClick={() => onConnect(user.id)}
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Połącz
+          </Button>
+        );
       case 'following':
         return (
           <Button 
@@ -48,12 +61,12 @@ export function ConnectionActionButtons({
             onClick={() => onRemove(user.id)}
           >
             <Clock className="h-4 w-4 mr-2" />
-            Anuluj zaproszenie
+            Anuluj
           </Button>
         );
       case 'pending_received':
         return (
-          <div className="flex gap-2">
+          <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
             <Button 
               size="sm"
               className="whitespace-nowrap"
@@ -93,8 +106,8 @@ export function ConnectionActionButtons({
   const renderFollowButton = () => {
     if (user.connectionStatus === 'connected') return null;
     
-    // Sprawdź tutaj, czy connectionStatus to 'following'
-    return isUserFollowing ? (
+    // Wyświetlaj obserwujesz dla pending_received jeśli użytkownik jest zarazem obserwowany
+    return isFollowing ? (
       <Button 
         variant="ghost" 
         size="sm"
@@ -116,7 +129,7 @@ export function ConnectionActionButtons({
   };
   
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-col items-end space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
       {renderFollowButton()}
       {renderConnectionButtons()}
     </div>
