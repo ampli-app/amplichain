@@ -97,61 +97,7 @@ export const acceptConnectionRequest = async (
       console.log('Connection already exists, skipping creation');
     }
 
-    const { data: alreadyFollowing, error: checkFollowingError } = await supabase
-      .from('followings')
-      .select('*')
-      .eq('follower_id', user.id)
-      .eq('following_id', userId)
-      .maybeSingle();
-
-    if (checkFollowingError) {
-      console.error('Error checking following status:', checkFollowingError);
-    }
-
-    console.log('Already following?', alreadyFollowing);
-
-    if (!alreadyFollowing) {
-      const { error: followError } = await supabase
-        .from('followings')
-        .insert({
-          follower_id: user.id,
-          following_id: userId
-        });
-
-      if (followError) {
-        console.error('Error creating following relationship:', followError);
-      } else {
-        console.log(`User ${user.id} is now following ${userId}`);
-      }
-    }
-
-    const { data: alreadyFollowed, error: checkFollowedError } = await supabase
-      .from('followings')
-      .select('*')
-      .eq('follower_id', userId)
-      .eq('following_id', user.id)
-      .maybeSingle();
-
-    if (checkFollowedError) {
-      console.error('Error checking followed status:', checkFollowedError);
-    }
-
-    console.log('Already followed?', alreadyFollowed);
-
-    if (!alreadyFollowed) {
-      const { error: beingFollowedError } = await supabase
-        .from('followings')
-        .insert({
-          follower_id: userId,
-          following_id: user.id
-        });
-
-      if (beingFollowedError) {
-        console.error('Error creating being followed relationship:', beingFollowedError);
-      } else {
-        console.log(`User ${userId} is now following ${user.id}`);
-      }
-    }
+    // Usunięto automatyczne tworzenie relacji obserwowania
 
     setUsers(prevUsers => 
       prevUsers.map(u => 
@@ -160,7 +106,7 @@ export const acceptConnectionRequest = async (
               ...u, 
               connectionStatus: 'connected', 
               connectionsCount: u.connectionsCount + 1,
-              isFollower: true
+              // Nie aktualizujemy isFollower, ponieważ nie tworzymy automatycznie relacji obserwowania
             } 
           : u
       )
@@ -170,8 +116,8 @@ export const acceptConnectionRequest = async (
       setCurrentUser({
         ...currentUser,
         connectionsCount: currentUser.connectionsCount + 1,
-        followingCount: !alreadyFollowing ? currentUser.followingCount + 1 : currentUser.followingCount,
-        followersCount: !alreadyFollowed ? currentUser.followersCount + 1 : currentUser.followersCount
+        // Nie aktualizujemy followingCount i followersCount, ponieważ nie tworzymy
+        // automatycznie relacji obserwowania
       });
     }
 
