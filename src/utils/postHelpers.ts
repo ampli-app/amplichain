@@ -34,8 +34,8 @@ export async function processHashtags(content: string, postId: string) {
       // Sprawdź czy hashtag już istnieje
       const { data: existingTag, error: lookupError } = await supabase
         .from('hashtags')
-        .select('id')
-        .eq('name', tag.toLowerCase())
+        .select('hashtags.id')
+        .eq('hashtags.name', tag.toLowerCase())
         .maybeSingle();
         
       if (lookupError) {
@@ -53,7 +53,7 @@ export async function processHashtags(content: string, postId: string) {
         const { data: newTag, error: insertError } = await supabase
           .from('hashtags')
           .insert([{ name: tag.toLowerCase() }])
-          .select('id')
+          .select('hashtags.id')
           .single();
         
         if (insertError) {
@@ -64,7 +64,7 @@ export async function processHashtags(content: string, postId: string) {
         hashtagId = newTag.id;
       }
       
-      // Bezpośrednie zapytanie z jawnie określoną tabelą dla każdej kolumny
+      // Dodaj powiązanie między postem a hashtagiem
       const { error: linkError } = await supabase
         .from('feed_post_hashtags')
         .insert({
