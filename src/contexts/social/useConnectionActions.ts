@@ -135,16 +135,19 @@ export const useConnectionActions = (
         return;
       }
 
+      console.log(`Accepting connection request from user: ${userId}`);
+
       const { data: requestData, error: findError } = await supabase
         .from('connection_requests')
         .select('*')
         .eq('sender_id', userId)
         .eq('receiver_id', user.id)
         .eq('status', 'pending')
-        .single();
+        .maybeSingle();
 
       if (findError || !requestData) {
         console.error('Error finding connection request:', findError);
+        console.log('Request data:', requestData);
         toast({
           title: "Błąd",
           description: "Nie znaleziono zaproszenia do połączenia.",
@@ -152,6 +155,8 @@ export const useConnectionActions = (
         });
         return;
       }
+
+      console.log('Found request data:', requestData);
 
       const { error: updateError } = await supabase
         .from('connection_requests')
@@ -168,15 +173,25 @@ export const useConnectionActions = (
         return;
       }
 
+      console.log('Connection request updated to accepted');
+      
+      // Poprawiona kolejność user_id1 i user_id2 aby zawsze mniejszy ID był user_id1
+      // i to jest kluczowe dla poprawnego działania
+      const user_id1 = user.id < userId ? user.id : userId;
+      const user_id2 = user.id < userId ? userId : user.id;
+
+      console.log(`Creating connection with user_id1: ${user_id1}, user_id2: ${user_id2}`);
+
       const { error: connectionError } = await supabase
         .from('connections')
         .insert({
-          user_id1: user.id < userId ? user.id : userId,
-          user_id2: user.id < userId ? userId : user.id
+          user_id1: user_id1,
+          user_id2: user_id2
         });
 
       if (connectionError) {
         console.error('Error creating connection:', connectionError);
+        console.log(`Connection data: user_id1=${user_id1}, user_id2=${user_id2}`);
         toast({
           title: "Błąd",
           description: "Nie udało się utworzyć połączenia.",
@@ -184,6 +199,8 @@ export const useConnectionActions = (
         });
         return;
       }
+
+      console.log('Connection created successfully');
 
       // Dodaj wzajemną obserwację, jeśli jeszcze nie istnieje
       // Sprawdź, czy already user_id obserwuje userId
@@ -198,6 +215,8 @@ export const useConnectionActions = (
         console.error('Error checking following status:', checkFollowingError);
       }
 
+      console.log('Already following?', alreadyFollowing);
+
       // Jeśli user_id jeszcze nie obserwuje userId, dodaj obserwację
       if (!alreadyFollowing) {
         const { error: followError } = await supabase
@@ -209,6 +228,8 @@ export const useConnectionActions = (
 
         if (followError) {
           console.error('Error creating following relationship:', followError);
+        } else {
+          console.log(`User ${user.id} is now following ${userId}`);
         }
       }
 
@@ -224,6 +245,8 @@ export const useConnectionActions = (
         console.error('Error checking followed status:', checkFollowedError);
       }
 
+      console.log('Already followed?', alreadyFollowed);
+
       // Jeśli userId jeszcze nie obserwuje user_id, dodaj obserwację
       if (!alreadyFollowed) {
         const { error: beingFollowedError } = await supabase
@@ -235,6 +258,8 @@ export const useConnectionActions = (
 
         if (beingFollowedError) {
           console.error('Error creating being followed relationship:', beingFollowedError);
+        } else {
+          console.log(`User ${userId} is now following ${user.id}`);
         }
       }
 
