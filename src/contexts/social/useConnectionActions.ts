@@ -182,25 +182,38 @@ export const useConnectionActions = (
 
       console.log(`Creating connection with user_id1: ${user_id1}, user_id2: ${user_id2}`);
 
-      const { error: connectionError } = await supabase
+      // Sprawdź, czy połączenie już nie istnieje
+      const { data: existingConnection } = await supabase
         .from('connections')
-        .insert({
-          user_id1: user_id1,
-          user_id2: user_id2
-        });
+        .select('*')
+        .eq('user_id1', user_id1)
+        .eq('user_id2', user_id2)
+        .maybeSingle();
 
-      if (connectionError) {
-        console.error('Error creating connection:', connectionError);
-        console.log(`Connection data: user_id1=${user_id1}, user_id2=${user_id2}`);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się utworzyć połączenia.",
-          variant: "destructive",
-        });
-        return;
+      if (!existingConnection) {
+        // Jeśli połączenie nie istnieje, utwórz je
+        const { error: connectionError } = await supabase
+          .from('connections')
+          .insert({
+            user_id1: user_id1,
+            user_id2: user_id2
+          });
+
+        if (connectionError) {
+          console.error('Error creating connection:', connectionError);
+          console.log(`Connection data: user_id1=${user_id1}, user_id2=${user_id2}`);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się utworzyć połączenia.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        console.log('Connection created successfully');
+      } else {
+        console.log('Connection already exists, skipping creation');
       }
-
-      console.log('Connection created successfully');
 
       // Dodaj wzajemną obserwację, jeśli jeszcze nie istnieje
       // Sprawdź, czy already user_id obserwuje userId
@@ -224,7 +237,9 @@ export const useConnectionActions = (
           .insert({
             follower_id: user.id,
             following_id: userId
-          });
+          })
+          .onConflict(['follower_id', 'following_id'])
+          .ignore(); // Ignoruj błąd duplikatu
 
         if (followError) {
           console.error('Error creating following relationship:', followError);
@@ -254,7 +269,9 @@ export const useConnectionActions = (
           .insert({
             follower_id: userId,
             following_id: user.id
-          });
+          })
+          .onConflict(['follower_id', 'following_id'])
+          .ignore(); // Ignoruj błąd duplikatu
 
         if (beingFollowedError) {
           console.error('Error creating being followed relationship:', beingFollowedError);
