@@ -34,7 +34,7 @@ export function ConnectionActionButtons({
         return (
           <Button 
             size="sm" 
-            className="whitespace-nowrap"
+            className="whitespace-nowrap w-full"
             onClick={() => onConnect(user.id)}
           >
             <UserPlus className="h-4 w-4 mr-2" />
@@ -45,7 +45,7 @@ export function ConnectionActionButtons({
         return (
           <Button 
             size="sm" 
-            className="whitespace-nowrap"
+            className="whitespace-nowrap w-full"
             onClick={() => onConnect(user.id)}
           >
             <UserPlus className="h-4 w-4 mr-2" />
@@ -57,7 +57,7 @@ export function ConnectionActionButtons({
           <Button 
             variant="outline" 
             size="sm" 
-            className="whitespace-nowrap"
+            className="whitespace-nowrap w-full"
             onClick={() => onRemove(user.id)}
           >
             <Clock className="h-4 w-4 mr-2" />
@@ -66,10 +66,10 @@ export function ConnectionActionButtons({
         );
       case 'pending_received':
         return (
-          <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+          <div className="grid grid-cols-2 gap-2 w-full">
             <Button 
               size="sm"
-              className="whitespace-nowrap"
+              className="whitespace-nowrap col-span-1"
               onClick={() => onAccept(user.id)}
             >
               <UserCheck className="h-4 w-4 mr-2" />
@@ -78,7 +78,7 @@ export function ConnectionActionButtons({
             <Button 
               variant="outline" 
               size="sm"
-              className="whitespace-nowrap"
+              className="whitespace-nowrap col-span-1"
               onClick={() => onDecline(user.id)}
             >
               <X className="h-4 w-4 mr-2" />
@@ -91,7 +91,7 @@ export function ConnectionActionButtons({
           <Button 
             variant="outline" 
             size="sm"
-            className="whitespace-nowrap"
+            className="whitespace-nowrap w-full"
             onClick={() => onRemove(user.id)}
           >
             <UserMinus className="h-4 w-4 mr-2" />
@@ -111,6 +111,7 @@ export function ConnectionActionButtons({
       <Button 
         variant="ghost" 
         size="sm"
+        className="w-full"
         onClick={() => onUnfollow(user.id)}
       >
         <UserCheck className="h-4 w-4 mr-2" />
@@ -120,6 +121,7 @@ export function ConnectionActionButtons({
       <Button 
         variant="ghost" 
         size="sm"
+        className="w-full"
         onClick={() => onFollow(user.id)}
       >
         <UserPlus className="h-4 w-4 mr-2" />
@@ -129,7 +131,7 @@ export function ConnectionActionButtons({
   };
   
   return (
-    <div className="flex flex-col items-end space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+    <div className="flex flex-col w-full space-y-2">
       {renderFollowButton()}
       {renderConnectionButtons()}
     </div>
