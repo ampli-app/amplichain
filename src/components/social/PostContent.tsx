@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { Post } from '@/types/social';
 import { PostMedia } from '@/components/groups/posts/PostMedia'; 
@@ -22,9 +21,7 @@ export function PostContent({ post }: PostContentProps) {
       
       {/* Obsługa mediów - korzystamy z komponentu PostMedia */}
       {post.media && post.media.length > 0 && (
-        <div className="mb-4">
-          <PostMedia media={post.media} />
-        </div>
+        <PostMedia media={post.media} />
       )}
       
       {/* Obsługa plików */}
