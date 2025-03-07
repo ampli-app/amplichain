@@ -30,6 +30,7 @@ export async function processHashtags(content: string, postId: string) {
   const hashtags = extractHashtags(content);
   if (hashtags.length === 0) return;
   
+  // Używamy poprawnej funkcji RPC link_hashtag_to_post, która oczekuje parametrów p_post_id i p_hashtag_name
   const promises = hashtags.map(tag => {
     return supabase.rpc('link_hashtag_to_post', { 
       p_post_id: postId, 

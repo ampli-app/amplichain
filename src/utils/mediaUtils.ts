@@ -67,8 +67,7 @@ export const uploadMediaToStorage = async (file: File, pathPrefix: string): Prom
     const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `${pathPrefix}/${fileName}`;
     
-    // Prześlij plik do Supabase Storage
-    // Używamy bucketa 'media' zamiast 'public', który nie istnieje zgodnie z logami
+    // Używamy bucketa 'media' zamiast 'public'
     const { data, error } = await supabase.storage
       .from('media')
       .upload(filePath, file);

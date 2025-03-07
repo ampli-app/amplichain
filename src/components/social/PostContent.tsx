@@ -20,7 +20,7 @@ export function PostContent({ post }: PostContentProps) {
         dangerouslySetInnerHTML={{ __html: formatContent(post.content) }}
       />
       
-      {/* Obsługa mediów */}
+      {/* Obsługa mediów - używamy komponentu PostMedia */}
       {post.media && post.media.length > 0 && (
         <PostMedia media={post.media} />
       )}
