@@ -36,12 +36,18 @@ export default function Connections() {
         user.connectionStatus === 'pending_received'
       );
     } else if (activeTab === 'followers') {
+      // Użytkownicy, którzy obserwują bieżącego użytkownika
       result = result.filter(user => user.isFollower);
     } else if (activeTab === 'following') {
-      result = result.filter(user => 
-        user.connectionStatus === 'following' || 
-        (currentUser && currentUser.followingCount > 0)
-      );
+      // Użytkownicy, których bieżący użytkownik obserwuje
+      // Pobierz z bazy danych przez relację followings
+      result = users.filter(user => {
+        // Jeśli użytkownik ma status połączenia jako 'connected', 'following' lub 'pending_sent',
+        // to na pewno obserwujemy go (bo automatycznie następuje obserwacja przy połączeniu)
+        return user.connectionStatus === 'connected' || 
+               user.connectionStatus === 'following' || 
+               user.connectionStatus === 'pending_sent';
+      });
     }
     
     if (search) {
@@ -94,7 +100,14 @@ export default function Connections() {
     u.connectionStatus === 'pending_sent' || 
     u.connectionStatus === 'pending_received'
   );
+  // Użytkownicy, którzy obserwują bieżącego użytkownika
   const followerUsers = users.filter(u => u.isFollower);
+  // Użytkownicy, których obserwuje bieżący użytkownik
+  const followingUsers = users.filter(u => 
+    u.connectionStatus === 'connected' || 
+    u.connectionStatus === 'following' || 
+    u.connectionStatus === 'pending_sent'
+  );
   const allUsers = users.filter(u => !u.isCurrentUser);
   
   return (
@@ -117,7 +130,7 @@ export default function Connections() {
             connectedUsers={connectedUsers}
             pendingUsers={pendingUsers}
             followerUsers={followerUsers}
-            followingCount={currentUser?.followingCount || 0}
+            followingCount={followingUsers.length}
           >
             <ConnectionsGrid 
               users={filteredUsers}

@@ -54,7 +54,7 @@ export function ConnectionTabs({
         <TabsTrigger value="following">
           Obserwowani
           <Badge className="ml-2 bg-primary/10 text-primary hover:bg-primary/10 border-none">
-            {followingCount || 0}
+            {followingCount}
           </Badge>
         </TabsTrigger>
       </TabsList>
