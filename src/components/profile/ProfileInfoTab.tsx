@@ -1,139 +1,142 @@
 
-import { Experience } from '@/components/profile/ExperienceTab';
-import { Education } from '@/components/profile/EducationTab';
-import { Badge } from '@/components/ui/badge';
-import { 
-  BriefcaseIcon, 
-  GraduationCap, 
-  Award, 
-  Calendar, 
-  MapPin,
-  Music
-} from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PortfolioTab } from '@/components/profile/PortfolioTab';
+import { ExperienceTab } from '@/components/profile/ExperienceTab';
+import { EducationTab } from '@/components/profile/EducationTab';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
+import { useState } from 'react';
+import { AddProjectModal } from './AddProjectModal';
+import { AddExperienceModal } from './AddExperienceModal';
+import { AddEducationModal } from './AddEducationModal';
 
 interface ProfileInfoTabProps {
+  userProjects: any[];
   userExperience: any[];
   userEducation: any[];
-  userProjects: any[];
   isOwnProfile: boolean;
 }
 
-export function ProfileInfoTab({ 
+export function ProfileInfoTab({
+  userProjects,
   userExperience,
   userEducation,
-  userProjects,
-  isOwnProfile 
+  isOwnProfile
 }: ProfileInfoTabProps) {
-  
-  // Lista umiejętności (przykładowe)
-  const skills = [
-    'Produkcja muzyczna',
-    'Mixing',
-    'Mastering',
-    'Vocal processing',
-    'Kompozycja',
-    'Sound design',
-    'Ableton Live',
-    'Logic Pro',
-    'FL Studio',
-    'Pro Tools'
-  ];
+  const [showAddProjectModal, setShowAddProjectModal] = useState(false);
+  const [showAddExperienceModal, setShowAddExperienceModal] = useState(false);
+  const [showAddEducationModal, setShowAddEducationModal] = useState(false);
   
   return (
-    <div className="space-y-8">
-      {/* Sekcja doświadczenia */}
-      <section>
-        <div className="flex items-center mb-4">
-          <BriefcaseIcon className="h-5 w-5 mr-2 text-primary" />
-          <h2 className="text-xl font-semibold">Doświadczenie zawodowe</h2>
-        </div>
-        
-        <div className="space-y-4">
-          {userExperience && userExperience.length > 0 ? (
-            userExperience.map(exp => (
-              <div key={exp.id} className="bg-card rounded-lg p-4 border">
-                <h3 className="font-medium">{exp.position}</h3>
-                <p className="text-muted-foreground">{exp.company}</p>
-                <p className="text-sm text-muted-foreground mt-1">{exp.period}</p>
-              </div>
-            ))
-          ) : (
-            <p className="text-muted-foreground">Brak informacji o doświadczeniu zawodowym.</p>
-          )}
-        </div>
-      </section>
+    <Tabs defaultValue="projects" className="mb-8">
+      <TabsList className="mb-6">
+        <TabsTrigger value="projects">Projekty</TabsTrigger>
+        <TabsTrigger value="experience">Doświadczenie</TabsTrigger>
+        <TabsTrigger value="education">Edukacja</TabsTrigger>
+      </TabsList>
       
-      {/* Sekcja edukacji */}
-      <section>
-        <div className="flex items-center mb-4">
-          <GraduationCap className="h-5 w-5 mr-2 text-primary" />
-          <h2 className="text-xl font-semibold">Edukacja</h2>
-        </div>
+      <TabsContent value="projects">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Projekty</CardTitle>
+              <CardDescription>Lista projektów, w których brał udział użytkownik</CardDescription>
+            </div>
+            {isOwnProfile && (
+              <Button variant="outline" onClick={() => setShowAddProjectModal(true)}>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Dodaj projekt
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            <PortfolioTab 
+              userProjects={userProjects} 
+              isOwnProfile={isOwnProfile} 
+            />
+          </CardContent>
+        </Card>
         
-        <div className="space-y-4">
-          {userEducation && userEducation.length > 0 ? (
-            userEducation.map(edu => (
-              <div key={edu.id} className="bg-card rounded-lg p-4 border">
-                <h3 className="font-medium">{edu.degree}</h3>
-                <p className="text-muted-foreground">{edu.institution}</p>
-                <p className="text-sm text-muted-foreground mt-1">{edu.year}</p>
-              </div>
-            ))
-          ) : (
-            <p className="text-muted-foreground">Brak informacji o edukacji.</p>
-          )}
-        </div>
-      </section>
+        {isOwnProfile && (
+          <AddProjectModal 
+            isOpen={showAddProjectModal} 
+            onClose={() => setShowAddProjectModal(false)}
+            onSuccess={() => {
+              setShowAddProjectModal(false);
+              // Tutaj mogłaby być funkcja odświeżająca projekty
+            }}
+          />
+        )}
+      </TabsContent>
       
-      {/* Sekcja projektów */}
-      <section>
-        <div className="flex items-center mb-4">
-          <Music className="h-5 w-5 mr-2 text-primary" />
-          <h2 className="text-xl font-semibold">Projekty</h2>
-        </div>
+      <TabsContent value="experience">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Doświadczenie zawodowe</CardTitle>
+              <CardDescription>Historia zatrudnienia i doświadczenie branżowe</CardDescription>
+            </div>
+            {isOwnProfile && (
+              <Button variant="outline" onClick={() => setShowAddExperienceModal(true)}>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Dodaj doświadczenie
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            <ExperienceTab 
+              userExperience={userExperience} 
+              isOwnProfile={isOwnProfile} 
+            />
+          </CardContent>
+        </Card>
         
-        <div className="space-y-4">
-          {userProjects && userProjects.length > 0 ? (
-            userProjects.map(project => (
-              <div key={project.id} className="bg-card rounded-lg p-4 border">
-                <h3 className="font-medium">{project.title}</h3>
-                <p className="text-muted-foreground mt-1">{project.description}</p>
-                {project.date && (
-                  <div className="flex items-center text-sm text-muted-foreground mt-2">
-                    <Calendar className="h-3.5 w-3.5 mr-1" />
-                    <span>{project.date}</span>
-                  </div>
-                )}
-                {project.tags && project.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {project.tags.map((tag: string, idx: number) => (
-                      <Badge key={idx} variant="secondary">{tag}</Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))
-          ) : (
-            <p className="text-muted-foreground">Brak informacji o projektach.</p>
-          )}
-        </div>
-      </section>
+        {isOwnProfile && (
+          <AddExperienceModal 
+            isOpen={showAddExperienceModal} 
+            onClose={() => setShowAddExperienceModal(false)}
+            onSuccess={() => {
+              setShowAddExperienceModal(false);
+              // Tutaj mogłaby być funkcja odświeżająca doświadczenie
+            }}
+          />
+        )}
+      </TabsContent>
       
-      {/* Sekcja umiejętności */}
-      <section>
-        <div className="flex items-center mb-4">
-          <Award className="h-5 w-5 mr-2 text-primary" />
-          <h2 className="text-xl font-semibold">Umiejętności</h2>
-        </div>
+      <TabsContent value="education">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Edukacja</CardTitle>
+              <CardDescription>Wykształcenie formalne i kursy specjalistyczne</CardDescription>
+            </div>
+            {isOwnProfile && (
+              <Button variant="outline" onClick={() => setShowAddEducationModal(true)}>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Dodaj edukację
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            <EducationTab 
+              userEducation={userEducation} 
+              isOwnProfile={isOwnProfile} 
+            />
+          </CardContent>
+        </Card>
         
-        <div className="flex flex-wrap gap-2">
-          {skills.map((skill, index) => (
-            <Badge key={index} variant="outline" className="px-3 py-1">
-              {skill}
-            </Badge>
-          ))}
-        </div>
-      </section>
-    </div>
+        {isOwnProfile && (
+          <AddEducationModal 
+            isOpen={showAddEducationModal} 
+            onClose={() => setShowAddEducationModal(false)}
+            onSuccess={() => {
+              setShowAddEducationModal(false);
+              // Tutaj mogłaby być funkcja odświeżająca edukację
+            }}
+          />
+        )}
+      </TabsContent>
+    </Tabs>
   );
 }

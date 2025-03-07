@@ -8,9 +8,10 @@ import Feed from '@/pages/Feed';
 import Signup from '@/pages/Signup';
 import Login from '@/pages/Login';
 import Profile from '@/pages/Profile';
+import PublicProfile from '@/pages/PublicProfile'; // Nowy import
 import NotFound from '@/pages/NotFound';
 import Groups from '@/pages/Groups';
-import GroupDetail from '@/pages/GroupDetail'; // New import
+import GroupDetail from '@/pages/GroupDetail';
 import Connections from '@/pages/Connections';
 import Discover from '@/pages/Discover';
 import Messages from '@/pages/Messages';
@@ -34,8 +35,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/profile/:id" element={<Profile />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/user/:userId" element={<PublicProfile />} /> {/* Nowa ścieżka dla publicznego profilu */}
           <Route path="/groups" element={<Groups />} />
-          <Route path="/groups/:id" element={<GroupDetail />} /> {/* New route */}
+          <Route path="/groups/:id" element={<GroupDetail />} />
           <Route path="/connections" element={<Connections />} />
           <Route path="/discover" element={<Discover />} />
           <Route path="/discovery" element={<Discover />} />

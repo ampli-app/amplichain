@@ -20,6 +20,7 @@ interface ProfileHeaderProps {
   handleFollow: () => void;
   isFollowing?: boolean;
   commonConnections?: number;
+  handleSendMessage?: () => void;
 }
 
 export function ProfileHeader({ 
@@ -31,7 +32,8 @@ export function ProfileHeader({
   handleConnectionAction,
   handleFollow,
   isFollowing = false,
-  commonConnections = 0
+  commonConnections = 0,
+  handleSendMessage
 }: ProfileHeaderProps) {
   const navigate = useNavigate();
   
@@ -56,11 +58,15 @@ export function ProfileHeader({
     );
   };
 
-  const handleSendMessage = () => {
+  // Domyślna funkcja obsługi przycisku wiadomości, jeśli nie została przekazana z zewnątrz
+  const defaultHandleSendMessage = () => {
     if (profileData) {
       navigate(`/messages/user/${profileData.id}`);
     }
   };
+
+  // Użyj przekazanej funkcji obsługi lub domyślnej
+  const sendMessageHandler = handleSendMessage || defaultHandleSendMessage;
 
   return (
     <div className="bg-card border rounded-xl p-6 mb-8">
@@ -89,7 +95,7 @@ export function ProfileHeader({
                 onEditProfileClick={onEditProfileClick}
                 handleConnectionAction={handleConnectionAction}
                 handleFollow={handleFollow}
-                handleSendMessage={handleSendMessage}
+                handleSendMessage={sendMessageHandler}
               />
               
               <Button variant="ghost" size="sm" onClick={handleShareProfile}>
