@@ -97,25 +97,61 @@ export const acceptConnectionRequest = async (
       console.log('Connection already exists, skipping creation');
     }
 
-    // Nie tworzymy ani nie modyfikujemy relacji obserwowania - to powinno być obsługiwane osobno
+    // Tworzenie obserwacji - tylko akceptujący zaczyna obserwować wysyłającego
+    // Wysyłający już obserwuje (dodane przy wysyłaniu zaproszenia)
+    try {
+      // Sprawdź, czy akceptujący już obserwuje wysyłającego
+      const { data: existingFollowing } = await supabase
+        .from('followings')
+        .select('*')
+        .eq('follower_id', user.id)
+        .eq('following_id', userId)
+        .maybeSingle();
+
+      // Jeśli nie obserwuje, to dodaj obserwację
+      if (!existingFollowing) {
+        const { error: followError } = await supabase
+          .from('followings')
+          .insert({
+            follower_id: user.id,
+            following_id: userId
+          });
+
+        if (followError) {
+          console.error('Error creating following relationship:', followError);
+          // Nie przerywamy procesu, jeśli obserwacja się nie udała
+        } else {
+          console.log('Created following relationship from accepter to sender');
+        }
+      } else {
+        console.log('Accepter already follows sender, skipping following creation');
+      }
+    } catch (followErr) {
+      console.error('Error handling follow relationship:', followErr);
+      // Nie przerywamy procesu, jeśli obserwacja się nie udała
+    }
 
     // Aktualizacja stanu UI po zaakceptowaniu zaproszenia
     setUsers(prevUsers => 
-      prevUsers.map(u => 
-        u.id === userId 
-          ? { 
-              ...u, 
-              connectionStatus: 'connected', 
-              connectionsCount: u.connectionsCount + 1
-            } 
-          : u
-      )
+      prevUsers.map(u => {
+        if (u.id === userId) {
+          return { 
+            ...u, 
+            connectionStatus: 'connected', 
+            connectionsCount: u.connectionsCount + 1,
+            // Już jest obserwowany przez akceptującego
+            followersCount: u.followersCount + 1
+          };
+        }
+        return u;
+      })
     );
 
     if (currentUser) {
       setCurrentUser({
         ...currentUser,
-        connectionsCount: currentUser.connectionsCount + 1
+        connectionsCount: currentUser.connectionsCount + 1,
+        followingCount: currentUser.followingCount + 1
       });
     }
 

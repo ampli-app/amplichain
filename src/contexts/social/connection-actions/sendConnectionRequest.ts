@@ -73,6 +73,40 @@ export const sendConnectionRequest = async (
       return;
     }
 
+    // Tworzymy najpierw obserwację - wysyłający zaczyna obserwować odbierającego
+    try {
+      // Sprawdź czy już nie obserwujemy
+      const { data: existingFollowing } = await supabase
+        .from('followings')
+        .select('*')
+        .eq('follower_id', user.id)
+        .eq('following_id', userId)
+        .maybeSingle();
+
+      // Jeśli nie obserwuje, dodaj obserwację
+      if (!existingFollowing) {
+        const { error: followError } = await supabase
+          .from('followings')
+          .insert({
+            follower_id: user.id,
+            following_id: userId
+          });
+
+        if (followError) {
+          console.error('Error creating following when sending connection request:', followError);
+          // Kontynuujemy mimo błędu obserwacji
+        } else {
+          console.log('Sender started following receiver');
+        }
+      } else {
+        console.log('Sender already follows receiver, skipping follow creation');
+      }
+    } catch (followErr) {
+      console.error('Error handling follow relationship:', followErr);
+      // Kontynuujemy mimo błędu obserwacji
+    }
+
+    // Teraz tworzymy zaproszenie do połączenia
     const { error: insertError } = await supabase
       .from('connection_requests')
       .insert({
@@ -97,6 +131,8 @@ export const sendConnectionRequest = async (
           return { 
             ...u, 
             connectionStatus: 'pending_sent',
+            // Dodajemy jeden do followersCount, bo wysyłający zaczyna obserwować odbierającego
+            followersCount: u.followersCount + 1
           };
         }
         return u;
