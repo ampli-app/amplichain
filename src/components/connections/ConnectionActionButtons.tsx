@@ -2,6 +2,15 @@
 import { Button } from '@/components/ui/button';
 import { UserPlus, UserMinus, UserCheck, Clock, X } from 'lucide-react';
 import { SocialUser } from '@/contexts/social/types';
+import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface ConnectionActionButtonsProps { 
   user: SocialUser;
@@ -22,6 +31,8 @@ export function ConnectionActionButtons({
   onFollow, 
   onUnfollow 
 }: ConnectionActionButtonsProps) {
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  
   // Określamy, czy użytkownik jest obserwowany
   // Uwaga: Teraz automatycznie obserwujemy użytkownika po wysłaniu zaproszenia do połączenia
   const isFollowing = user.isFollowing || 
@@ -29,6 +40,17 @@ export function ConnectionActionButtons({
                      user.connectionStatus === 'pending_sent';
     //||
                     // (user.connectionStatus === 'pending_received' && user.isFollower);
+
+  const handleRemoveClick = (userId: string) => {
+    // Otwórz dialog potwierdzenia zamiast od razu usuwać połączenie
+    setConfirmDialogOpen(true);
+  };
+
+  const handleConfirmRemove = () => {
+    // Zamknij dialog i wykonaj akcję usunięcia
+    setConfirmDialogOpen(false);
+    onRemove(user.id);
+  };
 
   const renderConnectionButtons = () => {
     switch(user.connectionStatus) {
@@ -60,7 +82,7 @@ export function ConnectionActionButtons({
             variant="outline" 
             size="sm" 
             className="whitespace-nowrap w-full"
-            onClick={() => onRemove(user.id)}
+            onClick={() => handleRemoveClick(user.id)}
           >
             <Clock className="h-4 w-4 mr-2" />
             Anuluj
@@ -94,7 +116,7 @@ export function ConnectionActionButtons({
             variant="outline" 
             size="sm"
             className="whitespace-nowrap w-full"
-            onClick={() => onRemove(user.id)}
+            onClick={() => handleRemoveClick(user.id)}
           >
             <UserMinus className="h-4 w-4 mr-2" />
             Usuń
@@ -130,9 +152,30 @@ export function ConnectionActionButtons({
   };
   
   return (
-    <div className="flex flex-col w-full space-y-2">
-      {renderFollowButton()}
-      {renderConnectionButtons()}
-    </div>
+    <>
+      <div className="flex flex-col w-full space-y-2">
+        {renderFollowButton()}
+        {renderConnectionButtons()}
+      </div>
+
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Potwierdź usunięcie</DialogTitle>
+            <DialogDescription>
+              Czy na pewno chcesz usunąć połączenie z {user.name}?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setConfirmDialogOpen(false)}>
+              Anuluj
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmRemove}>
+              Tak, usuń
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
