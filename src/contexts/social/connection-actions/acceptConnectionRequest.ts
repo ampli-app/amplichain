@@ -97,7 +97,7 @@ export const acceptConnectionRequest = async (
       console.log('Connection already exists, skipping creation');
     }
 
-    // Usunięto automatyczne tworzenie relacji obserwowania
+    // Nie tworzymy ani nie modyfikujemy relacji obserwowania - to powinno być obsługiwane osobno
 
     setUsers(prevUsers => 
       prevUsers.map(u => 
@@ -106,7 +106,6 @@ export const acceptConnectionRequest = async (
               ...u, 
               connectionStatus: 'connected', 
               connectionsCount: u.connectionsCount + 1,
-              // Nie aktualizujemy isFollower, ponieważ nie tworzymy automatycznie relacji obserwowania
             } 
           : u
       )
@@ -116,8 +115,6 @@ export const acceptConnectionRequest = async (
       setCurrentUser({
         ...currentUser,
         connectionsCount: currentUser.connectionsCount + 1,
-        // Nie aktualizujemy followingCount i followersCount, ponieważ nie tworzymy
-        // automatycznie relacji obserwowania
       });
     }
 
