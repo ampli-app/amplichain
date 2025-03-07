@@ -31,20 +31,25 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
       if (socialProfile) {
         setConnectionStatus(socialProfile.connectionStatus || 'none');
         
-        // Bezpośrednio sprawdź relację obserwowania z bazy danych
-        const { data: followData, error: followError } = await supabase
-          .from('followings')
-          .select('*')
-          .eq('follower_id', currentUser.id)
-          .eq('following_id', userId)
-          .single();
+        // Sprawdź obserwację z profilu i bezpośrednio z bazy danych
+        if (socialProfile.isFollowing || socialProfile.connectionStatus === 'pending_sent') {
+          setIsFollowing(true);
+        } else {
+          // Podwójnie sprawdź relację obserwowania z bazy danych
+          const { data: followData, error: followError } = await supabase
+            .from('followings')
+            .select('*')
+            .eq('follower_id', currentUser.id)
+            .eq('following_id', userId)
+            .single();
+            
+          if (followError && followError.code !== 'PGRST116') {
+            console.error('Error checking follow status:', followError);
+          }
           
-        if (followError && followError.code !== 'PGRST116') {
-          console.error('Error checking follow status:', followError);
+          // Ustaw isFollowing na podstawie danych z bazy
+          setIsFollowing(!!followData);
         }
-        
-        // Ustaw isFollowing na podstawie danych z bazy
-        setIsFollowing(!!followData);
       }
     } catch (err) {
       console.error('Error fetching social profile:', err);
@@ -60,16 +65,19 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
         case 'following':
           await sendConnectionRequest(userId);
           setConnectionStatus('pending_sent');
-          // Nie zmieniaj statusu obserwacji - powinien pozostać taki sam
+          setIsFollowing(true); // Po wysłaniu zaproszenia automatycznie obserwujemy
           break;
         case 'connected':
           await removeConnection(userId);
-          // Zachowaj stan obserwowania
-          setConnectionStatus('following');
+          // Przestajemy obserwować po usunięciu połączenia
+          setConnectionStatus('none');
+          setIsFollowing(false);
           break;
         case 'pending_sent':
           await removeConnection(userId);
-          setConnectionStatus('following');
+          // Przestajemy obserwować po anulowaniu zaproszenia
+          setConnectionStatus('none');
+          setIsFollowing(false);
           break;
         case 'pending_received':
           await removeConnection(userId);
@@ -93,7 +101,11 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
       if (isFollowing) {
         await unfollowUser(userId);
         setIsFollowing(false);
-        // Zachowaj status połączenia
+        // Jeśli connectionStatus to "pending_sent", oznacza to, że anulujemy zaproszenie
+        if (connectionStatus === 'pending_sent') {
+          await removeConnection(userId);
+          setConnectionStatus('none');
+        }
       } else {
         await followUser(userId);
         setIsFollowing(true);

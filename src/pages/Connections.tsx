@@ -8,6 +8,7 @@ import { ConnectionSearch } from '@/components/connections/ConnectionSearch';
 import { ConnectionTabs } from '@/components/connections/ConnectionTabs';
 import { ConnectionsGrid } from '@/components/connections/ConnectionsGrid';
 import { SocialUser } from '@/contexts/social/types';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Connections() {
   const { 
@@ -24,9 +25,46 @@ export default function Connections() {
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [filteredUsers, setFilteredUsers] = useState<SocialUser[]>([]);
+  const [followingState, setFollowingState] = useState<Record<string, boolean>>({});
+  
+  // Ładuj informacje o obserwowanych użytkownikach
+  useEffect(() => {
+    const loadFollowingState = async () => {
+      if (!currentUser) return;
+      
+      try {
+        const { data: followingsData, error } = await supabase
+          .from('followings')
+          .select('following_id')
+          .eq('follower_id', currentUser.id);
+          
+        if (error) {
+          console.error('Error loading followings data:', error);
+          return;
+        }
+        
+        const followingMap: Record<string, boolean> = {};
+        followingsData.forEach(item => {
+          followingMap[item.following_id] = true;
+        });
+        
+        setFollowingState(followingMap);
+      } catch (err) {
+        console.error('Unexpected error loading followings:', err);
+      }
+    };
+    
+    loadFollowingState();
+  }, [currentUser]);
   
   useEffect(() => {
     let result = [...users].filter(user => !user.isCurrentUser);
+    
+    // Oznacz użytkowników obserwowanych
+    result = result.map(user => ({
+      ...user,
+      isFollowing: followingState[user.id] || false
+    }));
     
     if (activeTab === 'connected') {
       result = result.filter(user => user.connectionStatus === 'connected');
@@ -40,15 +78,7 @@ export default function Connections() {
       result = result.filter(user => user.isFollower);
     } else if (activeTab === 'following') {
       // Użytkownicy, których bieżący użytkownik obserwuje
-      // Filtrujemy bez zakładania, że wysłanie zaproszenia do połączenia automatycznie oznacza obserwację
-      result = users.filter(user => {
-        // Sprawdź, czy użytkownika obserwujemy przez flagę isFollowing
-        const isFollowed = (
-          user.connectionStatus === 'connected' || 
-          user.connectionStatus === 'following'
-        );
-        return isFollowed;
-      });
+      result = result.filter(user => followingState[user.id]);
     }
     
     if (search) {
@@ -61,14 +91,16 @@ export default function Connections() {
     }
     
     setFilteredUsers(result);
-  }, [users, activeTab, search, currentUser]);
+  }, [users, activeTab, search, currentUser, followingState]);
   
   const handleConnect = async (userId: string) => {
     await sendConnectionRequest(userId);
+    setFollowingState(prev => ({...prev, [userId]: true}));
   };
   
   const handleAccept = async (userId: string) => {
     await acceptConnectionRequest(userId);
+    setFollowingState(prev => ({...prev, [userId]: true}));
   };
   
   const handleDecline = async (userId: string) => {
@@ -77,6 +109,7 @@ export default function Connections() {
   
   const handleRemove = async (userId: string) => {
     await removeConnection(userId);
+    setFollowingState(prev => ({...prev, [userId]: false}));
     toast({
       title: "Połączenie usunięte",
       description: "Pomyślnie usunięto połączenie z użytkownikiem.",
@@ -85,10 +118,12 @@ export default function Connections() {
   
   const handleFollow = async (userId: string) => {
     await followUser(userId);
+    setFollowingState(prev => ({...prev, [userId]: true}));
   };
   
   const handleUnfollow = async (userId: string) => {
     await unfollowUser(userId);
+    setFollowingState(prev => ({...prev, [userId]: false}));
     toast({
       title: "Obserwacja zakończona",
       description: "Pomyślnie przestałeś obserwować użytkownika.",
@@ -104,10 +139,7 @@ export default function Connections() {
   // Użytkownicy, którzy obserwują bieżącego użytkownika
   const followerUsers = users.filter(u => u.isFollower);
   // Użytkownicy, których obserwuje bieżący użytkownik
-  const followingUsers = users.filter(u => 
-    u.connectionStatus === 'connected' || 
-    u.connectionStatus === 'following'
-  );
+  const followingUsersCount = Object.keys(followingState).filter(id => followingState[id]).length;
   const allUsers = users.filter(u => !u.isCurrentUser);
   
   return (
@@ -130,7 +162,7 @@ export default function Connections() {
             connectedUsers={connectedUsers}
             pendingUsers={pendingUsers}
             followerUsers={followerUsers}
-            followingCount={followingUsers.length}
+            followingCount={followingUsersCount}
           >
             <ConnectionsGrid 
               users={filteredUsers}

@@ -22,10 +22,11 @@ export function ConnectionActionButtons({
   onFollow, 
   onUnfollow 
 }: ConnectionActionButtonsProps) {
-  // Określamy, czy użytkownik jest obserwowany na podstawie relacji w bazie danych
-  // Uwaga: Teraz sam fakt wysłania zaproszenia nie oznacza automatycznie obserwacji
-  const isFollowing = user.connectionStatus === 'following' || 
+  // Określamy, czy użytkownik jest obserwowany
+  // Uwaga: Teraz automatycznie obserwujemy użytkownika po wysłaniu zaproszenia do połączenia
+  const isFollowing = user.isFollowing || 
                      user.connectionStatus === 'connected' ||
+                     user.connectionStatus === 'pending_sent' ||
                      (user.connectionStatus === 'pending_received' && user.isFollower);
 
   const renderConnectionButtons = () => {

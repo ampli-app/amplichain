@@ -46,6 +46,9 @@ export function ProfileActions({
     }
   };
   
+  // Po wysłaniu zaproszenia do połączenia, użytkownik automatycznie zaczyna obserwować
+  const shouldShowAsFollowing = isFollowing || connectionStatus === 'pending_sent';
+  
   // Jeśli to profil użytkownika, pokazujemy tylko przycisk edycji
   if (isOwnProfile) {
     return (
@@ -72,11 +75,11 @@ export function ProfileActions({
       </Button>
       
       <Button 
-        variant={isFollowing ? "outline" : "secondary"}
+        variant={shouldShowAsFollowing ? "outline" : "secondary"}
         className="gap-2 w-full"
         onClick={handleFollow}
       >
-        {isFollowing ? (
+        {shouldShowAsFollowing ? (
           <>
             <UserCheck className="h-4 w-4" />
             Obserwujesz

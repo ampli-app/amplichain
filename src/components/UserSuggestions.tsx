@@ -59,6 +59,11 @@ export function UserSuggestions() {
   
   const handleConnect = async (userId: string) => {
     await sendConnectionRequest(userId);
+    // Po wysłaniu zaproszenia do połączenia, użytkownik automatycznie zaczyna obserwować
+    setFollowingStatus(prev => ({
+      ...prev,
+      [userId]: true
+    }));
   };
   
   const handleFollow = async (userId: string, isFollowing: boolean) => {
@@ -173,15 +178,26 @@ export function UserSuggestions() {
               )}
               
               {user.connectionStatus === 'pending_sent' && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8" 
-                  disabled
-                >
-                  <UserCheck className="h-3.5 w-3.5 mr-1" />
-                  Wysłano
-                </Button>
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8"
+                    onClick={() => handleFollow(user.id, followingStatus[user.id] || true)}
+                  >
+                    <Check className="h-3.5 w-3.5 mr-1" />
+                    Obserwujesz
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8" 
+                    disabled
+                  >
+                    <Clock className="h-3.5 w-3.5 mr-1" />
+                    Wysłano
+                  </Button>
+                </>
               )}
               
               {user.connectionStatus === 'connected' && (

@@ -105,6 +105,7 @@ export const useUserLoading = (user: any | null) => {
           bio: profile.bio,
           connectionStatus,
           isFollower: followerIds.has(profile.id),
+          isFollowing: followingIds.has(profile.id),
           followersCount: profile.followers || 0,
           followingCount: profile.following || 0,
           connectionsCount: profile.connections || 0
@@ -136,6 +137,7 @@ export const useUserLoading = (user: any | null) => {
 
       let connectionStatus: UserConnectionStatus = 'none';
       let isFollower = false;
+      let isFollowing = false;
       
       if (user) {
         const { data: connectionData } = await supabase
@@ -178,6 +180,7 @@ export const useUserLoading = (user: any | null) => {
 
               if (followingData) {
                 connectionStatus = 'following';
+                isFollowing = true;
               }
             }
           }
@@ -193,6 +196,18 @@ export const useUserLoading = (user: any | null) => {
         if (followerData) {
           isFollower = true;
         }
+        
+        // Sprawdź czy użytkownik jest obserwowany
+        const { data: followingData } = await supabase
+          .from('followings')
+          .select('*')
+          .eq('follower_id', user.id)
+          .eq('following_id', userId)
+          .single();
+          
+        if (followingData) {
+          isFollowing = true;
+        }
       }
 
       const userProfile: SocialUser = {
@@ -204,6 +219,7 @@ export const useUserLoading = (user: any | null) => {
         bio: data.bio,
         connectionStatus,
         isFollower,
+        isFollowing,
         followersCount: data.followers || 0,
         followingCount: data.following || 0,
         connectionsCount: data.connections || 0
