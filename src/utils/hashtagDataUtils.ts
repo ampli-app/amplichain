@@ -20,7 +20,7 @@ export async function fetchPostsByHashtag(hashtagName: string, userId?: string):
       return [];
     }
     
-    // Znajdź posty z tym hashtagiem
+    // Znajdź posty z tym hashtagiem - używamy aliasów dla kolumn, aby uniknąć niejednoznaczności
     const { data: postIds, error: postsError } = await supabase
       .from('feed_post_hashtags')
       .select('post_id')

@@ -68,8 +68,9 @@ export const uploadMediaToStorage = async (file: File, pathPrefix: string): Prom
     const filePath = `${pathPrefix}/${fileName}`;
     
     // Prześlij plik do Supabase Storage
+    // Używamy bucketa 'media' zamiast 'public', który nie istnieje zgodnie z logami
     const { data, error } = await supabase.storage
-      .from('public')
+      .from('media')
       .upload(filePath, file);
     
     if (error) {
@@ -79,7 +80,7 @@ export const uploadMediaToStorage = async (file: File, pathPrefix: string): Prom
     
     // Pobierz publiczny URL pliku
     const { data: { publicUrl } } = supabase.storage
-      .from('public')
+      .from('media')
       .getPublicUrl(filePath);
     
     return publicUrl;
