@@ -33,13 +33,8 @@ export function PostMedia({ media }: PostMediaProps) {
   };
   
   const handleMainImageClick = () => {
-    if (media.length > 1) {
-      // Jeśli jest więcej niż jedno zdjęcie, przejdź do następnego
-      setCurrentIndex((prev) => (prev + 1) % media.length);
-    } else {
-      // Jeśli jest tylko jedno zdjęcie, otwórz dialog
-      setOpenDialog(true);
-    }
+    // Otwieranie podglądu zamiast przewijania
+    setOpenDialog(true);
   };
 
   return (
