@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { extractHashtags } from '@/utils/mediaUtils';
+import { uploadMediaToStorage } from '@/utils/mediaUtils';
 
 /**
  * Dodaje opcje ankiety do posta
@@ -87,8 +88,3 @@ export async function savePostMedia(postId: string, media: Array<any>) {
     console.error('Błędy podczas zapisywania mediów:', mediaErrors);
   }
 }
-
-/**
- * Uploaduje pliki mediów do storage
- */
-import { uploadMediaToStorage } from '@/utils/mediaUtils';
