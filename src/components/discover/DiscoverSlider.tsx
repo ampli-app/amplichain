@@ -41,7 +41,7 @@ export function DiscoverSlider() {
   useEffect(() => {
     if (sliders.length <= 1) return;
     
-    const interval = setInterval(goToNext, 3000);
+    const interval = setInterval(goToNext, 6000);
     return () => clearInterval(interval);
   }, [sliders.length]);
 
