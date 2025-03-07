@@ -59,9 +59,8 @@ export function ProfileActions({
     );
   }
   
-  // Sprawdzamy, czy użytkownik jest obserwowany
-  // Uwaga: isFollowing lub connectionStatus === 'following' wskazuje na obserwację
-  const userIsFollowing = isFollowing || connectionStatus === 'following';
+  // WAŻNA ZMIANA: sprawdzamy isFollowing bezpośrednio, ignorując powiązanie z connectionStatus
+  const userIsFollowing = isFollowing;
   
   // Dla innych użytkowników zawsze pokazujemy oba przyciski
   return (

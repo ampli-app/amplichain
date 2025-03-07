@@ -41,7 +41,7 @@ export const useFollowActions = (
       setUsers(prevUsers => 
         prevUsers.map(u => {
           if (u.id === userId) {
-            // Zachowaj bieżący connectionStatus, ale dodaj flag following
+            // Zachowaj bieżący connectionStatus, ale dodaj flag following jeśli status to 'none'
             const newConnectionStatus = u.connectionStatus === 'none' ? 'following' : u.connectionStatus;
             return { 
               ...u, 

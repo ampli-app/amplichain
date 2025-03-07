@@ -117,12 +117,21 @@ export const useConnectionActions = (
         return;
       }
 
+      // Kluczowa zmiana: Upewnij się, że użytkownik jest nadal oznaczony jako obserwowany
       setUsers(prevUsers => 
-        prevUsers.map(u => 
-          u.id === userId 
-            ? { ...u, connectionStatus: 'pending_sent' } 
-            : u
-        )
+        prevUsers.map(u => {
+          if (u.id === userId) {
+            // Zachowaj informację, że użytkownik jest obserwowany
+            const wasFollowing = u.connectionStatus === 'following' || followingData !== null;
+            return { 
+              ...u, 
+              connectionStatus: 'pending_sent',
+              // Jeśli użytkownik był wcześniej obserwowany lub właśnie go zaobserwowaliśmy, ustaw na true
+              isFollower: u.isFollower // Zachowaj oryginalną wartość
+            };
+          }
+          return u;
+        })
       );
 
       toast({

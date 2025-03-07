@@ -29,10 +29,34 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
       const socialProfile = await fetchUserProfile(userId);
       if (socialProfile) {
         setConnectionStatus(socialProfile.connectionStatus || 'none');
-        setIsFollowing(socialProfile.connectionStatus === 'following' || ['connected', 'pending_sent'].includes(socialProfile.connectionStatus));
+        
+        // Sprawdź czy użytkownik jest obserwowany na podstawie statusu połączenia
+        // lub na podstawie danych z serwera w przypadku, gdy status połączenia nie jest jednoznaczny
+        const isUserFollowed = await checkIfUserIsFollowed(userId);
+        setIsFollowing(isUserFollowed);
       }
     } catch (err) {
       console.error('Error fetching social profile:', err);
+    }
+  };
+
+  // Nowa funkcja pomocnicza do sprawdzania czy użytkownik jest obserwowany
+  const checkIfUserIsFollowed = async (targetUserId: string) => {
+    if (!currentUser) return false;
+    
+    try {
+      const { data, error } = await fetch(`/api/followings?followerId=${currentUser.id}&followingId=${targetUserId}`)
+        .then(res => res.json());
+        
+      if (error) {
+        console.error('Error checking follow status:', error);
+        return false;
+      }
+      
+      return data && data.length > 0;
+    } catch (err) {
+      console.error('Error in checkIfUserIsFollowed:', err);
+      return false;
     }
   };
 
@@ -45,6 +69,7 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
         case 'following':
           await sendConnectionRequest(userId);
           setConnectionStatus('pending_sent');
+          // Nie zmieniaj statusu obserwacji - powinien pozostać taki sam
           break;
         case 'connected':
           await removeConnection(userId);
