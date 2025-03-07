@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { extractHashtags } from '@/utils/mediaUtils';
 
@@ -23,66 +22,23 @@ export async function addPollOptions(postId: string, pollOptions: string[]) {
 }
 
 /**
- * Przetwarza hashtagi i zapisuje je w bazie danych
+ * Przetwarza hashtagi i zapisuje je w bazie danych używając funkcji RPC
  */
 export async function processHashtags(content: string, postId: string) {
   const hashtags = extractHashtags(content);
   if (hashtags.length === 0) return;
   
-  for (const tag of hashtags) {
-    try {
-      // Sprawdź czy hashtag już istnieje
-      const { data: existingTag, error: lookupError } = await supabase
-        .from('hashtags')
-        .select('hashtags.id')
-        .eq('hashtags.name', tag.toLowerCase())
-        .maybeSingle();
-        
-      if (lookupError) {
-        console.error(`Błąd podczas sprawdzania hashtaga ${tag}:`, lookupError);
-        continue;
-      }
-      
-      let hashtagId;
-      
-      if (existingTag) {
-        // Jeśli hashtag istnieje, użyj jego ID
-        hashtagId = existingTag.id;
-      } else {
-        // Jeśli hashtag nie istnieje, utwórz nowy
-        const { data: newTag, error: insertError } = await supabase
-          .from('hashtags')
-          .insert([{ name: tag.toLowerCase() }])
-          .select('hashtags.id')
-          .single();
-        
-        if (insertError) {
-          console.error(`Błąd podczas tworzenia hashtaga ${tag}:`, insertError);
-          continue;
-        }
-        
-        hashtagId = newTag.id;
-      }
-      
-      // Dodaj powiązanie między postem a hashtagiem
-      const { error: linkError } = await supabase
-        .from('feed_post_hashtags')
-        .insert({
-          post_id: postId,
-          hashtag_id: hashtagId
-        });
-      
-      if (linkError) {
-        // Sprawdź czy to błąd unikalności (rekord już istnieje)
-        if (linkError.code === '23505') {
-          console.log(`Hashtag ${tag} już został powiązany z tym postem`);
-        } else {
-          console.error(`Błąd podczas łączenia posta z hashtagiem ${tag}:`, linkError);
-        }
-      }
-    } catch (error) {
-      console.error(`Nieoczekiwany błąd podczas łączenia posta z hashtagiem ${tag}:`, error);
-    }
+  const promises = hashtags.map(tag => {
+    return supabase.rpc('link_hashtag_to_post', { 
+      p_post_id: postId, 
+      p_hashtag_name: tag.toLowerCase() 
+    });
+  });
+  
+  try {
+    await Promise.all(promises);
+  } catch (error) {
+    console.error('Błąd podczas przetwarzania hashtagów:', error);
   }
 }
 

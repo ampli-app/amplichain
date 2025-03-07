@@ -21,20 +21,20 @@ export async function fetchPostsByHashtag(hashtagName: string, userId?: string):
     }
     
     // Znajdź posty z tym hashtagiem
-    const { data: hashtagPostsData, error: hashtagPostsError } = await supabase
+    const { data: postIds, error: postsError } = await supabase
       .from('feed_post_hashtags')
       .select('post_id')
       .eq('hashtag_id', hashtagData.id);
     
-    if (hashtagPostsError || !hashtagPostsData.length) {
-      console.error('Błąd podczas wyszukiwania postów z hashtagiem:', hashtagPostsError);
+    if (postsError || !postIds.length) {
+      console.error('Błąd podczas wyszukiwania postów z hashtagiem:', postsError);
       return [];
     }
     
     // Pobierz pełne dane postów
-    const postIds = hashtagPostsData.map(item => item.post_id);
+    const postIdsArray = postIds.map(item => item.post_id);
     
-    const { data: postsData, error: postsError } = await supabase
+    const { data: postsData, error: postsDataError } = await supabase
       .from('feed_posts')
       .select(`
         id,
@@ -52,11 +52,11 @@ export async function fetchPostsByHashtag(hashtagName: string, userId?: string):
         feed_post_likes (id, user_id),
         feed_post_comments (id)
       `)
-      .in('id', postIds)
+      .in('id', postIdsArray)
       .order('created_at', { ascending: false });
     
-    if (postsError) {
-      console.error('Błąd podczas pobierania postów:', postsError);
+    if (postsDataError) {
+      console.error('Błąd podczas pobierania postów:', postsDataError);
       return [];
     }
     
@@ -140,35 +140,34 @@ export async function fetchPostsByHashtag(hashtagName: string, userId?: string):
  */
 export async function fetchPopularHashtags(): Promise<Hashtag[]> {
   try {
-    const { data, error } = await supabase
+    // Pobierz wszystkie hashtagi
+    const { data: hashtagsData, error: hashtagsError } = await supabase
       .from('hashtags')
       .select('id, name');
       
-    if (error) {
-      console.error('Błąd podczas pobierania hashtagów:', error);
+    if (hashtagsError) {
+      console.error('Błąd podczas pobierania hashtagów:', hashtagsError);
       return [];
     }
     
-    // Pobierz liczbę postów dla każdego hashtaga w osobnym zapytaniu
-    const hashtags: Hashtag[] = [];
-    
-    for (const tag of data) {
-      const { count, error: countError } = await supabase
-        .from('feed_post_hashtags')
-        .select('*', { count: 'exact', head: true })
-        .eq('hashtag_id', tag.id);
-        
-      if (!countError) {
-        hashtags.push({
+    // Pobierz liczbę postów dla każdego hashtaga
+    const hashtagsWithCounts = await Promise.all(
+      hashtagsData.map(async (tag) => {
+        const { count, error: countError } = await supabase
+          .from('feed_post_hashtags')
+          .select('*', { count: 'exact', head: true })
+          .eq('hashtag_id', tag.id);
+          
+        return {
           id: tag.id,
           name: tag.name,
-          postsCount: count || 0
-        });
-      }
-    }
+          postsCount: countError ? 0 : (count || 0)
+        };
+      })
+    );
     
     // Posortuj hashtagi według liczby postów malejąco i ogranicz do 10
-    return hashtags
+    return hashtagsWithCounts
       .sort((a, b) => b.postsCount - a.postsCount)
       .slice(0, 10);
       
