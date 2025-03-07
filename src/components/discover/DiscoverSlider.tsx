@@ -74,6 +74,8 @@ export function DiscoverSlider() {
       </AnimatePresence>
 
       <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
+           {/* 
+        // Zakomentowano animację tekstu
         <AnimatePresence mode="wait">
           <motion.div
             key={`content-${currentSlider.id}`}
@@ -82,6 +84,7 @@ export function DiscoverSlider() {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
+        */}
             <h2 className="text-2xl font-bold mb-2">{currentSlider.title}</h2>
             <p className="text-white/80 mb-4 max-w-xl">{currentSlider.description}</p>
             <Button 
