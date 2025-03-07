@@ -44,7 +44,7 @@ export interface SocialContextType {
   sendConnectionRequest: (userId: string) => Promise<void>;
   acceptConnectionRequest: (userId: string) => Promise<void>;
   declineConnectionRequest: (userId: string) => Promise<void>;
-  removeConnection: (userId: string) => Promise<void>;
+  removeConnection: (userId: string, keepFollowing?: boolean) => Promise<void>;
   searchUsers: (query: string) => Promise<SocialUser[]>;
   createPost: (content: string, mediaUrl?: string, mediaType?: 'image' | 'video', mediaFiles?: Array<{url: string, type: 'image' | 'video'}>) => Promise<void>;
   getPostComments: (postId: string, parentId?: string) => Promise<Comment[]>;

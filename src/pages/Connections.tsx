@@ -104,7 +104,7 @@ export default function Connections() {
   };
   
   const handleDecline = async (userId: string) => {
-    await removeConnection(userId);
+    await declineConnectionRequest(userId);
   };
   
   const handleRemove = async (userId: string, keepFollowing: boolean = false) => {
