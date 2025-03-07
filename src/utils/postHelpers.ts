@@ -58,30 +58,52 @@ export async function savePostMedia(postId: string, media: Array<any>) {
   
   const mediaPromises = media.map(async (mediaItem) => {
     if (mediaItem.file) {
-      const publicUrl = await uploadMediaToStorage(mediaItem.file, 'feed_media');
-      
-      if (publicUrl) {
-        console.log('Otrzymano URL pliku:', publicUrl, 'typ:', mediaItem.type);
+      try {
+        console.log('Rozpoczynam przesyłanie pliku:', mediaItem.file.name, 'typ:', mediaItem.type);
+        const publicUrl = await uploadMediaToStorage(mediaItem.file, 'feed_media');
         
-        if (mediaItem.type === 'document') {
-          return supabase
-            .from('feed_post_files')
-            .insert({
-              post_id: postId,
-              name: mediaItem.name || 'Plik',
-              url: publicUrl,
-              type: mediaItem.fileType || 'application/octet-stream',
-              size: mediaItem.size || 0
-            });
+        if (publicUrl) {
+          console.log('Otrzymano URL pliku:', publicUrl, 'typ:', mediaItem.type);
+          
+          if (mediaItem.type === 'document') {
+            const { data, error } = await supabase
+              .from('feed_post_files')
+              .insert({
+                post_id: postId,
+                name: mediaItem.name || 'Plik',
+                url: publicUrl,
+                type: mediaItem.fileType || 'application/octet-stream',
+                size: mediaItem.size || 0
+              });
+              
+            if (error) {
+              console.error('Błąd podczas zapisywania pliku:', error);
+              return { error };
+            }
+            console.log('Plik dokumentu zapisany pomyślnie');
+            return { data };
+          } else {
+            const { data, error } = await supabase
+              .from('feed_post_media')
+              .insert({
+                post_id: postId,
+                url: publicUrl,
+                type: mediaItem.type
+              });
+              
+            if (error) {
+              console.error('Błąd podczas zapisywania media:', error);
+              return { error };
+            }
+            console.log('Media zapisane pomyślnie');
+            return { data };
+          }
         } else {
-          return supabase
-            .from('feed_post_media')
-            .insert({
-              post_id: postId,
-              url: publicUrl,
-              type: mediaItem.type
-            });
+          console.error('Nie udało się uzyskać URL dla przesłanego pliku');
         }
+      } catch (uploadError) {
+        console.error('Błąd podczas przesyłania pliku:', uploadError);
+        return { error: uploadError };
       }
     }
     return null;
@@ -95,6 +117,6 @@ export async function savePostMedia(postId: string, media: Array<any>) {
   if (mediaErrors.length > 0) {
     console.error('Błędy podczas zapisywania mediów:', mediaErrors);
   } else {
-    console.log('Media zapisane pomyślnie');
+    console.log('Media zapisane pomyślnie, liczba mediów:', mediaResults.filter(r => r !== null).length);
   }
 }

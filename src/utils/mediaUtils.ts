@@ -67,7 +67,7 @@ export const uploadMediaToStorage = async (file: File, pathPrefix: string): Prom
     const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `${pathPrefix}/${fileName}`;
     
-    console.log('Przesyłanie pliku do bucketa media:', filePath);
+    console.log('Przesyłanie pliku do bucketa media:', filePath, 'typ:', file.type, 'rozmiar:', file.size);
     
     // Używamy bucketa 'media'
     const { data, error } = await supabase.storage
@@ -76,6 +76,11 @@ export const uploadMediaToStorage = async (file: File, pathPrefix: string): Prom
     
     if (error) {
       console.error('Błąd podczas przesyłania pliku:', error);
+      toast({
+        title: "Błąd przesyłania",
+        description: `Nie udało się przesłać pliku: ${error.message}`,
+        variant: "destructive",
+      });
       return null;
     }
     
@@ -88,6 +93,11 @@ export const uploadMediaToStorage = async (file: File, pathPrefix: string): Prom
     return publicUrl;
   } catch (error) {
     console.error('Nieoczekiwany błąd podczas przesyłania pliku:', error);
+    toast({
+      title: "Błąd przesyłania",
+      description: "Wystąpił nieoczekiwany błąd podczas przesyłania pliku",
+      variant: "destructive",
+    });
     return null;
   }
 };
