@@ -8,11 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2 } from 'lucide-react';
 import { SocialUser } from '@/contexts/social/types';
+import { supabase } from '@/integrations/supabase/client';
 
 export function UserSuggestions() {
-  const { users, followUser, unfollowUser, sendConnectionRequest } = useSocial();
+  const { users, followUser, unfollowUser, sendConnectionRequest, currentUser } = useSocial();
   const [loading, setLoading] = useState(true);
   const [suggestedUsers, setSuggestedUsers] = useState<SocialUser[]>([]);
+  const [followingStatus, setFollowingStatus] = useState<Record<string, boolean>>({});
   
   // Przygotuj sugestie użytkowników
   useEffect(() => {
@@ -27,10 +29,33 @@ export function UserSuggestions() {
     };
     
     if (users.length > 0) {
-      setSuggestedUsers(getRandomSuggestions());
+      const suggestions = getRandomSuggestions();
+      setSuggestedUsers(suggestions);
+      
+      // Sprawdź status obserwowania dla każdego sugerowanego użytkownika
+      if (currentUser) {
+        suggestions.forEach(async user => {
+          try {
+            const { data } = await supabase
+              .from('followings')
+              .select('*')
+              .eq('follower_id', currentUser.id)
+              .eq('following_id', user.id)
+              .single();
+              
+            setFollowingStatus(prev => ({
+              ...prev,
+              [user.id]: !!data
+            }));
+          } catch (error) {
+            console.error('Error checking follow status:', error);
+          }
+        });
+      }
+      
       setLoading(false);
     }
-  }, [users]);
+  }, [users, currentUser]);
   
   const handleConnect = async (userId: string) => {
     await sendConnectionRequest(userId);
@@ -39,14 +64,17 @@ export function UserSuggestions() {
   const handleFollow = async (userId: string, isFollowing: boolean) => {
     if (isFollowing) {
       await unfollowUser(userId);
+      setFollowingStatus(prev => ({
+        ...prev,
+        [userId]: false
+      }));
     } else {
       await followUser(userId);
+      setFollowingStatus(prev => ({
+        ...prev,
+        [userId]: true
+      }));
     }
-  };
-
-  // Funkcja sprawdzająca, czy użytkownik jest obserwowany
-  const isUserFollowing = (user: SocialUser) => {
-    return user.connectionStatus === 'following';
   };
   
   if (loading) {
@@ -97,10 +125,19 @@ export function UserSuggestions() {
                     variant="outline" 
                     size="sm" 
                     className="h-8"
-                    onClick={() => handleFollow(user.id, false)}
+                    onClick={() => handleFollow(user.id, followingStatus[user.id] || false)}
                   >
-                    <UserPlus className="h-3.5 w-3.5 mr-1" />
-                    Obserwuj
+                    {followingStatus[user.id] ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 mr-1" />
+                        Obserwujesz
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-3.5 w-3.5 mr-1" />
+                        Obserwuj
+                      </>
+                    )}
                   </Button>
                   <Button 
                     size="sm" 
@@ -113,7 +150,7 @@ export function UserSuggestions() {
                 </>
               )}
               
-              {isUserFollowing(user) && (
+              {user.connectionStatus === 'following' && (
                 <>
                   <Button 
                     variant="outline" 

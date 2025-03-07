@@ -59,9 +59,6 @@ export function ProfileActions({
     );
   }
   
-  // WAŻNA ZMIANA: sprawdzamy isFollowing bezpośrednio, ignorując powiązanie z connectionStatus
-  const userIsFollowing = isFollowing;
-  
   // Dla innych użytkowników zawsze pokazujemy oba przyciski
   return (
     <div className="flex flex-col gap-2">
@@ -75,11 +72,11 @@ export function ProfileActions({
       </Button>
       
       <Button 
-        variant={userIsFollowing ? "outline" : "secondary"}
+        variant={isFollowing ? "outline" : "secondary"}
         className="gap-2 w-full"
         onClick={handleFollow}
       >
-        {userIsFollowing ? (
+        {isFollowing ? (
           <>
             <UserCheck className="h-4 w-4" />
             Obserwujesz

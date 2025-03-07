@@ -37,7 +37,7 @@ export const useFollowActions = (
         return;
       }
 
-      // Natychmiastowa aktualizacja stanu użytkowników - kluczowa poprawka
+      // Natychmiastowa aktualizacja stanu użytkowników
       setUsers(prevUsers => 
         prevUsers.map(u => {
           if (u.id === userId) {

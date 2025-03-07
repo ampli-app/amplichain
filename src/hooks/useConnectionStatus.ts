@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useSocial } from '@/contexts/SocialContext';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useConnectionStatus(userId: string | undefined, isOwnProfile: boolean) {
   const { 
@@ -23,40 +24,30 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
   }, [userId, currentUser, isOwnProfile]);
 
   const fetchSocialProfile = async () => {
-    if (!userId) return;
+    if (!userId || !currentUser) return;
     
     try {
       const socialProfile = await fetchUserProfile(userId);
       if (socialProfile) {
         setConnectionStatus(socialProfile.connectionStatus || 'none');
         
-        // Sprawdź czy użytkownik jest obserwowany na podstawie statusu połączenia
-        // lub na podstawie danych z serwera w przypadku, gdy status połączenia nie jest jednoznaczny
-        const isUserFollowed = await checkIfUserIsFollowed(userId);
-        setIsFollowing(isUserFollowed);
+        // Bezpośrednio sprawdź relację obserwowania z bazy danych
+        const { data: followData, error: followError } = await supabase
+          .from('followings')
+          .select('*')
+          .eq('follower_id', currentUser.id)
+          .eq('following_id', userId)
+          .single();
+          
+        if (followError && followError.code !== 'PGRST116') {
+          console.error('Error checking follow status:', followError);
+        }
+        
+        // Ustaw isFollowing na podstawie danych z bazy
+        setIsFollowing(!!followData);
       }
     } catch (err) {
       console.error('Error fetching social profile:', err);
-    }
-  };
-
-  // Nowa funkcja pomocnicza do sprawdzania czy użytkownik jest obserwowany
-  const checkIfUserIsFollowed = async (targetUserId: string) => {
-    if (!currentUser) return false;
-    
-    try {
-      const { data, error } = await fetch(`/api/followings?followerId=${currentUser.id}&followingId=${targetUserId}`)
-        .then(res => res.json());
-        
-      if (error) {
-        console.error('Error checking follow status:', error);
-        return false;
-      }
-      
-      return data && data.length > 0;
-    } catch (err) {
-      console.error('Error in checkIfUserIsFollowed:', err);
-      return false;
     }
   };
 
