@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useSocial } from '@/contexts/SocialContext';
 import { Navbar } from '@/components/Navbar';
@@ -34,6 +35,9 @@ const ConnectionActionButtons = ({
   onFollow: (userId: string) => void;
   onUnfollow: (userId: string) => void;
 }) => {
+  // Sprawdzamy, czy użytkownik jest obserwowany
+  const isUserFollowing = user.connectionStatus === 'following';
+
   const renderConnectionButtons = () => {
     switch(user.connectionStatus) {
       case 'none':
@@ -102,7 +106,8 @@ const ConnectionActionButtons = ({
   const renderFollowButton = () => {
     if (user.connectionStatus === 'connected') return null;
     
-    return user.connectionStatus === 'following' ? (
+    // Sprawdź tutaj, czy connectionStatus to 'following'
+    return isUserFollowing ? (
       <Button 
         variant="ghost" 
         size="sm"

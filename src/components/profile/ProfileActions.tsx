@@ -59,6 +59,10 @@ export function ProfileActions({
     );
   }
   
+  // Sprawdzamy, czy użytkownik jest obserwowany
+  // Uwaga: isFollowing lub connectionStatus === 'following' wskazuje na obserwację
+  const userIsFollowing = isFollowing || connectionStatus === 'following';
+  
   // Dla innych użytkowników zawsze pokazujemy oba przyciski
   return (
     <div className="flex flex-col gap-2">
@@ -72,11 +76,11 @@ export function ProfileActions({
       </Button>
       
       <Button 
-        variant={isFollowing ? "outline" : "secondary"}
+        variant={userIsFollowing ? "outline" : "secondary"}
         className="gap-2 w-full"
         onClick={handleFollow}
       >
-        {isFollowing ? (
+        {userIsFollowing ? (
           <>
             <UserCheck className="h-4 w-4" />
             Obserwujesz

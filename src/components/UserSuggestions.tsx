@@ -43,6 +43,11 @@ export function UserSuggestions() {
       await followUser(userId);
     }
   };
+
+  // Funkcja sprawdzająca, czy użytkownik jest obserwowany
+  const isUserFollowing = (user: SocialUser) => {
+    return user.connectionStatus === 'following';
+  };
   
   if (loading) {
     return (
@@ -108,7 +113,7 @@ export function UserSuggestions() {
                 </>
               )}
               
-              {user.connectionStatus === 'following' && (
+              {isUserFollowing(user) && (
                 <>
                   <Button 
                     variant="outline" 

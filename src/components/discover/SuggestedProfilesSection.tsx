@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useSocial } from '@/contexts/SocialContext';
@@ -50,6 +49,11 @@ export function SuggestedProfilesSection({ fullView = false }: SuggestedProfiles
     }
   };
   
+  // Funkcja sprawdzająca, czy użytkownik jest obserwowany
+  const isUserFollowing = (user: SocialUser) => {
+    return user.connectionStatus === 'following';
+  };
+
   // Widok pełny dla strony Discover
   if (fullView) {
     return (
@@ -90,7 +94,7 @@ export function SuggestedProfilesSection({ fullView = false }: SuggestedProfiles
                     </>
                   )}
                   
-                  {user.connectionStatus === 'following' && (
+                  {isUserFollowing(user) && (
                     <>
                       <Button 
                         variant="outline" 
@@ -188,7 +192,7 @@ export function SuggestedProfilesSection({ fullView = false }: SuggestedProfiles
                 </>
               )}
               
-              {user.connectionStatus === 'following' && (
+              {isUserFollowing(user) && (
                 <>
                   <Button 
                     variant="outline" 

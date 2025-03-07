@@ -37,13 +37,20 @@ export const useFollowActions = (
         return;
       }
 
-      // Natychmiastowa aktualizacja stanu użytkowników
+      // Natychmiastowa aktualizacja stanu użytkowników - kluczowa poprawka
       setUsers(prevUsers => 
-        prevUsers.map(u => 
-          u.id === userId 
-            ? { ...u, connectionStatus: u.connectionStatus === 'none' ? 'following' : u.connectionStatus, followersCount: u.followersCount + 1 } 
-            : u
-        )
+        prevUsers.map(u => {
+          if (u.id === userId) {
+            // Zachowaj bieżący connectionStatus, ale dodaj flag following
+            const newConnectionStatus = u.connectionStatus === 'none' ? 'following' : u.connectionStatus;
+            return { 
+              ...u, 
+              connectionStatus: newConnectionStatus, 
+              followersCount: u.followersCount + 1 
+            };
+          }
+          return u;
+        })
       );
 
       if (currentUser) {
@@ -110,11 +117,18 @@ export const useFollowActions = (
       }
 
       setUsers(prevUsers => 
-        prevUsers.map(u => 
-          u.id === userId 
-            ? { ...u, connectionStatus: 'none', followersCount: Math.max(0, u.followersCount - 1) } 
-            : u
-        )
+        prevUsers.map(u => {
+          if (u.id === userId) {
+            // Ustaw connectionStatus na 'none' tylko jeśli był 'following', zachowaj inne statusy
+            const newConnectionStatus = u.connectionStatus === 'following' ? 'none' : u.connectionStatus;
+            return { 
+              ...u, 
+              connectionStatus: newConnectionStatus, 
+              followersCount: Math.max(0, u.followersCount - 1) 
+            };
+          }
+          return u;
+        })
       );
 
       if (currentUser) {
