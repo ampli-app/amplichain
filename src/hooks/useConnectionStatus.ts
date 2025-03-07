@@ -29,7 +29,7 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
       const socialProfile = await fetchUserProfile(userId);
       if (socialProfile) {
         setConnectionStatus(socialProfile.connectionStatus || 'none');
-        setIsFollowing(socialProfile.isFollower || socialProfile.connectionStatus === 'following');
+        setIsFollowing(socialProfile.isFollower || false);
       }
     } catch (err) {
       console.error('Error fetching social profile:', err);
@@ -52,17 +52,17 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
         case 'connected':
           await removeConnection(userId);
           // Po usunięciu połączenia, status powinien być 'following', ponieważ nadal obserwujemy użytkownika
-          setConnectionStatus('following');
+          setConnectionStatus(isFollowing ? 'following' : 'none');
           break;
         case 'pending_sent':
           // Tutaj anulujemy zaproszenie - usuwamy connection_request
           await removeConnection(userId);
-          setConnectionStatus('none');
+          setConnectionStatus(isFollowing ? 'following' : 'none');
           break;
         case 'pending_received':
           // W przypadku odrzucenia zaproszenia przez użytkownika
           await removeConnection(userId);
-          setConnectionStatus('none');
+          setConnectionStatus(isFollowing ? 'following' : 'none');
           break;
       }
       
@@ -85,12 +85,14 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
       if (isFollowing) {
         await unfollowUser(userId);
         setIsFollowing(false);
+        // Jeśli tylko obserwujemy i przestajemy obserwować, status powinien być 'none'
         if (connectionStatus === 'following') {
           setConnectionStatus('none');
         }
       } else {
         await followUser(userId);
         setIsFollowing(true);
+        // Jeśli nie mamy żadnego połączenia i zaczynamy obserwować, status powinien być 'following'
         if (connectionStatus === 'none') {
           setConnectionStatus('following');
         }

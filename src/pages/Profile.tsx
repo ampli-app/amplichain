@@ -74,6 +74,7 @@ export default function Profile() {
   
   const {
     connectionStatus,
+    isFollowing,
     handleConnectionAction,
     handleFollow
   } = useConnectionStatus(userId, isOwnProfile);
@@ -119,6 +120,7 @@ export default function Profile() {
             onAvatarClick={handleAvatarClick}
             handleConnectionAction={handleConnectionAction}
             handleFollow={handleFollow}
+            isFollowing={isFollowing}
           />
           
           <ProfileTabs
