@@ -296,8 +296,9 @@ export const useUserActions = (user: any | null, setUsers: React.Dispatch<React.
         title: "Sukces",
         description: "Pomyślnie obserwujesz użytkownika.",
       });
-
-      loadUsers();
+    setTimeout(() => {
+  loadUsers();
+}, 2000);
     } catch (err) {
       console.error('Unexpected error following user:', err);
       toast({
