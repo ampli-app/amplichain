@@ -99,13 +99,14 @@ export const acceptConnectionRequest = async (
 
     // Nie tworzymy ani nie modyfikujemy relacji obserwowania - to powinno być obsługiwane osobno
 
+    // Aktualizacja stanu UI po zaakceptowaniu zaproszenia
     setUsers(prevUsers => 
       prevUsers.map(u => 
         u.id === userId 
           ? { 
               ...u, 
               connectionStatus: 'connected', 
-              connectionsCount: u.connectionsCount + 1,
+              connectionsCount: u.connectionsCount + 1
             } 
           : u
       )
@@ -114,7 +115,7 @@ export const acceptConnectionRequest = async (
     if (currentUser) {
       setCurrentUser({
         ...currentUser,
-        connectionsCount: currentUser.connectionsCount + 1,
+        connectionsCount: currentUser.connectionsCount + 1
       });
     }
 
