@@ -446,18 +446,6 @@ export const useUserActions = (user: any | null, setUsers: React.Dispatch<React.
         return;
       }
 
-      const { data: existingRequest, error: checkExistingError } = await supabase
-        .from('connection_requests')
-        .select('*')
-        .eq('sender_id', user.id)
-        .eq('receiver_id', userId)
-        .or('status.eq.accepted,status.eq.rejected')
-        .maybeSingle();
-
-      if (checkExistingError) {
-        console.error('Error checking existing request:', checkExistingError);
-      }
-
       const { data: followingData, error: checkFollowingError } = await supabase
         .from('followings')
         .select('*')
@@ -627,9 +615,10 @@ export const useUserActions = (user: any | null, setUsers: React.Dispatch<React.
         return;
       }
 
+      // Zamiast aktualizować status na 'rejected', usuwamy zaproszenie
       const { error } = await supabase
         .from('connection_requests')
-        .update({ status: 'rejected' })
+        .delete()
         .eq('sender_id', userId)
         .eq('receiver_id', user.id)
         .eq('status', 'pending');
@@ -679,40 +668,130 @@ export const useUserActions = (user: any | null, setUsers: React.Dispatch<React.
         return;
       }
 
-      const { error } = await supabase
+      // Sprawdź, czy istnieje aktywne połączenie
+      const { data: connectionData } = await supabase
         .from('connections')
-        .delete()
-        .or(`and(user_id1.eq.${user.id},user_id2.eq.${userId}),and(user_id1.eq.${userId},user_id2.eq.${user.id})`);
+        .select('*')
+        .or(`and(user_id1.eq.${user.id},user_id2.eq.${userId}),and(user_id1.eq.${userId},user_id2.eq.${user.id})`)
+        .maybeSingle();
 
-      if (error) {
-        console.error('Error removing connection:', error);
+      if (connectionData) {
+        // Jeśli istnieje połączenie, usuń je
+        const { error } = await supabase
+          .from('connections')
+          .delete()
+          .or(`and(user_id1.eq.${user.id},user_id2.eq.${userId}),and(user_id1.eq.${userId},user_id2.eq.${user.id})`);
+
+        if (error) {
+          console.error('Error removing connection:', error);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się usunąć połączenia.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        setUsers(prevUsers => 
+          prevUsers.map(u => 
+            u.id === userId 
+              ? { ...u, connectionStatus: 'following', connectionsCount: Math.max(0, u.connectionsCount - 1) } 
+              : u
+          )
+        );
+
+        if (currentUser) {
+          setCurrentUser({
+            ...currentUser,
+            connectionsCount: Math.max(0, currentUser.connectionsCount - 1)
+          });
+        }
+
         toast({
-          title: "Błąd",
-          description: "Nie udało się usunąć połączenia.",
-          variant: "destructive",
+          title: "Sukces",
+          description: "Połączenie zostało usunięte. Nadal obserwujesz tego użytkownika i on nadal Cię obserwuje.",
         });
-        return;
+      } else {
+        // Sprawdź, czy istnieje oczekujące zaproszenie
+        const { data: pendingRequest } = await supabase
+          .from('connection_requests')
+          .select('*')
+          .eq('sender_id', user.id)
+          .eq('receiver_id', userId)
+          .eq('status', 'pending')
+          .maybeSingle();
+
+        if (pendingRequest) {
+          // Usuwamy zaproszenie, które zostało wysłane
+          const { error } = await supabase
+            .from('connection_requests')
+            .delete()
+            .eq('id', pendingRequest.id);
+
+          if (error) {
+            console.error('Error canceling connection request:', error);
+            toast({
+              title: "Błąd",
+              description: "Nie udało się anulować zaproszenia.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          setUsers(prevUsers => 
+            prevUsers.map(u => 
+              u.id === userId 
+                ? { ...u, connectionStatus: 'none' } 
+                : u
+            )
+          );
+
+          toast({
+            title: "Sukces",
+            description: "Zaproszenie zostało anulowane.",
+          });
+        } else {
+          // Sprawdź, czy istnieje otrzymane zaproszenie
+          const { data: receivedRequest } = await supabase
+            .from('connection_requests')
+            .select('*')
+            .eq('sender_id', userId)
+            .eq('receiver_id', user.id)
+            .eq('status', 'pending')
+            .maybeSingle();
+
+          if (receivedRequest) {
+            // Usuwamy otrzymane zaproszenie (odrzucamy je)
+            const { error } = await supabase
+              .from('connection_requests')
+              .delete()
+              .eq('id', receivedRequest.id);
+
+            if (error) {
+              console.error('Error declining connection request:', error);
+              toast({
+                title: "Błąd",
+                description: "Nie udało się odrzucić zaproszenia.",
+                variant: "destructive",
+              });
+              return;
+            }
+
+            setUsers(prevUsers => 
+              prevUsers.map(u => 
+                u.id === userId 
+                  ? { ...u, connectionStatus: 'none' } 
+                  : u
+              )
+            );
+
+            toast({
+              title: "Sukces",
+              description: "Zaproszenie zostało odrzucone.",
+            });
+          }
+        }
       }
-
-      setUsers(prevUsers => 
-        prevUsers.map(u => 
-          u.id === userId 
-            ? { ...u, connectionStatus: 'following', connectionsCount: Math.max(0, u.connectionsCount - 1) } 
-            : u
-        )
-      );
-
-      if (currentUser) {
-        setCurrentUser({
-          ...currentUser,
-          connectionsCount: Math.max(0, currentUser.connectionsCount - 1)
-        });
-      }
-
-      toast({
-        title: "Sukces",
-        description: "Połączenie zostało usunięte. Nadal obserwujesz tego użytkownika i on nadal Cię obserwuje.",
-      });
 
       loadUsers();
     } catch (err) {

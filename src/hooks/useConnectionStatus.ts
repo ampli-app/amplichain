@@ -29,7 +29,7 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
       const socialProfile = await fetchUserProfile(userId);
       if (socialProfile) {
         setConnectionStatus(socialProfile.connectionStatus || 'none');
-        setIsFollowing(socialProfile.connectionStatus === 'following');
+        setIsFollowing(socialProfile.isFollower || socialProfile.connectionStatus === 'following');
       }
     } catch (err) {
       console.error('Error fetching social profile:', err);
@@ -46,19 +46,21 @@ export function useConnectionStatus(userId: string | undefined, isOwnProfile: bo
           setConnectionStatus('pending_sent');
           break;
         case 'following':
-          // Działanie pozostaje takie samo jak było
-          await unfollowUser(userId);
-          setConnectionStatus('none');
-          setIsFollowing(false);
+          await sendConnectionRequest(userId);
+          setConnectionStatus('pending_sent');
           break;
         case 'connected':
           await removeConnection(userId);
-          // Po usunięciu połączenia użytkownik pozostaje obserwujący
+          // Po usunięciu połączenia, status powinien być 'following', ponieważ nadal obserwujemy użytkownika
           setConnectionStatus('following');
-          setIsFollowing(true);
           break;
         case 'pending_sent':
-          // Anuluj zaproszenie (użyj tego samego removeConnection)
+          // Tutaj anulujemy zaproszenie - usuwamy connection_request
+          await removeConnection(userId);
+          setConnectionStatus('none');
+          break;
+        case 'pending_received':
+          // W przypadku odrzucenia zaproszenia przez użytkownika
           await removeConnection(userId);
           setConnectionStatus('none');
           break;

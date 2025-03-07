@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useSocial } from '@/contexts/SocialContext';
 import { Navbar } from '@/components/Navbar';
@@ -18,7 +17,6 @@ import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 
-// Komponent interfejsu użytkownika do łączenia/rozłączania
 const ConnectionActionButtons = ({ 
   user, 
   onConnect, 
@@ -149,10 +147,8 @@ export default function Connections() {
   const [filteredUsers, setFilteredUsers] = useState<SocialUser[]>([]);
   
   useEffect(() => {
-    // Filtruj użytkowników na podstawie zakładki i wyszukiwania
     let result = [...users].filter(user => !user.isCurrentUser);
     
-    // Filtruj według zakładki
     if (activeTab === 'connected') {
       result = result.filter(user => user.connectionStatus === 'connected');
     } else if (activeTab === 'pending') {
@@ -163,14 +159,12 @@ export default function Connections() {
     } else if (activeTab === 'followers') {
       result = result.filter(user => user.isFollower);
     } else if (activeTab === 'following') {
-      // Dodana nowa zakładka dla obserwowanych użytkowników
       result = result.filter(user => 
         user.connectionStatus === 'following' || 
         (currentUser && currentUser.followingCount > 0)
       );
     }
     
-    // Filtruj według wyszukiwania
     if (search) {
       const query = search.toLowerCase();
       result = result.filter(user => 
@@ -192,12 +186,11 @@ export default function Connections() {
   };
   
   const handleDecline = async (userId: string) => {
-    await declineConnectionRequest(userId);
+    await removeConnection(userId);
   };
   
   const handleRemove = async (userId: string) => {
     await removeConnection(userId);
-    // Wyświetl powiadomienie o usunięciu połączenia
     toast({
       title: "Połączenie usunięte",
       description: "Pomyślnie usunięto połączenie z użytkownikiem.",
@@ -210,7 +203,6 @@ export default function Connections() {
   
   const handleUnfollow = async (userId: string) => {
     await unfollowUser(userId);
-    // Wyświetl powiadomienie o zaprzestaniu obserwacji
     toast({
       title: "Obserwacja zakończona",
       description: "Pomyślnie przestałeś obserwować użytkownika.",

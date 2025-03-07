@@ -29,7 +29,7 @@ export function ProfileActions({
       case 'pending_received':
         return "Odpowiedz na zaproszenie";
       default:
-        return "Dodaj do kontaktów";
+        return "Połącz";
     }
   };
 
