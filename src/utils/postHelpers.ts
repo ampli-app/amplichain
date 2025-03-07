@@ -64,17 +64,22 @@ export async function processHashtags(content: string, postId: string) {
         hashtagId = newTag.id;
       }
       
-      // Zamiast bezpośredniego zapytania SQL, użyjmy funkcji unikającej niejednoznaczności kolumn
-      const { error: linkError } = await supabase.rpc(
-        'link_post_hashtag',
-        { 
-          p_post_id: postId,
-          p_hashtag_id: hashtagId
-        }
-      );
+      // Użyj bezpieczniejszego zapytania z jawnie nazwanymi parametrami
+      const { error: linkError } = await supabase
+        .from('feed_post_hashtags')
+        .insert({
+          post_id: postId,
+          hashtag_id: hashtagId
+        })
+        .select(); // Dodaj .select() aby uniknąć niejednoznaczności w zapytaniu
       
       if (linkError) {
-        console.error(`Błąd podczas łączenia posta z hashtagiem ${tag}:`, linkError);
+        // Jeśli jest to błąd naruszenia ograniczenia unikalności, możemy go zignorować
+        if (linkError.code === '23505') {
+          console.log(`Hashtag ${tag} już został powiązany z tym postem`);
+        } else {
+          console.error(`Błąd podczas łączenia posta z hashtagiem ${tag}:`, linkError);
+        }
       }
     } catch (error) {
       console.error(`Nieoczekiwany błąd podczas łączenia posta z hashtagiem ${tag}:`, error);

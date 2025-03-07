@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Post, Hashtag } from '@/types/social';
 import { formatTimeAgo } from './timeFormatUtils';
@@ -22,7 +21,7 @@ export async function fetchPostsByHashtag(hashtagName: string, userId?: string):
     
     // Znajdź posty z tym hashtagiem
     const { data: hashtagPostsData, error: hashtagPostsError } = await supabase
-      .from('feed_post_hashtags')
+      .from('feed_post_hashtags AS fph')
       .select('post_id')
       .eq('hashtag_id', hashtagData.id);
     
@@ -141,11 +140,11 @@ export async function fetchPostsByHashtag(hashtagName: string, userId?: string):
 export async function fetchPopularHashtags(): Promise<Hashtag[]> {
   try {
     const { data, error } = await supabase
-      .from('hashtags')
+      .from('hashtags AS h')
       .select(`
         id,
         name,
-        feed_post_hashtags(hashtag_id)
+        feed_post_hashtags!hashtag_id(*)
       `);
       
     if (error) {
