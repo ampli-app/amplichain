@@ -14,7 +14,9 @@ import {
   Camera,
   User,
   UserPlus,
-  UserCheck
+  UserCheck,
+  UserMinus,
+  Clock
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { ProfileData } from '@/types/profile';
