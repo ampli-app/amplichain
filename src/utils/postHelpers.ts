@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { extractHashtags } from '@/utils/mediaUtils';
 
@@ -63,15 +64,21 @@ export async function processHashtags(content: string, postId: string) {
         hashtagId = newTag.id;
       }
       
-      // Użyj funkcji RPC, żeby uniknąć problemów z dwuznacznością kolumn
-      const { error: rpcError } = await supabase
-        .rpc('link_post_hashtag', {
-          p_post_id: postId,
-          p_hashtag_id: hashtagId
+      // Bezpośrednie zapytanie z jawnie określoną tabelą dla każdej kolumny
+      const { error: linkError } = await supabase
+        .from('feed_post_hashtags')
+        .insert({
+          post_id: postId,
+          hashtag_id: hashtagId
         });
       
-      if (rpcError) {
-        console.error(`Błąd podczas łączenia posta z hashtagiem ${tag}:`, rpcError);
+      if (linkError) {
+        // Sprawdź czy to błąd unikalności (rekord już istnieje)
+        if (linkError.code === '23505') {
+          console.log(`Hashtag ${tag} już został powiązany z tym postem`);
+        } else {
+          console.error(`Błąd podczas łączenia posta z hashtagiem ${tag}:`, linkError);
+        }
       }
     } catch (error) {
       console.error(`Nieoczekiwany błąd podczas łączenia posta z hashtagiem ${tag}:`, error);
