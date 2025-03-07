@@ -26,7 +26,8 @@ export function ConnectionActionButtons({
   // lub jeśli mamy aktywne połączenie (connected), które automatycznie oznacza obserwację
   const isFollowing = user.connectionStatus === 'following' || 
                      user.connectionStatus === 'connected' || 
-                     user.connectionStatus === 'pending_sent';
+                     user.connectionStatus === 'pending_sent' ||
+                     (user.connectionStatus === 'pending_received' && user.isFollower);
 
   const renderConnectionButtons = () => {
     switch(user.connectionStatus) {
@@ -106,7 +107,6 @@ export function ConnectionActionButtons({
   const renderFollowButton = () => {
     if (user.connectionStatus === 'connected') return null;
     
-    // Wyświetlaj obserwujesz dla pending_received jeśli użytkownik jest zarazem obserwowany
     return isFollowing ? (
       <Button 
         variant="ghost" 
