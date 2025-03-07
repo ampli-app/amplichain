@@ -91,6 +91,8 @@ export function ServicesMarketplaceContent() {
             handlePriceInputChange={handlePriceInputChange}
             handleApplyFilters={() => {}}
             productConditions={[]}
+            showConditionFilter={false}
+            showTestingFilter={false}
           />
         </div>
         

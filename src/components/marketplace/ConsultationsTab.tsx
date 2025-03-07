@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -317,6 +316,8 @@ export function ConsultationsTab() {
             handlePriceInputChange={handlePriceInputChange}
             handleApplyFilters={applyFilters}
             productConditions={[]}
+            showConditionFilter={false}
+            showTestingFilter={false}
           />
         </div>
         
