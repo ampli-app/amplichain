@@ -23,7 +23,7 @@ export function ProfileActions({
   const getConnectionButtonText = () => {
     switch(connectionStatus) {
       case 'connected':
-        return "Usuń z kontaktów";
+        return "Usuń połączenie";
       case 'pending_sent':
         return "Anuluj zaproszenie";
       case 'pending_received':
@@ -46,6 +46,7 @@ export function ProfileActions({
     }
   };
   
+  // Jeśli to profil użytkownika, pokazujemy tylko przycisk edycji
   if (isOwnProfile) {
     return (
       <Button 
@@ -58,6 +59,7 @@ export function ProfileActions({
     );
   }
   
+  // Dla innych użytkowników zawsze pokazujemy oba przyciski
   return (
     <div className="flex flex-col gap-2">
       <Button 
