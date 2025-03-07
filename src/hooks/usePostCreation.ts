@@ -109,52 +109,50 @@ export function usePostCreation({ onPostCreated }: UsePostCreationProps) {
       const hashtags = extractHashtags(content);
       if (hashtags.length > 0) {
         for (const tag of hashtags) {
-          // 3.1 Sprawdź czy hashtag już istnieje
-          const { data: existingTag, error: lookupError } = await supabase
-            .from('hashtags')
-            .select('id')
-            .eq('name', tag.toLowerCase())
-            .maybeSingle();
-            
-          if (lookupError) {
-            console.error(`Błąd podczas sprawdzania hashtaga ${tag}:`, lookupError);
-            continue;
-          }
-          
-          let hashtagId;
-          
-          if (existingTag) {
-            // 3.2 Jeśli hashtag istnieje, użyj jego ID
-            hashtagId = existingTag.id;
-          } else {
-            // 3.3 Jeśli hashtag nie istnieje, utwórz nowy
-            const { data: newTag, error: insertError } = await supabase
+          try {
+            // 3.1 Sprawdź czy hashtag już istnieje
+            const { data: existingTag, error: lookupError } = await supabase
               .from('hashtags')
-              .insert([{ name: tag.toLowerCase() }])
               .select('id')
-              .single();
-            
-            if (insertError) {
-              console.error(`Błąd podczas tworzenia hashtaga ${tag}:`, insertError);
+              .eq('name', tag.toLowerCase())
+              .maybeSingle();
+              
+            if (lookupError) {
+              console.error(`Błąd podczas sprawdzania hashtaga ${tag}:`, lookupError);
               continue;
             }
             
-            hashtagId = newTag.id;
-          }
-          
-          // 3.4 Powiąż hashtag z postem - używając dwóch oddzielnych zapytań: INSERT i ignore dla konfliktów
-          try {
-            const { error: linkError } = await supabase
-              .from('feed_post_hashtags')
-              .insert([{ 
-                post_id: postId,
-                hashtag_id: hashtagId 
-              }]);
+            let hashtagId;
             
-            if (linkError && linkError.code === '23505') {
-              // Ten kod oznacza naruszenie ograniczenia unikalności - możemy go zignorować
-              console.log(`Hashtag ${tag} już istnieje dla tego posta, ignorowanie...`);
-            } else if (linkError) {
+            if (existingTag) {
+              // 3.2 Jeśli hashtag istnieje, użyj jego ID
+              hashtagId = existingTag.id;
+            } else {
+              // 3.3 Jeśli hashtag nie istnieje, utwórz nowy
+              const { data: newTag, error: insertError } = await supabase
+                .from('hashtags')
+                .insert([{ name: tag.toLowerCase() }])
+                .select('id')
+                .single();
+              
+              if (insertError) {
+                console.error(`Błąd podczas tworzenia hashtaga ${tag}:`, insertError);
+                continue;
+              }
+              
+              hashtagId = newTag.id;
+            }
+            
+            // 3.4 Powiąż hashtag z postem - używając w pełni kwalifikowanych nazw kolumn
+            const { error: linkError } = await supabase.rpc(
+              'link_post_hashtag',
+              { 
+                p_post_id: postId,
+                p_hashtag_id: hashtagId 
+              }
+            );
+            
+            if (linkError) {
               console.error(`Błąd podczas łączenia posta z hashtagiem ${tag}:`, linkError);
             }
           } catch (error) {
