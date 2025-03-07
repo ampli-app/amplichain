@@ -148,15 +148,14 @@ export const useHashtags = (userId: string | undefined) => {
   // Pobierz popularne hashtagi
   const getPopularHashtags = async (): Promise<Hashtag[]> => {
     try {
-      // Użyjmy bardziej precyzyjnego zapytania bez aliasów
+      // Używamy standardowego zapytania bez aliasów
       const { data, error } = await supabase
         .from('hashtags')
         .select(`
           id,
           name,
-          feed_post_hashtags!inner(feed_post_hashtags.hashtag_id)
-        `)
-        .order('name');
+          feed_post_hashtags(hashtag_id)
+        `);
         
       if (error) {
         console.error('Błąd podczas pobierania hashtagów:', error);

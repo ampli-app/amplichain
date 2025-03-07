@@ -143,16 +143,16 @@ export function usePostCreation({ onPostCreated }: UsePostCreationProps) {
               hashtagId = newTag.id;
             }
             
-            // 3.4 Powiąż hashtag z postem - używając w pełni kwalifikowanych nazw kolumn
-            const { error: linkError } = await supabase.rpc(
-              'link_post_hashtag',
-              { 
-                p_post_id: postId,
-                p_hashtag_id: hashtagId 
-              }
-            );
+            // 3.4 Powiąż hashtag z postem - używając ręcznej metody dodawania
+            const { error: linkError } = await supabase
+              .from('feed_post_hashtags')
+              .insert({
+                post_id: postId,
+                hashtag_id: hashtagId
+              });
             
-            if (linkError) {
+            // Jeśli mamy błąd naruszenia ograniczenia unikalności, to po prostu go ignorujemy
+            if (linkError && linkError.code !== '23505') {
               console.error(`Błąd podczas łączenia posta z hashtagiem ${tag}:`, linkError);
             }
           } catch (error) {

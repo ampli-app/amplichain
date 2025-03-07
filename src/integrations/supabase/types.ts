@@ -1392,6 +1392,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      link_post_hashtag: {
+        Args: {
+          p_post_id: string
+          p_hashtag_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       group_role: "admin" | "moderator" | "member"
