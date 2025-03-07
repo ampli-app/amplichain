@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,8 +19,6 @@ export function PostMedia({ media }: PostMediaProps) {
   const [openDialog, setOpenDialog] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   
-  console.log("Renderowanie mediów:", media);
-  
   const handleMediaClick = (index: number) => {
     setCurrentIndex(index);
     setOpenDialog(true);
@@ -34,31 +31,111 @@ export function PostMedia({ media }: PostMediaProps) {
   const prevMedia = () => {
     setCurrentIndex((prev) => (prev - 1 + media.length) % media.length);
   };
+  
+  const handleMainImageClick = () => {
+    if (media.length > 1) {
+      // Jeśli jest więcej niż jedno zdjęcie, przejdź do następnego
+      setCurrentIndex((prev) => (prev + 1) % media.length);
+    } else {
+      // Jeśli jest tylko jedno zdjęcie, otwórz dialog
+      setOpenDialog(true);
+    }
+  };
 
   return (
     <>
-      {/* Scrollable media preview */}
-      <div className="mb-4">
-        <ScrollArea className="w-full">
-          <div className="flex space-x-2 pb-2">
-            {media.map((file, idx) => (
+      {/* Main media display */}
+      <div className="mb-4 relative">
+        <div 
+          className="relative rounded-md overflow-hidden cursor-pointer w-full h-64 lg:h-80"
+          onClick={handleMainImageClick}
+        >
+          {media[currentIndex].type === 'video' ? (
+            <video 
+              src={media[currentIndex].url}
+              className="w-full h-full object-cover rounded-md"
+              controls
+            />
+          ) : (
+            <img 
+              src={media[currentIndex].url} 
+              alt={`Media ${currentIndex + 1}`} 
+              className="w-full h-full object-cover rounded-md" 
+              onError={(e) => {
+                console.error("Błąd ładowania obrazu:", media[currentIndex].url);
+                (e.target as HTMLImageElement).src = "/placeholder.svg";
+              }}
+            />
+          )}
+          
+          {/* Navigation arrows - only shown if there are multiple media */}
+          {media.length > 1 && (
+            <>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 text-white bg-black/40 hover:bg-black/60" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  prevMedia();
+                }}
+              >
+                <ChevronLeft />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 text-white bg-black/40 hover:bg-black/60" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  nextMedia();
+                }}
+              >
+                <ChevronRight />
+              </Button>
+            </>
+          )}
+        </div>
+        
+        {/* Pagination indicator */}
+        {media.length > 1 && (
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1">
+            {media.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentIndex(idx);
+                }}
+                className={`w-2 h-2 rounded-full ${
+                  idx === currentIndex ? 'bg-white' : 'bg-white/50'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+        
+        {/* Thumbnails navigation - shown only if there are multiple media */}
+        {media.length > 1 && (
+          <div className="flex mt-2 space-x-2 overflow-x-auto pb-2">
+            {media.map((item, idx) => (
               <div 
                 key={idx} 
-                className="relative min-w-52 h-52 rounded-md overflow-hidden cursor-pointer flex-shrink-0"
-                onClick={() => handleMediaClick(idx)}
+                className={`relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden cursor-pointer ${
+                  idx === currentIndex ? 'ring-2 ring-primary' : ''
+                }`}
+                onClick={() => setCurrentIndex(idx)}
               >
-                {file.type === 'video' ? (
-                  <video 
-                    src={file.url}
-                    className="w-full h-full object-cover rounded-md"
-                  />
+                {item.type === 'video' ? (
+                  <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                    <span className="text-white text-xs">Wideo</span>
+                  </div>
                 ) : (
                   <img 
-                    src={file.url} 
-                    alt={`Media ${idx + 1}`} 
-                    className="w-full h-full object-cover rounded-md" 
+                    src={item.url} 
+                    alt={`Miniatura ${idx + 1}`} 
+                    className="w-full h-full object-cover" 
                     onError={(e) => {
-                      console.error("Błąd ładowania obrazu:", file.url);
                       (e.target as HTMLImageElement).src = "/placeholder.svg";
                     }}
                   />
@@ -66,7 +143,7 @@ export function PostMedia({ media }: PostMediaProps) {
               </div>
             ))}
           </div>
-        </ScrollArea>
+        )}
       </div>
       
       {/* Fullscreen media dialog */}

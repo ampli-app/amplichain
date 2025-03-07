@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { Post } from '@/types/social';
 import { PostMedia } from '@/components/groups/posts/PostMedia'; 
@@ -19,7 +20,7 @@ export function PostContent({ post }: PostContentProps) {
         dangerouslySetInnerHTML={{ __html: formatContent(post.content) }}
       />
       
-      {/* Obsługa mediów - korzystamy z komponentu PostMedia */}
+      {/* Obsługa mediów - zmodyfikowany komponent PostMedia */}
       {post.media && post.media.length > 0 && (
         <PostMedia media={post.media} />
       )}
