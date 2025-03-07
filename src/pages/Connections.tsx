@@ -107,13 +107,22 @@ export default function Connections() {
     await removeConnection(userId);
   };
   
-  const handleRemove = async (userId: string) => {
-    await removeConnection(userId);
-    setFollowingState(prev => ({...prev, [userId]: false}));
-    toast({
-      title: "Połączenie usunięte",
-      description: "Pomyślnie usunięto połączenie z użytkownikiem.",
-    });
+  const handleRemove = async (userId: string, keepFollowing: boolean = false) => {
+    await removeConnection(userId, keepFollowing);
+    
+    // Tylko jeśli nie zachowujemy obserwacji, aktualizujemy stan followingState
+    if (!keepFollowing) {
+      setFollowingState(prev => ({...prev, [userId]: false}));
+      toast({
+        title: "Połączenie usunięte",
+        description: "Pomyślnie usunięto połączenie z użytkownikiem.",
+      });
+    } else {
+      toast({
+        title: "Zaproszenie anulowane",
+        description: "Pomyślnie anulowano zaproszenie. Nadal obserwujesz użytkownika.",
+      });
+    }
   };
   
   const handleFollow = async (userId: string) => {

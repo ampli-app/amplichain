@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { UserPlus, UserMinus, UserCheck, Clock, X } from 'lucide-react';
 import { SocialUser } from '@/contexts/social/types';
@@ -17,7 +16,7 @@ interface ConnectionActionButtonsProps {
   onConnect: (userId: string) => void;
   onAccept: (userId: string) => void;
   onDecline: (userId: string) => void;
-  onRemove: (userId: string) => void;
+  onRemove: (userId: string, keepFollowing?: boolean) => void;
   onFollow: (userId: string) => void;
   onUnfollow: (userId: string) => void;
 }
@@ -51,7 +50,14 @@ export function ConnectionActionButtons({
   const handleConfirmRemove = () => {
     // Zamknij dialog i wykonaj akcję usunięcia
     setConfirmDialogOpen(false);
-    onRemove(user.id);
+    
+    // Dla anulowania zaproszenia, chcemy zachować obserwowanie (keepFollowing=true)
+    // Dla usuwania połączenia, chcemy usunąć obserwowanie (keepFollowing=false - domyślnie)
+    if (dialogAction === 'cancel_invitation') {
+      onRemove(user.id, true); // Zachowaj obserwowanie przy anulowaniu zaproszenia
+    } else {
+      onRemove(user.id); // Usuń obserwowanie przy usuwaniu połączenia (domyślne zachowanie)
+    }
   };
 
   const renderConnectionButtons = () => {

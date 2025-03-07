@@ -28,8 +28,8 @@ export const useConnectionActions = (
     return declineRequest(user, userId, setUsers, loadUsers);
   };
 
-  const removeConnection = async (userId: string) => {
-    return removeConn(user, userId, setUsers, currentUser, setCurrentUser, loadUsers);
+  const removeConnection = async (userId: string, keepFollowing: boolean = false) => {
+    return removeConn(user, userId, setUsers, currentUser, setCurrentUser, loadUsers, keepFollowing);
   };
 
   return {

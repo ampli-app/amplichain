@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { SocialUser } from '../types';
@@ -9,7 +8,8 @@ export const removeConnection = async (
   setUsers: React.Dispatch<React.SetStateAction<SocialUser[]>>,
   currentUser: SocialUser | null,
   setCurrentUser: React.Dispatch<React.SetStateAction<SocialUser | null>>,
-  loadUsers: () => Promise<void>
+  loadUsers: () => Promise<void>,
+  keepFollowing: boolean = false
 ) => {
   try {
     if (!user) {
@@ -44,49 +44,77 @@ export const removeConnection = async (
         return;
       }
 
-      // Usuń również obserwację - tylko inicjator usunięcia przestaje obserwować
-      const { error: unfollowError } = await supabase
-        .from('followings')
-        .delete()
-        .eq('follower_id', user.id)
-        .eq('following_id', userId);
+      // Usuń również obserwację - tylko jeśli keepFollowing jest false
+      if (!keepFollowing) {
+        const { error: unfollowError } = await supabase
+          .from('followings')
+          .delete()
+          .eq('follower_id', user.id)
+          .eq('following_id', userId);
 
-      if (unfollowError) {
-        console.error('Error unfollowing after connection removal:', unfollowError);
-        // Kontynuujemy mimo błędu unfollow - połączenie zostało już usunięte
+        if (unfollowError) {
+          console.error('Error unfollowing after connection removal:', unfollowError);
+          // Kontynuujemy mimo błędu unfollow - połączenie zostało już usunięte
+        } else {
+          console.log(`User ${user.id} stopped following user ${userId}`);
+        }
+
+        // Zaktualizuj stan UI po usunięciu połączenia
+        setUsers(prevUsers => 
+          prevUsers.map(u => {
+            if (u.id === userId) {
+              // Usuń status połączenia, ale zaktualizuj licznik obserwujących,
+              // ponieważ usuwający przestał obserwować
+              return { 
+                ...u, 
+                connectionStatus: 'none', 
+                connectionsCount: Math.max(0, u.connectionsCount - 1),
+                followersCount: Math.max(0, u.followersCount - 1)
+              };
+            }
+            return u;
+          })
+        );
+
+        if (currentUser) {
+          setCurrentUser({
+            ...currentUser,
+            connectionsCount: Math.max(0, currentUser.connectionsCount - 1),
+            followingCount: Math.max(0, currentUser.followingCount - 1)
+          });
+        }
+
+        toast({
+          title: "Sukces",
+          description: "Połączenie zostało usunięte. Przestałeś obserwować tego użytkownika, ale on nadal może Cię obserwować.",
+        });
       } else {
-        console.log(`User ${user.id} stopped following user ${userId}`);
-      }
+        // Jeśli zachowujemy obserwowanie
+        setUsers(prevUsers => 
+          prevUsers.map(u => {
+            if (u.id === userId) {
+              return { 
+                ...u, 
+                connectionStatus: 'none', 
+                connectionsCount: Math.max(0, u.connectionsCount - 1)
+              };
+            }
+            return u;
+          })
+        );
 
-      // Zaktualizuj stan UI po usunięciu połączenia
-      setUsers(prevUsers => 
-        prevUsers.map(u => {
-          if (u.id === userId) {
-            // Usuń status połączenia, ale zaktualizuj licznik obserwujących,
-            // ponieważ usuwający przestał obserwować
-            return { 
-              ...u, 
-              connectionStatus: 'none', 
-              connectionsCount: Math.max(0, u.connectionsCount - 1),
-              followersCount: Math.max(0, u.followersCount - 1)
-            };
-          }
-          return u;
-        })
-      );
+        if (currentUser) {
+          setCurrentUser({
+            ...currentUser,
+            connectionsCount: Math.max(0, currentUser.connectionsCount - 1)
+          });
+        }
 
-      if (currentUser) {
-        setCurrentUser({
-          ...currentUser,
-          connectionsCount: Math.max(0, currentUser.connectionsCount - 1),
-          followingCount: Math.max(0, currentUser.followingCount - 1)
+        toast({
+          title: "Sukces",
+          description: "Połączenie zostało usunięte. Nadal obserwujesz tego użytkownika.",
         });
       }
-
-      toast({
-        title: "Sukces",
-        description: "Połączenie zostało usunięte. Przestałeś obserwować tego użytkownika, ale on nadal może Cię obserwować.",
-      });
     } else {
       const { data: pendingRequest } = await supabase
         .from('connection_requests')
@@ -113,44 +141,65 @@ export const removeConnection = async (
           return;
         }
 
-        // Usuń również obserwację, gdy anulujemy zaproszenie
-        const { error: unfollowError } = await supabase
-          .from('followings')
-          .delete()
-          .eq('follower_id', user.id)
-          .eq('following_id', userId);
+        // Dla anulowania zaproszenia zachowujemy obserwowanie, chyba że jawnie zażądano jego usunięcia
+        if (!keepFollowing) {
+          // Usuń również obserwację, gdy anulujemy zaproszenie
+          const { error: unfollowError } = await supabase
+            .from('followings')
+            .delete()
+            .eq('follower_id', user.id)
+            .eq('following_id', userId);
 
-        if (unfollowError) {
-          console.error('Error unfollowing after request cancellation:', unfollowError);
-          // Kontynuujemy mimo błędu unfollow
+          if (unfollowError) {
+            console.error('Error unfollowing after request cancellation:', unfollowError);
+            // Kontynuujemy mimo błędu unfollow
+          } else {
+            console.log(`User ${user.id} stopped following user ${userId} after cancelling request`);
+          }
+
+          setUsers(prevUsers => 
+            prevUsers.map(u => {
+              if (u.id === userId) {
+                return { 
+                  ...u, 
+                  connectionStatus: 'none',
+                  followersCount: Math.max(0, u.followersCount - 1)
+                };
+              }
+              return u;
+            })
+          );
+
+          if (currentUser) {
+            setCurrentUser({
+              ...currentUser,
+              followingCount: Math.max(0, currentUser.followingCount - 1)
+            });
+          }
+
+          toast({
+            title: "Sukces",
+            description: "Zaproszenie zostało anulowane. Przestałeś również obserwować tego użytkownika.",
+          });
         } else {
-          console.log(`User ${user.id} stopped following user ${userId} after cancelling request`);
-        }
+          // Jeśli zachowujemy obserwowanie, nie aktualizujemy liczników obserwujących
+          setUsers(prevUsers => 
+            prevUsers.map(u => {
+              if (u.id === userId) {
+                return { 
+                  ...u, 
+                  connectionStatus: 'none'
+                };
+              }
+              return u;
+            })
+          );
 
-        setUsers(prevUsers => 
-          prevUsers.map(u => {
-            if (u.id === userId) {
-              return { 
-                ...u, 
-                connectionStatus: 'none',
-                followersCount: Math.max(0, u.followersCount - 1)
-              };
-            }
-            return u;
-          })
-        );
-
-        if (currentUser) {
-          setCurrentUser({
-            ...currentUser,
-            followingCount: Math.max(0, currentUser.followingCount - 1)
+          toast({
+            title: "Sukces",
+            description: "Zaproszenie zostało anulowane. Nadal obserwujesz tego użytkownika.",
           });
         }
-
-        toast({
-          title: "Sukces",
-          description: "Zaproszenie zostało anulowane. Przestałeś również obserwować tego użytkownika.",
-        });
       } else {
         const { data: receivedRequest } = await supabase
           .from('connection_requests')
