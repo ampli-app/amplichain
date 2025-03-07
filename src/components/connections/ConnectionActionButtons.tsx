@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { UserPlus, UserMinus, UserCheck, Clock, X } from 'lucide-react';
 import { SocialUser } from '@/contexts/social/types';
@@ -22,10 +23,9 @@ export function ConnectionActionButtons({
   onUnfollow 
 }: ConnectionActionButtonsProps) {
   // Określamy, czy użytkownik jest obserwowany na podstawie relacji w bazie danych
-  // lub jeśli mamy aktywne połączenie (connected), które automatycznie oznacza obserwację
+  // Uwaga: Teraz sam fakt wysłania zaproszenia nie oznacza automatycznie obserwacji
   const isFollowing = user.connectionStatus === 'following' || 
-                     user.connectionStatus === 'connected' || 
-                     user.connectionStatus === 'pending_sent' ||
+                     user.connectionStatus === 'connected' ||
                      (user.connectionStatus === 'pending_received' && user.isFollower);
 
   const renderConnectionButtons = () => {

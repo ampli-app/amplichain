@@ -40,13 +40,14 @@ export default function Connections() {
       result = result.filter(user => user.isFollower);
     } else if (activeTab === 'following') {
       // Użytkownicy, których bieżący użytkownik obserwuje
-      // Pobierz z bazy danych przez relację followings
+      // Filtrujemy bez zakładania, że wysłanie zaproszenia do połączenia automatycznie oznacza obserwację
       result = users.filter(user => {
-        // Jeśli użytkownik ma status połączenia jako 'connected', 'following' lub 'pending_sent',
-        // to na pewno obserwujemy go (bo automatycznie następuje obserwacja przy połączeniu)
-        return user.connectionStatus === 'connected' || 
-               user.connectionStatus === 'following' || 
-               user.connectionStatus === 'pending_sent';
+        // Sprawdź, czy użytkownika obserwujemy przez flagę isFollowing
+        const isFollowed = (
+          user.connectionStatus === 'connected' || 
+          user.connectionStatus === 'following'
+        );
+        return isFollowed;
       });
     }
     
@@ -105,8 +106,7 @@ export default function Connections() {
   // Użytkownicy, których obserwuje bieżący użytkownik
   const followingUsers = users.filter(u => 
     u.connectionStatus === 'connected' || 
-    u.connectionStatus === 'following' || 
-    u.connectionStatus === 'pending_sent'
+    u.connectionStatus === 'following'
   );
   const allUsers = users.filter(u => !u.isCurrentUser);
   

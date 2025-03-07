@@ -75,29 +75,7 @@ export const useConnectionActions = (
         return;
       }
 
-      const { data: followingData, error: checkFollowingError } = await supabase
-        .from('followings')
-        .select('*')
-        .eq('follower_id', user.id)
-        .eq('following_id', userId)
-        .maybeSingle();
-
-      if (checkFollowingError) {
-        console.error('Error checking if following:', checkFollowingError);
-      }
-
-      if (!followingData) {
-        const { error: followError } = await supabase
-          .from('followings')
-          .insert({
-            follower_id: user.id,
-            following_id: userId
-          });
-
-        if (followError) {
-          console.error('Error auto-following before connection request:', followError);
-        }
-      }
+      // Usunięto automatyczne tworzenie obserwacji przy wysyłaniu zaproszenia
 
       const { error: insertError } = await supabase
         .from('connection_requests')
@@ -117,17 +95,13 @@ export const useConnectionActions = (
         return;
       }
 
-      // Kluczowa zmiana: Upewnij się, że użytkownik jest nadal oznaczony jako obserwowany
+      // Zmieniono logikę tak, aby samo wysłanie zaproszenia nie tworzyło obserwacji
       setUsers(prevUsers => 
         prevUsers.map(u => {
           if (u.id === userId) {
-            // Zachowaj informację, że użytkownik jest obserwowany
-            const wasFollowing = u.connectionStatus === 'following' || followingData !== null;
             return { 
               ...u, 
               connectionStatus: 'pending_sent',
-              // Jeśli użytkownik był wcześniej obserwowany lub właśnie go zaobserwowaliśmy, ustaw na true
-              isFollower: u.isFollower // Zachowaj oryginalną wartość
             };
           }
           return u;
@@ -211,10 +185,68 @@ export const useConnectionActions = (
         return;
       }
 
+      // Dodaj wzajemną obserwację, jeśli jeszcze nie istnieje
+      // Sprawdź, czy already user_id obserwuje userId
+      const { data: alreadyFollowing, error: checkFollowingError } = await supabase
+        .from('followings')
+        .select('*')
+        .eq('follower_id', user.id)
+        .eq('following_id', userId)
+        .maybeSingle();
+
+      if (checkFollowingError) {
+        console.error('Error checking following status:', checkFollowingError);
+      }
+
+      // Jeśli user_id jeszcze nie obserwuje userId, dodaj obserwację
+      if (!alreadyFollowing) {
+        const { error: followError } = await supabase
+          .from('followings')
+          .insert({
+            follower_id: user.id,
+            following_id: userId
+          });
+
+        if (followError) {
+          console.error('Error creating following relationship:', followError);
+        }
+      }
+
+      // Sprawdź, czy already userId obserwuje user_id
+      const { data: alreadyFollowed, error: checkFollowedError } = await supabase
+        .from('followings')
+        .select('*')
+        .eq('follower_id', userId)
+        .eq('following_id', user.id)
+        .maybeSingle();
+
+      if (checkFollowedError) {
+        console.error('Error checking followed status:', checkFollowedError);
+      }
+
+      // Jeśli userId jeszcze nie obserwuje user_id, dodaj obserwację
+      if (!alreadyFollowed) {
+        const { error: beingFollowedError } = await supabase
+          .from('followings')
+          .insert({
+            follower_id: userId,
+            following_id: user.id
+          });
+
+        if (beingFollowedError) {
+          console.error('Error creating being followed relationship:', beingFollowedError);
+        }
+      }
+
       setUsers(prevUsers => 
         prevUsers.map(u => 
           u.id === userId 
-            ? { ...u, connectionStatus: 'connected', connectionsCount: u.connectionsCount + 1 } 
+            ? { 
+                ...u, 
+                connectionStatus: 'connected', 
+                connectionsCount: u.connectionsCount + 1,
+                isFollower: true // ustawienie isFollower na true, ponieważ teraz na pewno nas obserwuje
+              } 
             : u
         )
       );
@@ -222,7 +254,9 @@ export const useConnectionActions = (
       if (currentUser) {
         setCurrentUser({
           ...currentUser,
-          connectionsCount: currentUser.connectionsCount + 1
+          connectionsCount: currentUser.connectionsCount + 1,
+          followingCount: !alreadyFollowing ? currentUser.followingCount + 1 : currentUser.followingCount,
+          followersCount: !alreadyFollowed ? currentUser.followersCount + 1 : currentUser.followersCount
         });
       }
 
