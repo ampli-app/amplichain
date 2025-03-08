@@ -8,7 +8,7 @@ import Feed from '@/pages/Feed';
 import Signup from '@/pages/Signup';
 import Login from '@/pages/Login';
 import Profile from '@/pages/Profile';
-import PublicProfile from '@/pages/PublicProfile'; // Nowy import
+import PublicProfile from '@/pages/PublicProfile';
 import NotFound from '@/pages/NotFound';
 import Groups from '@/pages/Groups';
 import GroupDetail from '@/pages/GroupDetail';
@@ -17,6 +17,7 @@ import Discover from '@/pages/Discover';
 import Messages from '@/pages/Messages';
 import Marketplace from '@/pages/Marketplace';
 import ProductDetail from '@/pages/ProductDetail';
+import ConsultationDetail from '@/pages/ConsultationDetail';
 import EditProduct from '@/pages/EditProduct';
 import Checkout from '@/pages/Checkout';
 import CheckoutSuccess from '@/pages/CheckoutSuccess';
@@ -35,7 +36,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/profile/:id" element={<Profile />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/user/:userId" element={<PublicProfile />} /> {/* Nowa ścieżka dla publicznego profilu */}
+          <Route path="/user/:userId" element={<PublicProfile />} />
           <Route path="/groups" element={<Groups />} />
           <Route path="/groups/:id" element={<GroupDetail />} />
           <Route path="/connections" element={<Connections />} />
@@ -50,7 +51,7 @@ function App() {
           <Route path="/marketplace/:id" element={<ProductDetail />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/services/:id" element={<ProductDetail />} />
-          <Route path="/consultations/:id" element={<ProductDetail />} />
+          <Route path="/consultations/:id" element={<ConsultationDetail />} />
           <Route path="/edit-product/:id" element={<EditProduct />} />
           <Route path="/edit-service/:id" element={<EditProduct />} />
           <Route path="/edit-consultation/:id" element={<EditProduct />} />
