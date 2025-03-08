@@ -1,17 +1,16 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Loader2, FilePlus, PenLine, MessageSquare } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { AddProductDialog } from '@/components/AddProductDialog';
 import { AddServiceFormDialog } from '@/components/AddServiceFormDialog';
 import { AddConsultationDialog } from '@/components/AddConsultationDialog';
-import { ProductCard } from '../marketplace/ProductCard';
-import { ServiceCard } from '@/components/marketplace/services/ServiceCard';
-import { ConsultationCard } from '@/components/marketplace/consultations/ConsultationCard';
-import { ExpertConsultationsPanel } from '@/components/marketplace/consultations/expert/ExpertConsultationsPanel';
+import { ProductsTabContent } from './marketplace/ProductsTabContent';
+import { ServicesTabContent } from './marketplace/ServicesTabContent';
+import { ConsultationsTabContent } from './marketplace/ConsultationsTabContent';
+import { MarketplaceAddButtons } from './marketplace/MarketplaceAddButtons';
 
 interface MarketplaceTabProps {
   profileId: string;
@@ -105,10 +104,6 @@ export function MarketplaceTab({
     setConsultations(consultations.filter(c => c.id !== id));
   };
   
-  const handleItemAdded = () => {
-    fetchMarketplaceItems();
-  };
-  
   const handleMarketplaceTabChange = (value: string) => {
     setActiveMarketplaceTab(value);
     
@@ -135,115 +130,38 @@ export function MarketplaceTab({
             <TabsTrigger value="consultations">Konsultacje</TabsTrigger>
           </TabsList>
           
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowAddProductDialog(true)}
-            >
-              <FilePlus className="h-4 w-4 mr-2" />
-              Dodaj produkt
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowAddServiceDialog(true)}
-            >
-              <PenLine className="h-4 w-4 mr-2" />
-              Dodaj usługę
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowAddConsultationDialog(true)}
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Dodaj konsultację
-            </Button>
-          </div>
+          <MarketplaceAddButtons 
+            onAddProduct={() => setShowAddProductDialog(true)}
+            onAddService={() => setShowAddServiceDialog(true)}
+            onAddConsultation={() => setShowAddConsultationDialog(true)}
+          />
         </div>
         
         <TabsContent value="products">
-          {products.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {products.map(product => (
-                <ProductCard 
-                  key={product.id}
-                  product={product} 
-                  isOwner={true}
-                  onDelete={() => handleProductDeleted(product.id)}
-                />
-              ))}
-            </div>
-          ) : (
-            <Card className="p-6 text-center">
-              <p className="text-muted-foreground mb-4">Nie masz jeszcze żadnych produktów.</p>
-              <Button onClick={() => setShowAddProductDialog(true)}>
-                Dodaj pierwszy produkt
-              </Button>
-            </Card>
-          )}
+          <ProductsTabContent 
+            products={products} 
+            isOwner={true}
+            onDelete={handleProductDeleted}
+            onAddProduct={() => setShowAddProductDialog(true)}
+          />
         </TabsContent>
         
         <TabsContent value="services">
-          {services.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {services.map(service => (
-                <ServiceCard 
-                  key={service.id}
-                  service={service} 
-                  isFavorite={false}
-                  isOwner={true}
-                  onToggleFavorite={() => {}}
-                  onDelete={handleServiceDeleted}
-                />
-              ))}
-            </div>
-          ) : (
-            <Card className="p-6 text-center">
-              <p className="text-muted-foreground mb-4">Nie masz jeszcze żadnych usług.</p>
-              <Button onClick={() => setShowAddServiceDialog(true)}>
-                Dodaj pierwszą usługę
-              </Button>
-            </Card>
-          )}
+          <ServicesTabContent 
+            services={services}
+            onDelete={handleServiceDeleted}
+            onAddService={() => setShowAddServiceDialog(true)}
+          />
         </TabsContent>
         
         <TabsContent value="consultations">
-          <Tabs value={activeConsultationsTab} onValueChange={setActiveConsultationsTab}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="items">Moje oferty</TabsTrigger>
-              <TabsTrigger value="orders">Panel eksperta</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="items">
-              {consultations.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {consultations.map(consultation => (
-                    <ConsultationCard 
-                      key={consultation.id}
-                      consultation={consultation} 
-                      isFavorite={false}
-                      isOwner={true}
-                      onToggleFavorite={() => {}}
-                      onDelete={handleConsultationDeleted}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <Card className="p-6 text-center">
-                  <p className="text-muted-foreground mb-4">Nie masz jeszcze żadnych konsultacji.</p>
-                  <Button onClick={() => setShowAddConsultationDialog(true)}>
-                    Dodaj pierwszą konsultację
-                  </Button>
-                </Card>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="orders">
-              <ExpertConsultationsPanel />
-            </TabsContent>
-          </Tabs>
+          <ConsultationsTabContent 
+            consultations={consultations}
+            activeConsultationsTab={activeConsultationsTab}
+            setActiveConsultationsTab={setActiveConsultationsTab}
+            onDelete={handleConsultationDeleted}
+            onAddConsultation={() => setShowAddConsultationDialog(true)}
+          />
         </TabsContent>
       </Tabs>
       
