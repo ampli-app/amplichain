@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,7 +31,10 @@ import {
   Video,
   Phone, 
   ExternalLink,
-  Info
+  Info,
+  Eye,
+  Pencil,
+  Share2
 } from 'lucide-react';
 
 export function ConsultationDetail() {
@@ -63,7 +65,6 @@ export function ConsultationDetail() {
     try {
       console.log("Fetching consultation with ID:", id);
       
-      // Pobierz dane konsultacji
       const { data, error } = await supabase
         .from('consultations')
         .select('*')
@@ -79,7 +80,6 @@ export function ConsultationDetail() {
         console.log("Consultation data:", data);
         setConsultation(data as Consultation);
         
-        // Pobierz dane profilu właściciela
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('id, username, full_name, avatar_url')
@@ -106,7 +106,6 @@ export function ConsultationDetail() {
           setIsOwner(true);
         }
 
-        // Jeśli konsultacja ma dostępne metody kontaktu, wybierz pierwszą jako domyślną
         if (data.contact_methods && data.contact_methods.length > 0) {
           setSelectedContactMethod(data.contact_methods[0]);
         }
@@ -183,7 +182,6 @@ export function ConsultationDetail() {
     }
 
     try {
-      // Calculate expiration date (7 days from selected date)
       const selectedDateTime = new Date(selectedDate);
       const expiresAt = new Date(selectedDateTime);
       expiresAt.setDate(expiresAt.getDate() + 7);
@@ -232,6 +230,19 @@ export function ConsultationDetail() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleEditConsultation = () => {
+    navigate(`/edit-consultation/${consultation?.id}`);
+  };
+
+  const handleShareConsultation = () => {
+    const consultationUrl = window.location.href;
+    navigator.clipboard.writeText(consultationUrl);
+    toast({
+      title: "Link skopiowany",
+      description: "Link do konsultacji został skopiowany do schowka.",
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -319,11 +330,21 @@ export function ConsultationDetail() {
         <div className="md:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">{consultation.title}</CardTitle>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {consultation.categories?.map((category, index) => (
-                  <Badge key={index} variant="outline">{category}</Badge>
-                ))}
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-2xl">{consultation.title}</CardTitle>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {consultation.categories?.map((category, index) => (
+                      <Badge key={index} variant="outline">{category}</Badge>
+                    ))}
+                  </div>
+                </div>
+                
+                {isOwner && (
+                  <Badge className="bg-green-500 hover:bg-green-500">
+                    Twoja konsultacja
+                  </Badge>
+                )}
               </div>
             </CardHeader>
             
@@ -384,25 +405,63 @@ export function ConsultationDetail() {
                 </div>
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-md mt-6 text-sm">
-                <div className="flex items-start">
-                  <Info className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-blue-800">Jak działa proces konsultacji?</p>
-                    <ul className="mt-2 space-y-1 text-blue-700">
-                      <li>1. Zarezerwuj konsultację wybierając preferowaną datę i godzinę.</li>
-                      <li>2. Po zaakceptowaniu przez eksperta, dokonaj płatności.</li>
-                      <li>3. Skontaktuj się z ekspertem przez wybraną metodę kontaktu.</li>
-                      <li>4. Masz 7 dni na przeprowadzenie konsultacji od wybranej daty.</li>
-                      <li>5. Po zakończeniu, potwierdź odbycie konsultacji w panelu klienta.</li>
-                    </ul>
+              {!isOwner && (
+                <div className="bg-blue-50 p-4 rounded-md mt-6 text-sm">
+                  <div className="flex items-start">
+                    <Info className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-blue-800">Jak działa proces konsultacji?</p>
+                      <ul className="mt-2 space-y-1 text-blue-700">
+                        <li>1. Zarezerwuj konsultację wybierając preferowaną datę i godzinę.</li>
+                        <li>2. Po zaakceptowaniu przez eksperta, dokonaj płatności.</li>
+                        <li>3. Skontaktuj się z ekspertem przez wybraną metodę kontaktu.</li>
+                        <li>4. Masz 7 dni na przeprowadzenie konsultacji od wybranej daty.</li>
+                        <li>5. Po zakończeniu, potwierdź odbycie konsultacji w panelu klienta.</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </CardContent>
             
             <CardFooter>
-              {!isOwner && (
+              {isOwner ? (
+                <div className="flex justify-between w-full">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-1 h-9"
+                    onClick={() => {}}
+                    title="Zobacz konsultację"
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span className="hidden sm:inline">Zobacz konsultację</span>
+                  </Button>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="default" 
+                      size="sm"
+                      className="bg-[#9E9D1B] hover:bg-[#7e7c14] flex items-center gap-1 h-9"
+                      onClick={handleEditConsultation}
+                      title="Edytuj"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      <span className="hidden sm:inline">Edytuj</span>
+                    </Button>
+                    
+                    <Button 
+                      variant="secondary" 
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={handleShareConsultation}
+                      title="Udostępnij"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
                 <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
                   <DialogTrigger asChild>
                     <Button className="w-full md:w-auto">Zarezerwuj konsultację</Button>
