@@ -25,6 +25,7 @@ export function ConsultationCard({
   const navigate = useNavigate();
   
   const handleReserveClick = () => {
+    console.log("Navigating to consultation details:", consultation.id);
     navigate(`/consultations/${consultation.id}`);
   };
   

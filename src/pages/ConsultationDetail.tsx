@@ -45,7 +45,9 @@ export function ConsultationDetail() {
 
   const fetchConsultationDetails = async () => {
     try {
-      // Zmieniono zapytanie, aby pobierać dane konsultacji i profilu oddzielnie
+      console.log("Fetching consultation with ID:", id);
+      
+      // Pobierz dane konsultacji
       const { data, error } = await supabase
         .from('consultations')
         .select('*')
@@ -53,13 +55,15 @@ export function ConsultationDetail() {
         .single();
 
       if (error) {
+        console.error('Error fetching consultation details:', error);
         throw error;
       }
 
       if (data) {
+        console.log("Consultation data:", data);
         setConsultation(data as Consultation);
         
-        // Teraz pobieramy dane profilu właściciela
+        // Pobierz dane profilu właściciela
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('id, username, full_name, avatar_url')
@@ -69,6 +73,7 @@ export function ConsultationDetail() {
         if (profileError) {
           console.error('Error fetching owner profile:', profileError);
         } else {
+          console.log("Owner profile:", profileData);
           setOwner(profileData);
           setConsultation(prev => {
             if (prev) {
@@ -101,6 +106,8 @@ export function ConsultationDetail() {
     if (!id || !user) return;
     
     try {
+      console.log("Fetching orders for consultation:", id, "and user:", user.id);
+      
       const { data, error } = await supabase
         .from('consultation_orders')
         .select('*')
@@ -108,10 +115,12 @@ export function ConsultationDetail() {
         .eq('client_id', user.id);
 
       if (error) {
+        console.error('Error fetching orders:', error);
         throw error;
       }
 
       if (data) {
+        console.log("Orders data:", data);
         setOrders(data as ConsultationOrder[]);
       }
     } catch (error) {
