@@ -51,8 +51,8 @@ export function useConsultationsFilters({ consultations }: ConsultationsFiltersP
     setSelectedCategory(category);
   };
   
-  // Handle price input change
-  const handlePriceInputChange = (type: 'min' | 'max', value: string) => {
+  // Handle price input change - modified to match the expected signature
+  const handlePriceInputChange = useCallback((type: 'min' | 'max', value: string) => {
     const numValue = Number(value);
     
     if (type === 'min') {
@@ -70,7 +70,7 @@ export function useConsultationsFilters({ consultations }: ConsultationsFiltersP
         setPriceRange([priceRange[0], numValue]);
       }
     }
-  };
+  }, [priceRange]);
   
   // Handle page change
   const handlePageChange = (page: number) => {
@@ -83,10 +83,10 @@ export function useConsultationsFilters({ consultations }: ConsultationsFiltersP
     return filteredConsultations.slice(startIndex, startIndex + itemsPerPage);
   };
   
-  // Funkcja do obsługi filtrów - pusta implementacja która jest wymagana przez interfejs
-  const handleApplyFilters = () => {
+  // Function for applying filters that matches the expected signature
+  const handleApplyFilters = useCallback(() => {
     console.log("Applying filters");
-  };
+  }, []);
   
   return {
     searchQuery,

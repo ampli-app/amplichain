@@ -99,9 +99,12 @@ export default function PublicProfile() {
         }
 
         setCommonConnections(commonProfilesData || []);
+      } else {
+        setCommonConnections([]);
       }
     } catch (error) {
       console.error('Unexpected error:', error);
+      setCommonConnections([]);
     }
   };
 

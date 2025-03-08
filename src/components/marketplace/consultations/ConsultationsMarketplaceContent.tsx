@@ -37,9 +37,7 @@ export function ConsultationsMarketplaceContent() {
     priceRange,
     setPriceRange,
     minPrice,
-    setMinPrice,
     maxPrice,
-    setMaxPrice,
     filteredConsultations,
     currentPage,
     totalPages,
@@ -56,11 +54,6 @@ export function ConsultationsMarketplaceContent() {
     } else {
       setShowAuthDialog(true);
     }
-  };
-
-  // Definiujemy funkcję zaślepkę dla handleApplyFilters aby móc ją przekazać jako prop
-  const applyFilters = () => {
-    handleApplyFilters();
   };
 
   return (
@@ -86,16 +79,14 @@ export function ConsultationsMarketplaceContent() {
             priceRange={priceRange}
             setPriceRange={setPriceRange}
             minPrice={minPrice}
-            setMinPrice={setMinPrice}
             maxPrice={maxPrice}
-            setMaxPrice={setMaxPrice}
             showTestingOnly={false}
             setShowTestingOnly={() => {}}
             selectedConditions={[]}
             setSelectedConditions={() => {}}
             maxProductPrice={2000}
             handlePriceInputChange={handlePriceInputChange}
-            handleApplyFilters={applyFilters}
+            handleApplyFilters={handleApplyFilters}
             productConditions={[]}
             showConditionFilter={false}
             showTestingFilter={false}
