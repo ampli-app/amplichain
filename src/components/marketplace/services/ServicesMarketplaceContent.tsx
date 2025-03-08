@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { CategorySelection } from '@/components/marketplace/CategorySelection';
 import { MarketplaceFilters } from '@/components/marketplace/MarketplaceFilters';
@@ -36,9 +37,7 @@ export function ServicesMarketplaceContent() {
     priceRange,
     setPriceRange,
     minPrice,
-    setMinPrice,
     maxPrice,
-    setMaxPrice,
     filteredServices,
     currentPage,
     totalPages,
