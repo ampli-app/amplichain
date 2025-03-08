@@ -45,13 +45,15 @@ export function ConsultationCard({
   };
   
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-all">
+    <Card className="overflow-hidden hover:shadow-md transition-all relative">
+      {/* Badge dla właściciela */}
       {isOwner && (
-        <Badge className="absolute top-3 left-3 z-10 bg-primary text-white">
+        <Badge className="absolute top-3 left-3 z-10 bg-green-500 hover:bg-green-500">
           Twoja konsultacja
         </Badge>
       )}
       
+      {/* Przycisk ulubionych */}
       <Button 
         variant="secondary"
         size="icon" 
@@ -96,7 +98,7 @@ export function ConsultationCard({
           )}
         </div>
         
-        <div className="flex items-center space-x-2 mt-2 mb-4">
+        <div className="flex items-center space-x-2 mb-4">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">
             {consultation.availability?.length > 0 ? `Dostępne terminy: ${consultation.availability.length}` : "Brak dostępnych terminów"}
@@ -104,6 +106,7 @@ export function ConsultationCard({
         </div>
         
         <div className="flex items-center justify-between mt-4">
+          {/* Cena - w takim samym stylu jak w MarketplaceItem */}
           <div className="font-semibold text-lg bg-primary/10 px-2 py-1 rounded text-primary">
             {new Intl.NumberFormat('pl-PL', {
               style: 'currency',
@@ -111,24 +114,30 @@ export function ConsultationCard({
             }).format(consultation.price)}
           </div>
           
+          {/* Przyciski - podobnie jak w ProductActions */}
           {isOwner ? (
             <div className="flex gap-2">
               {onDelete && (
                 <Button variant="destructive" size="sm" onClick={() => onDelete(consultation.id)}>
-                  Usuń
+                  <span className="hidden sm:inline">Usuń</span>
+                  <span className="sm:hidden">Usuń</span>
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={handleViewClick}>
                 <Eye className="h-4 w-4 mr-1" />
-                Zobacz
+                <span className="hidden sm:inline">Zobacz</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={handleEditClick}>
+              <Button 
+                variant="default" 
+                size="sm"
+                className="bg-[#9E9D1B] hover:bg-[#7e7c14]"
+                onClick={handleEditClick}
+              >
                 <Pencil className="h-4 w-4 mr-1" />
-                Edytuj
+                <span className="hidden sm:inline">Edytuj</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={handleShareClick}>
-                <Share2 className="h-4 w-4 mr-1" />
-                Udostępnij
+              <Button variant="secondary" size="icon" className="h-9 w-9" onClick={handleShareClick}>
+                <Share2 className="h-4 w-4" />
               </Button>
             </div>
           ) : (
