@@ -43,44 +43,45 @@ export default function PublicProfile() {
     }
   }, [isLoggedIn, navigate, userId, user]);
 
-  // Funkcja do pobierania wspólnych połączeń
+  // Funkcja do pobierania wspólnych połączeń - rewrite to avoid infinite type instantiation
   const fetchCommonConnections = async (currentUserId: string, targetUserId: string) => {
     try {
-      // Pobierz połączenia bieżącego użytkownika
-      const { data: currentUserConnections, error: currentUserError } = await supabase
+      // Get current user's connections
+      const currentUserConnectionsRes = await supabase
         .from('connections')
         .select('user_id1, user_id2')
         .or(`user_id1.eq.${currentUserId},user_id2.eq.${currentUserId}`)
         .eq('status', 'accepted');
         
-      if (currentUserError) {
-        console.error('Błąd pobierania połączeń bieżącego użytkownika:', currentUserError);
+      if (currentUserConnectionsRes.error) {
+        console.error('Error fetching current user connections:', currentUserConnectionsRes.error);
         return;
       }
       
-      // Pobierz połączenia docelowego użytkownika
-      const { data: targetUserConnections, error: targetUserError } = await supabase
+      const currentUserConnections = currentUserConnectionsRes.data || [];
+      
+      // Get target user's connections
+      const targetUserConnectionsRes = await supabase
         .from('connections')
         .select('user_id1, user_id2')
         .or(`user_id1.eq.${targetUserId},user_id2.eq.${targetUserId}`)
         .eq('status', 'accepted');
         
-      if (targetUserError) {
-        console.error('Błąd pobierania połączeń docelowego użytkownika:', targetUserError);
+      if (targetUserConnectionsRes.error) {
+        console.error('Error fetching target user connections:', targetUserConnectionsRes.error);
         return;
       }
       
-      // Utwórz zbiór ID połączeń bieżącego użytkownika
+      const targetUserConnections = targetUserConnectionsRes.data || [];
+      
+      // Create a set of connection IDs for the current user
       const currentUserConnectionIds = new Set<string>();
       currentUserConnections.forEach(conn => {
-        if (conn.user_id1 === currentUserId) {
-          currentUserConnectionIds.add(conn.user_id2);
-        } else {
-          currentUserConnectionIds.add(conn.user_id1);
-        }
+        const connectedUserId = conn.user_id1 === currentUserId ? conn.user_id2 : conn.user_id1;
+        currentUserConnectionIds.add(connectedUserId);
       });
       
-      // Znajdź wspólne połączenia
+      // Find common connections
       let common = 0;
       targetUserConnections.forEach(conn => {
         const connectedUserId = conn.user_id1 === targetUserId ? conn.user_id2 : conn.user_id1;
@@ -91,7 +92,7 @@ export default function PublicProfile() {
       
       setCommonConnections(common);
     } catch (error) {
-      console.error('Nieoczekiwany błąd pobierania wspólnych połączeń:', error);
+      console.error('Unexpected error fetching common connections:', error);
     }
   };
 

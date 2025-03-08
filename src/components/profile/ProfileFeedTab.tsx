@@ -53,6 +53,10 @@ export function ProfileFeedTab({ profileId }: ProfileFeedTabProps) {
     }
   };
 
+  const handlePostsUpdated = async () => {
+    await fetchUserPosts();
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center p-12">

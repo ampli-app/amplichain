@@ -57,9 +57,10 @@ export function ConsultationsMarketplaceContent() {
     }
   };
 
-  // Funkcja do obsługi zmiany ceny
+  // Define a function to handle applying filters
   const handleApplyFilters = () => {
-    // Funkcjonalność już jest zaimplementowana w useConsultationsFilters
+    // This function will be passed to MarketplaceFilters
+    // The functionality is already implemented in useConsultationsFilters
   };
 
   return (

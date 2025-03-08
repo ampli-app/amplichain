@@ -57,7 +57,7 @@ export function ConsultationDetail() {
       if (data) {
         // Sprawdzamy, czy data ma poprawną strukturę
         if (data.profiles && typeof data.profiles === 'object') {
-          setConsultation(data as Consultation);
+          setConsultation(data as unknown as Consultation);
         } else {
           // Jeśli profiles nie jest obiektem, obsługujemy to jako błąd
           console.error("Invalid profiles data structure:", data.profiles);
@@ -372,3 +372,6 @@ export function ConsultationDetail() {
     </div>
   );
 }
+
+// Add default export to fix the import issue in App.tsx
+export default ConsultationDetail;

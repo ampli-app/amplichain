@@ -1,8 +1,10 @@
 
 import { useState, useEffect } from 'react';
-import { Loader2, Star } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card } from '@/components/ui/card';
+import { Star, User, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProfileRatingsTabProps {
   profileId: string;
@@ -12,31 +14,33 @@ export function ProfileRatingsTab({ profileId }: ProfileRatingsTabProps) {
   const [productReviews, setProductReviews] = useState<any[]>([]);
   const [serviceReviews, setServiceReviews] = useState<any[]>([]);
   const [consultationReviews, setConsultationReviews] = useState<any[]>([]);
-  const [loading, setLoading] = useState({
-    products: true,
-    services: true,
-    consultations: true,
-  });
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     if (profileId) {
-      // Używamy tymczasowego rozwiązania do czasu prawidłowego zastosowania migracji
-      fetchProductReviews();
-      fetchServiceReviews();
-      fetchConsultationReviews();
+      fetchReviews();
     }
   }, [profileId]);
   
+  const fetchReviews = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchProductReviews(),
+      fetchServiceReviews(),
+      fetchConsultationReviews()
+    ]);
+    setLoading(false);
+  };
+  
   const fetchProductReviews = async () => {
     try {
-      // Sprawdzamy, czy tabela istnieje, jeśli nie - po prostu kończymy ładowanie
+      // Check if table exists before querying
       const { count, error: checkError } = await supabase
         .from('product_reviews')
-        .select('*', { count: 'exact', head: true });
+        .select('id', { count: 'exact', head: true });
       
       if (checkError) {
-        console.log('Tabela product_reviews nie istnieje lub wystąpił błąd:', checkError);
-        setLoading(prev => ({ ...prev, products: false }));
+        console.log('Table product_reviews may not exist:', checkError);
         return;
       }
       
@@ -44,34 +48,30 @@ export function ProfileRatingsTab({ profileId }: ProfileRatingsTabProps) {
         .from('product_reviews')
         .select(`
           *,
-          profile:user_id (id, full_name, username, avatar_url),
-          product:product_id (title, image_url)
+          user:user_id (id, username, full_name, avatar_url),
+          product:product_id (id, title)
         `)
-        .eq('product_user_id', profileId)
-        .order('created_at', { ascending: false });
+        .eq('product_user_id', profileId);
         
       if (error) {
-        console.error('Błąd podczas pobierania recenzji produktów:', error);
+        console.error('Error fetching product reviews:', error);
       } else {
         setProductReviews(data || []);
       }
     } catch (err) {
-      console.error('Nieoczekiwany błąd:', err);
-    } finally {
-      setLoading(prev => ({ ...prev, products: false }));
+      console.error('Unexpected error fetching product reviews:', err);
     }
   };
   
   const fetchServiceReviews = async () => {
     try {
-      // Sprawdzamy, czy tabela istnieje, jeśli nie - po prostu kończymy ładowanie
+      // Check if table exists before querying
       const { count, error: checkError } = await supabase
         .from('service_reviews')
-        .select('*', { count: 'exact', head: true });
+        .select('id', { count: 'exact', head: true });
       
       if (checkError) {
-        console.log('Tabela service_reviews nie istnieje lub wystąpił błąd:', checkError);
-        setLoading(prev => ({ ...prev, services: false }));
+        console.log('Table service_reviews may not exist:', checkError);
         return;
       }
       
@@ -79,34 +79,30 @@ export function ProfileRatingsTab({ profileId }: ProfileRatingsTabProps) {
         .from('service_reviews')
         .select(`
           *,
-          profile:user_id (id, full_name, username, avatar_url),
-          service:service_id (title, image_url)
+          user:user_id (id, username, full_name, avatar_url),
+          service:service_id (id, title)
         `)
-        .eq('service_user_id', profileId)
-        .order('created_at', { ascending: false });
+        .eq('service_user_id', profileId);
         
       if (error) {
-        console.error('Błąd podczas pobierania recenzji usług:', error);
+        console.error('Error fetching service reviews:', error);
       } else {
         setServiceReviews(data || []);
       }
     } catch (err) {
-      console.error('Nieoczekiwany błąd:', err);
-    } finally {
-      setLoading(prev => ({ ...prev, services: false }));
+      console.error('Unexpected error fetching service reviews:', err);
     }
   };
   
   const fetchConsultationReviews = async () => {
     try {
-      // Sprawdzamy, czy tabela istnieje, jeśli nie - po prostu kończymy ładowanie
+      // Check if table exists before querying
       const { count, error: checkError } = await supabase
         .from('consultation_reviews')
-        .select('*', { count: 'exact', head: true });
+        .select('id', { count: 'exact', head: true });
       
       if (checkError) {
-        console.log('Tabela consultation_reviews nie istnieje lub wystąpił błąd:', checkError);
-        setLoading(prev => ({ ...prev, consultations: false }));
+        console.log('Table consultation_reviews may not exist:', checkError);
         return;
       }
       
@@ -114,28 +110,22 @@ export function ProfileRatingsTab({ profileId }: ProfileRatingsTabProps) {
         .from('consultation_reviews')
         .select(`
           *,
-          profile:user_id (id, full_name, username, avatar_url),
-          consultation:consultation_id (title)
+          user:user_id (id, username, full_name, avatar_url),
+          consultation:consultation_id (id, title)
         `)
-        .eq('consultation_user_id', profileId)
-        .order('created_at', { ascending: false });
+        .eq('consultation_user_id', profileId);
         
       if (error) {
-        console.error('Błąd podczas pobierania recenzji konsultacji:', error);
+        console.error('Error fetching consultation reviews:', error);
       } else {
         setConsultationReviews(data || []);
       }
     } catch (err) {
-      console.error('Nieoczekiwany błąd:', err);
-    } finally {
-      setLoading(prev => ({ ...prev, consultations: false }));
+      console.error('Unexpected error fetching consultation reviews:', err);
     }
   };
   
-  const isLoading = loading.products || loading.services || loading.consultations;
-  const hasAnyReviews = productReviews.length > 0 || serviceReviews.length > 0 || consultationReviews.length > 0;
-  
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex justify-center p-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -143,123 +133,137 @@ export function ProfileRatingsTab({ profileId }: ProfileRatingsTabProps) {
     );
   }
   
-  if (!hasAnyReviews) {
+  const totalReviews = productReviews.length + serviceReviews.length + consultationReviews.length;
+  
+  if (totalReviews === 0) {
     return (
-      <div className="text-center p-12 bg-muted/30 rounded-lg border">
+      <Card className="p-6 text-center">
         <h3 className="text-lg font-medium mb-2">Brak ocen</h3>
         <p className="text-muted-foreground">
           Ten użytkownik nie otrzymał jeszcze żadnych ocen.
         </p>
-      </div>
+      </Card>
     );
   }
   
   return (
-    <Tabs defaultValue="products" className="w-full">
-      <TabsList className="mb-6 grid w-full grid-cols-3">
+    <Tabs defaultValue="products">
+      <TabsList className="mb-6">
         <TabsTrigger value="products">Produkty ({productReviews.length})</TabsTrigger>
         <TabsTrigger value="services">Usługi ({serviceReviews.length})</TabsTrigger>
         <TabsTrigger value="consultations">Konsultacje ({consultationReviews.length})</TabsTrigger>
       </TabsList>
       
       <TabsContent value="products">
-        {productReviews.length > 0 ? (
-          <div className="space-y-6">
-            {productReviews.map((review) => (
-              <div key={review.id} className="p-4 border rounded-lg">
-                <div className="flex items-center mb-2">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star 
-                      key={i}
-                      className={`h-4 w-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
-                    />
-                  ))}
-                  <span className="ml-2 text-sm font-medium">{review.rating}/5</span>
-                </div>
-                <p className="text-sm mb-4">{review.comment}</p>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>
-                    Od: {review.profile?.full_name || 'Anonimowy użytkownik'}
-                  </span>
-                  <span>
-                    Produkt: {review.product?.title || 'Usunięty produkt'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center p-8 bg-muted/20 rounded-lg">
-            <p>Brak ocen dla produktów</p>
-          </div>
-        )}
+        <div className="space-y-4">
+          {productReviews.length > 0 ? (
+            productReviews.map(review => (
+              <ReviewCard 
+                key={review.id} 
+                review={review} 
+                type="product" 
+              />
+            ))
+          ) : (
+            <Card className="p-4 text-center text-muted-foreground">
+              Brak ocen dla produktów
+            </Card>
+          )}
+        </div>
       </TabsContent>
       
       <TabsContent value="services">
-        {serviceReviews.length > 0 ? (
-          <div className="space-y-6">
-            {serviceReviews.map((review) => (
-              <div key={review.id} className="p-4 border rounded-lg">
-                <div className="flex items-center mb-2">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star 
-                      key={i}
-                      className={`h-4 w-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
-                    />
-                  ))}
-                  <span className="ml-2 text-sm font-medium">{review.rating}/5</span>
-                </div>
-                <p className="text-sm mb-4">{review.comment}</p>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>
-                    Od: {review.profile?.full_name || 'Anonimowy użytkownik'}
-                  </span>
-                  <span>
-                    Usługa: {review.service?.title || 'Usunięta usługa'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center p-8 bg-muted/20 rounded-lg">
-            <p>Brak ocen dla usług</p>
-          </div>
-        )}
+        <div className="space-y-4">
+          {serviceReviews.length > 0 ? (
+            serviceReviews.map(review => (
+              <ReviewCard 
+                key={review.id} 
+                review={review} 
+                type="service" 
+              />
+            ))
+          ) : (
+            <Card className="p-4 text-center text-muted-foreground">
+              Brak ocen dla usług
+            </Card>
+          )}
+        </div>
       </TabsContent>
       
       <TabsContent value="consultations">
-        {consultationReviews.length > 0 ? (
-          <div className="space-y-6">
-            {consultationReviews.map((review) => (
-              <div key={review.id} className="p-4 border rounded-lg">
-                <div className="flex items-center mb-2">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star 
-                      key={i}
-                      className={`h-4 w-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
-                    />
-                  ))}
-                  <span className="ml-2 text-sm font-medium">{review.rating}/5</span>
-                </div>
-                <p className="text-sm mb-4">{review.comment}</p>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>
-                    Od: {review.profile?.full_name || 'Anonimowy użytkownik'}
-                  </span>
-                  <span>
-                    Konsultacja: {review.consultation?.title || 'Usunięta konsultacja'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center p-8 bg-muted/20 rounded-lg">
-            <p>Brak ocen dla konsultacji</p>
-          </div>
-        )}
+        <div className="space-y-4">
+          {consultationReviews.length > 0 ? (
+            consultationReviews.map(review => (
+              <ReviewCard 
+                key={review.id} 
+                review={review} 
+                type="consultation" 
+              />
+            ))
+          ) : (
+            <Card className="p-4 text-center text-muted-foreground">
+              Brak ocen dla konsultacji
+            </Card>
+          )}
+        </div>
       </TabsContent>
     </Tabs>
+  );
+}
+
+interface ReviewCardProps {
+  review: any;
+  type: 'product' | 'service' | 'consultation';
+}
+
+function ReviewCard({ review, type }: ReviewCardProps) {
+  const item = type === 'product' 
+    ? review.product 
+    : type === 'service' 
+      ? review.service 
+      : review.consultation;
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-start">
+        <Avatar className="h-10 w-10 mr-3">
+          <AvatarImage src={review.user?.avatar_url} />
+          <AvatarFallback>
+            <User className="h-5 w-5" />
+          </AvatarFallback>
+        </Avatar>
+        
+        <div className="flex-1">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="font-medium">{review.user?.full_name || review.user?.username}</p>
+              <div className="flex items-center gap-1 text-amber-500 mt-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star 
+                    key={i} 
+                    className={`h-4 w-4 ${i < review.rating ? 'fill-current' : 'stroke-current fill-none opacity-40'}`} 
+                  />
+                ))}
+              </div>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {new Date(review.created_at).toLocaleDateString()}
+            </span>
+          </div>
+          
+          <div className="mt-2">
+            <p className="text-sm text-muted-foreground">
+              {type === 'product' ? 'Produkt' : type === 'service' ? 'Usługa' : 'Konsultacja'}: 
+              <span className="font-medium text-foreground ml-1">
+                {item?.title || 'Usunięty'}
+              </span>
+            </p>
+            {review.comment && (
+              <p className="mt-2 text-sm">{review.comment}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 }
