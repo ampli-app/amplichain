@@ -29,6 +29,11 @@ export const ProfileTabs = ({ profileId, isOwnProfile }: ProfileTabsProps) => {
     handleDeleteConsultation 
   } = useMarketplaceActions(profileId);
 
+  // Mock data for components that require it
+  const mockUserProjects = [];
+  const mockUserExperience = [];
+  const mockUserEducation = [];
+
   useEffect(() => {
     setActiveTab(tabParam);
   }, [tabParam]);
@@ -57,28 +62,37 @@ export const ProfileTabs = ({ profileId, isOwnProfile }: ProfileTabsProps) => {
       </TabsList>
 
       <TabsContent value="info">
-        {/* Użyjmy props kompatybilnych z komponentem */}
-        <ProfileInfoTab />
+        <ProfileInfoTab 
+          userProjects={mockUserProjects}
+          userExperience={mockUserExperience}
+          userEducation={mockUserEducation}
+          isOwnProfile={isOwnProfile}
+        />
       </TabsContent>
 
       <TabsContent value="feed">
-        {/* Użyjmy props kompatybilnych z komponentem */}
-        <ProfileFeedTab />
+        <ProfileFeedTab profileId={profileId} />
       </TabsContent>
 
       <TabsContent value="portfolio">
-        {/* Użyjmy props kompatybilnych z komponentem */}
-        <PortfolioTab />
+        <PortfolioTab 
+          userProjects={mockUserProjects}
+          isOwnProfile={isOwnProfile}
+        />
       </TabsContent>
 
       <TabsContent value="experience">
-        {/* Użyjmy props kompatybilnych z komponentem */}
-        <ExperienceTab />
+        <ExperienceTab 
+          userExperience={mockUserExperience}
+          isOwnProfile={isOwnProfile}
+        />
       </TabsContent>
 
       <TabsContent value="education">
-        {/* Użyjmy props kompatybilnych z komponentem */}
-        <EducationTab />
+        <EducationTab 
+          userEducation={mockUserEducation}
+          isOwnProfile={isOwnProfile}
+        />
       </TabsContent>
 
       <TabsContent value="ratings">
