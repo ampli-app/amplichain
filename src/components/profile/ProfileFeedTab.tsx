@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { FeedPostsList } from '@/components/social/FeedPostsList';
+import { Loader2 } from 'lucide-react';
 
 interface ProfileFeedTabProps {
   profileId: string;
@@ -55,7 +56,7 @@ export function ProfileFeedTab({ profileId }: ProfileFeedTabProps) {
   if (loading) {
     return (
       <div className="flex justify-center p-12">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

@@ -71,6 +71,9 @@ export function ProfileTabs({
         <TabsContent value="my_marketplace">
           <MarketplaceTab 
             profileId={profileId}
+            onDeleteProduct={onDeleteProduct}
+            onDeleteService={onDeleteService}
+            onDeleteConsultation={onDeleteConsultation}
           />
         </TabsContent>
       )}

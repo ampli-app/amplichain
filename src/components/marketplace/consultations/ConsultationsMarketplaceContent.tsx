@@ -57,6 +57,11 @@ export function ConsultationsMarketplaceContent() {
     }
   };
 
+  // Funkcja do obsługi zmiany ceny
+  const handleApplyFilters = () => {
+    // Funkcjonalność już jest zaimplementowana w useConsultationsFilters
+  };
+
   return (
     <div>
       <CategorySelection 
@@ -89,7 +94,7 @@ export function ConsultationsMarketplaceContent() {
             setSelectedConditions={() => {}}
             maxProductPrice={2000}
             handlePriceInputChange={handlePriceInputChange}
-            handleApplyFilters={() => {}}
+            handleApplyFilters={handleApplyFilters}
             productConditions={[]}
             showConditionFilter={false}
             showTestingFilter={false}

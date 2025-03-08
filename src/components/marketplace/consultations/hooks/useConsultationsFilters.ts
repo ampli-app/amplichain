@@ -8,7 +8,7 @@ interface ConsultationsFiltersProps {
 export function useConsultationsFilters({ consultations }: ConsultationsFiltersProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [priceRange, setPriceRange] = useState([0, 1000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
   const [minPrice, setMinPrice] = useState('0');
   const [maxPrice, setMaxPrice] = useState('1000');
   const [currentPage, setCurrentPage] = useState(1);

@@ -114,6 +114,91 @@ export type Database = {
           },
         ]
       }
+      consultation_orders: {
+        Row: {
+          amount: number
+          client_id: string
+          completed_at: string | null
+          consultation_id: string
+          created_at: string
+          expert_id: string
+          expires_at: string
+          id: string
+          is_completed: boolean | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          completed_at?: string | null
+          consultation_id: string
+          created_at?: string
+          expert_id: string
+          expires_at: string
+          id?: string
+          is_completed?: boolean | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          completed_at?: string | null
+          consultation_id?: string
+          created_at?: string
+          expert_id?: string
+          expires_at?: string
+          id?: string
+          is_completed?: boolean | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultation_orders_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consultation_reviews: {
+        Row: {
+          comment: string | null
+          consultation_id: string
+          consultation_user_id: string
+          created_at: string
+          id: string
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          consultation_id: string
+          consultation_user_id: string
+          created_at?: string
+          id?: string
+          rating: number
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          consultation_id?: string
+          consultation_user_id?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultation_reviews_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consultations: {
         Row: {
           availability: string[] | null
@@ -1139,6 +1224,44 @@ export type Database = {
           },
         ]
       }
+      product_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          product_id: string
+          product_user_id: string
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          product_id: string
+          product_user_id: string
+          rating: number
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          product_id?: string
+          product_user_id?: string
+          rating?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string | null
@@ -1298,6 +1421,44 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          service_id: string
+          service_user_id: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          service_id: string
+          service_user_id: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          service_id?: string
+          service_user_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_reviews_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]

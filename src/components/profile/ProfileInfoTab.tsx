@@ -1,15 +1,13 @@
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
+import { AddProjectModal } from '@/components/profile/AddProjectModal';
+import { AddExperienceModal } from '@/components/profile/AddExperienceModal';
+import { AddEducationModal } from '@/components/profile/AddEducationModal';
 import { PortfolioTab } from '@/components/profile/PortfolioTab';
 import { ExperienceTab } from '@/components/profile/ExperienceTab';
 import { EducationTab } from '@/components/profile/EducationTab';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
-import { useState } from 'react';
-import { AddProjectModal } from './AddProjectModal';
-import { AddExperienceModal } from './AddExperienceModal';
-import { AddEducationModal } from './AddEducationModal';
 
 interface ProfileInfoTabProps {
   userProjects: any[];
@@ -18,113 +16,113 @@ interface ProfileInfoTabProps {
   isOwnProfile: boolean;
 }
 
-export function ProfileInfoTab({
+export function ProfileInfoTab({ 
   userProjects,
   userExperience,
   userEducation,
   isOwnProfile
 }: ProfileInfoTabProps) {
-  const [showAddProjectModal, setShowAddProjectModal] = useState(false);
-  const [showAddExperienceModal, setShowAddExperienceModal] = useState(false);
-  const [showAddEducationModal, setShowAddEducationModal] = useState(false);
+  const [showAddProject, setShowAddProject] = useState(false);
+  const [showAddExperience, setShowAddExperience] = useState(false);
+  const [showAddEducation, setShowAddEducation] = useState(false);
   
+  const handleProjectAdded = () => {
+    // Dodano nowy projekt - można tutaj odświeżyć dane
+  };
+  
+  const handleExperienceAdded = () => {
+    // Dodano nowe doświadczenie - można tutaj odświeżyć dane
+  };
+  
+  const handleEducationAdded = () => {
+    // Dodano nową edukację - można tutaj odświeżyć dane
+  };
+
   return (
-    <Tabs defaultValue="projects" className="mb-8">
-      <TabsList className="mb-6">
-        <TabsTrigger value="projects">Projekty</TabsTrigger>
-        <TabsTrigger value="experience">Doświadczenie</TabsTrigger>
-        <TabsTrigger value="education">Edukacja</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="projects">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Projekty</CardTitle>
-              <CardDescription>Lista projektów, w których brał udział użytkownik</CardDescription>
-            </div>
-            {isOwnProfile && (
-              <Button variant="outline" onClick={() => setShowAddProjectModal(true)}>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Dodaj projekt
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            <PortfolioTab 
-              userProjects={userProjects} 
-              isOwnProfile={isOwnProfile} 
-            />
-          </CardContent>
-        </Card>
+    <div className="space-y-8">
+      {/* Sekcja Projektów */}
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold">Portfolio</h3>
+          {isOwnProfile && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowAddProject(true)}
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Dodaj projekt
+            </Button>
+          )}
+        </div>
         
-        {isOwnProfile && (
-          <AddProjectModal 
-            isOpen={showAddProjectModal} 
-            onClose={() => setShowAddProjectModal(false)}
-          />
-        )}
-      </TabsContent>
+        <PortfolioTab 
+          userProjects={userProjects}
+          isOwnProfile={isOwnProfile}
+        />
+      </div>
+
+      <AddProjectModal 
+        isOpen={showAddProject} 
+        onClose={() => setShowAddProject(false)}
+        onProjectAdded={handleProjectAdded}
+      />
       
-      <TabsContent value="experience">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Doświadczenie zawodowe</CardTitle>
-              <CardDescription>Historia zatrudnienia i doświadczenie branżowe</CardDescription>
-            </div>
-            {isOwnProfile && (
-              <Button variant="outline" onClick={() => setShowAddExperienceModal(true)}>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Dodaj doświadczenie
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            <ExperienceTab 
-              userExperience={userExperience} 
-              isOwnProfile={isOwnProfile} 
-            />
-          </CardContent>
-        </Card>
+      {/* Sekcja Doświadczenia */}
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold">Doświadczenie</h3>
+          {isOwnProfile && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowAddExperience(true)}
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Dodaj doświadczenie
+            </Button>
+          )}
+        </div>
         
-        {isOwnProfile && (
-          <AddExperienceModal 
-            isOpen={showAddExperienceModal} 
-            onClose={() => setShowAddExperienceModal(false)}
-          />
-        )}
-      </TabsContent>
+        <ExperienceTab 
+          userExperience={userExperience}
+          isOwnProfile={isOwnProfile}
+        />
+      </div>
+
+      <AddExperienceModal 
+        isOpen={showAddExperience} 
+        onClose={() => setShowAddExperience(false)}
+        onExperienceAdded={handleExperienceAdded}
+      />
       
-      <TabsContent value="education">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Edukacja</CardTitle>
-              <CardDescription>Wykształcenie formalne i kursy specjalistyczne</CardDescription>
-            </div>
-            {isOwnProfile && (
-              <Button variant="outline" onClick={() => setShowAddEducationModal(true)}>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Dodaj edukację
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            <EducationTab 
-              userEducation={userEducation} 
-              isOwnProfile={isOwnProfile} 
-            />
-          </CardContent>
-        </Card>
+      {/* Sekcja Edukacji */}
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold">Edukacja</h3>
+          {isOwnProfile && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowAddEducation(true)}
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Dodaj edukację
+            </Button>
+          )}
+        </div>
         
-        {isOwnProfile && (
-          <AddEducationModal 
-            isOpen={showAddEducationModal} 
-            onClose={() => setShowAddEducationModal(false)}
-          />
-        )}
-      </TabsContent>
-    </Tabs>
+        <EducationTab 
+          userEducation={userEducation}
+          isOwnProfile={isOwnProfile}
+        />
+      </div>
+
+      <AddEducationModal 
+        isOpen={showAddEducation} 
+        onClose={() => setShowAddEducation(false)}
+        onEducationAdded={handleEducationAdded}
+      />
+    </div>
   );
 }
