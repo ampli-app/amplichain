@@ -1,11 +1,12 @@
 
-import { Heart, Calendar, User, MapPin } from 'lucide-react';
+import { Heart, Calendar, User, MapPin, Share2, Eye, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Consultation } from '@/types/consultations';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/components/ui/use-toast';
 
 export interface ConsultationCardProps {
   consultation: Consultation;
@@ -24,13 +25,33 @@ export function ConsultationCard({
 }: ConsultationCardProps) {
   const navigate = useNavigate();
   
-  const handleReserveClick = () => {
+  const handleViewClick = () => {
     console.log("Navigating to consultation details:", consultation.id);
     navigate(`/consultations/${consultation.id}`);
   };
   
+  const handleEditClick = () => {
+    console.log("Navigating to edit consultation:", consultation.id);
+    navigate(`/consultations/edit/${consultation.id}`);
+  };
+  
+  const handleShareClick = () => {
+    const consultationUrl = `${window.location.origin}/consultations/${consultation.id}`;
+    navigator.clipboard.writeText(consultationUrl);
+    toast({
+      title: "Link skopiowany",
+      description: "Link do konsultacji został skopiowany do schowka.",
+    });
+  };
+  
   return (
     <Card className="overflow-hidden hover:shadow-md transition-all">
+      {isOwner && (
+        <Badge className="absolute top-3 left-3 z-10 bg-primary text-white">
+          Twoja konsultacja
+        </Badge>
+      )}
+      
       <Button 
         variant="secondary"
         size="icon" 
@@ -90,10 +111,28 @@ export function ConsultationCard({
             }).format(consultation.price)}
           </div>
           
-          {isOwner && onDelete ? (
-            <Button variant="destructive" onClick={() => onDelete(consultation.id)}>Usuń</Button>
+          {isOwner ? (
+            <div className="flex gap-2">
+              {onDelete && (
+                <Button variant="destructive" size="sm" onClick={() => onDelete(consultation.id)}>
+                  Usuń
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={handleViewClick}>
+                <Eye className="h-4 w-4 mr-1" />
+                Zobacz
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleEditClick}>
+                <Pencil className="h-4 w-4 mr-1" />
+                Edytuj
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleShareClick}>
+                <Share2 className="h-4 w-4 mr-1" />
+                Udostępnij
+              </Button>
+            </div>
           ) : (
-            <Button onClick={handleReserveClick}>Rezerwuj</Button>
+            <Button onClick={handleViewClick}>Rezerwuj</Button>
           )}
         </div>
       </CardContent>
