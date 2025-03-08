@@ -19,7 +19,7 @@ interface ProfileHeaderProps {
   handleConnectionAction: () => void;
   handleFollow: () => void;
   isFollowing?: boolean;
-  commonConnections?: number;
+  commonConnections?: any[]; // Zmieniamy typ z liczby na tablicę
   handleSendMessage?: () => void;
 }
 
@@ -32,7 +32,7 @@ export function ProfileHeader({
   handleConnectionAction,
   handleFollow,
   isFollowing = false,
-  commonConnections = 0,
+  commonConnections = [],
   handleSendMessage
 }: ProfileHeaderProps) {
   const navigate = useNavigate();
@@ -82,8 +82,11 @@ export function ProfileHeader({
             <div className="space-y-4">
               <ProfileInfo profileData={profileData} />
               
-              {!isOwnProfile && commonConnections > 0 && (
-                <CommonConnections count={commonConnections} userId={profileData?.id || ''} />
+              {!isOwnProfile && commonConnections.length > 0 && (
+                <CommonConnections 
+                  count={commonConnections.length} 
+                  userId={profileData?.id || ''} 
+                />
               )}
             </div>
             
