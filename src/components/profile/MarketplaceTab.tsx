@@ -10,7 +10,7 @@ import { toast } from '@/components/ui/use-toast';
 import { AddProductDialog } from '@/components/AddProductDialog';
 import { AddServiceFormDialog } from '@/components/AddServiceFormDialog';
 import { AddConsultationDialog } from '@/components/AddConsultationDialog';
-import { ProductCard } from '@/components/marketplace/ProductCard';
+import { ProductCard } from '../marketplace/ProductCard';
 import { ServiceCard } from '@/components/marketplace/services/ServiceCard';
 import { ConsultationCard } from '@/components/marketplace/consultations/ConsultationCard';
 
@@ -179,8 +179,9 @@ export function MarketplaceTab({
                   key={service.id}
                   service={service} 
                   isFavorite={false}
+                  isOwner={true}
                   onToggleFavorite={() => {}}
-                  onDelete={() => handleServiceDeleted(service.id)}
+                  onDelete={handleServiceDeleted}
                 />
               ))}
             </div>
@@ -202,8 +203,9 @@ export function MarketplaceTab({
                   key={consultation.id}
                   consultation={consultation} 
                   isFavorite={false}
+                  isOwner={true}
                   onToggleFavorite={() => {}}
-                  onDelete={() => handleConsultationDeleted(consultation.id)}
+                  onDelete={handleConsultationDeleted}
                 />
               ))}
             </div>
@@ -221,16 +223,19 @@ export function MarketplaceTab({
       <AddProductDialog
         open={showAddProductDialog}
         onOpenChange={setShowAddProductDialog}
+        onSuccess={handleItemAdded}
       />
       
       <AddServiceFormDialog
         open={showAddServiceDialog}
         onOpenChange={setShowAddServiceDialog}
+        onSuccess={handleItemAdded}
       />
       
       <AddConsultationDialog
         open={showAddConsultationDialog}
         onOpenChange={setShowAddConsultationDialog}
+        onSuccess={handleItemAdded}
       />
     </div>
   );

@@ -83,6 +83,12 @@ export function useConsultationsFilters({ consultations }: ConsultationsFiltersP
     return filteredConsultations.slice(startIndex, startIndex + itemsPerPage);
   };
   
+  // Funkcja do obsługi filtrów - dodana, aby naprawić błąd typu
+  const handleApplyFilters = () => {
+    // To jest pusta implementacja, która spełnia wymagany typ () => void
+    console.log("Applying filters");
+  };
+  
   return {
     searchQuery,
     setSearchQuery,
@@ -99,6 +105,7 @@ export function useConsultationsFilters({ consultations }: ConsultationsFiltersP
     handlePriceInputChange,
     handleCategorySelect,
     handlePageChange,
-    getCurrentPageConsultations
+    getCurrentPageConsultations,
+    handleApplyFilters
   };
 }

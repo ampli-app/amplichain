@@ -46,7 +46,8 @@ export function ConsultationsMarketplaceContent() {
     handlePriceInputChange,
     handleCategorySelect,
     handlePageChange,
-    getCurrentPageConsultations
+    getCurrentPageConsultations,
+    handleApplyFilters
   } = useConsultationsFilters({ consultations });
 
   const handleAddConsultationClick = () => {
@@ -55,13 +56,6 @@ export function ConsultationsMarketplaceContent() {
     } else {
       setShowAuthDialog(true);
     }
-  };
-
-  // Define a function to handle applying filters
-  const handleApplyFilters = () => {
-    // This function will be passed to MarketplaceFilters
-    // The functionality is already implemented in useConsultationsFilters
-    console.log("Applying filters");
   };
 
   return (

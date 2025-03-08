@@ -7,13 +7,15 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from '@/components/ui/use-toast';
 import { Service } from '@/types/messages';
 
-interface ServiceCardProps {
+export interface ServiceCardProps {
   service: Service;
   isFavorite: boolean;
+  isOwner?: boolean;
   onToggleFavorite: (serviceId: string, isFavorite: boolean) => void;
+  onDelete?: (id: string) => void;
 }
 
-export function ServiceCard({ service, isFavorite, onToggleFavorite }: ServiceCardProps) {
+export function ServiceCard({ service, isFavorite, isOwner = false, onToggleFavorite, onDelete }: ServiceCardProps) {
   return (
     <Card className="relative overflow-hidden hover:shadow-md transition-all group">
       <Button 
@@ -82,7 +84,11 @@ export function ServiceCard({ service, isFavorite, onToggleFavorite }: ServiceCa
             }).format(service.price)}
           </div>
           
-          <Button>Kontakt</Button>
+          {isOwner && onDelete ? (
+            <Button variant="destructive" onClick={() => onDelete(service.id)}>Usuń</Button>
+          ) : (
+            <Button>Kontakt</Button>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -21,7 +20,6 @@ export default function PublicProfile() {
   
   const [commonConnections, setCommonConnections] = useState(0);
   
-  // Sprawdzamy, czy to strona profilowa użytkownika zalogowanego
   useEffect(() => {
     console.log("Publiczny profil, dane autoryzacji:", { isLoggedIn, user, userId });
 
@@ -37,67 +35,67 @@ export default function PublicProfile() {
       return;
     }
     
-    // Pobieranie wspólnych połączeń dla zalogowanego użytkownika
     if (user && userId && isLoggedIn) {
-      fetchCommonConnections(user.id, userId);
+      fetchCommonConnections();
     }
   }, [isLoggedIn, navigate, userId, user]);
 
-  // Zoptymalizowana funkcja do pobierania wspólnych połączeń
-  const fetchCommonConnections = async (currentUserId: string, targetUserId: string) => {
+  const fetchCommonConnections = async () => {
     try {
-      // Get connections for both users in one query to reduce database calls
-      const { data, error } = await supabase
+      const { data: userConnections, error: userConnError } = await supabase
         .from('connections')
-        .select('user_id1, user_id2, status')
-        .or(`user_id1.eq.${currentUserId},user_id2.eq.${currentUserId},user_id1.eq.${targetUserId},user_id2.eq.${targetUserId}`)
+        .select('receiver_id, sender_id')
+        .or(`sender_id.eq.${user?.id},receiver_id.eq.${user?.id}`)
         .eq('status', 'accepted');
-      
-      if (error) {
-        console.error('Error fetching connections:', error);
+
+      if (userConnError) {
+        console.error('Error fetching user connections:', userConnError);
         return;
       }
-      
-      if (!data || data.length === 0) {
-        setCommonConnections(0);
+
+      const { data: profileConnections, error: profileConnError } = await supabase
+        .from('connections')
+        .select('receiver_id, sender_id')
+        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+        .eq('status', 'accepted');
+
+      if (profileConnError) {
+        console.error('Error fetching profile connections:', profileConnError);
         return;
       }
-      
-      // Build sets of connections for each user
-      const currentUserConnections = new Set<string>();
-      const targetUserConnections = new Set<string>();
-      
-      data.forEach(conn => {
-        // Add current user's connections
-        if (conn.user_id1 === currentUserId) {
-          currentUserConnections.add(conn.user_id2);
-        } else if (conn.user_id2 === currentUserId) {
-          currentUserConnections.add(conn.user_id1);
-        }
-        
-        // Add target user's connections
-        if (conn.user_id1 === targetUserId) {
-          targetUserConnections.add(conn.user_id2);
-        } else if (conn.user_id2 === targetUserId) {
-          targetUserConnections.add(conn.user_id1);
-        }
-      });
-      
-      // Count common connections
-      let common = 0;
-      for (const id of currentUserConnections) {
-        if (targetUserConnections.has(id)) {
-          common++;
-        }
+
+      if (!userConnections || !profileConnections) {
+        return;
       }
+
+      const userConnectedIds = userConnections.map(conn => 
+        conn.sender_id === user?.id ? conn.receiver_id : conn.sender_id
+      );
       
-      setCommonConnections(common);
+      const profileConnectedIds = profileConnections.map(conn =>
+        conn.sender_id === userId ? conn.receiver_id : conn.sender_id
+      );
+
+      const commonIds = userConnectedIds.filter(id => profileConnectedIds.includes(id));
+
+      if (commonIds.length > 0) {
+        const { data: commonProfiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', commonIds);
+
+        if (profilesError) {
+          console.error('Error fetching common profiles:', profilesError);
+          return;
+        }
+
+        setCommonConnections(commonProfiles || []);
+      }
     } catch (error) {
-      console.error('Unexpected error fetching common connections:', error);
+      console.error('Unexpected error:', error);
     }
   };
 
-  // Pobierz dane profilu i powiązane informacje
   const { 
     profileData, 
     userProducts, 
@@ -109,7 +107,6 @@ export default function PublicProfile() {
     isLoading
   } = useProfileData(userId, false);
   
-  // Pobierz status połączenia i obserwacji
   const {
     connectionStatus,
     isFollowing,
@@ -117,7 +114,6 @@ export default function PublicProfile() {
     handleFollow
   } = useConnectionStatus(userId, false);
 
-  // Wyświetl stany ładowania
   if (isLoading) {
     return <ProfileLoadingState isLoading={true} />;
   }
@@ -142,7 +138,6 @@ export default function PublicProfile() {
     );
   }
 
-  // Przekieruj do strony wiadomości z użytkownikiem
   const handleSendMessage = () => {
     navigate(`/messages/user/${userId}`);
   };
@@ -154,10 +149,10 @@ export default function PublicProfile() {
         <div className="container px-4 mx-auto">
           <ProfileHeader 
             profileData={profileData}
-            isOwnProfile={false} // Zawsze false dla publicznego profilu
+            isOwnProfile={false}
             connectionStatus={connectionStatus}
-            onEditProfileClick={() => {}} // Funkcja pusta, nie będzie używana
-            onAvatarClick={() => {}} // Funkcja pusta, nie będzie używana
+            onEditProfileClick={() => {}}
+            onAvatarClick={() => {}}
             handleConnectionAction={handleConnectionAction}
             handleFollow={handleFollow}
             isFollowing={isFollowing}
@@ -167,15 +162,15 @@ export default function PublicProfile() {
           
           <ProfileTabs
             defaultTab="feed"
-            isOwnProfile={false} // Zawsze false dla publicznego profilu
+            isOwnProfile={false}
             profileId={userId}
             userProjects={userProjects}
             userProducts={userProducts}
             userExperience={userExperience}
             userEducation={userEducation}
-            onDeleteProduct={() => Promise.resolve()} // Funkcja pusta, nie będzie używana
-            onDeleteService={() => Promise.resolve()} // Funkcja pusta, nie będzie używana
-            onDeleteConsultation={() => Promise.resolve()} // Funkcja pusta, nie będzie używana
+            onDeleteProduct={() => Promise.resolve()}
+            onDeleteService={() => Promise.resolve()}
+            onDeleteConsultation={() => Promise.resolve()}
           />
         </div>
       </main>
