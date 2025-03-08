@@ -10,7 +10,7 @@ import { EducationTab } from './EducationTab';
 import { ProfileRatingsTab } from './ProfileRatingsTab';
 import { MarketplaceTab } from './MarketplaceTab';
 import { useMarketplaceActions } from '@/hooks/useMarketplaceActions';
-import { ClientConsultationsPanel } from '@/components/marketplace/consultations/ClientConsultationsPanel';
+import { ClientConsultationsPanel } from '@/components/marketplace/consultations/client/ClientConsultationsPanel';
 
 interface ProfileTabsProps {
   profileId: string;

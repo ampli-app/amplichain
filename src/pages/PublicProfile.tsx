@@ -178,7 +178,7 @@ export default function PublicProfile() {
           />
           
           <ProfileTabs
-            profileId={profileId || ""}
+            profileId={userId || ""}
             isOwnProfile={false}
           />
         </div>
