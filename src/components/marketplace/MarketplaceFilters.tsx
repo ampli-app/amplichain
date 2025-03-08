@@ -10,15 +10,13 @@ interface MarketplaceFiltersProps {
   priceRange: [number, number];
   setPriceRange: (range: [number, number]) => void;
   minPrice: string;
-  setMinPrice: (price: string) => void;
   maxPrice: string;
-  setMaxPrice: (price: string) => void;
   showTestingOnly: boolean;
   setShowTestingOnly: (value: boolean) => void;
   selectedConditions: string[];
   setSelectedConditions: (conditions: string[]) => void;
   maxProductPrice: number;
-  handlePriceInputChange: () => void;
+  handlePriceInputChange: (type: 'min' | 'max', value: string) => void;  // Updated type
   handleApplyFilters: () => void;
   productConditions: string[];
   showConditionFilter?: boolean;
@@ -29,9 +27,7 @@ export function MarketplaceFilters({
   priceRange,
   setPriceRange,
   minPrice,
-  setMinPrice,
   maxPrice,
-  setMaxPrice,
   showTestingOnly,
   setShowTestingOnly,
   selectedConditions,
@@ -69,8 +65,6 @@ export function MarketplaceFilters({
             step={1000}
             onValueChange={(value) => {
               setPriceRange(value as [number, number]);
-              setMinPrice(value[0].toString());
-              setMaxPrice(value[1].toString());
             }}
             className="my-6"
           />
@@ -100,8 +94,7 @@ export function MarketplaceFilters({
               placeholder="Min"
               className="text-sm"
               value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
-              onBlur={handlePriceInputChange}
+              onChange={(e) => handlePriceInputChange('min', e.target.value)}
               type="number"
               min="0"
               max="999999"
@@ -114,8 +107,7 @@ export function MarketplaceFilters({
               placeholder="Max"
               className="text-sm"
               value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-              onBlur={handlePriceInputChange}
+              onChange={(e) => handlePriceInputChange('max', e.target.value)}
               type="number"
               min="0"
               max="999999"

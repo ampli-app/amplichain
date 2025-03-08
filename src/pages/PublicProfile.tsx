@@ -14,12 +14,21 @@ import { ProfileLoadingState } from '@/components/profile/ProfileLoadingState';
 import { useProfileData } from '@/hooks/useProfileData';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 
+// Define a proper type for profile connections
+interface ProfileConnection {
+  id: string;
+  full_name: string;
+  avatar_url?: string;
+  username?: string;
+  [key: string]: any; // For any other properties
+}
+
 export default function PublicProfile() {
   const { user, isLoggedIn } = useAuth();
   const { userId } = useParams();
   const navigate = useNavigate();
   
-  const [commonConnections, setCommonConnections] = useState<any[]>([]);
+  const [commonConnections, setCommonConnections] = useState<ProfileConnection[]>([]);
   
   useEffect(() => {
     console.log("Publiczny profil, dane autoryzacji:", { isLoggedIn, user, userId });
@@ -70,6 +79,7 @@ export default function PublicProfile() {
       }
 
       if (!userConnectionRequests || !profileConnectionRequests) {
+        setCommonConnections([]);
         return;
       }
 
@@ -95,6 +105,7 @@ export default function PublicProfile() {
 
         if (profilesError) {
           console.error('Error fetching common profiles:', profilesError);
+          setCommonConnections([]);
           return;
         }
 
