@@ -32,7 +32,8 @@ export const useClientConsultations = () => {
         
       if (error) throw error;
       
-      setOrders(data as ConsultationOrder[]);
+      // Konwersja danych do oczekiwanego typu za pomocą rzutowania przez unknown
+      setOrders((data as unknown) as ConsultationOrder[]);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast({

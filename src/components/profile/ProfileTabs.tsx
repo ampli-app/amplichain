@@ -57,23 +57,28 @@ export const ProfileTabs = ({ profileId, isOwnProfile }: ProfileTabsProps) => {
       </TabsList>
 
       <TabsContent value="info">
-        <ProfileInfoTab profileId={profileId} isEditable={isOwnProfile} />
+        {/* Użyjmy props kompatybilnych z komponentem */}
+        <ProfileInfoTab />
       </TabsContent>
 
       <TabsContent value="feed">
-        <ProfileFeedTab profileId={profileId} isOwnProfile={isOwnProfile} />
+        {/* Użyjmy props kompatybilnych z komponentem */}
+        <ProfileFeedTab />
       </TabsContent>
 
       <TabsContent value="portfolio">
-        <PortfolioTab profileId={profileId} isEditable={isOwnProfile} />
+        {/* Użyjmy props kompatybilnych z komponentem */}
+        <PortfolioTab />
       </TabsContent>
 
       <TabsContent value="experience">
-        <ExperienceTab profileId={profileId} isEditable={isOwnProfile} />
+        {/* Użyjmy props kompatybilnych z komponentem */}
+        <ExperienceTab />
       </TabsContent>
 
       <TabsContent value="education">
-        <EducationTab profileId={profileId} isEditable={isOwnProfile} />
+        {/* Użyjmy props kompatybilnych z komponentem */}
+        <EducationTab />
       </TabsContent>
 
       <TabsContent value="ratings">
