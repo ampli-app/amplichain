@@ -45,17 +45,10 @@ export function ConsultationDetail() {
 
   const fetchConsultationDetails = async () => {
     try {
+      // Zmieniono zapytanie, aby pobierać dane konsultacji i profilu oddzielnie
       const { data, error } = await supabase
         .from('consultations')
-        .select(`
-          *,
-          profiles:user_id (
-            id,
-            username,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 
@@ -64,8 +57,29 @@ export function ConsultationDetail() {
       }
 
       if (data) {
-        setConsultation(data as unknown as Consultation);
-        setOwner(data.profiles);
+        setConsultation(data as Consultation);
+        
+        // Teraz pobieramy dane profilu właściciela
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, username, full_name, avatar_url')
+          .eq('id', data.user_id)
+          .single();
+          
+        if (profileError) {
+          console.error('Error fetching owner profile:', profileError);
+        } else {
+          setOwner(profileData);
+          setConsultation(prev => {
+            if (prev) {
+              return {
+                ...prev,
+                profiles: profileData
+              };
+            }
+            return prev;
+          });
+        }
         
         if (user && data.user_id === user.id) {
           setIsOwner(true);
@@ -84,19 +98,21 @@ export function ConsultationDetail() {
   };
 
   const fetchOrders = async () => {
+    if (!id || !user) return;
+    
     try {
       const { data, error } = await supabase
         .from('consultation_orders')
         .select('*')
         .eq('consultation_id', id)
-        .eq('client_id', user?.id);
+        .eq('client_id', user.id);
 
       if (error) {
         throw error;
       }
 
       if (data) {
-        setOrders(data as unknown as ConsultationOrder[]);
+        setOrders(data as ConsultationOrder[]);
       }
     } catch (error) {
       console.error('Error fetching orders:', error);

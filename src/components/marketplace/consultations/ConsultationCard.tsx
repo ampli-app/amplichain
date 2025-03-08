@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Consultation } from '@/types/consultations';
+import { useNavigate } from 'react-router-dom';
 
 export interface ConsultationCardProps {
   consultation: Consultation;
@@ -21,6 +22,12 @@ export function ConsultationCard({
   onToggleFavorite, 
   onDelete 
 }: ConsultationCardProps) {
+  const navigate = useNavigate();
+  
+  const handleReserveClick = () => {
+    navigate(`/consultations/${consultation.id}`);
+  };
+  
   return (
     <Card className="overflow-hidden hover:shadow-md transition-all">
       <Button 
@@ -85,7 +92,7 @@ export function ConsultationCard({
           {isOwner && onDelete ? (
             <Button variant="destructive" onClick={() => onDelete(consultation.id)}>Usuń</Button>
           ) : (
-            <Button>Rezerwuj</Button>
+            <Button onClick={handleReserveClick}>Rezerwuj</Button>
           )}
         </div>
       </CardContent>
