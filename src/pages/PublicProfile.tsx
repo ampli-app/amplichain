@@ -43,52 +43,53 @@ export default function PublicProfile() {
     }
   }, [isLoggedIn, navigate, userId, user]);
 
-  // Funkcja do pobierania wspólnych połączeń - rewrite to avoid infinite type instantiation
+  // Zoptymalizowana funkcja do pobierania wspólnych połączeń
   const fetchCommonConnections = async (currentUserId: string, targetUserId: string) => {
     try {
-      // Get current user's connections
-      const currentUserConnectionsRes = await supabase
+      // Get connections for both users in one query to reduce database calls
+      const { data, error } = await supabase
         .from('connections')
-        .select('user_id1, user_id2')
-        .or(`user_id1.eq.${currentUserId},user_id2.eq.${currentUserId}`)
+        .select('user_id1, user_id2, status')
+        .or(`user_id1.eq.${currentUserId},user_id2.eq.${currentUserId},user_id1.eq.${targetUserId},user_id2.eq.${targetUserId}`)
         .eq('status', 'accepted');
-        
-      if (currentUserConnectionsRes.error) {
-        console.error('Error fetching current user connections:', currentUserConnectionsRes.error);
+      
+      if (error) {
+        console.error('Error fetching connections:', error);
         return;
       }
       
-      const currentUserConnections = currentUserConnectionsRes.data || [];
-      
-      // Get target user's connections
-      const targetUserConnectionsRes = await supabase
-        .from('connections')
-        .select('user_id1, user_id2')
-        .or(`user_id1.eq.${targetUserId},user_id2.eq.${targetUserId}`)
-        .eq('status', 'accepted');
-        
-      if (targetUserConnectionsRes.error) {
-        console.error('Error fetching target user connections:', targetUserConnectionsRes.error);
+      if (!data || data.length === 0) {
+        setCommonConnections(0);
         return;
       }
       
-      const targetUserConnections = targetUserConnectionsRes.data || [];
+      // Build sets of connections for each user
+      const currentUserConnections = new Set<string>();
+      const targetUserConnections = new Set<string>();
       
-      // Create a set of connection IDs for the current user
-      const currentUserConnectionIds = new Set<string>();
-      currentUserConnections.forEach(conn => {
-        const connectedUserId = conn.user_id1 === currentUserId ? conn.user_id2 : conn.user_id1;
-        currentUserConnectionIds.add(connectedUserId);
-      });
-      
-      // Find common connections
-      let common = 0;
-      targetUserConnections.forEach(conn => {
-        const connectedUserId = conn.user_id1 === targetUserId ? conn.user_id2 : conn.user_id1;
-        if (currentUserConnectionIds.has(connectedUserId)) {
-          common++;
+      data.forEach(conn => {
+        // Add current user's connections
+        if (conn.user_id1 === currentUserId) {
+          currentUserConnections.add(conn.user_id2);
+        } else if (conn.user_id2 === currentUserId) {
+          currentUserConnections.add(conn.user_id1);
+        }
+        
+        // Add target user's connections
+        if (conn.user_id1 === targetUserId) {
+          targetUserConnections.add(conn.user_id2);
+        } else if (conn.user_id2 === targetUserId) {
+          targetUserConnections.add(conn.user_id1);
         }
       });
+      
+      // Count common connections
+      let common = 0;
+      for (const id of currentUserConnections) {
+        if (targetUserConnections.has(id)) {
+          common++;
+        }
+      }
       
       setCommonConnections(common);
     } catch (error) {

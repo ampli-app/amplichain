@@ -179,7 +179,6 @@ export function MarketplaceTab({
                   key={service.id}
                   service={service} 
                   isFavorite={false}
-                  isOwner={true}
                   onToggleFavorite={() => {}}
                   onDelete={() => handleServiceDeleted(service.id)}
                 />
@@ -203,7 +202,6 @@ export function MarketplaceTab({
                   key={consultation.id}
                   consultation={consultation} 
                   isFavorite={false}
-                  isOwner={true}
                   onToggleFavorite={() => {}}
                   onDelete={() => handleConsultationDeleted(consultation.id)}
                 />
@@ -223,19 +221,16 @@ export function MarketplaceTab({
       <AddProductDialog
         open={showAddProductDialog}
         onOpenChange={setShowAddProductDialog}
-        onSuccess={handleItemAdded}
       />
       
       <AddServiceFormDialog
         open={showAddServiceDialog}
         onOpenChange={setShowAddServiceDialog}
-        onSuccess={handleItemAdded}
       />
       
       <AddConsultationDialog
         open={showAddConsultationDialog}
         onOpenChange={setShowAddConsultationDialog}
-        onSuccess={handleItemAdded}
       />
     </div>
   );

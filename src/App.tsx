@@ -17,7 +17,7 @@ import Discover from '@/pages/Discover';
 import Messages from '@/pages/Messages';
 import Marketplace from '@/pages/Marketplace';
 import ProductDetail from '@/pages/ProductDetail';
-import { ConsultationDetail } from '@/pages/ConsultationDetail';
+import ConsultationDetail from '@/pages/ConsultationDetail';
 import EditProduct from '@/pages/EditProduct';
 import Checkout from '@/pages/Checkout';
 import CheckoutSuccess from '@/pages/CheckoutSuccess';

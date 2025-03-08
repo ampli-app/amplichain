@@ -61,6 +61,7 @@ export function ConsultationsMarketplaceContent() {
   const handleApplyFilters = () => {
     // This function will be passed to MarketplaceFilters
     // The functionality is already implemented in useConsultationsFilters
+    console.log("Applying filters");
   };
 
   return (
