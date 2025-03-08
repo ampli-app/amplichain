@@ -120,36 +120,63 @@ export type Database = {
           client_id: string
           completed_at: string | null
           consultation_id: string
+          contact_method: string | null
           created_at: string
+          date: string | null
           expert_id: string
           expires_at: string
           id: string
+          is_client_confirmed: boolean | null
           is_completed: boolean | null
+          is_expert_confirmed: boolean | null
+          is_online: boolean | null
+          is_paid: boolean | null
+          location: string | null
+          price: number
           status: string
+          time: string | null
         }
         Insert: {
           amount: number
           client_id: string
           completed_at?: string | null
           consultation_id: string
+          contact_method?: string | null
           created_at?: string
+          date?: string | null
           expert_id: string
           expires_at: string
           id?: string
+          is_client_confirmed?: boolean | null
           is_completed?: boolean | null
+          is_expert_confirmed?: boolean | null
+          is_online?: boolean | null
+          is_paid?: boolean | null
+          location?: string | null
+          price?: number
           status?: string
+          time?: string | null
         }
         Update: {
           amount?: number
           client_id?: string
           completed_at?: string | null
           consultation_id?: string
+          contact_method?: string | null
           created_at?: string
+          date?: string | null
           expert_id?: string
           expires_at?: string
           id?: string
+          is_client_confirmed?: boolean | null
           is_completed?: boolean | null
+          is_expert_confirmed?: boolean | null
+          is_online?: boolean | null
+          is_paid?: boolean | null
+          location?: string | null
+          price?: number
           status?: string
+          time?: string | null
         }
         Relationships: [
           {
@@ -157,6 +184,54 @@ export type Database = {
             columns: ["consultation_id"]
             isOneToOne: false
             referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consultation_ratings: {
+        Row: {
+          client_id: string | null
+          comment: string | null
+          consultation_id: string | null
+          created_at: string
+          expert_id: string | null
+          id: string
+          order_id: string | null
+          rating: number
+        }
+        Insert: {
+          client_id?: string | null
+          comment?: string | null
+          consultation_id?: string | null
+          created_at?: string
+          expert_id?: string | null
+          id?: string
+          order_id?: string | null
+          rating: number
+        }
+        Update: {
+          client_id?: string | null
+          comment?: string | null
+          consultation_id?: string | null
+          created_at?: string
+          expert_id?: string | null
+          id?: string
+          order_id?: string | null
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultation_ratings_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultation_ratings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "consultation_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -203,6 +278,7 @@ export type Database = {
         Row: {
           availability: string[] | null
           categories: string[] | null
+          contact_methods: string[] | null
           created_at: string
           description: string | null
           experience: string | null
@@ -217,6 +293,7 @@ export type Database = {
         Insert: {
           availability?: string[] | null
           categories?: string[] | null
+          contact_methods?: string[] | null
           created_at?: string
           description?: string | null
           experience?: string | null
@@ -231,6 +308,7 @@ export type Database = {
         Update: {
           availability?: string[] | null
           categories?: string[] | null
+          contact_methods?: string[] | null
           created_at?: string
           description?: string | null
           experience?: string | null

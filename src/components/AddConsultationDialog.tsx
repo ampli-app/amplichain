@@ -50,6 +50,9 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
   const [isInPerson, setIsInPerson] = useState(false);
   const [location, setLocation] = useState('');
   
+  // Metody kontaktu
+  const [contactMethods, setContactMethods] = useState<string[]>([]);
+  
   // Tagi i etykiety
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -70,6 +73,7 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
     setIsOnline(true);
     setIsInPerson(false);
     setLocation('');
+    setContactMethods([]);
     setTags([]);
     setTagInput('');
   };
@@ -79,6 +83,14 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
       prev.includes(category) 
         ? prev.filter(c => c !== category)
         : [...prev, category]
+    );
+  };
+  
+  const toggleContactMethod = (method: string) => {
+    setContactMethods(prev => 
+      prev.includes(method) 
+        ? prev.filter(m => m !== method)
+        : [...prev, method]
     );
   };
   
@@ -131,6 +143,15 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
       return;
     }
     
+    if (contactMethods.length === 0) {
+      toast({
+        title: "Brak metod kontaktu",
+        description: "Wybierz przynajmniej jedną metodę kontaktu dla swoich konsultacji.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
@@ -148,6 +169,7 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
         is_online: isOnline,
         location: isInPerson ? location : null,
         availability: [], // Docelowo można dodać wybór dostępności
+        contact_methods: contactMethods,
       };
       
       const { data, error } = await supabase
@@ -289,6 +311,42 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
             </div>
           </div>
           
+          <div className="grid gap-3">
+            <Label>Metody kontaktu</Label>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="contact-video"
+                  checked={contactMethods.includes('video')}
+                  onCheckedChange={() => toggleContactMethod('video')}
+                />
+                <Label htmlFor="contact-video" className="font-normal cursor-pointer">
+                  Rozmowa wideo (Zoom, Google Meet, itp.)
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="contact-phone"
+                  checked={contactMethods.includes('phone')}
+                  onCheckedChange={() => toggleContactMethod('phone')}
+                />
+                <Label htmlFor="contact-phone" className="font-normal cursor-pointer">
+                  Rozmowa telefoniczna
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="contact-chat"
+                  checked={contactMethods.includes('chat')}
+                  onCheckedChange={() => toggleContactMethod('chat')}
+                />
+                <Label htmlFor="contact-chat" className="font-normal cursor-pointer">
+                  Czat tekstowy
+                </Label>
+              </div>
+            </div>
+          </div>
+          
           <Separator />
           
           <div className="grid gap-3">
@@ -379,6 +437,13 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
                   {price ? `${price} PLN` : "Cena"} {price ? priceType : ""}
                 </span>
               </div>
+              
+              {contactMethods.length > 0 && (
+                <div className="text-sm mt-2">
+                  <span className="font-medium">Metody kontaktu: </span>
+                  {contactMethods.join(', ')}
+                </div>
+              )}
             </Card>
           </div>
         </div>

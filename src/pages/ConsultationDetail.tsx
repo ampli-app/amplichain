@@ -18,7 +18,22 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Consultation, ConsultationOrder } from "@/types/consultations";
+import { 
+  Calendar, 
+  Clock, 
+  MessageSquare, 
+  Check, 
+  X, 
+  User,
+  Video,
+  Phone, 
+  ExternalLink,
+  Info
+} from 'lucide-react';
 
 export function ConsultationDetail() {
   const { id } = useParams<{ id: string }>();
@@ -32,6 +47,7 @@ export function ConsultationDetail() {
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+  const [selectedContactMethod, setSelectedContactMethod] = useState<string>('');
   const [orders, setOrders] = useState<ConsultationOrder[]>([]);
 
   useEffect(() => {
@@ -89,6 +105,11 @@ export function ConsultationDetail() {
         if (user && data.user_id === user.id) {
           setIsOwner(true);
         }
+
+        // Jeśli konsultacja ma dostępne metody kontaktu, wybierz pierwszą jako domyślną
+        if (data.contact_methods && data.contact_methods.length > 0) {
+          setSelectedContactMethod(data.contact_methods[0]);
+        }
       }
     } catch (error) {
       console.error('Error fetching consultation details:', error);
@@ -110,7 +131,10 @@ export function ConsultationDetail() {
       
       const { data, error } = await supabase
         .from('consultation_orders')
-        .select('*')
+        .select(`
+          *,
+          consultations:consultation_id(title, description)
+        `)
         .eq('consultation_id', id)
         .eq('client_id', user.id);
 
@@ -149,25 +173,38 @@ export function ConsultationDetail() {
       return;
     }
 
+    if (!selectedContactMethod && consultation.contact_methods && consultation.contact_methods.length > 0) {
+      toast({
+        title: "Wybierz metodę kontaktu",
+        description: "Wybierz preferowaną metodę kontaktu.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      // Calculate expiration date (24 hours from now)
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 24);
+      // Calculate expiration date (7 days from selected date)
+      const selectedDateTime = new Date(selectedDate);
+      const expiresAt = new Date(selectedDateTime);
+      expiresAt.setDate(expiresAt.getDate() + 7);
 
       const orderData = {
         consultation_id: consultation.id,
         client_id: user.id,
         expert_id: consultation.user_id,
         status: 'pending',
+        price: consultation.price,
         amount: consultation.price,
         date: selectedDate,
         time: selectedTime,
+        contact_method: selectedContactMethod,
         is_paid: false,
         is_completed: false,
+        is_client_confirmed: false,
+        is_expert_confirmed: false,
         is_online: consultation.is_online,
         location: consultation.location,
-        expires_at: expiresAt.toISOString(),
-        price: consultation.price
+        expires_at: expiresAt.toISOString()
       };
 
       const { data, error } = await supabase
@@ -199,6 +236,8 @@ export function ConsultationDetail() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'pending_payment':
+        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Oczekuje na płatność</Badge>;
       case 'pending':
         return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Oczekujące</Badge>;
       case 'accepted':
@@ -207,8 +246,36 @@ export function ConsultationDetail() {
         return <Badge variant="outline" className="bg-red-100 text-red-800">Odrzucone</Badge>;
       case 'completed':
         return <Badge variant="outline" className="bg-blue-100 text-blue-800">Zakończone</Badge>;
+      case 'cancelled':
+        return <Badge variant="outline" className="bg-gray-100 text-gray-800">Anulowane</Badge>;
       default:
         return <Badge variant="outline">Nieznany</Badge>;
+    }
+  };
+
+  const getContactMethodIcon = (method: string) => {
+    switch (method) {
+      case 'video':
+        return <Video className="h-4 w-4" aria-hidden="true" />;
+      case 'phone':
+        return <Phone className="h-4 w-4" aria-hidden="true" />;
+      case 'chat':
+        return <MessageSquare className="h-4 w-4" aria-hidden="true" />;
+      default:
+        return null;
+    }
+  };
+
+  const getContactMethodLabel = (method: string) => {
+    switch (method) {
+      case 'video':
+        return 'Rozmowa wideo';
+      case 'phone':
+        return 'Rozmowa telefoniczna';
+      case 'chat':
+        return 'Czat tekstowy';
+      default:
+        return method;
     }
   };
 
@@ -300,7 +367,36 @@ export function ConsultationDetail() {
                       <span className="font-medium min-w-32">Doświadczenie:</span>
                       <span>{consultation.experience ? `${consultation.experience} lat` : 'Nie podano'}</span>
                     </li>
+                    {consultation.contact_methods && consultation.contact_methods.length > 0 && (
+                      <li className="flex items-start">
+                        <span className="font-medium min-w-32">Metody kontaktu:</span>
+                        <div className="flex flex-col gap-1">
+                          {consultation.contact_methods.map((method, index) => (
+                            <span key={index} className="flex items-center">
+                              {getContactMethodIcon(method)}
+                              <span className="ml-1">{getContactMethodLabel(method)}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </li>
+                    )}
                   </ul>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-md mt-6 text-sm">
+                <div className="flex items-start">
+                  <Info className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-blue-800">Jak działa proces konsultacji?</p>
+                    <ul className="mt-2 space-y-1 text-blue-700">
+                      <li>1. Zarezerwuj konsultację wybierając preferowaną datę i godzinę.</li>
+                      <li>2. Po zaakceptowaniu przez eksperta, dokonaj płatności.</li>
+                      <li>3. Skontaktuj się z ekspertem przez wybraną metodę kontaktu.</li>
+                      <li>4. Masz 7 dni na przeprowadzenie konsultacji od wybranej daty.</li>
+                      <li>5. Po zakończeniu, potwierdź odbycie konsultacji w panelu klienta.</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -321,9 +417,9 @@ export function ConsultationDetail() {
                     
                     <div className="grid gap-4 py-4">
                       <div className="grid grid-cols-4 items-center gap-4">
-                        <label htmlFor="date" className="text-right col-span-1">
+                        <Label htmlFor="date" className="text-right col-span-1">
                           Data
-                        </label>
+                        </Label>
                         <input
                           id="date"
                           type="date"
@@ -334,9 +430,9 @@ export function ConsultationDetail() {
                         />
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">
-                        <label htmlFor="time" className="text-right col-span-1">
+                        <Label htmlFor="time" className="text-right col-span-1">
                           Godzina
-                        </label>
+                        </Label>
                         <input
                           id="time"
                           type="time"
@@ -344,6 +440,36 @@ export function ConsultationDetail() {
                           value={selectedTime}
                           onChange={(e) => setSelectedTime(e.target.value)}
                         />
+                      </div>
+
+                      {consultation.contact_methods && consultation.contact_methods.length > 0 && (
+                        <div className="grid grid-cols-4 items-start gap-4">
+                          <Label className="text-right col-span-1 mt-2">
+                            Metoda kontaktu
+                          </Label>
+                          <RadioGroup 
+                            className="col-span-3"
+                            value={selectedContactMethod}
+                            onValueChange={setSelectedContactMethod}
+                          >
+                            {consultation.contact_methods.map((method) => (
+                              <div key={method} className="flex items-center space-x-2">
+                                <RadioGroupItem value={method} id={`contact-${method}`} />
+                                <Label htmlFor={`contact-${method}`} className="flex items-center cursor-pointer">
+                                  {getContactMethodIcon(method)}
+                                  <span className="ml-2">{getContactMethodLabel(method)}</span>
+                                </Label>
+                              </div>
+                            ))}
+                          </RadioGroup>
+                        </div>
+                      )}
+
+                      <div className="bg-muted p-3 rounded-md col-span-4 text-sm">
+                        <p className="flex items-center text-muted-foreground">
+                          <Info className="h-4 w-4 mr-2" />
+                          Po zarezerwowaniu terminu będziesz mieć 7 dni na przeprowadzenie konsultacji od wybranej daty.
+                        </p>
                       </div>
                     </div>
                     
@@ -386,6 +512,50 @@ export function ConsultationDetail() {
                       <div className="text-sm text-muted-foreground">
                         Utworzono: {new Date(order.created_at).toLocaleDateString()}
                       </div>
+                      {order.contact_method && (
+                        <div className="text-sm mt-2 flex items-center">
+                          {getContactMethodIcon(order.contact_method)}
+                          <span className="ml-1">{getContactMethodLabel(order.contact_method)}</span>
+                        </div>
+                      )}
+                      {order.expires_at && (
+                        <div className="text-sm mt-1">
+                          Termin ważności: {new Date(order.expires_at).toLocaleDateString()}
+                        </div>
+                      )}
+                      
+                      {order.status === 'pending' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 w-full text-red-600"
+                          onClick={() => {
+                            toast({
+                              title: "Anulowanie",
+                              description: "Funkcja anulowania jest w trakcie implementacji.",
+                            });
+                          }}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Anuluj rezerwację
+                        </Button>
+                      )}
+                      
+                      {order.status === 'accepted' && (
+                        <Button
+                          size="sm"
+                          className="mt-2 w-full"
+                          onClick={() => {
+                            toast({
+                              title: "Kontakt",
+                              description: "Funkcja kontaktu jest w trakcie implementacji.",
+                            });
+                          }}
+                        >
+                          <MessageSquare className="h-4 w-4 mr-1" />
+                          Skontaktuj się z ekspertem
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
