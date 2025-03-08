@@ -30,6 +30,7 @@ export default function Profile() {
   const { user, isLoggedIn } = useAuth();
   const { userId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
