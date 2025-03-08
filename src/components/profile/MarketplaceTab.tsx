@@ -223,19 +223,16 @@ export function MarketplaceTab({
       <AddProductDialog
         open={showAddProductDialog}
         onOpenChange={setShowAddProductDialog}
-        onSuccess={handleItemAdded}
       />
       
       <AddServiceFormDialog
         open={showAddServiceDialog}
         onOpenChange={setShowAddServiceDialog}
-        onSuccess={handleItemAdded}
       />
       
       <AddConsultationDialog
         open={showAddConsultationDialog}
         onOpenChange={setShowAddConsultationDialog}
-        onSuccess={handleItemAdded}
       />
     </div>
   );

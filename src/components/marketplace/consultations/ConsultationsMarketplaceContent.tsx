@@ -58,6 +58,11 @@ export function ConsultationsMarketplaceContent() {
     }
   };
 
+  // Definiujemy funkcję zaślepkę dla handleApplyFilters aby móc ją przekazać jako prop
+  const applyFilters = () => {
+    handleApplyFilters();
+  };
+
   return (
     <div>
       <CategorySelection 
@@ -90,7 +95,7 @@ export function ConsultationsMarketplaceContent() {
             setSelectedConditions={() => {}}
             maxProductPrice={2000}
             handlePriceInputChange={handlePriceInputChange}
-            handleApplyFilters={handleApplyFilters}
+            handleApplyFilters={applyFilters}
             productConditions={[]}
             showConditionFilter={false}
             showTestingFilter={false}

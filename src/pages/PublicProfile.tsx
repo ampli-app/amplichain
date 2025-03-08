@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -18,7 +19,7 @@ export default function PublicProfile() {
   const { userId } = useParams();
   const navigate = useNavigate();
   
-  const [commonConnections, setCommonConnections] = useState(0);
+  const [commonConnections, setCommonConnections] = useState<any[]>([]);
   
   useEffect(() => {
     console.log("Publiczny profil, dane autoryzacji:", { isLoggedIn, user, userId });
@@ -41,11 +42,14 @@ export default function PublicProfile() {
   }, [isLoggedIn, navigate, userId, user]);
 
   const fetchCommonConnections = async () => {
+    if (!user || !userId) return;
+    
     try {
-      const { data: userConnections, error: userConnError } = await supabase
-        .from('connections')
-        .select('receiver_id, sender_id')
-        .or(`sender_id.eq.${user?.id},receiver_id.eq.${user?.id}`)
+      // Pobierz połączenia dla bieżącego użytkownika
+      const { data: userConnectionRequests, error: userConnError } = await supabase
+        .from('connection_requests')
+        .select('sender_id, receiver_id')
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .eq('status', 'accepted');
 
       if (userConnError) {
@@ -53,9 +57,10 @@ export default function PublicProfile() {
         return;
       }
 
-      const { data: profileConnections, error: profileConnError } = await supabase
-        .from('connections')
-        .select('receiver_id, sender_id')
+      // Pobierz połączenia dla przeglądanego profilu
+      const { data: profileConnectionRequests, error: profileConnError } = await supabase
+        .from('connection_requests')
+        .select('sender_id, receiver_id')
         .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .eq('status', 'accepted');
 
@@ -64,22 +69,26 @@ export default function PublicProfile() {
         return;
       }
 
-      if (!userConnections || !profileConnections) {
+      if (!userConnectionRequests || !profileConnectionRequests) {
         return;
       }
 
-      const userConnectedIds = userConnections.map(conn => 
-        conn.sender_id === user?.id ? conn.receiver_id : conn.sender_id
+      // Zbierz ID połączeń bieżącego użytkownika
+      const userConnectedIds = userConnectionRequests.map(conn => 
+        conn.sender_id === user.id ? conn.receiver_id : conn.sender_id
       );
       
-      const profileConnectedIds = profileConnections.map(conn =>
+      // Zbierz ID połączeń przeglądanego profilu
+      const profileConnectedIds = profileConnectionRequests.map(conn =>
         conn.sender_id === userId ? conn.receiver_id : conn.sender_id
       );
 
+      // Znajdź wspólne połączenia
       const commonIds = userConnectedIds.filter(id => profileConnectedIds.includes(id));
 
       if (commonIds.length > 0) {
-        const { data: commonProfiles, error: profilesError } = await supabase
+        // Pobierz dane profilowe dla wspólnych połączeń
+        const { data: commonProfilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('*')
           .in('id', commonIds);
@@ -89,7 +98,7 @@ export default function PublicProfile() {
           return;
         }
 
-        setCommonConnections(commonProfiles || []);
+        setCommonConnections(commonProfilesData || []);
       }
     } catch (error) {
       console.error('Unexpected error:', error);
