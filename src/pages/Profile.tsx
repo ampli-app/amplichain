@@ -17,16 +17,24 @@ import { useProfileData } from '@/hooks/useProfileData';
 import { useMarketplaceActions } from '@/hooks/useMarketplaceActions';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 
+// Define a proper type for profile connections
+interface ProfileConnection {
+  id: string;
+  full_name: string;
+  avatar_url?: string;
+  username?: string;
+  [key: string]: any; // For any other properties
+}
+
 export default function Profile() {
   const { user, isLoggedIn } = useAuth();
   const { userId } = useParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isChangeAvatarOpen, setIsChangeAvatarOpen] = useState(false);
-  const [commonConnections, setCommonConnections] = useState(0);
+  const [commonConnections, setCommonConnections] = useState<ProfileConnection[]>([]);
   
   const defaultTab = searchParams.get('tab') || 'info';
   const marketplaceTab = searchParams.get('marketplaceTab') || 'products';
@@ -92,17 +100,34 @@ export default function Profile() {
       });
       
       // Znajdź wspólne połączenia
-      let common = 0;
+      const commonIds: string[] = [];
       targetUserConnections.forEach(conn => {
         const connectedUserId = conn.user_id1 === targetUserId ? conn.user_id2 : conn.user_id1;
         if (currentUserConnectionIds.has(connectedUserId)) {
-          common++;
+          commonIds.push(connectedUserId);
         }
       });
       
-      setCommonConnections(common);
+      if (commonIds.length > 0) {
+        // Pobierz dane profilowe dla wspólnych połączeń
+        const { data: commonProfilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', commonIds);
+
+        if (profilesError) {
+          console.error('Error fetching common profiles:', profilesError);
+          setCommonConnections([]);
+          return;
+        }
+
+        setCommonConnections(commonProfilesData || []);
+      } else {
+        setCommonConnections([]);
+      }
     } catch (error) {
       console.error('Unexpected error fetching common connections:', error);
+      setCommonConnections([]);
     }
   };
 
