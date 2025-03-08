@@ -51,26 +51,19 @@ export function useConsultationsFilters({ consultations }: ConsultationsFiltersP
     setSelectedCategory(category);
   };
   
-  // Handle price input change - modified to match the expected signature
+  // Handle price input change
   const handlePriceInputChange = useCallback((type: 'min' | 'max', value: string) => {
-    const numValue = Number(value);
-    
     if (type === 'min') {
-      if (value === '' || isNaN(numValue)) {
-        setMinPrice('');
-      } else {
-        setMinPrice(value);
-        setPriceRange([numValue, priceRange[1]]);
-      }
+      setMinPrice(value);
+      const min = parseFloat(value) || 0;
+      setPriceRange([min, priceRange[1]]);
     } else {
-      if (value === '' || isNaN(numValue)) {
-        setMaxPrice('');
-      } else {
-        setMaxPrice(value);
-        setPriceRange([priceRange[0], numValue]);
-      }
+      setMaxPrice(value);
+      const max = parseFloat(value) || 1000;
+      const limitedMax = Math.min(max, 999999);
+      setPriceRange([priceRange[0], limitedMax]);
     }
-  }, [priceRange]);
+  }, [priceRange, setPriceRange]);
   
   // Handle page change
   const handlePageChange = (page: number) => {
@@ -83,7 +76,7 @@ export function useConsultationsFilters({ consultations }: ConsultationsFiltersP
     return filteredConsultations.slice(startIndex, startIndex + itemsPerPage);
   };
   
-  // Function for applying filters that matches the expected signature
+  // Function for applying filters
   const handleApplyFilters = useCallback(() => {
     console.log("Applying filters");
   }, []);
@@ -95,9 +88,7 @@ export function useConsultationsFilters({ consultations }: ConsultationsFiltersP
     priceRange,
     setPriceRange,
     minPrice,
-    setMinPrice,
     maxPrice,
-    setMaxPrice,
     filteredConsultations,
     currentPage,
     totalPages,

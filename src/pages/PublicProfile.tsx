@@ -63,6 +63,7 @@ export default function PublicProfile() {
 
       if (userConnError) {
         console.error('Error fetching user connections:', userConnError);
+        setCommonConnections([]);
         return;
       }
 
@@ -75,6 +76,7 @@ export default function PublicProfile() {
 
       if (profileConnError) {
         console.error('Error fetching profile connections:', profileConnError);
+        setCommonConnections([]);
         return;
       }
 

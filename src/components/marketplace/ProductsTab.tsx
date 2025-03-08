@@ -210,15 +210,16 @@ export function ProductsTab({
     setMaxPrice(newRange[1].toString());
   };
 
-  const handlePriceInputChange = () => {
-    const min = parseFloat(minPrice) || 0;
-    const max = parseFloat(maxPrice) || maxProductPrice;
-    
-    const limitedMax = Math.min(max, 999999);
-    
-    setPriceRange([min, limitedMax]);
-    if (limitedMax !== max) {
-      setMaxPrice(limitedMax.toString());
+  const handlePriceInputChange = (type: 'min' | 'max', value: string) => {
+    if (type === 'min') {
+      setMinPrice(value);
+      const min = parseFloat(value) || 0;
+      setPriceRange([min, priceRange[1]]);
+    } else {
+      setMaxPrice(value);
+      const max = parseFloat(value) || maxProductPrice;
+      const limitedMax = Math.min(max, 999999);
+      setPriceRange([priceRange[0], limitedMax]);
     }
   };
 
@@ -355,9 +356,7 @@ export function ProductsTab({
               priceRange={priceRange}
               setPriceRange={setPriceRange}
               minPrice={minPrice}
-              setMinPrice={setMinPrice}
               maxPrice={maxPrice}
-              setMaxPrice={setMaxPrice}
               showTestingOnly={showTestingOnly}
               setShowTestingOnly={setShowTestingOnly}
               selectedConditions={selectedConditions}

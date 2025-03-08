@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Service } from '@/types/messages';
 
 export function useServicesFilters(services: Service[]) {
@@ -55,17 +54,18 @@ export function useServicesFilters(services: Service[]) {
     }
   };
 
-  const handlePriceInputChange = () => {
-    const min = parseFloat(minPrice) || 0;
-    const max = parseFloat(maxPrice) || 5000;
-    
-    const limitedMax = Math.min(max, 999999);
-    
-    setPriceRange([min, limitedMax]);
-    if (limitedMax !== max) {
-      setMaxPrice(limitedMax.toString());
+  const handlePriceInputChange = useCallback((type: 'min' | 'max', value: string) => {
+    if (type === 'min') {
+      setMinPrice(value);
+      const min = parseFloat(value) || 0;
+      setPriceRange([min, priceRange[1]]);
+    } else {
+      setMaxPrice(value);
+      const max = parseFloat(value) || 5000;
+      const limitedMax = Math.min(max, 999999);
+      setPriceRange([priceRange[0], limitedMax]);
     }
-  };
+  }, [priceRange, setPriceRange]);
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(categoryId === 'all' ? '' : categoryId);
@@ -91,9 +91,7 @@ export function useServicesFilters(services: Service[]) {
     priceRange,
     setPriceRange,
     minPrice,
-    setMinPrice,
     maxPrice, 
-    setMaxPrice,
     filteredServices,
     currentPage,
     totalPages,
