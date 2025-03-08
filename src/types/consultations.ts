@@ -25,14 +25,16 @@ export interface ConsultationOrder {
   consultation_id: string;
   client_id: string;
   expert_id: string;
-  user_id: string;
   status: string;
   price: number;
   amount: number;
   date: string;
   time: string;
+  contact_method?: string;
   is_paid: boolean;
   is_completed: boolean;
+  is_client_confirmed?: boolean;
+  is_expert_confirmed?: boolean;
   is_online: boolean;
   location: string;
   created_at: string;

@@ -1,5 +1,4 @@
 
-// Update MarketplaceTab to accept the required props
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
@@ -13,6 +12,7 @@ import { AddConsultationDialog } from '@/components/AddConsultationDialog';
 import { ProductCard } from '../marketplace/ProductCard';
 import { ServiceCard } from '@/components/marketplace/services/ServiceCard';
 import { ConsultationCard } from '@/components/marketplace/consultations/ConsultationCard';
+import { ExpertConsultationsPanel } from '@/components/marketplace/consultations/ExpertConsultationsPanel';
 
 interface MarketplaceTabProps {
   profileId: string;
@@ -36,9 +36,20 @@ export function MarketplaceTab({
   const [showAddServiceDialog, setShowAddServiceDialog] = useState(false);
   const [showAddConsultationDialog, setShowAddConsultationDialog] = useState(false);
   
+  const [activeMarketplaceTab, setActiveMarketplaceTab] = useState('products');
+  const [activeConsultationsTab, setActiveConsultationsTab] = useState('items');
+  
   useEffect(() => {
     if (profileId) {
       fetchMarketplaceItems();
+      
+      // Sprawdź czy w URL jest parametr marketplaceTab i ustaw odpowiednią zakładkę
+      const urlParams = new URLSearchParams(window.location.search);
+      const marketplaceTabParam = urlParams.get('marketplaceTab');
+      
+      if (marketplaceTabParam && ['products', 'services', 'consultations'].includes(marketplaceTabParam)) {
+        setActiveMarketplaceTab(marketplaceTabParam);
+      }
     }
   }, [profileId]);
   
@@ -103,6 +114,15 @@ export function MarketplaceTab({
     fetchMarketplaceItems();
   };
   
+  const handleMarketplaceTabChange = (value: string) => {
+    setActiveMarketplaceTab(value);
+    
+    // Aktualizuj URL z parametrem marketplaceTab
+    const url = new URL(window.location.href);
+    url.searchParams.set('marketplaceTab', value);
+    window.history.pushState({}, '', url);
+  };
+  
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -113,7 +133,7 @@ export function MarketplaceTab({
   
   return (
     <div>
-      <Tabs defaultValue="products">
+      <Tabs value={activeMarketplaceTab} onValueChange={handleMarketplaceTabChange}>
         <div className="flex justify-between items-center mb-6">
           <TabsList>
             <TabsTrigger value="products">Produkty</TabsTrigger>
@@ -196,27 +216,40 @@ export function MarketplaceTab({
         </TabsContent>
         
         <TabsContent value="consultations">
-          {consultations.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {consultations.map(consultation => (
-                <ConsultationCard 
-                  key={consultation.id}
-                  consultation={consultation} 
-                  isFavorite={false}
-                  isOwner={true}
-                  onToggleFavorite={() => {}}
-                  onDelete={handleConsultationDeleted}
-                />
-              ))}
-            </div>
-          ) : (
-            <Card className="p-6 text-center">
-              <p className="text-muted-foreground mb-4">Nie masz jeszcze żadnych konsultacji.</p>
-              <Button onClick={() => setShowAddConsultationDialog(true)}>
-                Dodaj pierwszą konsultację
-              </Button>
-            </Card>
-          )}
+          <Tabs value={activeConsultationsTab} onValueChange={setActiveConsultationsTab}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="items">Moje oferty</TabsTrigger>
+              <TabsTrigger value="orders">Panel eksperta</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="items">
+              {consultations.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {consultations.map(consultation => (
+                    <ConsultationCard 
+                      key={consultation.id}
+                      consultation={consultation} 
+                      isFavorite={false}
+                      isOwner={true}
+                      onToggleFavorite={() => {}}
+                      onDelete={handleConsultationDeleted}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Card className="p-6 text-center">
+                  <p className="text-muted-foreground mb-4">Nie masz jeszcze żadnych konsultacji.</p>
+                  <Button onClick={() => setShowAddConsultationDialog(true)}>
+                    Dodaj pierwszą konsultację
+                  </Button>
+                </Card>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="orders">
+              <ExpertConsultationsPanel />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
       

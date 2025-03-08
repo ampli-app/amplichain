@@ -1,82 +1,102 @@
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ProductsTab } from '@/components/profile/ProductsTab';
-import { ProfileFeedTab } from '@/components/profile/ProfileFeedTab';
-import { ProfileInfoTab } from '@/components/profile/ProfileInfoTab';
-import { ProfileRatingsTab } from '@/components/profile/ProfileRatingsTab';
-import { MarketplaceTab } from '@/components/profile/MarketplaceTab';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ProfileInfoTab } from './ProfileInfoTab';
+import { ProfileFeedTab } from './ProfileFeedTab';
+import { PortfolioTab } from './PortfolioTab';
+import { ExperienceTab } from './ExperienceTab';
+import { EducationTab } from './EducationTab';
+import { ProfileRatingsTab } from './ProfileRatingsTab';
+import { MarketplaceTab } from './MarketplaceTab';
+import { useMarketplaceActions } from '@/hooks/useMarketplaceActions';
+import { ClientConsultationsPanel } from '@/components/marketplace/consultations/ClientConsultationsPanel';
 
 interface ProfileTabsProps {
-  defaultTab: string;
-  isOwnProfile: boolean;
   profileId: string;
-  userProjects: any[];
-  userProducts: any[];
-  userExperience: any[];
-  userEducation: any[];
-  onDeleteProduct: (id: string) => Promise<void>;
-  onDeleteService: (id: string) => Promise<void>;
-  onDeleteConsultation: (id: string) => Promise<void>;
+  isOwnProfile: boolean;
 }
 
-export function ProfileTabs({
-  defaultTab,
-  isOwnProfile,
-  profileId,
-  userProjects,
-  userProducts,
-  userExperience,
-  userEducation,
-  onDeleteProduct,
-  onDeleteService,
-  onDeleteConsultation
-}: ProfileTabsProps) {
+export const ProfileTabs = ({ profileId, isOwnProfile }: ProfileTabsProps) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const tabParam = searchParams.get('tab') || 'info';
+  const [activeTab, setActiveTab] = useState<string>(tabParam);
+  
+  const { 
+    handleDeleteProduct, 
+    handleDeleteService, 
+    handleDeleteConsultation 
+  } = useMarketplaceActions(profileId);
+
+  useEffect(() => {
+    setActiveTab(tabParam);
+  }, [tabParam]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  };
+
   return (
-    <Tabs defaultValue={defaultTab} className="mb-8">
-      <TabsList className="mb-6 grid sm:grid-cols-4 md:grid-cols-5 max-w-3xl">
-        <TabsTrigger value="feed">Feed</TabsTrigger>
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+      <TabsList className="grid grid-cols-4 lg:grid-cols-8 mb-4">
         <TabsTrigger value="info">Informacje</TabsTrigger>
-        <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
+        <TabsTrigger value="feed">Posty</TabsTrigger>
+        <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+        <TabsTrigger value="experience">Doświadczenie</TabsTrigger>
+        <TabsTrigger value="education">Edukacja</TabsTrigger>
         <TabsTrigger value="ratings">Oceny</TabsTrigger>
+        
         {isOwnProfile && (
-          <TabsTrigger value="my_marketplace">Mój Marketplace</TabsTrigger>
+          <>
+            <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
+            <TabsTrigger value="consultations">Konsultacje</TabsTrigger>
+          </>
         )}
       </TabsList>
-      
-      <TabsContent value="feed">
-        <ProfileFeedTab profileId={profileId} />
-      </TabsContent>
-      
+
       <TabsContent value="info">
-        <ProfileInfoTab 
-          userProjects={userProjects}
-          userExperience={userExperience}
-          userEducation={userEducation}
-          isOwnProfile={isOwnProfile}
-        />
+        <ProfileInfoTab profileId={profileId} isEditable={isOwnProfile} />
       </TabsContent>
-      
-      <TabsContent value="marketplace">
-        <ProductsTab 
-          userProducts={userProducts}
-          isOwnProfile={false}
-        />
+
+      <TabsContent value="feed">
+        <ProfileFeedTab profileId={profileId} isOwnProfile={isOwnProfile} />
       </TabsContent>
-      
+
+      <TabsContent value="portfolio">
+        <PortfolioTab profileId={profileId} isEditable={isOwnProfile} />
+      </TabsContent>
+
+      <TabsContent value="experience">
+        <ExperienceTab profileId={profileId} isEditable={isOwnProfile} />
+      </TabsContent>
+
+      <TabsContent value="education">
+        <EducationTab profileId={profileId} isEditable={isOwnProfile} />
+      </TabsContent>
+
       <TabsContent value="ratings">
         <ProfileRatingsTab profileId={profileId} />
       </TabsContent>
-      
+
       {isOwnProfile && (
-        <TabsContent value="my_marketplace">
-          <MarketplaceTab 
-            profileId={profileId}
-            onDeleteProduct={onDeleteProduct}
-            onDeleteService={onDeleteService}
-            onDeleteConsultation={onDeleteConsultation}
-          />
-        </TabsContent>
+        <>
+          <TabsContent value="marketplace">
+            <MarketplaceTab 
+              profileId={profileId} 
+              onDeleteProduct={handleDeleteProduct}
+              onDeleteService={handleDeleteService}
+              onDeleteConsultation={handleDeleteConsultation}
+            />
+          </TabsContent>
+          
+          <TabsContent value="consultations">
+            <ClientConsultationsPanel />
+          </TabsContent>
+        </>
       )}
     </Tabs>
   );
-}
+};
+
