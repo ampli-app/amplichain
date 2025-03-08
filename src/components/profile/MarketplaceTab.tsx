@@ -42,7 +42,6 @@ export function MarketplaceTab({
     if (profileId) {
       fetchMarketplaceItems();
       
-      // Sprawdź czy w URL jest parametr marketplaceTab i ustaw odpowiednią zakładkę
       const urlParams = new URLSearchParams(window.location.search);
       const marketplaceTabParam = urlParams.get('marketplaceTab');
       
@@ -55,7 +54,6 @@ export function MarketplaceTab({
   const fetchMarketplaceItems = async () => {
     setLoading(true);
     try {
-      // Fetch products
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select('*')
@@ -64,7 +62,6 @@ export function MarketplaceTab({
       if (productsError) throw productsError;
       setProducts(productsData || []);
       
-      // Fetch services
       const { data: servicesData, error: servicesError } = await supabase
         .from('services')
         .select('*')
@@ -73,7 +70,6 @@ export function MarketplaceTab({
       if (servicesError) throw servicesError;
       setServices(servicesData || []);
       
-      // Fetch consultations
       const { data: consultationsData, error: consultationsError } = await supabase
         .from('consultations')
         .select('*')
@@ -116,7 +112,6 @@ export function MarketplaceTab({
   const handleMarketplaceTabChange = (value: string) => {
     setActiveMarketplaceTab(value);
     
-    // Aktualizuj URL z parametrem marketplaceTab
     const url = new URL(window.location.href);
     url.searchParams.set('marketplaceTab', value);
     window.history.pushState({}, '', url);

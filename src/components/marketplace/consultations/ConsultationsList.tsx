@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConsultationCard } from './ConsultationCard';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ConsultationsListProps {
   consultations: any[];
@@ -26,6 +27,8 @@ export function ConsultationsList({
   onToggleFavorite,
   onAddConsultationClick
 }: ConsultationsListProps) {
+  const { user } = useAuth();
+  
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -79,6 +82,7 @@ export function ConsultationsList({
             key={consultation.id} 
             consultation={consultation} 
             isFavorite={favorites[consultation.id] || false}
+            isOwner={user?.id === consultation.user_id}
             onToggleFavorite={onToggleFavorite}
           />
         ))}
