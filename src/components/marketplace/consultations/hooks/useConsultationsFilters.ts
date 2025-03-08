@@ -1,96 +1,79 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 
-interface UseConsultationsFiltersProps {
+interface ConsultationsFiltersProps {
   consultations: any[];
 }
 
-export function useConsultationsFilters({ consultations }: UseConsultationsFiltersProps) {
+export function useConsultationsFilters({ consultations }: ConsultationsFiltersProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedContactMethods, setSelectedContactMethods] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 2000]);
-  const [minPrice, setMinPrice] = useState<string>('0');
-  const [maxPrice, setMaxPrice] = useState<string>('2000');
+  const [priceRange, setPriceRange] = useState([0, 1000]);
+  const [minPrice, setMinPrice] = useState('0');
+  const [maxPrice, setMaxPrice] = useState('1000');
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10;
+  const itemsPerPage = 12;
   
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedCategory, selectedContactMethods, priceRange]);
-  
-  const handlePriceInputChange = (type: 'min' | 'max', value: string) => {
-    if (value === '' || /^\d+$/.test(value)) {
-      if (type === 'min') {
-        setMinPrice(value);
-        if (value !== '') {
-          setPriceRange([parseInt(value), priceRange[1]]);
-        }
-      } else {
-        setMaxPrice(value);
-        if (value !== '') {
-          setPriceRange([priceRange[0], parseInt(value)]);
-        }
-      }
-    }
-  };
-  
-  const handleCategorySelect = (category: string | null) => {
-    setSelectedCategory(category);
-  };
-  
-  const toggleContactMethod = (method: string) => {
-    setSelectedContactMethods(prev => 
-      prev.includes(method)
-        ? prev.filter(m => m !== method)
-        : [...prev, method]
-    );
-  };
-  
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-  
-  // Filtrowanie konsultacji
+  // Filtrowane konsultacje na podstawie wszystkich filtrów
   const filteredConsultations = useMemo(() => {
     return consultations.filter(consultation => {
-      // Filtrowanie po wyszukiwaniu
-      const matchesSearch = searchQuery === '' || 
-        (consultation.title && consultation.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (consultation.description && consultation.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesSearch = consultation.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           (consultation.description && consultation.description.toLowerCase().includes(searchQuery.toLowerCase()));
       
-      // Filtrowanie po kategorii
       const matchesCategory = !selectedCategory || 
-        (consultation.categories && consultation.categories.includes(selectedCategory));
+                             (consultation.categories && 
+                              consultation.categories.includes(selectedCategory));
       
-      // Filtrowanie po metodach kontaktu
-      const matchesContactMethods = selectedContactMethods.length === 0 || 
-        (consultation.is_online && selectedContactMethods.includes('video')) ||
-        (consultation.is_online && selectedContactMethods.includes('chat')) ||
-        (consultation.location && selectedContactMethods.includes('phone'));
+      const price = parseFloat(consultation.price);
+      const matchesPrice = price >= priceRange[0] && price <= priceRange[1];
       
-      // Filtrowanie po cenie
-      const matchesPrice = consultation.price >= priceRange[0] && consultation.price <= priceRange[1];
-      
-      return matchesSearch && matchesCategory && matchesContactMethods && matchesPrice;
+      return matchesSearch && matchesCategory && matchesPrice;
     });
-  }, [consultations, searchQuery, selectedCategory, selectedContactMethods, priceRange]);
+  }, [consultations, searchQuery, selectedCategory, priceRange]);
   
-  const totalPages = Math.ceil(filteredConsultations.length / ITEMS_PER_PAGE);
+  // Oblicz całkowitą liczbę stron
+  const totalPages = Math.ceil(filteredConsultations.length / itemsPerPage);
   
+  // Pobierz konsultacje dla bieżącej strony
   const getCurrentPageConsultations = () => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
     return filteredConsultations.slice(startIndex, endIndex);
+  };
+  
+  // Przełącz stronę
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  // Wybierz kategorię
+  const handleCategorySelect = (category: string | null) => {
+    setSelectedCategory(category);
+    setCurrentPage(1); // Zresetuj do pierwszej strony po zmianie filtrów
+  };
+  
+  // Obsługa zmiany zakresu cen
+  const handlePriceInputChange = (type: 'min' | 'max', value: string) => {
+    if (type === 'min') {
+      setMinPrice(value);
+      // Aktualizuj tylko jeśli wartość jest liczbą
+      if (!isNaN(Number(value))) {
+        setPriceRange([Number(value), priceRange[1]]);
+      }
+    } else {
+      setMaxPrice(value);
+      // Aktualizuj tylko jeśli wartość jest liczbą
+      if (!isNaN(Number(value))) {
+        setPriceRange([priceRange[0], Number(value)]);
+      }
+    }
+    setCurrentPage(1); // Zresetuj do pierwszej strony po zmianie filtrów
   };
   
   return {
     searchQuery,
     setSearchQuery,
     selectedCategory,
-    selectedContactMethods,
     priceRange,
     setPriceRange,
     minPrice,
@@ -102,7 +85,6 @@ export function useConsultationsFilters({ consultations }: UseConsultationsFilte
     totalPages,
     handlePriceInputChange,
     handleCategorySelect,
-    toggleContactMethod,
     handlePageChange,
     getCurrentPageConsultations
   };

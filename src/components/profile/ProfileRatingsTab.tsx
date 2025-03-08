@@ -31,95 +31,116 @@ export function ProfileRatingsTab({ profileId }: ProfileRatingsTabProps) {
       setLoading(true);
       
       try {
-        // Pobieranie ocen produktów
-        const { data: productData, error: productError } = await supabase
-          .from('product_reviews')
-          .select(`
-            id,
-            rating,
-            comment,
-            created_at,
-            products(title),
-            profiles(full_name, avatar_url)
-          `)
-          .eq('product_user_id', profileId);
-          
-        if (productError) {
-          console.error('Błąd pobierania ocen produktów:', productError);
-        } else {
-          const formattedProductRatings: Rating[] = (productData || []).map((review: any) => ({
-            id: review.id,
-            rating: review.rating,
-            comment: review.comment,
-            created_at: review.created_at,
-            product_name: review.products?.title || 'Produkt',
-            reviewer_name: review.profiles?.full_name || 'Użytkownik',
-            reviewer_avatar: review.profiles?.avatar_url || ''
-          }));
-          
-          setProductRatings(formattedProductRatings);
+        // Próba pobrania ocen produktów
+        try {
+          const { data: productData, error: productError } = await supabase
+            .from('product_reviews')
+            .select(`
+              id,
+              rating,
+              comment,
+              created_at,
+              product_id,
+              products(title),
+              profiles(full_name, avatar_url)
+            `)
+            .eq('product_user_id', profileId);
+            
+          if (productError) {
+            console.error('Błąd pobierania ocen produktów:', productError);
+            setProductRatings([]);
+          } else {
+            const formattedProductRatings: Rating[] = (productData || []).map((review: any) => ({
+              id: review.id,
+              rating: review.rating,
+              comment: review.comment || '',
+              created_at: review.created_at,
+              product_name: review.products?.title || 'Produkt',
+              reviewer_name: review.profiles?.full_name || 'Użytkownik',
+              reviewer_avatar: review.profiles?.avatar_url || ''
+            }));
+            
+            setProductRatings(formattedProductRatings);
+          }
+        } catch (err) {
+          console.error('Nieoczekiwany błąd pobierania ocen produktów:', err);
+          setProductRatings([]);
         }
         
-        // Pobieranie ocen usług
-        const { data: serviceData, error: serviceError } = await supabase
-          .from('service_reviews')
-          .select(`
-            id,
-            rating,
-            comment,
-            created_at,
-            services(title),
-            profiles(full_name, avatar_url)
-          `)
-          .eq('service_user_id', profileId);
-          
-        if (serviceError) {
-          console.error('Błąd pobierania ocen usług:', serviceError);
-        } else {
-          const formattedServiceRatings: Rating[] = (serviceData || []).map((review: any) => ({
-            id: review.id,
-            rating: review.rating,
-            comment: review.comment,
-            created_at: review.created_at,
-            product_name: review.services?.title || 'Usługa',
-            reviewer_name: review.profiles?.full_name || 'Użytkownik',
-            reviewer_avatar: review.profiles?.avatar_url || ''
-          }));
-          
-          setServiceRatings(formattedServiceRatings);
+        // Próba pobrania ocen usług
+        try {
+          const { data: serviceData, error: serviceError } = await supabase
+            .from('service_reviews')
+            .select(`
+              id,
+              rating,
+              comment,
+              created_at,
+              service_id,
+              services(title),
+              profiles(full_name, avatar_url)
+            `)
+            .eq('service_user_id', profileId);
+            
+          if (serviceError) {
+            console.error('Błąd pobierania ocen usług:', serviceError);
+            setServiceRatings([]);
+          } else {
+            const formattedServiceRatings: Rating[] = (serviceData || []).map((review: any) => ({
+              id: review.id,
+              rating: review.rating,
+              comment: review.comment || '',
+              created_at: review.created_at,
+              product_name: review.services?.title || 'Usługa',
+              reviewer_name: review.profiles?.full_name || 'Użytkownik',
+              reviewer_avatar: review.profiles?.avatar_url || ''
+            }));
+            
+            setServiceRatings(formattedServiceRatings);
+          }
+        } catch (err) {
+          console.error('Nieoczekiwany błąd pobierania ocen usług:', err);
+          setServiceRatings([]);
         }
         
-        // Pobieranie ocen konsultacji
-        const { data: consultationData, error: consultationError } = await supabase
-          .from('consultation_reviews')
-          .select(`
-            id,
-            rating,
-            comment,
-            created_at,
-            consultations(title),
-            profiles(full_name, avatar_url)
-          `)
-          .eq('consultation_user_id', profileId);
-          
-        if (consultationError) {
-          console.error('Błąd pobierania ocen konsultacji:', consultationError);
-        } else {
-          const formattedConsultationRatings: Rating[] = (consultationData || []).map((review: any) => ({
-            id: review.id,
-            rating: review.rating,
-            comment: review.comment,
-            created_at: review.created_at,
-            product_name: review.consultations?.title || 'Konsultacja',
-            reviewer_name: review.profiles?.full_name || 'Użytkownik',
-            reviewer_avatar: review.profiles?.avatar_url || ''
-          }));
-          
-          setConsultationRatings(formattedConsultationRatings);
+        // Próba pobrania ocen konsultacji
+        try {
+          const { data: consultationData, error: consultationError } = await supabase
+            .from('consultation_reviews')
+            .select(`
+              id,
+              rating,
+              comment,
+              created_at,
+              consultation_id,
+              consultations(title),
+              profiles(full_name, avatar_url)
+            `)
+            .eq('consultation_user_id', profileId);
+            
+          if (consultationError) {
+            console.error('Błąd pobierania ocen konsultacji:', consultationError);
+            setConsultationRatings([]);
+          } else {
+            const formattedConsultationRatings: Rating[] = (consultationData || []).map((review: any) => ({
+              id: review.id,
+              rating: review.rating,
+              comment: review.comment || '',
+              created_at: review.created_at,
+              product_name: review.consultations?.title || 'Konsultacja',
+              reviewer_name: review.profiles?.full_name || 'Użytkownik',
+              reviewer_avatar: review.profiles?.avatar_url || ''
+            }));
+            
+            setConsultationRatings(formattedConsultationRatings);
+          }
+        } catch (err) {
+          console.error('Nieoczekiwany błąd pobierania ocen konsultacji:', err);
+          setConsultationRatings([]);
         }
         
       } catch (error) {
-        console.error('Nieoczekiwany błąd:', error);
+        console.error('Globalny błąd:', error);
       } finally {
         setLoading(false);
       }

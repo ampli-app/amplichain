@@ -62,10 +62,6 @@ export function ProfileInfoTab({
           <AddProjectModal 
             isOpen={showAddProjectModal} 
             onClose={() => setShowAddProjectModal(false)}
-            onSuccess={() => {
-              setShowAddProjectModal(false);
-              // Tutaj mogłaby być funkcja odświeżająca projekty
-            }}
           />
         )}
       </TabsContent>
@@ -96,10 +92,6 @@ export function ProfileInfoTab({
           <AddExperienceModal 
             isOpen={showAddExperienceModal} 
             onClose={() => setShowAddExperienceModal(false)}
-            onSuccess={() => {
-              setShowAddExperienceModal(false);
-              // Tutaj mogłaby być funkcja odświeżająca doświadczenie
-            }}
           />
         )}
       </TabsContent>
@@ -130,10 +122,6 @@ export function ProfileInfoTab({
           <AddEducationModal 
             isOpen={showAddEducationModal} 
             onClose={() => setShowAddEducationModal(false)}
-            onSuccess={() => {
-              setShowAddEducationModal(false);
-              // Tutaj mogłaby być funkcja odświeżająca edukację
-            }}
           />
         )}
       </TabsContent>

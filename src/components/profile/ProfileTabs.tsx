@@ -1,14 +1,10 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PortfolioTab } from '@/components/profile/PortfolioTab';
 import { ProductsTab } from '@/components/profile/ProductsTab';
-import { ExperienceTab } from '@/components/profile/ExperienceTab';
-import { EducationTab } from '@/components/profile/EducationTab';
-import { MarketplaceTab } from '@/components/profile/MarketplaceTab';
 import { ProfileFeedTab } from '@/components/profile/ProfileFeedTab';
 import { ProfileInfoTab } from '@/components/profile/ProfileInfoTab';
 import { ProfileRatingsTab } from '@/components/profile/ProfileRatingsTab';
-import { useProfileData } from '@/hooks/useProfileData';
+import { MarketplaceTab } from '@/components/profile/MarketplaceTab';
 
 interface ProfileTabsProps {
   defaultTab: string;
@@ -64,7 +60,6 @@ export function ProfileTabs({
         <ProductsTab 
           userProducts={userProducts}
           isOwnProfile={false}
-          profileId={profileId}
         />
       </TabsContent>
       

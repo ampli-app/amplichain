@@ -1,122 +1,157 @@
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Navbar } from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Clock, Video, Phone, MessageCircle, Star, Shield, User, ChevronLeft, Share2, Heart } from 'lucide-react';
+import { StarIcon, CheckCircle, Clock, Calendar, Globe, MapPin, MessageCircle, Phone, Video, ArrowLeft, HeartIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { toast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
 
+// Definicja typów
+interface Consultation {
+  id: string;
+  title: string;
+  description: string;
+  categories: string[];
+  price: number;
+  is_online: boolean;
+  location: string | null;
+  availability: string[];
+  experience: string | null;
+  created_at: string;
+  user_id: string;
+  profiles?: {
+    username: string;
+    full_name: string;
+    avatar_url: string;
+    id: string;
+  }
+}
+
 export default function ConsultationDetail() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, isLoggedIn } = useAuth();
-  
-  const [consultation, setConsultation] = useState<any>(null);
-  const [expert, setExpert] = useState<any>(null);
+  const [consultation, setConsultation] = useState<Consultation | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [alreadyPurchased, setAlreadyPurchased] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
   
+  // Pobierz dane konsultacji
   useEffect(() => {
-    fetchConsultation();
-    if (user) {
-      checkIfFavorite();
-    }
-  }, [id, user]);
-  
-  const fetchConsultation = async () => {
-    try {
-      setLoading(true);
+    async function fetchConsultation() {
+      if (!id) return;
       
-      const { data, error } = await supabase
-        .from('consultations')
-        .select('*')
-        .eq('id', id)
-        .single();
-        
-      if (error) {
-        throw error;
-      }
-      
-      if (data) {
-        setConsultation(data);
-        
-        // Pobierz dane eksperta
-        const { data: expertData, error: expertError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user_id)
+      try {
+        const { data, error } = await supabase
+          .from('consultations')
+          .select(`
+            *,
+            profiles:user_id (id, username, full_name, avatar_url)
+          `)
+          .eq('id', id)
           .single();
           
-        if (expertError) {
-          console.error('Błąd pobierania danych eksperta:', expertError);
+        if (error) {
+          console.error('Error fetching consultation:', error);
+          setError('Nie udało się pobrać danych konsultacji.');
         } else {
-          setExpert(expertData);
+          setConsultation(data);
+          
+          // Sprawdź, czy użytkownik już kupił tę konsultację
+          if (isLoggedIn && user) {
+            checkIfAlreadyPurchased(data.id, data.user_id);
+          }
         }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        setError('Wystąpił nieoczekiwany błąd.');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Błąd podczas pobierania danych konsultacji:', error);
-      toast({
-        title: "Błąd",
-        description: "Nie udało się pobrać danych konsultacji.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
     }
-  };
+    
+    fetchConsultation();
+  }, [id, isLoggedIn, user]);
   
-  const checkIfFavorite = async () => {
+  // Sprawdź, czy konsultacja jest w ulubionych
+  useEffect(() => {
+    if (!isLoggedIn || !user || !consultation) return;
+    
+    async function checkIfFavorited() {
+      try {
+        const { data, error } = await supabase
+          .from('favorites')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('item_id', consultation.id)
+          .eq('item_type', 'consultation')
+          .maybeSingle();
+          
+        if (!error && data) {
+          setIsFavorited(true);
+        }
+      } catch (err) {
+        console.error('Error checking favorites status:', err);
+      }
+    }
+    
+    checkIfFavorited();
+  }, [consultation, isLoggedIn, user]);
+  
+  // Sprawdź, czy użytkownik już kupił tę konsultację
+  const checkIfAlreadyPurchased = async (consultationId: string, expertId: string) => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
-        .from('favorites')
+        .from('consultation_orders')
         .select('id')
-        .eq('user_id', user.id)
-        .eq('item_id', id)
-        .eq('item_type', 'consultation');
+        .eq('consultation_id', consultationId)
+        .eq('client_id', user.id)
+        .eq('expert_id', expertId)
+        .not('status', 'eq', 'cancelled')
+        .maybeSingle();
         
-      if (error) {
-        throw error;
+      if (!error && data) {
+        setAlreadyPurchased(true);
       }
-      
-      setIsFavorite(data && data.length > 0);
-    } catch (error) {
-      console.error('Błąd podczas sprawdzania ulubionych:', error);
+    } catch (err) {
+      console.error('Error checking purchase status:', err);
     }
   };
   
-  const toggleFavorite = async () => {
-    if (!isLoggedIn) {
+  // Obsługa dodawania/usuwania z ulubionych
+  const handleToggleFavorite = async () => {
+    if (!isLoggedIn || !user || !consultation) {
       setShowAuthDialog(true);
       return;
     }
     
     try {
-      if (isFavorite) {
+      if (isFavorited) {
         // Usuń z ulubionych
         const { error } = await supabase
           .from('favorites')
           .delete()
           .eq('user_id', user.id)
-          .eq('item_id', id)
+          .eq('item_id', consultation.id)
           .eq('item_type', 'consultation');
           
         if (error) throw error;
         
-        setIsFavorite(false);
+        setIsFavorited(false);
         toast({
           title: "Usunięto z ulubionych",
-          description: "Konsultacja została usunięta z listy ulubionych."
+          description: "Konsultacja została usunięta z Twoich ulubionych."
         });
       } else {
         // Dodaj do ulubionych
@@ -124,324 +159,325 @@ export default function ConsultationDetail() {
           .from('favorites')
           .insert({
             user_id: user.id,
-            item_id: id,
+            item_id: consultation.id,
             item_type: 'consultation'
           });
           
         if (error) throw error;
         
-        setIsFavorite(true);
+        setIsFavorited(true);
         toast({
           title: "Dodano do ulubionych",
-          description: "Konsultacja została dodana do listy ulubionych."
+          description: "Konsultacja została dodana do Twoich ulubionych."
         });
       }
-    } catch (error) {
-      console.error('Błąd podczas aktualizacji ulubionych:', error);
+    } catch (err) {
+      console.error('Error toggling favorite status:', err);
       toast({
-        title: "Błąd",
-        description: "Nie udało się zaktualizować listy ulubionych.",
-        variant: "destructive",
+        title: "Wystąpił błąd",
+        description: "Nie udało się zaktualizować ulubionych. Spróbuj ponownie.",
+        variant: "destructive"
       });
     }
   };
   
-  const handleShareConsultation = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    
-    toast({
-      title: "Link skopiowany",
-      description: "Link do konsultacji został skopiowany do schowka."
-    });
-  };
-  
-  const handlePurchaseClick = () => {
-    if (!isLoggedIn) {
+  // Obsługa zakupu konsultacji
+  const handlePurchase = async () => {
+    if (!isLoggedIn || !user || !consultation) {
       setShowAuthDialog(true);
       return;
     }
     
-    setShowConfirmDialog(true);
-  };
-  
-  const completePurchase = async () => {
+    if (alreadyPurchased) {
+      toast({
+        title: "Konsultacja już zakupiona",
+        description: "Ta konsultacja jest już w Twoim posiadaniu."
+      });
+      return;
+    }
+    
+    if (user.id === consultation.user_id) {
+      toast({
+        title: "Nie możesz kupić własnej konsultacji",
+        description: "Nie możesz zakupić konsultacji, której jesteś autorem."
+      });
+      return;
+    }
+    
+    setPurchaseLoading(true);
+    
     try {
-      // Utworzenie zamówienia w bazie danych
+      // Utwórz zamówienie konsultacji
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 7); // 7 dni na zrealizowanie
+      
       const { data, error } = await supabase
-        .from('orders')
+        .from('consultation_orders')
         .insert({
-          user_id: user.id,
+          consultation_id: consultation.id,
+          client_id: user.id,
           expert_id: consultation.user_id,
-          consultation_id: id,
           amount: consultation.price,
-          status: 'pending',
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 dni od teraz
+          expires_at: expirationDate.toISOString()
         })
         .select()
         .single();
         
       if (error) throw error;
       
-      // Przejście do strony płatności/podsumowania
-      navigate(`/checkout/${data.id}`);
-    } catch (error) {
-      console.error('Błąd podczas tworzenia zamówienia:', error);
+      // Powodzenie
+      setAlreadyPurchased(true);
       toast({
-        title: "Błąd",
-        description: "Nie udało się zrealizować zamówienia. Spróbuj ponownie później.",
-        variant: "destructive",
+        title: "Konsultacja zakupiona!",
+        description: "Skontaktuj się z ekspertem, aby ustalić szczegóły realizacji.",
       });
+      
+      // Tu byłaby integracja z systemem płatności, ale na razie pominiemy
+      
+    } catch (err) {
+      console.error('Error purchasing consultation:', err);
+      toast({
+        title: "Błąd zakupu",
+        description: "Nie udało się zrealizować zakupu. Spróbuj ponownie później.",
+        variant: "destructive"
+      });
+    } finally {
+      setPurchaseLoading(false);
     }
   };
   
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1 pt-20 pb-10">
-          <div className="container max-w-6xl mx-auto px-4">
-            <div className="flex justify-center p-16">
-              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-            </div>
-          </div>
-        </main>
-        <Footer />
+      <div className="container py-8 flex justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
       </div>
     );
   }
   
-  if (!consultation) {
+  if (error || !consultation) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1 pt-20 pb-10">
-          <div className="container max-w-6xl mx-auto px-4">
-            <div className="text-center py-16">
-              <h2 className="text-2xl font-bold mb-4">Konsultacja nie znaleziona</h2>
-              <p className="text-muted-foreground mb-6">Konsultacja, której szukasz, nie istnieje lub została usunięta.</p>
-              <Button onClick={() => navigate('/marketplace?tab=consultations')}>
-                <ChevronLeft className="mr-2 h-4 w-4" />
-                Powrót do konsultacji
-              </Button>
-            </div>
-          </div>
-        </main>
-        <Footer />
+      <div className="container py-8">
+        <div className="bg-destructive/10 p-6 rounded-lg text-center">
+          <h2 className="text-xl font-semibold mb-2">Błąd</h2>
+          <p className="text-muted-foreground mb-4">{error || "Nie znaleziono konsultacji."}</p>
+          <Button onClick={() => navigate(-1)}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Wróć
+          </Button>
+        </div>
       </div>
     );
   }
-  
-  // Określ ikony dla preferowanych form kontaktu
-  const contactIcons = {
-    video: <Video className="h-5 w-5 text-blue-500" />,
-    phone: <Phone className="h-5 w-5 text-green-500" />,
-    chat: <MessageCircle className="h-5 w-5 text-purple-500" />
-  };
-  
-  // Określ preferowane formy kontaktu na podstawie danych konsultacji
-  const contactMethods = consultation.is_online 
-    ? ['video', 'chat'] 
-    : consultation.location ? ['phone', 'video'] : ['chat'];
   
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
+    <div className="container py-8">
+      <Button 
+        variant="outline" 
+        className="mb-6"
+        onClick={() => navigate(-1)}
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Wróć do listy konsultacji
+      </Button>
       
-      <main className="flex-1 pt-20 pb-10">
-        <div className="container max-w-6xl mx-auto px-4">
-          <Button 
-            variant="ghost" 
-            className="mb-6" 
-            onClick={() => navigate('/marketplace?tab=consultations')}
-          >
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Powrót do konsultacji
-          </Button>
-          
-          <div className="flex flex-col md:flex-row gap-8">
-            {/* Informacje o ekspercie */}
-            <div className="md:w-1/3">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <Avatar className="h-16 w-16">
-                      <AvatarImage src={expert?.avatar_url} alt={expert?.full_name} />
-                      <AvatarFallback><User className="h-8 w-8" /></AvatarFallback>
-                    </Avatar>
-                    
-                    <div>
-                      <h3 className="text-xl font-bold">{expert?.full_name}</h3>
-                      <p className="text-muted-foreground">@{expert?.username}</p>
-                    </div>
-                  </div>
-                  
-                  <Separator className="my-4" />
-                  
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-2">Doświadczenie</h4>
-                    <p>{consultation.experience ? `${consultation.experience} lat doświadczenia` : "Doświadczony ekspert"}</p>
-                  </div>
-                  
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-2">Lokalizacja</h4>
-                    <p>{expert?.location || consultation.location || "Konsultacje online"}</p>
-                  </div>
-                  
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-2">Specjalizacje</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {consultation.categories && consultation.categories.map((category: string) => (
-                        <Badge key={category} variant="secondary">{category}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <Separator className="my-4" />
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate(`/user/${expert?.id}`)}
-                    className="w-full"
-                  >
-                    Zobacz profil eksperta
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-            
-            {/* Szczegóły konsultacji */}
-            <div className="md:w-2/3">
-              <div className="flex justify-between items-start mb-4">
-                <h1 className="text-2xl md:text-3xl font-bold">{consultation.title}</h1>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="md:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-2xl">{consultation.title}</CardTitle>
+                  <CardDescription>
+                    {consultation.categories?.map((category, index) => (
+                      <Badge key={index} variant="secondary" className="mr-2 mt-2">
+                        {category}
+                      </Badge>
+                    ))}
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleToggleFavorite}
+                  className={isFavorited ? "text-red-500" : ""}
+                >
+                  <HeartIcon className={`h-5 w-5 ${isFavorited ? "fill-red-500" : ""}`} />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Opis konsultacji</h3>
+                  <p className="text-muted-foreground whitespace-pre-line">
+                    {consultation.description || "Brak opisu konsultacji."}
+                  </p>
+                </div>
                 
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" onClick={handleShareConsultation}>
-                    <Share2 className="h-5 w-5" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={toggleFavorite}
-                  >
-                    <Heart className={`h-5 w-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
-                  </Button>
+                <Separator />
+                
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Szczegóły</h3>
+                  <div className="space-y-3">
+                    {consultation.is_online !== false && (
+                      <div className="flex items-center">
+                        <Globe className="h-5 w-5 mr-3 text-muted-foreground" />
+                        <span>Konsultacja online</span>
+                      </div>
+                    )}
+                    
+                    {consultation.location && (
+                      <div className="flex items-center">
+                        <MapPin className="h-5 w-5 mr-3 text-muted-foreground" />
+                        <span>{consultation.location}</span>
+                      </div>
+                    )}
+                    
+                    {consultation.availability && consultation.availability.length > 0 && (
+                      <div className="flex items-center">
+                        <Calendar className="h-5 w-5 mr-3 text-muted-foreground shrink-0" />
+                        <div>
+                          <span className="block">Dostępność:</span>
+                          <span className="text-sm text-muted-foreground">
+                            {consultation.availability.join(', ')}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center">
+                      <Clock className="h-5 w-5 mr-3 text-muted-foreground" />
+                      <div>
+                        <span>Czas na realizację: 7 dni</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start">
+                      <MessageCircle className="h-5 w-5 mr-3 text-muted-foreground shrink-0 mt-0.5" />
+                      <div>
+                        <span className="block">Preferowana forma kontaktu:</span>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          <Badge variant="outline">
+                            <Video className="h-3.5 w-3.5 mr-1" />
+                            Rozmowa wideo
+                          </Badge>
+                          <Badge variant="outline">
+                            <Phone className="h-3.5 w-3.5 mr-1" />
+                            Rozmowa telefoniczna
+                          </Badge>
+                          <Badge variant="outline">
+                            <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                            Wiadomości tekstowe
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {consultation.experience && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Doświadczenie eksperta</h3>
+                      <p className="text-muted-foreground whitespace-pre-line">
+                        {consultation.experience}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Cena</CardTitle>
+              <CardDescription>Płatność jednorazowa</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold mb-2">
+                {consultation.price.toFixed(2)} zł
+              </p>
+              <p className="text-sm text-muted-foreground mb-6">
+                Zakup zawiera jednorazową konsultację z ekspertem.
+              </p>
+              
+              <Button 
+                className="w-full" 
+                size="lg" 
+                onClick={handlePurchase}
+                disabled={alreadyPurchased || consultation.user_id === user?.id || purchaseLoading}
+              >
+                {purchaseLoading ? (
+                  <span className="flex items-center">
+                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-2"></div>
+                    Przetwarzanie...
+                  </span>
+                ) : alreadyPurchased ? (
+                  <span className="flex items-center">
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Zakupiono
+                  </span>
+                ) : consultation.user_id === user?.id ? (
+                  "Twoja konsultacja"
+                ) : (
+                  "Kup teraz"
+                )}
+              </Button>
+              
+              <p className="text-xs text-muted-foreground mt-4 text-center">
+                Po zakupie masz 7 dni na kontakt z ekspertem i realizację konsultacji.
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Ekspert</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center mb-4">
+                <Avatar className="h-12 w-12 mr-4">
+                  <AvatarImage src={consultation.profiles?.avatar_url || undefined} />
+                  <AvatarFallback>
+                    {consultation.profiles?.full_name?.charAt(0) || '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">{consultation.profiles?.full_name || 'Anonimowy'}</p>
+                  <p className="text-sm text-muted-foreground">
+                    @{consultation.profiles?.username || 'użytkownik'}
+                  </p>
                 </div>
               </div>
               
-              <div className="flex flex-wrap gap-2 mb-6">
-                {consultation.categories && consultation.categories.map((category: string) => (
-                  <Badge key={category} variant="outline">{category}</Badge>
-                ))}
+              <div className="flex items-center mb-4">
+                <StarIcon className="h-4 w-4 text-yellow-500 fill-yellow-500 mr-1" />
+                <span className="font-medium">4.8</span>
+                <span className="text-sm text-muted-foreground ml-1">(18 ocen)</span>
               </div>
               
-              <Card className="mb-6">
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-bold mb-4">Opis konsultacji</h2>
-                  <p className="whitespace-pre-line text-muted-foreground mb-6">
-                    {consultation.description || "Brak szczegółowego opisu konsultacji."}
-                  </p>
-                  
-                  <Separator className="my-6" />
-                  
-                  <h2 className="text-xl font-bold mb-4">Preferowane formy kontaktu</h2>
-                  <div className="flex gap-4 mb-6">
-                    {contactMethods.map((method: string) => (
-                      <div key={method} className="flex items-center gap-2">
-                        {contactIcons[method as keyof typeof contactIcons]}
-                        <span className="capitalize">{method === 'video' ? 'Wideorozmowa' : method === 'phone' ? 'Telefon' : 'Chat'}</span>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <Separator className="my-6" />
-                  
-                  <div className="bg-muted/30 p-4 rounded-md">
-                    <h3 className="font-bold mb-2">Jak działa proces konsultacji?</h3>
-                    <ul className="space-y-2 text-sm">
-                      <li className="flex gap-2">
-                        <span className="bg-primary text-primary-foreground w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">1</span>
-                        <span>Dokonaj zakupu konsultacji, płacąc z góry</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="bg-primary text-primary-foreground w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">2</span>
-                        <span>Skontaktuj się z ekspertem w ciągu 7 dni</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="bg-primary text-primary-foreground w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">3</span>
-                        <span>Przeprowadź konsultację w wybranej formie</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="bg-primary text-primary-foreground w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">4</span>
-                        <span>Potwierdź wykonanie usługi po zakończeniu</span>
-                      </li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="mb-6">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-5 w-5 text-muted-foreground" />
-                        <span className="text-muted-foreground">Czas na realizację: 7 dni</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 mt-2">
-                        <Shield className="h-5 w-5 text-muted-foreground" />
-                        <span className="text-muted-foreground">Bezpieczna płatność przez platformę</span>
-                      </div>
-                    </div>
-                    
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Cena konsultacji</p>
-                      <p className="text-3xl font-bold">{consultation.price} zł</p>
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    className="w-full mt-4" 
-                    size="lg"
-                    onClick={handlePurchaseClick}
-                    disabled={user && user.id === consultation.user_id}
-                  >
-                    {user && user.id === consultation.user_id 
-                      ? "Nie możesz kupić własnej konsultacji" 
-                      : "Kup konsultację"}
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => navigate(`/profile/${consultation.profiles?.username}`)}
+              >
+                Zobacz profil
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-      </main>
-      
-      <Footer />
+      </div>
       
       <AuthRequiredDialog
         open={showAuthDialog}
         onOpenChange={setShowAuthDialog}
         title="Wymagane logowanie"
-        description="Aby kupić konsultację lub dodać ją do ulubionych, musisz być zalogowany."
+        description="Aby wykonać tę akcję, musisz być zalogowany."
       />
-      
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Potwierdź zakup konsultacji</AlertDialogTitle>
-            <AlertDialogDescription>
-              Dokonujesz zakupu konsultacji "{consultation.title}" za kwotę {consultation.price} zł. 
-              Po zakupie będziesz mieć 7 dni na skontaktowanie się z ekspertem i przeprowadzenie konsultacji.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Anuluj</AlertDialogCancel>
-            <AlertDialogAction onClick={completePurchase}>Kupuję i płacę</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

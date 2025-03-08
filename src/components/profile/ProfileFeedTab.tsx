@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { FeedPostsList } from '@/components/social/FeedPostsList';
-import { CommentInput } from '@/components/groups/comments/CommentInput';
 
 interface ProfileFeedTabProps {
   profileId: string;
@@ -12,7 +12,6 @@ export function ProfileFeedTab({ profileId }: ProfileFeedTabProps) {
   const { user } = useAuth();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [commentText, setCommentText] = useState('');
   
   useEffect(() => {
     fetchUserPosts();
@@ -25,18 +24,18 @@ export function ProfileFeedTab({ profileId }: ProfileFeedTabProps) {
     
     try {
       const { data, error } = await supabase
-        .from('posts')
+        .from('feed_posts')
         .select(`
           *,
           user:user_id (id, full_name, username, avatar_url),
-          comments:post_comments (
+          comments:feed_post_comments (
             id,
             content,
             created_at,
             user:user_id (id, full_name, username, avatar_url)
           ),
-          likes:post_likes (id, user_id),
-          polls:post_polls (id, question, options)
+          likes:feed_post_likes (id, user_id),
+          polls:feed_post_poll_options (id, question, text)
         `)
         .eq('user_id', profileId)
         .order('created_at', { ascending: false });
@@ -51,11 +50,6 @@ export function ProfileFeedTab({ profileId }: ProfileFeedTabProps) {
     } finally {
       setLoading(false);
     }
-  };
-  
-  const handleAddComment = () => {
-    // Ta funkcja byłaby zaimplementowana, gdyby była potrzebna
-    // do dodawania komentarzy
   };
 
   if (loading) {
@@ -80,8 +74,7 @@ export function ProfileFeedTab({ profileId }: ProfileFeedTabProps) {
   return (
     <div className="space-y-6">
       <FeedPostsList 
-        posts={posts} 
-        onPostsUpdated={fetchUserPosts} 
+        posts={posts}
       />
     </div>
   );
