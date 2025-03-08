@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
@@ -12,7 +11,7 @@ import { AddConsultationDialog } from '@/components/AddConsultationDialog';
 import { ProductCard } from '../marketplace/ProductCard';
 import { ServiceCard } from '@/components/marketplace/services/ServiceCard';
 import { ConsultationCard } from '@/components/marketplace/consultations/ConsultationCard';
-import { ExpertConsultationsPanel } from '@/components/marketplace/consultations/ExpertConsultationsPanel';
+import { ExpertConsultationsPanel } from '@/components/marketplace/consultations/expert/ExpertConsultationsPanel';
 
 interface MarketplaceTabProps {
   profileId: string;
