@@ -99,4 +99,3 @@ export const ProfileTabs = ({ profileId, isOwnProfile }: ProfileTabsProps) => {
     </Tabs>
   );
 };
-

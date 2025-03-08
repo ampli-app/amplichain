@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ConsultationOrder } from '@/types/consultations';
+import { ConsultationOrder, Consultation } from '@/types/consultations';
 import { 
   Calendar, 
   Clock, 
@@ -42,14 +42,16 @@ export function ClientConsultationsPanel() {
         .from('consultation_orders')
         .select(`
           *,
-          profiles:expert_id(username, full_name, avatar_url),
-          consultations:consultation_id(title, description)
+          profiles:expert_id(id, username, full_name, avatar_url),
+          consultations:consultation_id(id, user_id, title, description, price, categories, experience, availability, is_online, location, contact_methods, created_at, updated_at)
         `)
         .eq('client_id', user.id);
         
       if (error) throw error;
       
-      setOrders(data || []);
+      // Konwersja danych do właściwego typu
+      const typedData = data as ConsultationOrder[];
+      setOrders(typedData || []);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching orders:', error);

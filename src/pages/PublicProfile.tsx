@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -14,13 +13,12 @@ import { ProfileLoadingState } from '@/components/profile/ProfileLoadingState';
 import { useProfileData } from '@/hooks/useProfileData';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 
-// Define a proper type for profile connections
 interface ProfileConnection {
   id: string;
   full_name: string;
   avatar_url?: string;
   username?: string;
-  [key: string]: any; // For any other properties
+  [key: string]: any;
 }
 
 export default function PublicProfile() {
@@ -54,7 +52,6 @@ export default function PublicProfile() {
     if (!user || !userId) return;
     
     try {
-      // Pobierz połączenia dla bieżącego użytkownika
       const { data: userConnectionRequests, error: userConnError } = await supabase
         .from('connection_requests')
         .select('sender_id, receiver_id')
@@ -67,7 +64,6 @@ export default function PublicProfile() {
         return;
       }
 
-      // Pobierz połączenia dla przeglądanego profilu
       const { data: profileConnectionRequests, error: profileConnError } = await supabase
         .from('connection_requests')
         .select('sender_id, receiver_id')
@@ -85,21 +81,17 @@ export default function PublicProfile() {
         return;
       }
 
-      // Zbierz ID połączeń bieżącego użytkownika
       const userConnectedIds = userConnectionRequests.map(conn => 
         conn.sender_id === user.id ? conn.receiver_id : conn.sender_id
       );
       
-      // Zbierz ID połączeń przeglądanego profilu
       const profileConnectedIds = profileConnectionRequests.map(conn =>
         conn.sender_id === userId ? conn.receiver_id : conn.sender_id
       );
 
-      // Znajdź wspólne połączenia
       const commonIds = userConnectedIds.filter(id => profileConnectedIds.includes(id));
 
       if (commonIds.length > 0) {
-        // Pobierz dane profilowe dla wspólnych połączeń
         const { data: commonProfilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('*')
@@ -186,16 +178,8 @@ export default function PublicProfile() {
           />
           
           <ProfileTabs
-            defaultTab="feed"
+            profileId={profileId || ""}
             isOwnProfile={false}
-            profileId={userId}
-            userProjects={userProjects}
-            userProducts={userProducts}
-            userExperience={userExperience}
-            userEducation={userEducation}
-            onDeleteProduct={() => Promise.resolve()}
-            onDeleteService={() => Promise.resolve()}
-            onDeleteConsultation={() => Promise.resolve()}
           />
         </div>
       </main>

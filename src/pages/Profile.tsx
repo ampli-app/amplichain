@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -17,13 +16,12 @@ import { useProfileData } from '@/hooks/useProfileData';
 import { useMarketplaceActions } from '@/hooks/useMarketplaceActions';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 
-// Define a proper type for profile connections
 interface ProfileConnection {
   id: string;
   full_name: string;
   avatar_url?: string;
   username?: string;
-  [key: string]: any; // For any other properties
+  [key: string]: any;
 }
 
 export default function Profile() {
@@ -40,7 +38,6 @@ export default function Profile() {
   const defaultTab = searchParams.get('tab') || 'info';
   const marketplaceTab = searchParams.get('marketplaceTab') || 'products';
 
-  // Determine if this is the user's own profile
   useEffect(() => {
     console.log("Profile page loaded, auth state:", { isLoggedIn, user, userId });
 
@@ -58,17 +55,14 @@ export default function Profile() {
     } else {
       setIsOwnProfile(false);
       
-      // Jeśli to profil innego użytkownika, pobierz informacje o wspólnych połączeniach
       if (user && targetUserId) {
         fetchCommonConnections(user.id, targetUserId);
       }
     }
   }, [isLoggedIn, navigate, userId, user]);
 
-  // Funkcja do pobierania wspólnych połączeń
   const fetchCommonConnections = async (currentUserId: string, targetUserId: string) => {
     try {
-      // Pobierz połączenia bieżącego użytkownika
       const { data: currentUserConnections, error: currentUserError } = await supabase
         .from('connections')
         .select('user_id1, user_id2')
@@ -79,7 +73,6 @@ export default function Profile() {
         return;
       }
       
-      // Pobierz połączenia docelowego użytkownika
       const { data: targetUserConnections, error: targetUserError } = await supabase
         .from('connections')
         .select('user_id1, user_id2')
@@ -90,7 +83,6 @@ export default function Profile() {
         return;
       }
       
-      // Utwórz zbiór ID połączeń bieżącego użytkownika
       const currentUserConnectionIds = new Set<string>();
       currentUserConnections.forEach(conn => {
         if (conn.user_id1 === currentUserId) {
@@ -100,7 +92,6 @@ export default function Profile() {
         }
       });
       
-      // Znajdź wspólne połączenia
       const commonIds: string[] = [];
       targetUserConnections.forEach(conn => {
         const connectedUserId = conn.user_id1 === targetUserId ? conn.user_id2 : conn.user_id1;
@@ -110,7 +101,6 @@ export default function Profile() {
       });
       
       if (commonIds.length > 0) {
-        // Pobierz dane profilowe dla wspólnych połączeń
         const { data: commonProfilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('*')
@@ -132,10 +122,8 @@ export default function Profile() {
     }
   };
 
-  // Get the profile ID to use for data fetching
   const profileId = userId || (user?.id);
   
-  // Use custom hooks
   const { 
     profileData, 
     userProducts, 
@@ -175,12 +163,10 @@ export default function Profile() {
 
   const handleAvatarChanged = (newAvatarUrl: string) => {
     if (profileData) {
-      // We don't need to update profileData directly as fetchProfileData will be called
       handleProfileUpdated();
     }
   };
 
-  // Display loading or login required states
   if (!isLoggedIn && !userId) {
     return <ProfileLoadingState isLoading={false} />;
   }
@@ -207,16 +193,8 @@ export default function Profile() {
           />
           
           <ProfileTabs
-            defaultTab={defaultTab}
-            isOwnProfile={isOwnProfile}
             profileId={profileId || ""}
-            userProjects={userProjects}
-            userProducts={userProducts}
-            userExperience={userExperience}
-            userEducation={userEducation}
-            onDeleteProduct={handleDeleteProduct}
-            onDeleteService={handleDeleteService}
-            onDeleteConsultation={handleDeleteConsultation}
+            isOwnProfile={isOwnProfile}
           />
         </div>
       </main>
