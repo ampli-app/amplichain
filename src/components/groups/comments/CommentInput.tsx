@@ -2,7 +2,7 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Smile, User } from 'lucide-react';
+import { Send, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -93,15 +93,6 @@ export function CommentInput({
           isLoading={isLoadingHashtags}
           onSelectHashtag={handleSelectHashtag}
         />
-        
-        <Button 
-          type="button" 
-          variant="ghost" 
-          size="icon" 
-          className="absolute right-1 bottom-1 text-gray-500"
-        >
-          <Smile className="h-5 w-5" />
-        </Button>
         
         <Button 
           className="h-full self-end" 

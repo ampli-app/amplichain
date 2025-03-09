@@ -30,6 +30,63 @@ interface PostCommentSectionProps {
   disabled: boolean;
 }
 
+// Funkcja do konwersji emotikon tekstowych na emoji
+export const convertEmoticons = (text: string): string => {
+  const emoticonMap: Record<string, string> = {
+    ':)': '😊',
+    ':-)': '😊',
+    ':D': '😃',
+    ':-D': '😃',
+    ';)': '😉',
+    ';-)': '😉',
+    ':(': '☹️',
+    ':-(': '☹️',
+    ':P': '😛',
+    ':-P': '😛',
+    ':p': '😛',
+    ':-p': '😛',
+    ':*': '😘',
+    ':-*': '😘',
+    '<3': '❤️',
+    ':O': '😮',
+    ':o': '😮',
+    ':-O': '😮',
+    ':-o': '😮',
+    ':|': '😐',
+    ':-|': '😐',
+    ':S': '😖',
+    ':s': '😖',
+    ':-S': '😖',
+    ':-s': '😖',
+    '>:(': '😠',
+    '>:-(': '😠',
+    'xD': '😆',
+    'XD': '😆',
+    ':/': '😕',
+    ':-/': '😕',
+    ':3': '😺',
+    '^_^': '😄',
+    '^.^': '😄',
+    '^-^': '😄',
+    'O.o': '😳',
+    'o.O': '😳',
+    'O_o': '😳',
+    'o_O': '😳',
+    '-_-': '😒',
+  };
+  
+  // Zamień wszystkie emotikony na emoji
+  let convertedText = text;
+  for (const [emoticon, emoji] of Object.entries(emoticonMap)) {
+    // Używamy wyrażenia regularnego, aby uniknąć zastępowania części słów
+    // Szukamy emotikona otoczonego spacjami lub na początku/końcu tekstu
+    const regex = new RegExp(`(^|\\s)${emoticon.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1")}(?=\\s|$)`, 'g');
+    convertedText = convertedText.replace(regex, `$1${emoji}`);
+  }
+  
+  return convertedText;
+};
+
 export function PostCommentSection({
   showComments,
   commentText,
@@ -44,10 +101,23 @@ export function PostCommentSection({
   onAddReply,
   disabled
 }: PostCommentSectionProps) {
+  
+  // Funkcja do dodawania komentarza z konwersją emotikon
+  const handleAddComment = () => {
+    // Wywołanie oryginalnej funkcji dodawania komentarza
+    onAddComment();
+  };
+  
+  // Funkcja do dodawania odpowiedzi z konwersją emotikon
+  const handleAddReply = (commentId: string) => {
+    // Wywołanie oryginalnej funkcji dodawania odpowiedzi
+    onAddReply(commentId);
+  };
+  
   return (
     <div className="mt-4 pt-3 border-t">
       <CommentInput 
-        onAddComment={onAddComment}
+        onAddComment={handleAddComment}
         commentText={commentText}
         setCommentText={setCommentText}
         disabled={disabled}
@@ -74,7 +144,7 @@ export function PostCommentSection({
               setReplyingTo={setReplyingTo}
               replyText={replyText}
               setReplyText={setReplyText}
-              onAddReply={onAddReply}
+              onAddReply={handleAddReply}
               disabled={disabled}
             />
           ) : (

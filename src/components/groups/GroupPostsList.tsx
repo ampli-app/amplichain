@@ -5,6 +5,7 @@ import { PostItem } from './posts/PostItem';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
+import { convertEmoticons } from '@/components/social/PostCommentSection';
 
 interface GroupPostsListProps {
   posts: GroupPost[];
@@ -196,12 +197,15 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
     if (!content.trim()) return;
     
     try {
+      // Konwertuj emotikony na emoji przed zapisaniem
+      const convertedContent = convertEmoticons(content.trim());
+      
       await supabase
         .from('group_post_comments')
         .insert({
           post_id: postId,
           user_id: user.id,
-          content: content.trim()
+          content: convertedContent
         });
       
       // Odśwież posty po dodaniu komentarza
@@ -233,12 +237,15 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
     if (!content.trim()) return;
     
     try {
+      // Konwertuj emotikony na emoji przed zapisaniem
+      const convertedContent = convertEmoticons(content.trim());
+      
       await supabase
         .from('group_post_comments')
         .insert({
           post_id: postId,
           user_id: user.id,
-          content: content.trim(),
+          content: convertedContent,
           parent_id: parentCommentId
         });
       

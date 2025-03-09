@@ -2,7 +2,7 @@
 import { useState, FormEvent, KeyboardEvent, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Smile, PaperclipIcon } from 'lucide-react';
+import { Send, PaperclipIcon } from 'lucide-react';
 import { useHashtagSuggestions } from '@/hooks/useHashtagSuggestions';
 import { HashtagSuggestions } from '@/components/common/HashtagSuggestions';
 
@@ -31,7 +31,7 @@ export function MessageInput({ onSendMessage, disabled = false, placeholder = 'N
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (message.trim() && !disabled) {
-      onSendMessage(message);
+      onSendMessage(convertEmoticons(message));
       setMessage('');
       
       // Zresetuj wysokość
@@ -66,6 +66,63 @@ export function MessageInput({ onSendMessage, disabled = false, placeholder = 'N
     setCursorPosition(newPosition);
   };
   
+  // Funkcja konwertująca emotikony tekstowe na emoji
+  const convertEmoticons = (text: string): string => {
+    const emoticonMap: Record<string, string> = {
+      ':)': '😊',
+      ':-)': '😊',
+      ':D': '😃',
+      ':-D': '😃',
+      ';)': '😉',
+      ';-)': '😉',
+      ':(': '☹️',
+      ':-(': '☹️',
+      ':P': '😛',
+      ':-P': '😛',
+      ':p': '😛',
+      ':-p': '😛',
+      ':*': '😘',
+      ':-*': '😘',
+      '<3': '❤️',
+      ':O': '😮',
+      ':o': '😮',
+      ':-O': '😮',
+      ':-o': '😮',
+      ':|': '😐',
+      ':-|': '😐',
+      ':S': '😖',
+      ':s': '😖',
+      ':-S': '😖',
+      ':-s': '😖',
+      '>:(': '😠',
+      '>:-(': '😠',
+      'xD': '😆',
+      'XD': '😆',
+      ':/': '😕',
+      ':-/': '😕',
+      ':3': '😺',
+      '^_^': '😄',
+      '^.^': '😄',
+      '^-^': '😄',
+      'O.o': '😳',
+      'o.O': '😳',
+      'O_o': '😳',
+      'o_O': '😳',
+      '-_-': '😒',
+    };
+    
+    // Zamień wszystkie emotikony na emoji
+    let convertedText = text;
+    for (const [emoticon, emoji] of Object.entries(emoticonMap)) {
+      // Używamy wyrażenia regularnego, aby uniknąć zastępowania części słów
+      // Szukamy emotikona otoczonego spacjami lub na początku/końcu tekstu
+      const regex = new RegExp(`(^|\\s)${emoticon.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1")}(?=\\s|$)`, 'g');
+      convertedText = convertedText.replace(regex, `$1${emoji}`);
+    }
+    
+    return convertedText;
+  };
+  
   return (
     <form onSubmit={handleSubmit} className="p-3 border-t dark:border-gray-700 bg-white dark:bg-gray-800">
       <div className="flex items-end gap-2">
@@ -80,7 +137,7 @@ export function MessageInput({ onSendMessage, disabled = false, placeholder = 'N
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled}
-            className="resize-none min-h-10 pr-10 py-2.5"
+            className="resize-none min-h-10 py-2.5"
             rows={1}
           />
           
@@ -91,15 +148,6 @@ export function MessageInput({ onSendMessage, disabled = false, placeholder = 'N
             isLoading={isLoadingHashtags}
             onSelectHashtag={handleSelectHashtag}
           />
-          
-          <Button 
-            type="button" 
-            variant="ghost" 
-            size="icon" 
-            className="absolute right-1 bottom-1 text-gray-500"
-          >
-            <Smile className="h-5 w-5" />
-          </Button>
         </div>
         <Button 
           type="submit" 

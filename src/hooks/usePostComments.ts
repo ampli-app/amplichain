@@ -1,6 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { convertEmoticons } from '@/components/social/PostCommentSection';
 
 interface Comment {
   id: string;
