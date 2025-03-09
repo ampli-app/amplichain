@@ -40,25 +40,49 @@ export function PostContent({ content, hashtags, post }: PostContentProps) {
         );
       }
       
-      // Podziel tekst po hashtagach
-      const hashtagParts = part.split(hashtagRegex);
+      // Teraz przetwarzamy hashtagi - używamy regex do podziału
+      const textParts = [];
+      let lastIndex = 0;
+      let match;
       
-      return hashtagParts.map((hashtagPart, j) => {
-        // Sprawdź, czy część jest hashtagiem (zaczyna się od #)
-        if (part.match(hashtagRegex)?.[j-1] === `#${hashtagPart}`) {
-          return (
-            <Link 
-              key={`${i}-${j}`} 
-              to={`/hashtag/${hashtagPart}`} 
-              className="text-primary hover:underline"
-            >
-              #{hashtagPart}
-            </Link>
+      // Utworzenie nowego regex dla każdego wykonania, aby uniknąć problemów z lastIndex
+      const regex = new RegExp(hashtagRegex);
+      
+      while ((match = regex.exec(part)) !== null) {
+        // Dodaj tekst przed hashtagiem
+        if (match.index > lastIndex) {
+          textParts.push(
+            <span key={`text-${lastIndex}`}>
+              {part.substring(lastIndex, match.index)}
+            </span>
           );
         }
         
-        return hashtagPart;
-      });
+        // Dodaj hashtag jako link
+        const hashtagText = match[1]; // Grupa z hashtagiem bez znaku #
+        textParts.push(
+          <Link 
+            key={`hashtag-${match.index}`} 
+            to={`/hashtag/${hashtagText}`} 
+            className="text-primary hover:underline"
+          >
+            #{hashtagText}
+          </Link>
+        );
+        
+        lastIndex = regex.lastIndex;
+      }
+      
+      // Dodaj pozostały tekst po ostatnim hashtagu
+      if (lastIndex < part.length) {
+        textParts.push(
+          <span key={`text-${lastIndex}`}>
+            {part.substring(lastIndex)}
+          </span>
+        );
+      }
+      
+      return textParts.length > 0 ? textParts : part;
     });
     
     return result;
