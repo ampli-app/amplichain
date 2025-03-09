@@ -2,50 +2,46 @@
 import { CommentInput } from '@/components/groups/comments/CommentInput';
 import { CommentsList } from '@/components/groups/comments/CommentsList';
 import { Comment } from '@/utils/commentUtils';
+import { useState, useEffect } from 'react';
+import { usePostComments } from '@/hooks/usePostComments';
 
 interface PostCommentSectionProps {
+  postId: string;
   showComments: boolean;
-  commentText: string;
-  setCommentText: (text: string) => void;
-  onAddComment: () => void;
-  comments: Comment[];
-  loadingComments: boolean;
+  newComment: string;
+  setNewComment: (text: string) => void;
+  commentLoading: boolean;
   replyingTo: string | null;
   setReplyingTo: (id: string | null) => void;
   replyText: string;
   setReplyText: (text: string) => void;
-  onAddReply: (commentId: string) => void;
-  disabled: boolean;
-  postId?: string;
-  groupId?: string;
+  onAddComment: () => Promise<void | boolean>;
+  onAddReply: (commentId: string) => Promise<void | boolean>;
 }
 
 export function PostCommentSection({
+  postId,
   showComments,
-  commentText,
-  setCommentText,
-  onAddComment,
-  comments,
-  loadingComments,
+  newComment,
+  setNewComment,
+  commentLoading,
   replyingTo,
   setReplyingTo,
   replyText,
   setReplyText,
-  onAddReply,
-  disabled,
-  postId,
-  groupId
+  onAddComment,
+  onAddReply
 }: PostCommentSectionProps) {
+  // Użyj hooka do pobierania komentarzy
+  const { comments, loading: loadingComments } = usePostComments(postId, showComments);
   
-  // Funkcja do dodawania komentarza z konwersją emotikon
+  // Funkcja do dodawania komentarza
   const handleAddComment = () => {
-    // Wywołanie oryginalnej funkcji dodawania komentarza
     onAddComment();
   };
   
-  // Funkcja do dodawania odpowiedzi z konwersją emotikon
+  // Funkcja do dodawania odpowiedzi
   const handleAddReply = (commentId: string) => {
-    // Wywołanie oryginalnej funkcji dodawania odpowiedzi
     onAddReply(commentId);
   };
   
@@ -53,13 +49,13 @@ export function PostCommentSection({
     <div className="mt-4 pt-3 border-t">
       <CommentInput 
         onAddComment={handleAddComment}
-        commentText={commentText}
-        setCommentText={setCommentText}
-        disabled={disabled}
+        commentText={newComment}
+        setCommentText={setNewComment}
+        disabled={commentLoading}
       />
       
       {/* Comments section - expandable */}
-      {(showComments) && (
+      {showComments && (
         <>
           {loadingComments ? (
             <div className="mt-4 space-y-4">
@@ -72,7 +68,7 @@ export function PostCommentSection({
                 </div>
               ))}
             </div>
-          ) : comments.length > 0 ? (
+          ) : comments && comments.length > 0 ? (
             <CommentsList 
               comments={comments}
               replyingTo={replyingTo}
@@ -80,7 +76,7 @@ export function PostCommentSection({
               replyText={replyText}
               setReplyText={setReplyText}
               onAddReply={handleAddReply}
-              disabled={disabled}
+              disabled={commentLoading}
             />
           ) : (
             <div className="text-center py-4 text-sm text-muted-foreground">
