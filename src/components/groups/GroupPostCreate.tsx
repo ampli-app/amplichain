@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Group } from '@/types/group';
 import { useSocial } from '@/contexts/SocialContext';
@@ -28,6 +27,7 @@ import { HashtagSuggestions } from '@/components/common/HashtagSuggestions';
 import { PollOptions } from '@/components/social/PollOptions';
 import { MediaPreview, type MediaFile } from '@/components/social/MediaPreview';
 import { handleFileUpload, uploadMediaToStorage } from '@/utils/mediaUtils';
+import { convertEmoticonOnInput } from '@/utils/emoticonUtils';
 
 interface GroupPostCreateProps {
   group: Group;
@@ -60,8 +60,26 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
   
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
-    setContent(newContent);
-    setCursorPosition(e.target.selectionStart);
+    const currentPosition = e.target.selectionStart || 0;
+    setCursorPosition(currentPosition);
+    
+    // Sprawdź, czy należy przekonwertować emotikon
+    const { text, newPosition } = convertEmoticonOnInput(newContent, currentPosition);
+    
+    if (text !== newContent) {
+      setContent(text);
+      // Ustaw kursor na odpowiedniej pozycji w następnym cyklu renderowania
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = newPosition;
+          textareaRef.current.selectionEnd = newPosition;
+          setCursorPosition(newPosition);
+        }
+      }, 0);
+    } else {
+      setContent(newContent);
+      setCursorPosition(currentPosition);
+    }
   };
   
   const handleSelectHashtag = (hashtag: string) => {

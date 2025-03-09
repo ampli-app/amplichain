@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { GroupPost } from '@/types/group';
 import { Card } from '@/components/ui/card';
@@ -28,6 +29,7 @@ import { PostFiles } from './PostFiles';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Comment, formatTimeAgo } from '@/utils/commentUtils';
+import { convertEmoticons } from '@/utils/emoticonUtils';
 
 interface PostItemProps {
   post: GroupPost;
@@ -135,7 +137,7 @@ export function PostItem({
               },
               content: reply.content,
               timeAgo: formatTimeAgo(new Date(reply.created_at)),
-              replies: []
+              replies: [] // Dodajemy pustą tablicę, ponieważ odpowiedzi nie mają swoich odpowiedzi
             };
           }) || [];
           
@@ -243,7 +245,8 @@ export function PostItem({
   };
   
   const formatContent = (content: string) => {
-    return content.replace(/#(\w+)/g, '<a href="/hashtag/$1" class="text-primary hover:underline">#$1</a>');
+    const contentWithEmoticons = convertEmoticons(content);
+    return contentWithEmoticons.replace(/#(\w+)/g, '<a href="/hashtag/$1" class="text-primary hover:underline">#$1</a>');
   };
 
   function formatTime(date: Date): string {

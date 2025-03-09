@@ -4,8 +4,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { User, CornerDownRight, Send } from 'lucide-react';
-import { convertEmoticons } from '@/utils/emoticonUtils';
+import { convertEmoticons, convertEmoticonOnInput } from '@/utils/emoticonUtils';
 import { Comment } from '@/utils/commentUtils';
+import { useRef } from 'react';
 
 interface CommentsListProps {
   comments: Comment[];
@@ -26,6 +27,32 @@ export function CommentsList({
   onAddReply,
   disabled = false
 }: CommentsListProps) {
+  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [cursorPosition, setCursorPosition] = useState(0);
+
+  const handleReplyTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = e.target.value;
+    const currentPosition = e.target.selectionStart || 0;
+    setCursorPosition(currentPosition);
+    
+    // Konwertuj emotikony podczas pisania
+    const { text, newPosition } = convertEmoticonOnInput(newContent, currentPosition);
+    
+    if (text !== newContent) {
+      setReplyText(text);
+      // Ustaw kursor na odpowiedniej pozycji w następnym cyklu renderowania
+      setTimeout(() => {
+        if (replyTextareaRef.current) {
+          replyTextareaRef.current.selectionStart = newPosition;
+          replyTextareaRef.current.selectionEnd = newPosition;
+          setCursorPosition(newPosition);
+        }
+      }, 0);
+    } else {
+      setReplyText(newContent);
+    }
+  };
+
   return (
     <div className="space-y-4 mt-4">
       {comments.map((comment) => (
@@ -63,10 +90,11 @@ export function CommentsList({
                   </div>
                   <div className="flex-1 flex gap-2">
                     <Textarea 
+                      ref={replyTextareaRef}
                       placeholder="Napisz odpowiedź..." 
                       className="min-h-[36px] py-2 text-sm resize-none"
                       value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
+                      onChange={handleReplyTextChange}
                       disabled={disabled}
                     />
                     <Button 

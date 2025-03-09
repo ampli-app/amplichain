@@ -1,4 +1,3 @@
-
 import { useRef, useState } from 'react';
 import { useSocial } from '@/contexts/SocialContext';
 import { User } from 'lucide-react';
@@ -12,6 +11,7 @@ import { handleFileUpload } from '@/utils/mediaUtils';
 import { PostActionButtons } from '@/components/social/PostActionButtons';
 import { PostSubmitButton } from '@/components/social/PostSubmitButton';
 import { usePostCreation } from '@/hooks/usePostCreation';
+import { convertEmoticonOnInput } from '@/utils/emoticonUtils';
 
 interface FeedPostCreateProps {
   onPostCreated?: () => void;
@@ -51,8 +51,27 @@ export function FeedPostCreate({ onPostCreated }: FeedPostCreateProps) {
   });
   
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(e.target.value);
-    setCursorPosition(e.target.selectionStart || 0);
+    const newContent = e.target.value;
+    const currentPosition = e.target.selectionStart || 0;
+    setCursorPosition(currentPosition);
+    
+    // Sprawdź, czy należy przekonwertować emotikon
+    const { text, newPosition } = convertEmoticonOnInput(newContent, currentPosition);
+    
+    if (text !== newContent) {
+      setContent(text);
+      // Ustaw kursor na odpowiedniej pozycji w następnym cyklu renderowania
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = newPosition;
+          textareaRef.current.selectionEnd = newPosition;
+          setCursorPosition(newPosition);
+        }
+      }, 0);
+    } else {
+      setContent(newContent);
+      setCursorPosition(currentPosition);
+    }
   };
   
   const handleSelectHashtag = (hashtag: string) => {
