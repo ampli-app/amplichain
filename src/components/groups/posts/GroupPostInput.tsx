@@ -43,17 +43,12 @@ export function GroupPostInput({
   });
   
   useEffect(() => {
-    // Kolorowanie hashtagów po naciśnięciu spacji
-    const colorHashtagsOnSpace = () => {
-      // Zmieniamy displayText tylko jeśli treść zawiera hashtagi
-      if (content.includes('#')) {
-        setDisplayText(content);
-      } else {
-        setDisplayText('');
-      }
-    };
-    
-    colorHashtagsOnSpace();
+    // Kolorowanie hashtagów w czasie rzeczywistym
+    if (content.includes('#')) {
+      setDisplayText(content);
+    } else {
+      setDisplayText('');
+    }
   }, [content]);
   
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -110,8 +105,8 @@ export function GroupPostInput({
           
           {displayText && (
             <div 
-              className="absolute inset-0 pointer-events-none p-3 overflow-hidden whitespace-pre-wrap break-words"
-              style={{ opacity: 0 }}
+              className="absolute inset-0 p-3 overflow-hidden whitespace-pre-wrap break-words pointer-events-none"
+              aria-hidden="true"
             >
               <ContentRenderer content={displayText} linkableHashtags={false} />
             </div>
