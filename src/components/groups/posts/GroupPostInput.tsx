@@ -157,7 +157,12 @@ export function GroupPostInput({
         {shouldShowFormatting && (
           <div 
             ref={formattedContainerRef}
-            className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none p-2 pt-3 whitespace-pre-wrap break-words overflow-hidden text-foreground" 
+            className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none whitespace-pre-wrap break-words overflow-hidden text-foreground" 
+            style={{
+              padding: textareaRef.current ? 
+                window.getComputedStyle(textareaRef.current).padding : 
+                '0.75rem'
+            }}
           >
             {formattedContent}
           </div>
