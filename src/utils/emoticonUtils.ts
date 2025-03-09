@@ -113,27 +113,22 @@ export const convertEmoticonOnInput = (text: string, position: number): { text: 
     // Sprawdź, czy przed aktualną pozycją kursora znajduje się emotikon
     const beforeCursor = text.substring(0, position);
     
-    // Szukamy emotikona otoczonego spacjami lub na początku tekstu
-    const pattern = `(^|\\s)${emoticon.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1")}$`;
-    const regex = new RegExp(pattern);
-    
-    if (regex.test(beforeCursor)) {
+    // Szukamy emotikona na końcu tekstu przed kursorem
+    // Ważna zmiana: nie sprawdzamy już, czy emotikon jest otoczony spacjami,
+    // aby uniknąć dodawania niepotrzebnych spacji
+    if (beforeCursor.endsWith(emoticon)) {
       // Określamy długość emotikona i jego pozycję w tekście
-      const match = beforeCursor.match(regex);
-      if (match) {
-        const matchStart = match.index! + (match[1] ? match[1].length : 0);
-        const matchEnd = beforeCursor.length;
-        
-        // Zamieniamy emotikon na emoji
-        convertedText = 
-          beforeCursor.substring(0, matchStart) + 
-          (match[1] ? match[1] : '') + emoji + 
-          text.substring(position);
-        
-        // Aktualizujemy pozycję kursora
-        positionOffset = (emoji.length - (matchEnd - matchStart));
-        break;
-      }
+      const matchStart = beforeCursor.length - emoticon.length;
+      const matchEnd = beforeCursor.length;
+      
+      // Zamieniamy emotikon na emoji
+      convertedText = 
+        beforeCursor.substring(0, matchStart) + emoji + 
+        text.substring(position);
+      
+      // Aktualizujemy pozycję kursora
+      positionOffset = (emoji.length - (matchEnd - matchStart));
+      break;
     }
   }
   
