@@ -10,6 +10,7 @@ import { useRef } from 'react';
 
 interface CommentsListProps {
   comments: Comment[];
+  loadingComments?: boolean;
   replyingTo: string | null;
   setReplyingTo: (id: string | null) => void;
   replyText: string;
@@ -20,6 +21,7 @@ interface CommentsListProps {
 
 export function CommentsList({ 
   comments, 
+  loadingComments,
   replyingTo, 
   setReplyingTo, 
   replyText, 
@@ -52,6 +54,25 @@ export function CommentsList({
       setReplyText(newContent);
     }
   };
+
+  if (loadingComments) {
+    return (
+      <div className="space-y-4 text-center py-4">
+        <div className="animate-pulse space-y-2">
+          <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+          <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (comments.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground py-4">
+        Brak komentarzy. Bądź pierwszy!
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 mt-4">
@@ -110,7 +131,7 @@ export function CommentsList({
               )}
               
               {/* Replies */}
-              {comment.replies.length > 0 && (
+              {comment.replies && comment.replies.length > 0 && (
                 <CommentReplies replies={comment.replies} />
               )}
             </div>

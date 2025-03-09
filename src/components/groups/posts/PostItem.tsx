@@ -19,8 +19,8 @@ interface PostItemProps {
   index: number;
   groupId: string;
   onLikeToggle?: (postId: string, isLiked: boolean) => Promise<void>;
-  onAddComment?: (postId: string, content: string) => Promise<void>;
-  onAddReply?: (postId: string, commentId: string, content: string) => Promise<void>;
+  onAddComment?: (postId: string, content: string) => Promise<void | boolean>;
+  onAddReply?: (postId: string, commentId: string, content: string) => Promise<void | boolean>;
 }
 
 export function PostItem({ 
@@ -184,14 +184,14 @@ export function PostItem({
               id: post.author.id,
               name: post.author.name,
               avatar: post.author.avatar,
-              role: post.author.role
+              role: post.author.role || ''
             }} 
             timeAgo={post.timeAgo} 
             postType="group"
           />
           
           <div className="mt-4">
-            <PostContent content={post.content} hashtags={post.hashtags} post={post} />
+            <PostContent content={post.content} hashtags={post.hashtags} />
           </div>
           
           {post.isPoll && post.pollOptions && (
@@ -225,22 +225,21 @@ export function PostItem({
           {showComments && (
             <div className="mt-4 space-y-4">
               <CommentInput 
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                onSubmit={handleAddComment}
-                loading={commentLoading}
-                placeholder="Napisz komentarz..."
+                commentText={newComment}
+                setCommentText={setNewComment}
+                onAddComment={handleAddComment}
+                disabled={commentLoading}
               />
               
               <CommentsList 
                 comments={comments}
-                loading={loadingComments}
+                loadingComments={loadingComments}
                 replyingTo={replyingTo}
                 setReplyingTo={setReplyingTo}
                 replyText={replyText}
                 setReplyText={setReplyText}
                 onAddReply={handleAddReply}
-                replyLoading={commentLoading}
+                disabled={commentLoading}
               />
             </div>
           )}

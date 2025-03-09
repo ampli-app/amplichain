@@ -177,7 +177,7 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
     }
   };
   
-  const handleAddComment = async (postId: string, content: string) => {
+  const handleAddComment = async (postId: string, content: string): Promise<void> => {
     if (!user) {
       toast({
         title: "Wymagane logowanie",
@@ -201,8 +201,6 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
         });
       
       fetchPosts();
-      
-      return true;
     } catch (error) {
       console.error('Błąd podczas dodawania komentarza:', error);
       toast({
@@ -210,11 +208,10 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
         description: "Nie udało się dodać komentarza",
         variant: "destructive"
       });
-      return false;
     }
   };
   
-  const handleAddReply = async (postId: string, parentCommentId: string, content: string) => {
+  const handleAddReply = async (postId: string, parentCommentId: string, content: string): Promise<void> => {
     if (!user) {
       toast({
         title: "Wymagane logowanie",
@@ -239,8 +236,6 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
         });
       
       fetchPosts();
-      
-      return true;
     } catch (error) {
       console.error('Błąd podczas dodawania odpowiedzi:', error);
       toast({
@@ -248,7 +243,6 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
         description: "Nie udało się dodać odpowiedzi",
         variant: "destructive"
       });
-      return false;
     }
   };
 

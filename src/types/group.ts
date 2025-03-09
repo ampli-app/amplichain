@@ -32,6 +32,7 @@ export interface GroupPost {
     id: string;
     name: string;
     avatar: string;
+    role?: string;
   };
   createdAt: string;
   timeAgo: string;
