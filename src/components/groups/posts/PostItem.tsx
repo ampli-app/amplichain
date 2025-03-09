@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { GroupPost } from '@/types/group';
 import { Card } from '@/components/ui/card';
@@ -28,6 +27,7 @@ import { PostMedia } from './PostMedia';
 import { PostFiles } from './PostFiles';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { Comment, formatTimeAgo } from '@/utils/commentUtils';
 
 interface PostItemProps {
   post: GroupPost;
@@ -52,36 +52,22 @@ export function PostItem({
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [loading, setLoading] = useState(false);
-  const [comments, setComments] = useState<Array<{
-    id: string;
-    author: { id: string; name: string; avatar: string };
-    content: string;
-    timeAgo: string;
-    replies: Array<{
-      id: string;
-      author: { id: string; name: string; avatar: string };
-      content: string;
-      timeAgo: string;
-    }>;
-  }>>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
   
-  // Pobierz komentarze z Supabase przy pierwszym renderze
   useEffect(() => {
     if (showComments && post.comments > 0) {
       fetchComments();
     }
   }, [showComments, post.id]);
   
-  // Funkcja do pobierania komentarzy i odpowiedzi
   const fetchComments = async () => {
     if (!post.id) return;
     
     setLoadingComments(true);
     try {
-      // Pobierz komentarze główne
       const { data: commentsData, error } = await supabase
         .from('group_post_comments')
         .select(`
@@ -101,7 +87,6 @@ export function PostItem({
         return;
       }
       
-      // Pobierz odpowiedzi na komentarze
       const { data: repliesData, error: repliesError } = await supabase
         .from('group_post_comments')
         .select(`
@@ -119,7 +104,6 @@ export function PostItem({
         console.error('Błąd podczas pobierania odpowiedzi:', repliesError);
       }
       
-      // Pobierz dane autorów komentarzy i odpowiedzi
       const userIds = [
         ...new Set([
           ...(commentsData?.map(comment => comment.user_id) || []),
@@ -136,7 +120,6 @@ export function PostItem({
         console.error('Błąd podczas pobierania danych użytkowników:', usersError);
       }
       
-      // Formatuj komentarze z dołączonymi odpowiedziami
       const formattedComments = commentsData?.map(comment => {
         const authorProfile = usersData?.find(user => user.id === comment.user_id);
         const commentReplies = repliesData
@@ -151,7 +134,8 @@ export function PostItem({
                 avatar: replyAuthorProfile?.avatar_url || ''
               },
               content: reply.content,
-              timeAgo: formatTimeAgo(new Date(reply.created_at))
+              timeAgo: formatTimeAgo(new Date(reply.created_at)),
+              replies: []
             };
           }) || [];
           
@@ -182,7 +166,6 @@ export function PostItem({
       if (onLikeToggle) {
         await onLikeToggle(post.id, liked);
         
-        // Zaktualizuj lokalny stan
         if (liked) {
           setLikesCount(prev => prev - 1);
         } else {
@@ -200,7 +183,6 @@ export function PostItem({
   const handleShare = () => {
     const url = window.location.href;
     
-    // Spróbuj użyć API Clipboard do skopiowania
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(() => {
         toast({
@@ -208,14 +190,12 @@ export function PostItem({
           description: "Link do posta został skopiowany do schowka.",
         });
       }).catch(() => {
-        // Jeśli API Clipboard zawiedzie, wyświetl link
         toast({
           title: "Kopiowanie nieudane",
           description: "Spróbuj skopiować link ręcznie: " + url,
         });
       });
     } else {
-      // Fallback dla przeglądarek bez dostępu do Clipboard API
       toast({
         title: "Link do udostępnienia",
         description: url,
@@ -232,7 +212,6 @@ export function PostItem({
         const success = await onAddComment(post.id, commentText);
         if (success) {
           setCommentText('');
-          // Odśwież komentarze
           await fetchComments();
         }
       }
@@ -253,7 +232,6 @@ export function PostItem({
         if (success) {
           setReplyText('');
           setReplyingTo(null);
-          // Odśwież komentarze
           await fetchComments();
         }
       }
@@ -265,12 +243,10 @@ export function PostItem({
   };
   
   const formatContent = (content: string) => {
-    // Convert hashtags to links
     return content.replace(/#(\w+)/g, '<a href="/hashtag/$1" class="text-primary hover:underline">#$1</a>');
   };
 
-  // Helper function to format time
-  function formatTimeAgo(date: Date): string {
+  function formatTime(date: Date): string {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffSec = Math.floor(diffMs / 1000);
@@ -379,7 +355,6 @@ export function PostItem({
               </div>
             </div>
             
-            {/* Comment input - always visible */}
             <div className="mt-4 pt-3 border-t">
               <CommentInput 
                 onAddComment={handleAddComment}
@@ -388,7 +363,6 @@ export function PostItem({
                 disabled={loading}
               />
               
-              {/* Comments section - expandable */}
               {(showComments) && (
                 <>
                   {loadingComments ? (
