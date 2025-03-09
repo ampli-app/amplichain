@@ -70,19 +70,8 @@ export function PostContent({ content, hashtags, post }: PostContentProps) {
         {renderContent()}
       </div>
       
-      {postHashtags && postHashtags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
-          {postHashtags.map((tag, index) => (
-            <Link 
-              key={index} 
-              to={`/hashtag/${tag}`} 
-              className="text-primary hover:underline text-sm"
-            >
-              #{tag}
-            </Link>
-          ))}
-        </div>
-      )}
+      {/* Usuwamy sekcję dodatkowych hashtagów na dole, 
+          ponieważ są już wyświetlane w treści posta */}
     </Card>
   );
 }
