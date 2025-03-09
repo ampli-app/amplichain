@@ -1,5 +1,5 @@
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send, User } from 'lucide-react';
@@ -9,7 +9,6 @@ import { Link } from 'react-router-dom';
 import { useHashtagSuggestions } from '@/hooks/useHashtagSuggestions';
 import { HashtagSuggestions } from '@/components/common/HashtagSuggestions';
 import { convertEmoticonOnInput } from '@/utils/emoticonUtils';
-import { ContentRenderer } from '@/components/common/ContentRenderer';
 
 interface CommentInputProps {
   onAddComment: () => void;
@@ -27,15 +26,13 @@ export function CommentInput({
   const { user, isLoggedIn } = useAuth();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [cursorPosition, setCursorPosition] = useState(0);
-  const [showPreview, setShowPreview] = useState(false);
   
   const { 
     hashtagSuggestions, 
     showHashtagSuggestions, 
     isLoadingHashtags,
     suggestionsRef,
-    insertHashtag,
-    setShowHashtagSuggestions 
+    insertHashtag
   } = useHashtagSuggestions({ 
     content: commentText, 
     cursorPosition
@@ -67,9 +64,6 @@ export function CommentInput({
         }
       }, 0);
     }
-    
-    // Pokaż podgląd tylko jeśli jest jakiś tekst
-    setShowPreview(newContent.trim().length > 0);
   };
   
   const handleSelectHashtag = (hashtag: string) => {
@@ -77,11 +71,6 @@ export function CommentInput({
     setCommentText(newContent);
     setCursorPosition(newPosition);
   };
-  
-  useEffect(() => {
-    // Aktualizuj podgląd po automatycznym uzupełnieniu hashtagu
-    setShowPreview(commentText.trim().length > 0);
-  }, [commentText]);
   
   if (!isLoggedIn) {
     return (
@@ -111,12 +100,6 @@ export function CommentInput({
           className="min-h-[40px] py-2 text-sm resize-none"
           disabled={disabled}
         />
-        
-        {showPreview && (
-          <div className="p-2 border rounded-md bg-slate-50 dark:bg-slate-800">
-            <ContentRenderer content={commentText} linkableHashtags={false} />
-          </div>
-        )}
         
         <HashtagSuggestions 
           showSuggestions={showHashtagSuggestions}

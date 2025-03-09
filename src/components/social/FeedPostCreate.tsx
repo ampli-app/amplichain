@@ -13,8 +13,6 @@ import { PostActionButtons } from '@/components/social/PostActionButtons';
 import { PostSubmitButton } from '@/components/social/PostSubmitButton';
 import { usePostCreation } from '@/hooks/usePostCreation';
 import { convertEmoticonOnInput } from '@/utils/emoticonUtils';
-import { ContentRenderer } from '@/components/common/ContentRenderer';
-import { Card } from '@/components/ui/card';
 
 interface FeedPostCreateProps {
   onPostCreated?: () => void;
@@ -23,7 +21,6 @@ interface FeedPostCreateProps {
 export function FeedPostCreate({ onPostCreated }: FeedPostCreateProps) {
   const { currentUser } = useSocial();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [cursorPosition, setCursorPosition] = useState(0);
@@ -47,8 +44,7 @@ export function FeedPostCreate({ onPostCreated }: FeedPostCreateProps) {
     showHashtagSuggestions, 
     isLoadingHashtags,
     suggestionsRef,
-    insertHashtag,
-    setShowHashtagSuggestions 
+    insertHashtag
   } = useHashtagSuggestions({ 
     content, 
     cursorPosition
@@ -76,15 +72,7 @@ export function FeedPostCreate({ onPostCreated }: FeedPostCreateProps) {
       setContent(newContent);
       setCursorPosition(currentPosition);
     }
-    
-    // Pokaż podgląd tylko jeśli jest jakiś tekst
-    setShowPreview(newContent.trim().length > 0);
   };
-  
-  useEffect(() => {
-    // Aktualizuj podgląd po automatycznym uzupełnieniu hashtagu
-    setShowPreview(content.trim().length > 0);
-  }, [content]);
   
   const handleSelectHashtag = (hashtag: string) => {
     const { newContent, newPosition } = insertHashtag(content, hashtag, textareaRef);
@@ -121,15 +109,6 @@ export function FeedPostCreate({ onPostCreated }: FeedPostCreateProps) {
             onFocus={() => setIsExpanded(true)}
             disabled={loading}
           />
-          
-          {showPreview && (
-            <Card className="p-3 mb-3 bg-slate-50 dark:bg-slate-800">
-              <div className="text-sm font-medium mb-1 text-rhythm-500">Podgląd:</div>
-              <div className="break-words">
-                <ContentRenderer content={content} linkableHashtags={false} />
-              </div>
-            </Card>
-          )}
           
           <HashtagSuggestions 
             showSuggestions={showHashtagSuggestions}
