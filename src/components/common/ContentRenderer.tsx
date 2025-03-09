@@ -37,7 +37,7 @@ export function ContentRenderer({ content, linkableHashtags = true }: ContentRen
     else if (match[3]) {
       // Dodaj spację przed, jeśli istnieje
       if (match[2] && match[2] !== '^') {
-        parts.push(<React.Fragment key={key++}>{match[2]}</React.Fragment>);
+        parts.push(<span key={key++}>{match[2]}</span>);
       }
       
       // Dodaj hashtag
@@ -47,12 +47,12 @@ export function ContentRenderer({ content, linkableHashtags = true }: ContentRen
       
       // Dodaj spację po, jeśli istnieje
       if (match[4] && match[4] !== '$') {
-        parts.push(<React.Fragment key={key++}>{match[4]}</React.Fragment>);
+        parts.push(<span key={key++}>{match[4]}</span>);
       }
     }
     // Dowolny inny tekst
     else if (match[5]) {
-      parts.push(<React.Fragment key={key++}>{match[5]}</React.Fragment>);
+      parts.push(<span key={key++}>{match[5]}</span>);
     }
     
     lastIndex = regex.lastIndex;

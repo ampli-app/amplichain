@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+
+import { useState, useRef, useEffect } from 'react';
 import { Group } from '@/types/group';
 import { useSocial } from '@/contexts/SocialContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +29,7 @@ import { PollOptions } from '@/components/social/PollOptions';
 import { MediaPreview, type MediaFile } from '@/components/social/MediaPreview';
 import { handleFileUpload, uploadMediaToStorage } from '@/utils/mediaUtils';
 import { convertEmoticonOnInput } from '@/utils/emoticonUtils';
+import { ContentRenderer } from '@/components/common/ContentRenderer';
 
 interface GroupPostCreateProps {
   group: Group;
@@ -46,6 +48,7 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [displayText, setDisplayText] = useState('');
   
   const { 
     hashtagSuggestions, 
@@ -57,6 +60,20 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
     content, 
     cursorPosition
   });
+  
+  useEffect(() => {
+    // Kolorowanie hashtagów po naciśnięciu spacji
+    const colorHashtagsOnSpace = () => {
+      // Zmieniamy displayText tylko jeśli treść zawiera hashtagi
+      if (content.includes('#')) {
+        setDisplayText(content);
+      } else {
+        setDisplayText('');
+      }
+    };
+    
+    colorHashtagsOnSpace();
+  }, [content]);
   
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
@@ -268,15 +285,26 @@ export function GroupPostCreate({ group }: GroupPostCreateProps) {
         </Avatar>
         
         <div className="flex-1 relative">
-          <Textarea
-            ref={textareaRef}
-            value={content}
-            onChange={handleContentChange}
-            placeholder={`Napisz coś do grupy "${group.name}"...`}
-            className="resize-none mb-3 min-h-24"
-            onFocus={() => setIsExpanded(true)}
-            disabled={loading}
-          />
+          <div className="relative">
+            <Textarea
+              ref={textareaRef}
+              value={content}
+              onChange={handleContentChange}
+              placeholder={`Napisz coś do grupy "${group.name}"...`}
+              className="resize-none mb-3 min-h-24"
+              onFocus={() => setIsExpanded(true)}
+              disabled={loading}
+            />
+            
+            {displayText && (
+              <div 
+                className="absolute inset-0 pointer-events-none p-3 overflow-hidden whitespace-pre-wrap break-words"
+                style={{ opacity: 0 }}
+              >
+                <ContentRenderer content={displayText} linkableHashtags={false} />
+              </div>
+            )}
+          </div>
           
           <HashtagSuggestions 
             showSuggestions={showHashtagSuggestions}

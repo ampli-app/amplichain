@@ -13,6 +13,7 @@ import { PostActionButtons } from '@/components/social/PostActionButtons';
 import { PostSubmitButton } from '@/components/social/PostSubmitButton';
 import { usePostCreation } from '@/hooks/usePostCreation';
 import { convertEmoticonOnInput } from '@/utils/emoticonUtils';
+import { ContentRenderer } from '@/components/common/ContentRenderer';
 
 interface FeedPostCreateProps {
   onPostCreated?: () => void;
@@ -24,6 +25,7 @@ export function FeedPostCreate({ onPostCreated }: FeedPostCreateProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [displayText, setDisplayText] = useState('');
   
   const {
     content,
@@ -49,6 +51,20 @@ export function FeedPostCreate({ onPostCreated }: FeedPostCreateProps) {
     content, 
     cursorPosition
   });
+  
+  useEffect(() => {
+    // Kolorowanie hashtagów po naciśnięciu spacji
+    const colorHashtagsOnSpace = () => {
+      // Zmieniamy displayText tylko jeśli treść zawiera hashtagi
+      if (content.includes('#')) {
+        setDisplayText(content);
+      } else {
+        setDisplayText('');
+      }
+    };
+    
+    colorHashtagsOnSpace();
+  }, [content]);
   
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
@@ -100,15 +116,26 @@ export function FeedPostCreate({ onPostCreated }: FeedPostCreateProps) {
         </Avatar>
         
         <div className="flex-1 relative">
-          <Textarea
-            ref={textareaRef}
-            value={content}
-            onChange={handleContentChange}
-            placeholder="Co słychać?"
-            className="resize-none mb-3 min-h-24"
-            onFocus={() => setIsExpanded(true)}
-            disabled={loading}
-          />
+          <div className="relative">
+            <Textarea
+              ref={textareaRef}
+              value={content}
+              onChange={handleContentChange}
+              placeholder="Co słychać?"
+              className="resize-none mb-3 min-h-24"
+              onFocus={() => setIsExpanded(true)}
+              disabled={loading}
+            />
+            
+            {displayText && (
+              <div 
+                className="absolute inset-0 pointer-events-none p-3 overflow-hidden whitespace-pre-wrap break-words"
+                style={{ opacity: 0 }}
+              >
+                <ContentRenderer content={displayText} linkableHashtags={false} />
+              </div>
+            )}
+          </div>
           
           <HashtagSuggestions 
             showSuggestions={showHashtagSuggestions}

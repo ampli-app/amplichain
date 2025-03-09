@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send, User } from 'lucide-react';
@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { useHashtagSuggestions } from '@/hooks/useHashtagSuggestions';
 import { HashtagSuggestions } from '@/components/common/HashtagSuggestions';
 import { convertEmoticonOnInput } from '@/utils/emoticonUtils';
+import { ContentRenderer } from '@/components/common/ContentRenderer';
 
 interface CommentInputProps {
   onAddComment: () => void;
@@ -26,6 +27,7 @@ export function CommentInput({
   const { user, isLoggedIn } = useAuth();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [displayText, setDisplayText] = useState('');
   
   const { 
     hashtagSuggestions, 
@@ -37,6 +39,20 @@ export function CommentInput({
     content: commentText, 
     cursorPosition
   });
+  
+  useEffect(() => {
+    // Kolorowanie hashtagów po naciśnięciu spacji
+    const colorHashtagsOnSpace = () => {
+      // Zmieniamy displayText tylko jeśli komentarz zawiera hashtagi
+      if (commentText.includes('#')) {
+        setDisplayText(commentText);
+      } else {
+        setDisplayText('');
+      }
+    };
+    
+    colorHashtagsOnSpace();
+  }, [commentText]);
   
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && commentText.trim()) {
@@ -91,15 +107,26 @@ export function CommentInput({
       </Avatar>
       
       <div className="flex-1 flex flex-col gap-2 relative">
-        <Textarea 
-          ref={textareaRef}
-          value={commentText}
-          onChange={handleContentChange}
-          onKeyPress={handleKeyPress}
-          placeholder="Napisz komentarz..." 
-          className="min-h-[40px] py-2 text-sm resize-none"
-          disabled={disabled}
-        />
+        <div className="relative">
+          <Textarea 
+            ref={textareaRef}
+            value={commentText}
+            onChange={handleContentChange}
+            onKeyPress={handleKeyPress}
+            placeholder="Napisz komentarz..." 
+            className="min-h-[40px] py-2 text-sm resize-none"
+            disabled={disabled}
+          />
+          
+          {displayText && (
+            <div 
+              className="absolute inset-0 pointer-events-none p-3 overflow-hidden whitespace-pre-wrap break-words text-sm"
+              style={{ opacity: 0 }}
+            >
+              <ContentRenderer content={displayText} linkableHashtags={false} />
+            </div>
+          )}
+        </div>
         
         <HashtagSuggestions 
           showSuggestions={showHashtagSuggestions}
