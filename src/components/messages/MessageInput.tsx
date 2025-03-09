@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Send, PaperclipIcon } from 'lucide-react';
 import { useHashtagSuggestions } from '@/hooks/useHashtagSuggestions';
 import { HashtagSuggestions } from '@/components/common/HashtagSuggestions';
+import { convertEmoticons, convertEmoticonOnInput } from '@/utils/emoticonUtils';
 
 interface MessageInputProps {
   onSendMessage: (text: string) => void;
@@ -50,13 +51,30 @@ export function MessageInput({ onSendMessage, disabled = false, placeholder = 'N
   
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
-    setMessage(newContent);
-    setCursorPosition(e.target.selectionStart);
+    const currentPosition = e.target.selectionStart || 0;
+    setCursorPosition(currentPosition);
+    
+    // Sprawdź, czy należy przekonwertować emotikon
+    const { text, newPosition } = convertEmoticonOnInput(newContent, currentPosition);
     
     // Automatyczne dostosowanie wysokości
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+    
+    if (text !== newContent) {
+      setMessage(text);
+      // Ustaw kursor na odpowiedniej pozycji w następnym cyklu renderowania
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = newPosition;
+          textareaRef.current.selectionEnd = newPosition;
+          setCursorPosition(newPosition);
+        }
+      }, 0);
+    } else {
+      setMessage(newContent);
     }
   };
   
@@ -64,63 +82,6 @@ export function MessageInput({ onSendMessage, disabled = false, placeholder = 'N
     const { newContent, newPosition } = insertHashtag(message, hashtag, textareaRef);
     setMessage(newContent);
     setCursorPosition(newPosition);
-  };
-  
-  // Funkcja konwertująca emotikony tekstowe na emoji
-  const convertEmoticons = (text: string): string => {
-    const emoticonMap: Record<string, string> = {
-      ':)': '😊',
-      ':-)': '😊',
-      ':D': '😃',
-      ':-D': '😃',
-      ';)': '😉',
-      ';-)': '😉',
-      ':(': '☹️',
-      ':-(': '☹️',
-      ':P': '😛',
-      ':-P': '😛',
-      ':p': '😛',
-      ':-p': '😛',
-      ':*': '😘',
-      ':-*': '😘',
-      '<3': '❤️',
-      ':O': '😮',
-      ':o': '😮',
-      ':-O': '😮',
-      ':-o': '😮',
-      ':|': '😐',
-      ':-|': '😐',
-      ':S': '😖',
-      ':s': '😖',
-      ':-S': '😖',
-      ':-s': '😖',
-      '>:(': '😠',
-      '>:-(': '😠',
-      'xD': '😆',
-      'XD': '😆',
-      ':/': '😕',
-      ':-/': '😕',
-      ':3': '😺',
-      '^_^': '😄',
-      '^.^': '😄',
-      '^-^': '😄',
-      'O.o': '😳',
-      'o.O': '😳',
-      'O_o': '😳',
-      'o_O': '😳',
-      '-_-': '😒',
-    };
-    
-    // Zamień wszystkie emotikony na emoji
-    let convertedText = text;
-    for (const [emoticon, emoji] of Object.entries(emoticonMap)) {
-      // Używamy wyrażenia regularnego, aby uniknąć zastępowania części słów
-      // Szukamy emotikona otoczonego spacjami lub na początku/końcu tekstu
-      const regex = new RegExp(`(^|\\s)${emoticon.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1")}(?=\\s|$)`, 'g');
-      convertedText = convertedText.replace(regex, `$1${emoji}`);
-    }
-    
-    return convertedText;
   };
   
   return (

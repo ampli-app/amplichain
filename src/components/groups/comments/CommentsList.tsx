@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { User, CornerDownRight, Send } from 'lucide-react';
+import { convertEmoticons } from '@/utils/emoticonUtils';
 
 interface Comment {
   id: string;
@@ -52,7 +53,7 @@ export function CommentsList({
                   <h4 className="font-medium text-sm">{comment.author.name}</h4>
                   <span className="text-xs text-rhythm-500">{comment.timeAgo}</span>
                 </div>
-                <p className="text-sm mt-1">{comment.content}</p>
+                <p className="text-sm mt-1">{convertEmoticons(comment.content)}</p>
               </div>
               
               <div className="flex gap-4 mt-1 ml-1">
@@ -128,7 +129,7 @@ function CommentReplies({ replies }: CommentRepliesProps) {
                 <h5 className="font-medium text-xs">{reply.author.name}</h5>
                 <span className="text-xs text-rhythm-500">{reply.timeAgo}</span>
               </div>
-              <p className="text-xs mt-1">{reply.content}</p>
+              <p className="text-xs mt-1">{convertEmoticons(reply.content)}</p>
             </div>
           </div>
         </div>

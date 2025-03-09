@@ -6,6 +6,7 @@ import { User } from 'lucide-react';
 import { Message } from '@/types/messages';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { convertEmoticons } from '@/utils/emoticonUtils';
 
 interface MessageBubbleProps {
   message: Message;
@@ -37,7 +38,7 @@ export function MessageBubble({ message, showAvatar = true }: MessageBubbleProps
         )}
       >
         <div className="p-3">
-          <p>{message.text}</p>
+          <p>{convertEmoticons(message.text)}</p>
         </div>
         <div className={cn("px-3 pb-1 text-xs", isOwn ? "text-primary-foreground/70" : "text-gray-500")}>
           {timeAgo}

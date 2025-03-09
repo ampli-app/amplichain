@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import { Post } from '@/types/social';
 import { PostMedia } from '@/components/groups/posts/PostMedia'; 
+import { convertEmoticons } from '@/utils/emoticonUtils';
 
 interface PostContentProps {
   post: Post;
@@ -9,8 +10,11 @@ interface PostContentProps {
 
 export function PostContent({ post }: PostContentProps) {
   const formatContent = (content: string) => {
-    // Zamień hashtagi na linki
-    return content.replace(/#(\w+)/g, '<a href="/hashtag/$1" class="text-primary hover:underline">#$1</a>');
+    // Najpierw konwertuj emotikony na emoji
+    const textWithEmojis = convertEmoticons(content);
+    
+    // Następnie zamień hashtagi na linki
+    return textWithEmojis.replace(/#(\w+)/g, '<a href="/hashtag/$1" class="text-primary hover:underline">#$1</a>');
   };
 
   return (

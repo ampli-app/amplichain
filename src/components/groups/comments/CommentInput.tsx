@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send, User } from 'lucide-react';
@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { useHashtagSuggestions } from '@/hooks/useHashtagSuggestions';
 import { HashtagSuggestions } from '@/components/common/HashtagSuggestions';
+import { convertEmoticonOnInput } from '@/utils/emoticonUtils';
 
 interface CommentInputProps {
   onAddComment: () => void;
@@ -48,7 +49,22 @@ export function CommentInput({
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
     setCommentText(newContent);
-    setCursorPosition(e.target.selectionStart);
+    const currentPosition = e.target.selectionStart || 0;
+    setCursorPosition(currentPosition);
+    
+    // Sprawdź, czy należy przekonwertować emotikon
+    const { text, newPosition } = convertEmoticonOnInput(newContent, currentPosition);
+    if (text !== newContent) {
+      setCommentText(text);
+      // Ustaw kursor na odpowiedniej pozycji w następnym cyklu renderowania
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = newPosition;
+          textareaRef.current.selectionEnd = newPosition;
+          setCursorPosition(newPosition);
+        }
+      }, 0);
+    }
   };
   
   const handleSelectHashtag = (hashtag: string) => {

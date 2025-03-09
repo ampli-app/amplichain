@@ -1,6 +1,7 @@
 
 import { CommentInput } from '@/components/groups/comments/CommentInput';
 import { CommentsList } from '@/components/groups/comments/CommentsList';
+import { convertEmoticons } from '@/utils/emoticonUtils';
 
 interface Comment {
   id: string;
@@ -29,63 +30,6 @@ interface PostCommentSectionProps {
   onAddReply: (commentId: string) => void;
   disabled: boolean;
 }
-
-// Funkcja do konwersji emotikon tekstowych na emoji
-export const convertEmoticons = (text: string): string => {
-  const emoticonMap: Record<string, string> = {
-    ':)': '😊',
-    ':-)': '😊',
-    ':D': '😃',
-    ':-D': '😃',
-    ';)': '😉',
-    ';-)': '😉',
-    ':(': '☹️',
-    ':-(': '☹️',
-    ':P': '😛',
-    ':-P': '😛',
-    ':p': '😛',
-    ':-p': '😛',
-    ':*': '😘',
-    ':-*': '😘',
-    '<3': '❤️',
-    ':O': '😮',
-    ':o': '😮',
-    ':-O': '😮',
-    ':-o': '😮',
-    ':|': '😐',
-    ':-|': '😐',
-    ':S': '😖',
-    ':s': '😖',
-    ':-S': '😖',
-    ':-s': '😖',
-    '>:(': '😠',
-    '>:-(': '😠',
-    'xD': '😆',
-    'XD': '😆',
-    ':/': '😕',
-    ':-/': '😕',
-    ':3': '😺',
-    '^_^': '😄',
-    '^.^': '😄',
-    '^-^': '😄',
-    'O.o': '😳',
-    'o.O': '😳',
-    'O_o': '😳',
-    'o_O': '😳',
-    '-_-': '😒',
-  };
-  
-  // Zamień wszystkie emotikony na emoji
-  let convertedText = text;
-  for (const [emoticon, emoji] of Object.entries(emoticonMap)) {
-    // Używamy wyrażenia regularnego, aby uniknąć zastępowania części słów
-    // Szukamy emotikona otoczonego spacjami lub na początku/końcu tekstu
-    const regex = new RegExp(`(^|\\s)${emoticon.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1")}(?=\\s|$)`, 'g');
-    convertedText = convertedText.replace(regex, `$1${emoji}`);
-  }
-  
-  return convertedText;
-};
 
 export function PostCommentSection({
   showComments,
