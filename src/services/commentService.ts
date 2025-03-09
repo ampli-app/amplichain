@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { formatComments, type Comment } from '@/utils/commentUtils';
+import { formatComments, Comment } from '@/utils/commentUtils';
 import { convertEmoticons } from '@/utils/emoticonUtils';
 
 export async function fetchPostComments(postId: string): Promise<Comment[]> {

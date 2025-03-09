@@ -5,19 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { User, CornerDownRight, Send } from 'lucide-react';
 import { convertEmoticons } from '@/utils/emoticonUtils';
-
-interface Comment {
-  id: string;
-  author: { id: string; name: string; avatar: string };
-  content: string;
-  timeAgo: string;
-  replies: Array<{
-    id: string;
-    author: { id: string; name: string; avatar: string };
-    content: string;
-    timeAgo: string;
-  }>;
-}
+import { Comment } from '@/utils/commentUtils';
 
 interface CommentsListProps {
   comments: Comment[];
@@ -106,12 +94,7 @@ export function CommentsList({
 }
 
 interface CommentRepliesProps {
-  replies: Array<{
-    id: string;
-    author: { id: string; name: string; avatar: string };
-    content: string;
-    timeAgo: string;
-  }>;
+  replies: Comment[];
 }
 
 function CommentReplies({ replies }: CommentRepliesProps) {

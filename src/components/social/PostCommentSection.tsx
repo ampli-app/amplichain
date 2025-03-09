@@ -1,20 +1,7 @@
 
 import { CommentInput } from '@/components/groups/comments/CommentInput';
 import { CommentsList } from '@/components/groups/comments/CommentsList';
-import { convertEmoticons } from '@/utils/emoticonUtils';
-
-interface Comment {
-  id: string;
-  author: { id: string; name: string; avatar: string };
-  content: string;
-  timeAgo: string;
-  replies: Array<{
-    id: string;
-    author: { id: string; name: string; avatar: string };
-    content: string;
-    timeAgo: string;
-  }>;
-}
+import { Comment } from '@/utils/commentUtils';
 
 interface PostCommentSectionProps {
   showComments: boolean;

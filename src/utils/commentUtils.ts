@@ -10,7 +10,7 @@ export interface Comment {
   };
   content: string;
   timeAgo: string;
-  replies?: Comment[];
+  replies: Comment[]; // Changed from optional to required
 }
 
 // Funkcja pomocnicza do formatowania czasu
@@ -51,7 +51,8 @@ export function formatComments(
           avatar: replyAuthorProfile?.avatar_url || ''
         },
         content: reply.content,
-        timeAgo: replyTimeAgo
+        timeAgo: replyTimeAgo,
+        replies: [] // Since replies to replies aren't supported, use empty array
       };
     });
     
