@@ -41,7 +41,11 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
             feed_post_poll_votes (id, user_id)
           ),
           feed_post_likes (id, user_id),
-          feed_post_comments (id)
+          feed_post_comments (id),
+          feed_post_hashtags (
+            hashtag_id,
+            hashtags (id, name)
+          )
         `)
         .order('created_at', { ascending: false });
 
@@ -76,6 +80,7 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
           role: ''
         };
         
+        // Przetwarzanie multimediów
         const media = post.feed_post_media?.map(media => ({
           url: media.url,
           type: media.type as 'image' | 'video'
@@ -101,6 +106,9 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
           )?.id || undefined) : 
           undefined;
         
+        // Pobierz hashtagi
+        const hashtags = post.feed_post_hashtags?.filter(ph => ph.hashtags).map(ph => ph.hashtags.name) || [];
+        
         const timeAgo = formatTimeAgo(new Date(post.created_at));
         
         // Sprawdź, czy bieżący użytkownik polubił post
@@ -120,7 +128,8 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
           isPoll: post.is_poll || false,
           pollOptions,
           userVoted,
-          userLiked
+          userLiked,
+          hashtags
         };
       }) || [];
 
