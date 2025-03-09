@@ -1,11 +1,10 @@
-
 import { useEffect, useState } from 'react';
 import { GroupPost } from '@/types/group';
 import { PostItem } from './posts/PostItem';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
-import { convertEmoticons } from '@/components/social/PostCommentSection';
+import { convertEmoticons } from '@/utils/emoticonUtils';
 
 interface GroupPostsListProps {
   posts: GroupPost[];
@@ -19,16 +18,13 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
   const [loading, setLoading] = useState(groupId ? true : false);
 
   useEffect(() => {
-    // Jeśli mamy groupId, pobieramy posty z Supabase
     if (groupId) {
       fetchPosts();
     } else {
-      // Jeśli nie mamy groupId, używamy przekazanych postów
       setPosts(initialPosts);
     }
   }, [groupId, initialPosts]);
   
-  // Funkcja do pobierania postów z Supabase
   const fetchPosts = async () => {
     if (!groupId) return;
     
@@ -60,7 +56,6 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
         return;
       }
 
-      // Pobierz dane autorów postów
       const userIds = [...new Set(postsData?.map(post => post.user_id) || [])];
       const { data: usersData, error: usersError } = await supabase
         .from('profiles')
@@ -71,11 +66,9 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
         console.error('Błąd podczas pobierania danych użytkowników:', usersError);
       }
 
-      // Przetwórz dane na format GroupPost
       const formattedPosts: GroupPost[] = postsData?.map(post => {
         const authorProfile = usersData?.find(user => user.id === post.user_id);
         
-        // Utwórz obiekt autora z danymi z profilu lub domyślnymi wartościami
         const author = authorProfile ? {
           id: authorProfile.id,
           name: authorProfile.full_name || 'Nieznany użytkownik',
@@ -104,7 +97,6 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
           votes: option.group_post_poll_votes?.length || 0
         })) : undefined;
         
-        // Sprawdź, czy użytkownik zagłosował
         const userVoted = post.is_poll && user ? 
           (post.group_post_poll_options?.find(option => 
             option.group_post_poll_votes?.some(vote => vote.user_id === user.id)
@@ -113,7 +105,6 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
         
         const timeAgo = formatTimeAgo(new Date(post.created_at));
         
-        // Sprawdź, czy bieżący użytkownik polubił post
         const userLiked = user ? post.group_post_likes?.some(like => like.user_id === user.id) : false;
         
         return {
@@ -141,7 +132,6 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
     }
   };
 
-  // Dodaj funkcję do obsługi polubień
   const handleLikeToggle = async (postId: string, isLiked: boolean) => {
     if (!user) {
       toast({
@@ -154,14 +144,12 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
     
     try {
       if (isLiked) {
-        // Usuń polubienie
         await supabase
           .from('group_post_likes')
           .delete()
           .eq('post_id', postId)
           .eq('user_id', user.id);
       } else {
-        // Dodaj polubienie
         await supabase
           .from('group_post_likes')
           .insert({
@@ -170,9 +158,7 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
           });
       }
       
-      // Odśwież posty po aktualizacji
       fetchPosts();
-      
     } catch (error) {
       console.error('Błąd podczas aktualizacji polubienia:', error);
       toast({
@@ -183,7 +169,6 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
     }
   };
   
-  // Funkcja do dodawania komentarza
   const handleAddComment = async (postId: string, content: string) => {
     if (!user) {
       toast({
@@ -197,7 +182,6 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
     if (!content.trim()) return;
     
     try {
-      // Konwertuj emotikony na emoji przed zapisaniem
       const convertedContent = convertEmoticons(content.trim());
       
       await supabase
@@ -208,7 +192,6 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
           content: convertedContent
         });
       
-      // Odśwież posty po dodaniu komentarza
       fetchPosts();
       
       return true;
@@ -223,7 +206,6 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
     }
   };
   
-  // Funkcja do dodawania odpowiedzi na komentarz
   const handleAddReply = async (postId: string, parentCommentId: string, content: string) => {
     if (!user) {
       toast({
@@ -237,7 +219,6 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
     if (!content.trim()) return;
     
     try {
-      // Konwertuj emotikony na emoji przed zapisaniem
       const convertedContent = convertEmoticons(content.trim());
       
       await supabase
@@ -249,7 +230,6 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
           parent_id: parentCommentId
         });
       
-      // Odśwież posty po dodaniu odpowiedzi
       fetchPosts();
       
       return true;
@@ -318,7 +298,6 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
   );
 }
 
-// Funkcja pomocnicza do formatowania czasu
 function formatTimeAgo(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
