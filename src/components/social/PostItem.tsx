@@ -123,16 +123,21 @@ export function PostItem({
           <div className="flex-1 min-w-0">
             <PostHeader author={post.author} timeAgo={post.timeAgo} />
             
-            <PostContent post={post} />
+            <div className="mt-4">
+              <PostContent content={post.content} hashtags={post.hashtags} />
+            </div>
             
-            <PostFooter 
-              likesCount={likesCount} 
-              commentsCount={post.comments} 
-              liked={liked}
-              onLikeClick={handleLike}
-              onCommentClick={() => setShowComments(!showComments)}
-              disabled={loading}
-            />
+            <div className="mt-4">
+              <PostFooter 
+                postId={post.id}
+                likesCount={likesCount} 
+                commentsCount={post.comments} 
+                liked={liked}
+                onLikeClick={handleLike}
+                onCommentClick={() => setShowComments(!showComments)}
+                disabled={loading}
+              />
+            </div>
             
             <PostCommentSection
               showComments={showComments}
@@ -147,6 +152,7 @@ export function PostItem({
               setReplyText={setReplyText}
               onAddReply={handleAddReply}
               disabled={loading}
+              postId={post.id}
             />
           </div>
         </div>

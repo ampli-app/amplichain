@@ -1,58 +1,40 @@
 
-import { User, MoreHorizontal } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { Calendar } from 'lucide-react';
 
 interface PostHeaderProps {
   author: {
+    id: string;
     name: string;
     avatar: string;
-    role: string;
+    role?: string;
   };
   timeAgo: string;
+  postType?: 'feed' | 'group';
 }
 
-export function PostHeader({ author, timeAgo }: PostHeaderProps) {
+export function PostHeader({ author, timeAgo, postType = 'feed' }: PostHeaderProps) {
   return (
-    <div className="flex justify-between items-start">
-      <div className="flex items-start gap-4">
-        <Avatar className="h-10 w-10 flex-shrink-0">
-          <AvatarImage src={author.avatar} alt={author.name} />
-          <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
+    <div className="flex items-center gap-3">
+      <Link to={`/profile/${author.id}`}>
+        <Avatar className="h-10 w-10">
+          {author.avatar ? (
+            <AvatarImage src={author.avatar} alt={author.name} />
+          ) : (
+            <AvatarFallback>{author.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+          )}
         </Avatar>
-        
-        <div>
-          <h3 className="font-semibold">{author.name}</h3>
-          <div className="text-sm text-rhythm-500 flex items-center gap-2">
-            <span>{author.role}</span>
-            <span className="text-xs">•</span>
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              {timeAgo}
-            </span>
-          </div>
-        </div>
-      </div>
+      </Link>
       
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full">
-            <span className="sr-only">Opcje posta</span>
-            <MoreHorizontal className="h-5 w-5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem>Zapisz post</DropdownMenuItem>
-          <DropdownMenuItem>Zgłoś post</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex-1 min-w-0">
+        <Link 
+          to={`/profile/${author.id}`}
+          className="font-medium hover:underline"
+        >
+          {author.name}
+        </Link>
+        <div className="text-muted-foreground text-xs">{timeAgo}</div>
+      </div>
     </div>
   );
 }

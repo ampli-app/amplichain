@@ -6,16 +6,18 @@ interface PollOption {
 }
 
 interface PostPollProps {
-  pollOptions: PollOption[];
+  options: PollOption[];
   userVoted?: string;
+  postId: string;
+  groupId?: string;
 }
 
-export function PostPoll({ pollOptions, userVoted }: PostPollProps) {
-  const totalVotes = pollOptions.reduce((sum, option) => sum + option.votes, 0);
+export function PostPoll({ options, userVoted, postId, groupId }: PostPollProps) {
+  const totalVotes = options.reduce((sum, option) => sum + option.votes, 0);
   
   return (
     <div className="mt-4 space-y-3 bg-slate-50 dark:bg-slate-900 p-4 rounded-md mb-4">
-      {pollOptions.map((option) => {
+      {options.map((option) => {
         const percentage = totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
         const isVoted = userVoted === option.id;
         

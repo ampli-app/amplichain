@@ -1,23 +1,29 @@
 
 import { Link } from 'react-router-dom';
 import { Card } from "@/components/ui/card";
+import { Post } from '@/types/social';
 
 interface PostContentProps {
   content: string;
   hashtags?: string[];
+  post?: Post;
 }
 
-export function PostContent({ content, hashtags }: PostContentProps) {
+export function PostContent({ content, hashtags, post }: PostContentProps) {
+  // Używamy content i hashtags z propsów, a jeśli przekazano post, to bierzemy z niego
+  const postContent = post ? post.content : content;
+  const postHashtags = post ? post.hashtags : hashtags;
+  
   // Konwertuj linki URL i hashtagi na klikalne elementy
   const renderContent = () => {
-    if (!content) return null;
+    if (!postContent) return null;
     
     // Regex wzorce dla URL i hashtagów
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const hashtagRegex = /#(\w+)/g;
     
     // Podziel zawartość na części i zastąp linki i hashtagi elementami React
-    let parts = content.split(urlRegex);
+    let parts = postContent.split(urlRegex);
     let result = parts.map((part, i) => {
       // Sprawdź, czy część pasuje do wzorca URL
       if (part.match(urlRegex)) {
@@ -64,9 +70,9 @@ export function PostContent({ content, hashtags }: PostContentProps) {
         {renderContent()}
       </div>
       
-      {hashtags && hashtags.length > 0 && (
+      {postHashtags && postHashtags.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
-          {hashtags.map((tag, index) => (
+          {postHashtags.map((tag, index) => (
             <Link 
               key={index} 
               to={`/hashtag/${tag}`} 

@@ -8,6 +8,7 @@ import { PostFiles } from './PostFiles';
 import { PostPoll } from './PostPoll';
 import { PostFooter } from '@/components/social/PostFooter';
 import { PostCommentSection } from '@/components/social/PostCommentSection';
+import { Comment } from '@/utils/commentUtils';
 
 interface PostItemProps {
   post: GroupPost;
@@ -20,9 +21,37 @@ interface PostItemProps {
 
 export function PostItem({ post, index, onLikeToggle, onAddComment, onAddReply, groupId }: PostItemProps) {
   const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
   
   const handleCommentToggle = () => {
     setShowComments(!showComments);
+  };
+
+  const handleLikeClick = () => {
+    onLikeToggle(post.id, post.userLiked || false);
+  };
+  
+  const handleAddComment = () => {
+    onAddComment(post.id, commentText).then(success => {
+      if (success) {
+        setCommentText('');
+      }
+    });
+  };
+  
+  const handleAddReply = (commentId: string) => {
+    if (replyingTo) {
+      onAddReply(post.id, commentId, replyText).then(success => {
+        if (success) {
+          setReplyText('');
+          setReplyingTo(null);
+        }
+      });
+    }
   };
   
   return (
@@ -67,19 +96,28 @@ export function PostItem({ post, index, onLikeToggle, onAddComment, onAddReply, 
       
       <PostFooter 
         postId={post.id}
-        likes={post.likes} 
-        comments={post.comments}
-        userLiked={post.userLiked}
-        onLikeToggle={onLikeToggle}
-        onCommentToggle={handleCommentToggle}
+        likesCount={post.likes}
+        commentsCount={post.comments}
+        liked={post.userLiked || false}
+        onLikeClick={handleLikeClick}
+        onCommentClick={handleCommentToggle}
       />
       
       {showComments && (
         <PostCommentSection 
+          showComments={showComments}
+          commentText={commentText}
+          setCommentText={setCommentText}
+          onAddComment={handleAddComment}
+          comments={comments}
+          loadingComments={loadingComments}
+          replyingTo={replyingTo}
+          setReplyingTo={setReplyingTo}
+          replyText={replyText}
+          setReplyText={setReplyText}
+          onAddReply={handleAddReply}
+          disabled={false}
           postId={post.id}
-          onAddComment={onAddComment}
-          onAddReply={onAddReply}
-          groupPostId={post.id}
           groupId={groupId}
         />
       )}

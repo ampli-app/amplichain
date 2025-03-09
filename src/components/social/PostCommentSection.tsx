@@ -16,6 +16,8 @@ interface PostCommentSectionProps {
   setReplyText: (text: string) => void;
   onAddReply: (commentId: string) => void;
   disabled: boolean;
+  postId?: string;
+  groupId?: string;
 }
 
 export function PostCommentSection({
@@ -30,7 +32,9 @@ export function PostCommentSection({
   replyText,
   setReplyText,
   onAddReply,
-  disabled
+  disabled,
+  postId,
+  groupId
 }: PostCommentSectionProps) {
   
   // Funkcja do dodawania komentarza z konwersją emotikon

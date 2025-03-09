@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 
 interface PostFooterProps {
+  postId: string;
   likesCount: number;
   commentsCount: number;
   liked: boolean;
@@ -13,6 +14,7 @@ interface PostFooterProps {
 }
 
 export function PostFooter({ 
+  postId,
   likesCount, 
   commentsCount, 
   liked, 
