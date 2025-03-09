@@ -38,6 +38,7 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
           created_at,
           is_poll,
           user_id,
+          group_id,
           group_post_media (id, url, type),
           group_post_files (id, name, url, type, size),
           group_post_poll_options (
@@ -46,7 +47,11 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
             group_post_poll_votes (id, user_id)
           ),
           group_post_likes (id, user_id),
-          group_post_comments (id)
+          group_post_comments (id),
+          group_post_hashtags (
+            hashtag_id,
+            hashtags (id, name)
+          )
         `)
         .eq('group_id', groupId)
         .order('created_at', { ascending: false });
@@ -107,6 +112,8 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
         
         const userLiked = user ? post.group_post_likes?.some(like => like.user_id === user.id) : false;
         
+        const hashtags = post.group_post_hashtags?.filter(ph => ph.hashtags).map(ph => ph.hashtags.name) || [];
+        
         return {
           id: post.id,
           content: post.content,
@@ -120,7 +127,8 @@ export function GroupPostsList({ posts: initialPosts, searchQuery, groupId }: Gr
           isPoll: post.is_poll || false,
           pollOptions,
           userVoted,
-          userLiked
+          userLiked,
+          hashtags: hashtags
         };
       }) || [];
 

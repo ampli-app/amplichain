@@ -55,6 +55,7 @@ export interface GroupPost {
   }>;
   userVoted?: string;
   userLiked?: boolean;
+  hashtags?: string[];
 }
 
 export interface Group {
