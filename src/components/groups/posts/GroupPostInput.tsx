@@ -52,10 +52,10 @@ export function GroupPostInput({
     const parts = text.split(hashtagRegex);
     
     return parts.map((part, index) => {
-      // Jeśli część pasuje do wzorca hashtaga, stosujemy niebieskie formatowanie
+      // Jeśli część pasuje do wzorca hashtaga, stosujemy formatowanie w kolorze primary
       if (part.match(hashtagRegex)) {
         return (
-          <span key={index} className="text-blue-500 font-semibold">
+          <span key={index} className="text-primary font-semibold">
             {part}
           </span>
         );
