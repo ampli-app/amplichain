@@ -29,7 +29,6 @@ export function GroupPostInput({
   const formattedContainerRef = useRef<HTMLDivElement>(null);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [formattedContent, setFormattedContent] = useState<React.ReactNode[]>([]);
-  const [isFocused, setIsFocused] = useState(false);
   
   const { 
     hashtagSuggestions, 
@@ -121,13 +120,11 @@ export function GroupPostInput({
   }, []);
 
   const handleFocus = (e: React.FocusEvent<HTMLTextAreaElement>) => {
-    setIsFocused(true);
-    onFocus?.();
+    if (onFocus) onFocus();
   };
 
-  const handleBlur = () => {
-    setIsFocused(false);
-  };
+  // Sprawdzamy, czy powinniśmy pokazać warstwę z formatowaniem
+  const shouldShowFormatting = content.length > 0;
 
   return (
     <div className="flex gap-3">
@@ -140,45 +137,30 @@ export function GroupPostInput({
       </Avatar>
       
       <div className="flex-1 relative">
-        {/* Zwykłe textarea z placeholderem, gdy nie ma zawartości i nie jest sfocusowane */}
-        {!content && !isFocused ? (
-          <Textarea
-            ref={textareaRef}
-            value={content}
-            onChange={handleContentChange}
-            placeholder={placeholder}
-            className="resize-none mb-3 min-h-24"
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            disabled={disabled}
-          />
-        ) : (
-          /* Gdy jest zawartość lub jest sfocusowane, używamy przezroczystego textarea i warstwy formatowania */
-          <>
-            <Textarea
-              ref={textareaRef}
-              value={content}
-              onChange={handleContentChange}
-              placeholder={placeholder}
-              className="resize-none mb-3 min-h-24 bg-background text-transparent"
-              style={{ caretColor: 'currentColor' }}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              disabled={disabled}
-            />
-            
-            {/* Warstwa z kolorowym formatowaniem hashtagów */}
-            <div 
-              ref={formattedContainerRef}
-              className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none p-2 pt-3 whitespace-pre-wrap break-words overflow-hidden text-foreground" 
-            >
-              {content ? (
-                formattedContent
-              ) : (
-                <span className="text-muted-foreground">{placeholder}</span>
-              )}
-            </div>
-          </>
+        {/* Zwykłe textarea z normalnym tekstem i placeholderem */}
+        <Textarea
+          ref={textareaRef}
+          value={content}
+          onChange={handleContentChange}
+          placeholder={placeholder}
+          className={`resize-none mb-3 min-h-24 ${shouldShowFormatting ? 'text-transparent' : ''}`}
+          style={{ 
+            caretColor: 'currentColor',
+            // Tylko gdy mamy tekst, robimy go przezroczystym
+            color: shouldShowFormatting ? 'transparent' : 'inherit' 
+          }}
+          onFocus={handleFocus}
+          disabled={disabled}
+        />
+        
+        {/* Warstwa z kolorowym formatowaniem hashtagów - pokazujemy tylko gdy jest jakaś zawartość */}
+        {shouldShowFormatting && (
+          <div 
+            ref={formattedContainerRef}
+            className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none p-2 pt-3 whitespace-pre-wrap break-words overflow-hidden text-foreground" 
+          >
+            {formattedContent}
+          </div>
         )}
         
         <HashtagSuggestions 
