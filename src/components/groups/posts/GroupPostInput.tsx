@@ -2,7 +2,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { createEditor, Descendant, Editor, Text, Transforms } from 'slate';
+import { createEditor, Descendant, Editor, Text, Transforms, Element as SlateElement } from 'slate';
 import { Slate, Editable, withReact, ReactEditor } from 'slate-react';
 import { useHashtagSuggestions } from '@/hooks/useHashtagSuggestions';
 import { HashtagSuggestions } from '@/components/common/HashtagSuggestions';
@@ -18,15 +18,20 @@ interface GroupPostInputProps {
   onFocus?: () => void;
 }
 
+// Definiujemy niestandardowe typy dla Slate.js
+type CustomElement = {
+  children: CustomText[];
+}
+
+type CustomText = {
+  text: string;
+  hashtag?: boolean;
+}
+
 // Niestandardowy renderer dla elementów
 const renderElement = (props: any) => {
-  const { attributes, children, element } = props;
-  switch (element.type) {
-    case 'paragraph':
-      return <p {...attributes}>{children}</p>;
-    default:
-      return <p {...attributes}>{children}</p>;
-  }
+  const { attributes, children } = props;
+  return <p {...attributes}>{children}</p>;
 };
 
 // Niestandardowy renderer dla liści (tekstu)
@@ -47,12 +52,11 @@ const renderLeaf = (props: any) => {
 const deserialize = (text: string): Descendant[] => {
   // Jeśli text jest pusty, zwróć pusty paragraf
   if (!text) {
-    return [{ type: 'paragraph', children: [{ text: '' }] }];
+    return [{ children: [{ text: '' }] }];
   }
 
   // Podziel tekst na części, aby wyróżnić hashtagi
   const result = [{ 
-    type: 'paragraph', 
     children: [] as { text: string; hashtag?: boolean }[]
   }];
   
@@ -239,7 +243,7 @@ export function GroupPostInput({
       <div className="flex-1 relative">
         <Slate 
           editor={editor} 
-          value={value} 
+          initialValue={value} 
           onChange={handleChange}
         >
           <Editable
@@ -267,3 +271,4 @@ export function GroupPostInput({
 
 // Import potrzebny do serializacji
 import { Node } from 'slate';
+
