@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { useHashtagSuggestions } from '@/hooks/useHashtagSuggestions';
 import { HashtagSuggestions } from '@/components/common/HashtagSuggestions';
 import { convertEmoticonOnInput } from '@/utils/emoticonUtils';
+import { ContentRenderer } from '@/components/common/ContentRenderer';
 
 interface CommentInputProps {
   onAddComment: () => void;
@@ -26,6 +27,7 @@ export function CommentInput({
   const { user, isLoggedIn } = useAuth();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
   
   const { 
     hashtagSuggestions, 
@@ -65,6 +67,9 @@ export function CommentInput({
         }
       }, 0);
     }
+    
+    // Pokaż podgląd tylko jeśli jest jakiś tekst
+    setShowPreview(newContent.trim().length > 0);
   };
   
   const handleSelectHashtag = (hashtag: string) => {
@@ -72,6 +77,11 @@ export function CommentInput({
     setCommentText(newContent);
     setCursorPosition(newPosition);
   };
+  
+  useEffect(() => {
+    // Aktualizuj podgląd po automatycznym uzupełnieniu hashtagu
+    setShowPreview(commentText.trim().length > 0);
+  }, [commentText]);
   
   if (!isLoggedIn) {
     return (
@@ -91,7 +101,7 @@ export function CommentInput({
         <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
       </Avatar>
       
-      <div className="flex-1 flex gap-2 relative">
+      <div className="flex-1 flex flex-col gap-2 relative">
         <Textarea 
           ref={textareaRef}
           value={commentText}
@@ -102,6 +112,12 @@ export function CommentInput({
           disabled={disabled}
         />
         
+        {showPreview && (
+          <div className="p-2 border rounded-md bg-slate-50 dark:bg-slate-800">
+            <ContentRenderer content={commentText} linkableHashtags={false} />
+          </div>
+        )}
+        
         <HashtagSuggestions 
           showSuggestions={showHashtagSuggestions}
           suggestionsRef={suggestionsRef}
@@ -110,13 +126,15 @@ export function CommentInput({
           onSelectHashtag={handleSelectHashtag}
         />
         
-        <Button 
-          className="h-full self-end" 
-          onClick={onAddComment} 
-          disabled={!commentText.trim() || disabled}
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+        <div className="flex justify-end">
+          <Button 
+            className="h-9 self-end" 
+            onClick={onAddComment} 
+            disabled={!commentText.trim() || disabled}
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
