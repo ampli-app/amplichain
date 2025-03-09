@@ -6,7 +6,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useHashtagSuggestions } from '@/hooks/useHashtagSuggestions';
 import { HashtagSuggestions } from '@/components/common/HashtagSuggestions';
 import { convertEmoticonOnInput } from '@/utils/emoticonUtils';
-import { ContentRenderer } from '@/components/common/ContentRenderer';
 
 interface GroupPostInputProps {
   avatarUrl?: string;
@@ -29,7 +28,6 @@ export function GroupPostInput({
 }: GroupPostInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [cursorPosition, setCursorPosition] = useState(0);
-  const [displayText, setDisplayText] = useState('');
   
   const { 
     hashtagSuggestions, 
@@ -41,11 +39,6 @@ export function GroupPostInput({
     content, 
     cursorPosition
   });
-  
-  useEffect(() => {
-    // Kolorowanie hashtagów w czasie rzeczywistym
-    setDisplayText(content);
-  }, [content]);
   
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
@@ -77,21 +70,6 @@ export function GroupPostInput({
     setCursorPosition(newPosition);
   };
 
-  // Funkcja do kolorowania hashtagów w tekście
-  const renderColoredContent = (text: string) => {
-    if (!text) return null;
-    
-    // Regex do wyszukiwania hashtagów
-    const parts = text.split(/(#\w+)/);
-    
-    return parts.map((part, index) => {
-      if (part.startsWith('#')) {
-        return <span key={index} className="text-primary font-medium">{part}</span>;
-      }
-      return <span key={index}>{part}</span>;
-    });
-  };
-
   return (
     <div className="flex gap-3">
       <Avatar className="h-10 w-10 flex-shrink-0">
@@ -103,29 +81,15 @@ export function GroupPostInput({
       </Avatar>
       
       <div className="flex-1 relative">
-        <div className="relative">
-          <Textarea
-            ref={textareaRef}
-            value={content}
-            onChange={handleContentChange}
-            placeholder={placeholder}
-            className="resize-none mb-3 min-h-24"
-            onFocus={onFocus}
-            disabled={disabled}
-            style={{ color: 'transparent', caretColor: 'black' }}
-          />
-          
-          <div 
-            className="absolute inset-0 p-3 overflow-hidden whitespace-pre-wrap break-words pointer-events-none"
-            aria-hidden="true"
-          >
-            {displayText ? (
-              renderColoredContent(displayText)
-            ) : (
-              <span className="text-muted-foreground">{!content && placeholder}</span>
-            )}
-          </div>
-        </div>
+        <Textarea
+          ref={textareaRef}
+          value={content}
+          onChange={handleContentChange}
+          placeholder={placeholder}
+          className="resize-none mb-3 min-h-24"
+          onFocus={onFocus}
+          disabled={disabled}
+        />
         
         <HashtagSuggestions 
           showSuggestions={showHashtagSuggestions}
