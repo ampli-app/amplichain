@@ -18,7 +18,7 @@ export const usePostComments = (postId: string, enabled = false) => {
     try {
       // Pobierz komentarze dla danego posta
       const { data: commentsData, error: commentsError } = await supabase
-        .from('post_comments')
+        .from('feed_post_comments')
         .select(`
           id, 
           content, 
@@ -40,7 +40,7 @@ export const usePostComments = (postId: string, enabled = false) => {
       const parentIds = commentsData.map(comment => comment.id);
       
       const { data: repliesData, error: repliesError } = await supabase
-        .from('post_comments')
+        .from('feed_post_comments')
         .select(`
           id, 
           content, 
@@ -113,7 +113,7 @@ export const usePostComments = (postId: string, enabled = false) => {
       const convertedContent = convertEmoticons(content.trim());
       
       const { error } = await supabase
-        .from('post_comments')
+        .from('feed_post_comments')
         .insert({
           post_id: postId,
           user_id: user.id,
@@ -142,7 +142,7 @@ export const usePostComments = (postId: string, enabled = false) => {
       const convertedContent = convertEmoticons(content.trim());
       
       const { error } = await supabase
-        .from('post_comments')
+        .from('feed_post_comments')
         .insert({
           post_id: postId,
           user_id: user.id,
