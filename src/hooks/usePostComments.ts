@@ -1,12 +1,12 @@
 
 import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { convertEmoticons } from '@/utils/emoticonUtils';
+import { Comment } from '@/utils/commentUtils';
+import { fetchPostComments, addComment, addReply } from '@/services/commentService';
 
 export const usePostComments = (postId: string, enabled = false) => {
   const { user } = useAuth();
-  const [comments, setComments] = useState<any[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -16,170 +16,47 @@ export const usePostComments = (postId: string, enabled = false) => {
     
     setLoadingComments(true);
     try {
-      // Pobierz komentarze dla danego posta
-      const { data: commentsData, error: commentsError } = await supabase
-        .from('feed_post_comments')
-        .select(`
-          id, 
-          content, 
-          created_at, 
-          user_id
-        `)
-        .eq('post_id', postId)
-        .is('parent_id', null)
-        .order('created_at', { ascending: true });
-      
-      if (commentsError) {
-        console.error('Błąd pobierania komentarzy:', commentsError);
-        setLoadingComments(false);
-        return;
-      }
-      
-      // Pobierz odpowiedzi dla tych komentarzy
-      const parentIds = commentsData.map(comment => comment.id);
-      
-      const { data: repliesData, error: repliesError } = await supabase
-        .from('feed_post_comments')
-        .select(`
-          id, 
-          content, 
-          created_at, 
-          user_id,
-          parent_id
-        `)
-        .in('parent_id', parentIds)
-        .order('created_at', { ascending: true });
-      
-      if (repliesError) {
-        console.error('Błąd pobierania odpowiedzi:', repliesError);
-      }
-      
-      // Pobierz dane profilowe dla wszystkich użytkowników
-      const userIds = [
-        ...new Set([
-          ...(commentsData?.map(comment => comment.user_id) || []),
-          ...(repliesData?.map(reply => reply.user_id) || [])
-        ])
-      ];
-      
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', userIds);
-      
-      if (profilesError) {
-        console.error('Błąd pobierania profili użytkowników:', profilesError);
-      }
-      
-      // Mapuj dane na format komentarzy
-      const formattedComments = commentsData.map(comment => {
-        // Znajdź odpowiedzi dla tego komentarza
-        const commentReplies = repliesData?.filter(reply => reply.parent_id === comment.id) || [];
-        
-        // Formatuj czas dla komentarza
-        const commentDate = new Date(comment.created_at);
-        const timeAgo = formatTimeAgo(commentDate);
-        
-        // Znajdź profil autora komentarza
-        const authorProfile = profilesData?.find(profile => profile.id === comment.user_id);
-        
-        // Formatuj odpowiedzi
-        const formattedReplies = commentReplies.map(reply => {
-          const replyDate = new Date(reply.created_at);
-          const replyTimeAgo = formatTimeAgo(replyDate);
-          
-          // Znajdź profil autora odpowiedzi
-          const replyAuthorProfile = profilesData?.find(profile => profile.id === reply.user_id);
-          
-          return {
-            id: reply.id,
-            author: {
-              id: reply.user_id,
-              name: replyAuthorProfile?.full_name || 'Użytkownik',
-              avatar: replyAuthorProfile?.avatar_url || ''
-            },
-            content: reply.content,
-            timeAgo: replyTimeAgo
-          };
-        });
-        
-        // Zwróć sformatowany komentarz z odpowiedziami
-        return {
-          id: comment.id,
-          author: {
-            id: comment.user_id,
-            name: authorProfile?.full_name || 'Użytkownik',
-            avatar: authorProfile?.avatar_url || ''
-          },
-          content: comment.content,
-          timeAgo,
-          replies: formattedReplies
-        };
-      });
-      
-      setComments(formattedComments);
+      const commentsData = await fetchPostComments(postId);
+      setComments(commentsData);
     } catch (error) {
-      console.error('Nieoczekiwany błąd:', error);
+      console.error('Błąd podczas pobierania komentarzy:', error);
     } finally {
       setLoadingComments(false);
     }
   }, [postId]);
   
   // Dodawanie komentarza
-  const addComment = async (content: string) => {
+  const handleAddComment = async (content: string) => {
     if (!user || !content.trim()) return false;
     
     try {
-      // Konwertuj emotikony na emoji
-      const convertedContent = convertEmoticons(content.trim());
+      const success = await addComment(postId, user.id, content);
       
-      const { error } = await supabase
-        .from('feed_post_comments')
-        .insert({
-          post_id: postId,
-          user_id: user.id,
-          content: convertedContent
-        });
-      
-      if (error) {
-        console.error('Błąd dodawania komentarza:', error);
-        return false;
+      if (success) {
+        await fetchComments();
       }
       
-      await fetchComments();
-      return true;
+      return success;
     } catch (error) {
-      console.error('Nieoczekiwany błąd:', error);
+      console.error('Błąd podczas dodawania komentarza:', error);
       return false;
     }
   };
   
   // Dodawanie odpowiedzi na komentarz
-  const addReply = async (commentId: string, content: string) => {
+  const handleAddReply = async (commentId: string, content: string) => {
     if (!user || !commentId || !content.trim()) return false;
     
     try {
-      // Konwertuj emotikony na emoji
-      const convertedContent = convertEmoticons(content.trim());
+      const success = await addReply(postId, user.id, commentId, content);
       
-      const { error } = await supabase
-        .from('feed_post_comments')
-        .insert({
-          post_id: postId,
-          user_id: user.id,
-          content: convertedContent,
-          parent_id: commentId
-        });
-      
-      if (error) {
-        console.error('Błąd dodawania odpowiedzi:', error);
-        return false;
+      if (success) {
+        await fetchComments();
       }
       
-      await fetchComments();
-      return true;
+      return success;
     } catch (error) {
-      console.error('Nieoczekiwany błąd:', error);
+      console.error('Błąd podczas dodawania odpowiedzi:', error);
       return false;
     }
   };
@@ -188,37 +65,11 @@ export const usePostComments = (postId: string, enabled = false) => {
     comments,
     loadingComments,
     fetchComments,
-    addComment,
-    addReply,
+    addComment: handleAddComment,
+    addReply: handleAddReply,
     replyingTo,
     setReplyingTo,
     replyText,
     setReplyText
   };
 };
-
-// Funkcja pomocnicza do formatowania czasu
-function formatTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-  const diffMonth = Math.floor(diffDay / 30);
-  const diffYear = Math.floor(diffMonth / 12);
-
-  if (diffYear > 0) {
-    return `${diffYear} ${diffYear === 1 ? 'rok' : diffYear < 5 ? 'lata' : 'lat'} temu`;
-  } else if (diffMonth > 0) {
-    return `${diffMonth} ${diffMonth === 1 ? 'miesiąc' : diffMonth < 5 ? 'miesiące' : 'miesięcy'} temu`;
-  } else if (diffDay > 0) {
-    return `${diffDay} ${diffDay === 1 ? 'dzień' : 'dni'} temu`;
-  } else if (diffHour > 0) {
-    return `${diffHour} ${diffHour === 1 ? 'godz.' : 'godz.'} temu`;
-  } else if (diffMin > 0) {
-    return `${diffMin} ${diffMin === 1 ? 'min.' : 'min.'} temu`;
-  } else {
-    return 'przed chwilą';
-  }
-}
