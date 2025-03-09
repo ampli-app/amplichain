@@ -60,7 +60,8 @@ export function usePostSubmit({ userId, onSuccess }: UsePostSubmitProps) {
         await addPollOptions(postId, pollOptions);
       }
       
-      // 3. Ręczne przetwarzanie hashtagów
+      // 3. Przetwarzanie hashtagów - tylko do logów
+      // Hashtagi są wydobywane przez trigger extract_feed_hashtags po stworzeniu posta
       await processHashtags(content, postId);
       
       // 4. Przetwarzanie mediów

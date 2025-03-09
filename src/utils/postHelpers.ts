@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { extractHashtags } from '@/utils/mediaUtils';
 import { uploadMediaToStorage } from '@/utils/mediaUtils';
@@ -24,27 +23,17 @@ export async function addPollOptions(postId: string, pollOptions: string[]) {
 }
 
 /**
- * Przetwarza hashtagi i zapisuje je w bazie danych używając funkcji RPC
+ * Przetwarza hashtagi i zapisuje je w bazie danych
  */
 export async function processHashtags(content: string, postId: string) {
+  // Używamy funkcji automatycznie przetwarzającej hashtagi
+  // Hashtagi są wydobywane przez trigger extract_feed_hashtags po stworzeniu posta
+  console.log('Przetwarzanie hashtagów dla posta:', postId);
+  
+  // Wypisujemy hashtagi w logach (ale nie modyfikujemy nic - trigger to zrobi)
   const hashtags = extractHashtags(content);
-  if (hashtags.length === 0) return;
-  
-  console.log('Przetwarzam hashtagi:', hashtags, 'dla posta:', postId);
-  
-  // Używamy poprawnej funkcji RPC link_hashtag_to_post, która oczekuje parametrów p_post_id i p_hashtag_name
-  const promises = hashtags.map(tag => {
-    return supabase.rpc('link_hashtag_to_post', { 
-      p_post_id: postId, 
-      p_hashtag_name: tag.toLowerCase() 
-    });
-  });
-  
-  try {
-    await Promise.all(promises);
-    console.log('Hashtagi poprawnie powiązane z postem:', hashtags);
-  } catch (error) {
-    console.error('Błąd podczas przetwarzania hashtagów:', error);
+  if (hashtags.length > 0) {
+    console.log('Wykryte hashtagi:', hashtags);
   }
 }
 
