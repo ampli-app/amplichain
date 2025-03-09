@@ -92,27 +92,15 @@ export function GroupPostInput({
       </Avatar>
       
       <div className="flex-1 relative">
-        <div className="relative">
-          <Textarea
-            ref={textareaRef}
-            value={content}
-            onChange={handleContentChange}
-            placeholder={placeholder}
-            className="resize-none mb-3 min-h-24 bg-transparent"
-            onFocus={onFocus}
-            disabled={disabled}
-            style={{ color: 'transparent', caretColor: 'black' }}
-          />
-          
-          {displayText && (
-            <div 
-              className="absolute inset-0 p-3 overflow-hidden whitespace-pre-wrap break-words pointer-events-none"
-              aria-hidden="true"
-            >
-              <ContentRenderer content={displayText} linkableHashtags={false} />
-            </div>
-          )}
-        </div>
+        <Textarea
+          ref={textareaRef}
+          value={content}
+          onChange={handleContentChange}
+          placeholder={placeholder}
+          className="resize-none mb-3 min-h-24"
+          onFocus={onFocus}
+          disabled={disabled}
+        />
         
         <HashtagSuggestions 
           showSuggestions={showHashtagSuggestions}
