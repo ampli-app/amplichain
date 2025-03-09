@@ -98,9 +98,10 @@ export function GroupPostInput({
             value={content}
             onChange={handleContentChange}
             placeholder={placeholder}
-            className="resize-none mb-3 min-h-24"
+            className="resize-none mb-3 min-h-24 bg-transparent"
             onFocus={onFocus}
             disabled={disabled}
+            style={{ color: 'transparent', caretColor: 'black' }}
           />
           
           {displayText && (
