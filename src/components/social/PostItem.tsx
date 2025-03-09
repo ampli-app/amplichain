@@ -121,10 +121,18 @@ export function PostItem({
       <Card className="p-6">
         <div className="flex items-start gap-4">
           <div className="flex-1 min-w-0">
-            <PostHeader author={post.author} timeAgo={post.timeAgo} />
+            <PostHeader 
+              author={{
+                id: post.userId,
+                name: post.author.name,
+                avatar: post.author.avatar,
+                role: post.author.role
+              }} 
+              timeAgo={post.timeAgo} 
+            />
             
             <div className="mt-4">
-              <PostContent content={post.content} hashtags={post.hashtags} />
+              <PostContent content={post.content} hashtags={post.hashtags} post={post} />
             </div>
             
             <div className="mt-4">
