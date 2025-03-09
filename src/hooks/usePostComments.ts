@@ -23,8 +23,7 @@ export const usePostComments = (postId: string, enabled = false) => {
           id, 
           content, 
           created_at, 
-          user_id,
-          profiles (id, full_name, avatar_url)
+          user_id
         `)
         .eq('post_id', postId)
         .is('parent_id', null)
@@ -46,14 +45,30 @@ export const usePostComments = (postId: string, enabled = false) => {
           content, 
           created_at, 
           user_id,
-          parent_id,
-          profiles (id, full_name, avatar_url)
+          parent_id
         `)
         .in('parent_id', parentIds)
         .order('created_at', { ascending: true });
       
       if (repliesError) {
         console.error('Błąd pobierania odpowiedzi:', repliesError);
+      }
+      
+      // Pobierz dane profilowe dla wszystkich użytkowników
+      const userIds = [
+        ...new Set([
+          ...(commentsData?.map(comment => comment.user_id) || []),
+          ...(repliesData?.map(reply => reply.user_id) || [])
+        ])
+      ];
+      
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', userIds);
+      
+      if (profilesError) {
+        console.error('Błąd pobierania profili użytkowników:', profilesError);
       }
       
       // Mapuj dane na format komentarzy
@@ -65,17 +80,23 @@ export const usePostComments = (postId: string, enabled = false) => {
         const commentDate = new Date(comment.created_at);
         const timeAgo = formatTimeAgo(commentDate);
         
+        // Znajdź profil autora komentarza
+        const authorProfile = profilesData?.find(profile => profile.id === comment.user_id);
+        
         // Formatuj odpowiedzi
         const formattedReplies = commentReplies.map(reply => {
           const replyDate = new Date(reply.created_at);
           const replyTimeAgo = formatTimeAgo(replyDate);
           
+          // Znajdź profil autora odpowiedzi
+          const replyAuthorProfile = profilesData?.find(profile => profile.id === reply.user_id);
+          
           return {
             id: reply.id,
             author: {
               id: reply.user_id,
-              name: reply.profiles?.full_name || 'Użytkownik',
-              avatar: reply.profiles?.avatar_url || ''
+              name: replyAuthorProfile?.full_name || 'Użytkownik',
+              avatar: replyAuthorProfile?.avatar_url || ''
             },
             content: reply.content,
             timeAgo: replyTimeAgo
@@ -87,8 +108,8 @@ export const usePostComments = (postId: string, enabled = false) => {
           id: comment.id,
           author: {
             id: comment.user_id,
-            name: comment.profiles?.full_name || 'Użytkownik',
-            avatar: comment.profiles?.avatar_url || ''
+            name: authorProfile?.full_name || 'Użytkownik',
+            avatar: authorProfile?.avatar_url || ''
           },
           content: comment.content,
           timeAgo,
