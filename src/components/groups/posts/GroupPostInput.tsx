@@ -48,19 +48,19 @@ const renderLeaf = (props: any) => {
   );
 };
 
-// Konwersja zwykłego tekstu na format Slate.js
+// Konwersja zwykłego tekstu na format Slate.js z zachowaniem spacji
 const deserialize = (text: string): Descendant[] => {
   // Jeśli text jest pusty, zwróć pusty paragraf
   if (!text) {
     return [{ children: [{ text: '' }] }];
   }
 
-  // Podziel tekst na części, aby wyróżnić hashtagi
+  // Podziel tekst na części, aby wyróżnić hashtagi, zachowując spacje
   const result = [{ 
     children: [] as { text: string; hashtag?: boolean }[]
   }];
   
-  // Regex do wykrywania hashtagów
+  // Regex do wykrywania hashtagów, zachowując spacje
   const hashtagRegex = /(#[^\s#]+)|([^#]+)/g;
   const matches = text.matchAll(hashtagRegex);
   
@@ -77,7 +77,7 @@ const deserialize = (text: string): Descendant[] => {
   return result;
 };
 
-// Konwersja formatu Slate.js z powrotem na zwykły tekst
+// Konwersja formatu Slate.js z powrotem na zwykły tekst z zachowaniem spacji
 const serialize = (nodes: Descendant[]): string => {
   return nodes
     .map(n => Node.string(n))
@@ -159,7 +159,7 @@ export function GroupPostInput({
   const handleChange = (newValue: Descendant[]) => {
     setValue(newValue);
     
-    // Konwertujemy wartość Slate na zwykły tekst
+    // Konwertujemy wartość Slate na zwykły tekst, zachowując spacje
     const newContent = newValue.map(n => Node.string(n)).join('\n');
     
     // Aktualizujemy pozycję kursora
@@ -271,4 +271,3 @@ export function GroupPostInput({
 
 // Import potrzebny do serializacji
 import { Node } from 'slate';
-

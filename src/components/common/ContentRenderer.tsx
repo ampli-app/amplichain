@@ -10,14 +10,14 @@ interface ContentRendererProps {
 export function ContentRenderer({ content, linkableHashtags = true }: ContentRendererProps) {
   if (!content) return null;
   
-  // Regex dla URL, hashtagów i spacji po hashtagach
-  const regex = /(https?:\/\/[^\s]+)|(\s|^)(#\w+)(\s|$)|(\S+)/g;
+  // Regex dla URL, hashtagów i zachowania pozostałego tekstu
+  const regex = /(https?:\/\/[^\s]+)|(#\w+)|([^#https][\s\S]*?)(?=#|\bhttps?:\/\/|$)/g;
   const parts: React.ReactNode[] = [];
   
-  let lastIndex = 0;
   let match;
   let key = 0;
   
+  // Używamy exec w pętli, aby przetwarzać każde dopasowanie
   while ((match = regex.exec(content)) !== null) {
     // URL
     if (match[1]) {
@@ -33,29 +33,33 @@ export function ContentRenderer({ content, linkableHashtags = true }: ContentRen
         </a>
       );
     }
-    // Hashtag ze spacją przed/po
-    else if (match[3]) {
-      // Dodaj spację przed, jeśli istnieje
-      if (match[2] && match[2] !== '^') {
-        parts.push(<span key={key++}>{match[2]}</span>);
-      }
-      
-      // Dodaj hashtag
+    // Hashtag
+    else if (match[2]) {
       parts.push(
-        <ColoredHashtag key={key++} hashtag={match[3]} linkable={linkableHashtags} />
+        <ColoredHashtag key={key++} hashtag={match[2]} linkable={linkableHashtags} />
       );
+    }
+    // Zwykły tekst (z zachowaniem spacji i znaków nowej linii)
+    else if (match[3]) {
+      // Podziel tekst na wiersze, aby zachować znaki nowej linii
+      const textLines = match[3].split('\n');
       
-      // Dodaj spację po, jeśli istnieje
-      if (match[4] && match[4] !== '$') {
-        parts.push(<span key={key++}>{match[4]}</span>);
-      }
+      textLines.forEach((line, index) => {
+        if (index > 0) {
+          // Dodaj element br dla każdej nowej linii (oprócz pierwszej)
+          parts.push(<br key={`br-${key++}`} />);
+        }
+        
+        if (line.length > 0) {
+          parts.push(<span key={key++}>{line}</span>);
+        }
+      });
     }
-    // Dowolny inny tekst
-    else if (match[5]) {
-      parts.push(<span key={key++}>{match[5]}</span>);
-    }
-    
-    lastIndex = regex.lastIndex;
+  }
+  
+  // Jeśli nie znaleziono żadnych dopasowań, po prostu zwróć oryginalny tekst
+  if (parts.length === 0 && content.trim().length > 0) {
+    return <span>{content}</span>;
   }
   
   return <>{parts}</>;
