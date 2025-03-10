@@ -16,7 +16,7 @@ interface OrderSummaryFormProps {
   goToPreviousStep: () => void;
   isProcessing: boolean;
   totalCost: number;
-  onSubmit: () => void;
+  onSubmit: (e: React.FormEvent) => void;  // Updated to accept a React.FormEvent parameter
 }
 
 export function OrderSummaryForm({ 
@@ -173,7 +173,11 @@ export function OrderSummaryForm({
           <ArrowLeft className="mr-2 h-4 w-4" />
           Wstecz
         </Button>
-        <Button type="submit" disabled={isProcessing} onClick={onSubmit}>
+        <Button 
+          type="submit" 
+          disabled={isProcessing} 
+          onClick={(e) => onSubmit(e)} // Explicitly pass the event
+        >
           {isProcessing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
