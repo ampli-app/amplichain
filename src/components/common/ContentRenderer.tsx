@@ -11,7 +11,7 @@ export function ContentRenderer({ content, linkableHashtags = true }: ContentRen
   if (!content) return null;
   
   // Regex dla URL, hashtagów i zachowania pozostałego tekstu
-  const regex = /(https?:\/\/[^\s]+)|(#\w+)|([^#https][\s\S]*?)(?=#|\bhttps?:\/\/|$)/g;
+  const regex = /(https?:\/\/[^\s]+)|(#\w+)|([^#https]?[\s\S]*?)(?=#|\bhttps?:\/\/|$)/g;
   const parts: React.ReactNode[] = [];
   
   let match;
