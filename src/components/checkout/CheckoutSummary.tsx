@@ -6,6 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Calendar, Info, LockIcon, MapPin, Package, ShieldCheck } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface CheckoutSummaryProps {
   productTitle: string;
@@ -14,6 +20,7 @@ interface CheckoutSummaryProps {
   deliveryCost: number;
   discountValue: number;
   discountApplied: boolean;
+  serviceFee: number;
   totalCost: number;
   isTestMode: boolean;
   discountCode: string;
@@ -29,6 +36,7 @@ export function CheckoutSummary({
   deliveryCost, 
   discountValue, 
   discountApplied, 
+  serviceFee,
   totalCost,
   isTestMode,
   discountCode,
@@ -121,6 +129,26 @@ export function CheckoutSummary({
                 <span>-{formatCurrency(discountValue)}</span>
               </div>
             )}
+            
+            <div className="flex justify-between py-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-muted-foreground flex items-center">
+                      Opłata serwisowa (1,5%)
+                      <Info className="h-4 w-4 ml-1 text-muted-foreground/70" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs max-w-60">
+                      Opłata serwisowa w wysokości 1,5% wartości zamówienia
+                      (produkt + dostawa).
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <span>{formatCurrency(serviceFee)}</span>
+            </div>
             
             <Separator />
             <div className="flex justify-between py-2 font-bold">

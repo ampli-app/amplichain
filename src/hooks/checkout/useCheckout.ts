@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -29,12 +28,12 @@ export interface UseCheckoutProps {
   isTestMode: boolean;
 }
 
+export const SERVICE_FEE_PERCENTAGE = 0.015;
+
 export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
-  // Stan ładowania
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Stan produktu i płatności
   const [product, setProduct] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState('blik');
   const [activeStep, setActiveStep] = useState<CheckoutStep>('personal');
@@ -46,7 +45,6 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
   const [discountApplied, setDiscountApplied] = useState(false);
   const [discountValue, setDiscountValue] = useState(0);
   
-  // Stan danych formularza
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -60,14 +58,12 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     blikCode: '',
   });
   
-  // Pobieranie danych produktu
   const fetchProductData = async () => {
     setIsLoading(true);
     
     try {
       console.log("Pobieranie produktu o ID:", productId);
       
-      // Pobierz dane produktu
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -89,7 +85,6 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
         console.log("Otrzymano dane produktu:", data);
         setProduct(data);
         
-        // Pobierz opcje dostawy dla produktu
         await fetchDeliveryOptions(data.id);
       } else {
         console.error("Nie zwrócono danych produktu");
@@ -111,12 +106,10 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     }
   };
   
-  // Pobieranie opcji dostawy
   const fetchDeliveryOptions = async (productId: string) => {
     try {
       console.log("Pobieranie opcji dostawy dla produktu ID:", productId);
       
-      // Pobierz opcje dostawy dla produktu
       const { data: productDeliveryData, error: productDeliveryError } = await supabase
         .from('product_delivery_options')
         .select('delivery_option_id')
@@ -127,7 +120,6 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
         return;
       }
       
-      // Pobierz szczegóły opcji dostawy
       if (productDeliveryData && productDeliveryData.length > 0) {
         const deliveryOptionIds = productDeliveryData.map(option => option.delivery_option_id);
         
@@ -145,7 +137,6 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
           console.log("Otrzymano opcje dostawy:", optionsData);
           setDeliveryOptions(optionsData);
           
-          // Ustaw pierwszą opcję dostawy jako domyślną (z wyjątkiem odbioru osobistego)
           const defaultOption = optionsData.find(opt => opt.name !== 'Odbiór osobisty') || optionsData[0];
           setDeliveryMethod(defaultOption.id);
           setSelectedDeliveryOption(defaultOption);
@@ -156,14 +147,12 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     }
   };
 
-  // Inicjalizacja danych przy montowaniu komponentu
   useEffect(() => {
     if (productId) {
       fetchProductData();
     }
   }, [productId]);
   
-  // Obsługa zmiany metody dostawy
   const handleDeliveryMethodChange = (value: string) => {
     setDeliveryMethod(value);
     const selected = deliveryOptions.find(option => option.id === value);
@@ -172,18 +161,15 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     }
   };
   
-  // Obsługa zmian w formularzu
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
   
-  // Przejście do następnego kroku
   const goToNextStep = () => {
     const steps: CheckoutStep[] = ['personal', 'delivery', 'payment', 'summary'];
     const currentIndex = steps.findIndex(step => step === activeStep);
     if (currentIndex < steps.length - 1) {
-      // Walidacja przed przejściem do następnego kroku
       if (activeStep === 'personal') {
         if (!validatePersonalData()) return;
       } else if (activeStep === 'delivery') {
@@ -196,7 +182,6 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     }
   };
   
-  // Powrót do poprzedniego kroku
   const goToPreviousStep = () => {
     const steps: CheckoutStep[] = ['personal', 'delivery', 'payment', 'summary'];
     const currentIndex = steps.findIndex(step => step === activeStep);
@@ -205,7 +190,6 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     }
   };
   
-  // Walidacja danych osobowych
   const validatePersonalData = () => {
     const requiredFields = ['firstName', 'lastName', 'email', 'phone'];
     const fieldLabels = {
@@ -229,7 +213,6 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
       }
     }
     
-    // Walidacja formatu email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       toast({
@@ -240,7 +223,6 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
       return false;
     }
     
-    // Walidacja numeru telefonu
     const phoneRegex = /^\d{9}$/;
     if (!phoneRegex.test(formData.phone.replace(/\s+/g, ''))) {
       toast({
@@ -254,7 +236,6 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     return true;
   };
   
-  // Walidacja danych dostawy
   const validateDeliveryData = () => {
     const fieldLabels = {
       firstName: 'Imię',
@@ -275,7 +256,6 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
       return false;
     }
     
-    // Walidacja adresu dla dostawy kurierem
     const isCourierDelivery = selectedDeliveryOption?.name === 'Kurier';
     if (isCourierDelivery) {
       const requiredFields = ['address', 'city', 'postalCode'];
@@ -291,7 +271,6 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
         }
       }
       
-      // Walidacja kodu pocztowego
       const postalCodeRegex = /^\d{2}-\d{3}$/;
       if (!postalCodeRegex.test(formData.postalCode)) {
         toast({
@@ -303,7 +282,6 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
       }
     }
     
-    // Walidacja paczkomatu dla dostawy InPost
     const isInpostDelivery = selectedDeliveryOption?.name === 'Paczkomat InPost';
     if (isInpostDelivery && !formData.inpostPoint) {
       toast({
@@ -317,7 +295,6 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     return true;
   };
   
-  // Walidacja danych płatności
   const validatePaymentData = () => {
     if (!paymentMethod) {
       toast({
@@ -328,7 +305,6 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
       return false;
     }
     
-    // Walidacja kodu BLIK
     if (paymentMethod === 'blik' && (!formData.blikCode || formData.blikCode.length !== 6)) {
       toast({
         title: "Błąd walidacji",
@@ -341,9 +317,7 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     return true;
   };
   
-  // Walidacja wszystkich danych przed złożeniem zamówienia
   const validateForm = () => {
-    // Walidacja zgody na regulamin
     if (!agreeToTerms) {
       toast({
         title: "Błąd",
@@ -356,18 +330,15 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     return validatePersonalData() && validateDeliveryData() && validatePaymentData();
   };
   
-  // Symulacja przetwarzania płatności
   const simulatePaymentProcessing = (callback: (success: boolean) => void) => {
     setIsProcessing(true);
     
-    // Symulacja opóźnienia przetwarzania płatności
     setTimeout(() => {
       setIsProcessing(false);
-      callback(true); // Sukces płatności
+      callback(true);
     }, 1500);
   };
   
-  // Obsługa kodu rabatowego
   const handleApplyDiscount = () => {
     if (!discountCode) {
       toast({
@@ -382,17 +353,16 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
       ? parseFloat(product.testing_price) 
       : parseFloat(product?.price || 0);
       
-    // Symulacja weryfikacji kodu rabatowego
     if (discountCode === "RABAT10") {
       setDiscountApplied(true);
-      setDiscountValue(price * 0.1); // 10% zniżki
+      setDiscountValue(price * 0.1);
       toast({
         title: "Sukces",
         description: "Kod rabatowy został zastosowany! Otrzymujesz 10% zniżki.",
       });
     } else if (discountCode === "RABAT20") {
       setDiscountApplied(true);
-      setDiscountValue(price * 0.2); // 20% zniżki
+      setDiscountValue(price * 0.2);
       toast({
         title: "Sukces",
         description: "Kod rabatowy został zastosowany! Otrzymujesz 20% zniżki.",
@@ -406,36 +376,47 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     }
   };
   
-  // Kalkulacje cenowe
   const getPrice = () => isTestMode && product?.testing_price 
     ? parseFloat(product.testing_price) 
     : parseFloat(product?.price || 0);
   
   const getDeliveryCost = () => selectedDeliveryOption ? selectedDeliveryOption.price : 0;
   const getDiscountAmount = () => discountApplied ? discountValue : 0;
-  const getTotalCost = () => getPrice() + getDeliveryCost() - getDiscountAmount();
   
-  // Usunięcie rabatu
+  const getServiceFee = () => {
+    const productPrice = getPrice();
+    const deliveryCost = getDeliveryCost();
+    const subtotal = productPrice + deliveryCost;
+    
+    return parseFloat((subtotal * SERVICE_FEE_PERCENTAGE).toFixed(2));
+  };
+  
+  const getTotalCost = () => {
+    const productPrice = getPrice();
+    const deliveryCost = getDeliveryCost();
+    const discountAmount = getDiscountAmount();
+    const serviceFee = getServiceFee();
+    
+    return productPrice + deliveryCost - discountAmount + serviceFee;
+  };
+  
   const removeDiscount = () => {
     setDiscountCode('');
     setDiscountApplied(false);
     setDiscountValue(0);
   };
   
-  // Przygotowanie URL obrazka produktu
   const getProductImageUrl = () => {
     if (!product?.image_url) return '/placeholder.svg';
     
     try {
       if (typeof product.image_url === 'string') {
-        // Spróbuj sparsować jako JSON
         try {
           const images = JSON.parse(product.image_url);
           if (Array.isArray(images) && images.length > 0) {
             return images[0];
           }
         } catch (e) {
-          // To nie jest JSON, więc traktujemy jako zwykły string
           return product.image_url;
         }
       } else if (Array.isArray(product.image_url) && product.image_url.length > 0) {
@@ -478,6 +459,7 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     getPrice,
     getDeliveryCost,
     getDiscountAmount,
+    getServiceFee,
     getTotalCost,
     getProductImageUrl,
   };

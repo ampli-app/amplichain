@@ -4,8 +4,14 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { FormData } from '@/hooks/checkout/useCheckout';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Info } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface OrderSummaryFormProps {
   formData: FormData;
@@ -16,7 +22,8 @@ interface OrderSummaryFormProps {
   goToPreviousStep: () => void;
   isProcessing: boolean;
   totalCost: number;
-  onSubmit: (e: React.FormEvent) => void;  // Updated to accept a React.FormEvent parameter
+  serviceFee: number;
+  onSubmit: (e: React.FormEvent) => void;
 }
 
 export function OrderSummaryForm({ 
@@ -28,6 +35,7 @@ export function OrderSummaryForm({
   goToPreviousStep, 
   isProcessing,
   totalCost,
+  serviceFee,
   onSubmit
 }: OrderSummaryFormProps) {
   
@@ -144,6 +152,18 @@ export function OrderSummaryForm({
         
         <Separator />
         
+        {/* Informacja o opłacie serwisowej */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 flex gap-2">
+          <Info className="h-5 w-5 flex-shrink-0 mt-0.5 text-blue-500" />
+          <div className="text-sm">
+            <p className="font-medium">Opłata serwisowa</p>
+            <p className="mt-1">
+              Do zamówienia doliczana jest opłata serwisowa w wysokości 1,5% wartości zamówienia (produkt + dostawa).
+              Opłata serwisowa pokrywa koszty utrzymania platformy i obsługi płatności.
+            </p>
+          </div>
+        </div>
+        
         {/* Akceptacja regulaminu */}
         <div className="flex items-start space-x-2">
           <Checkbox 
@@ -176,7 +196,7 @@ export function OrderSummaryForm({
         <Button 
           type="submit" 
           disabled={isProcessing} 
-          onClick={(e) => onSubmit(e)} // Explicitly pass the event
+          onClick={(e) => onSubmit(e)}
         >
           {isProcessing ? (
             <>

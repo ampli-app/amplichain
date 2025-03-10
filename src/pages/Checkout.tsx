@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -22,13 +21,11 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { isLoggedIn, user } = useAuth();
   
-  // Inicjalizacja hooka checkout
   const checkout = useCheckout({ 
     productId: id || '', 
     isTestMode 
   });
   
-  // Ustawienie domyślnego emaila użytkownika
   useEffect(() => {
     if (user?.email) {
       checkout.setFormData(prev => ({
@@ -38,16 +35,13 @@ export default function Checkout() {
     }
   }, [user?.email]);
   
-  // Obsługa złożenia zamówienia
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Walidacja przed złożeniem zamówienia
     if (!checkout.validateForm()) {
       return;
     }
     
-    // Symulacja przetwarzania płatności
     checkout.simulatePaymentProcessing((success) => {
       if (success) {
         toast({
@@ -55,7 +49,6 @@ export default function Checkout() {
           description: "Twoje zamówienie zostało złożone pomyślnie!",
         });
         
-        // Przekierowanie na stronę potwierdzenia
         const url = isTestMode 
           ? `/checkout/success/${id}?mode=test` 
           : `/checkout/success/${id}?mode=buy`;
@@ -65,7 +58,6 @@ export default function Checkout() {
     });
   };
   
-  // Przekierowanie niezalogowanych użytkowników
   useEffect(() => {
     if (!isLoggedIn) {
       navigate('/login');
@@ -78,7 +70,6 @@ export default function Checkout() {
     }
   }, [id, isLoggedIn, navigate]);
   
-  // Stan ładowania
   if (checkout.isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -96,7 +87,6 @@ export default function Checkout() {
     );
   }
   
-  // Brak produktu
   if (!checkout.product) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -120,7 +110,6 @@ export default function Checkout() {
     );
   }
   
-  // Brak opcji dostawy
   if (checkout.deliveryOptions.length === 0) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -164,14 +153,11 @@ export default function Checkout() {
             {isTestMode ? 'Rezerwacja testowa' : 'Finalizacja zakupu'}
           </h1>
           
-          {/* Progress Bar */}
           <CheckoutProgress activeStep={checkout.activeStep} />
           
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Lewa kolumna - formularz krok po kroku */}
               <div className="lg:col-span-2">
-                {/* Krok 1: Dane osobowe */}
                 {checkout.activeStep === 'personal' && (
                   <PersonalInfoForm
                     formData={checkout.formData}
@@ -180,7 +166,6 @@ export default function Checkout() {
                   />
                 )}
                 
-                {/* Krok 2: Dostawa */}
                 {checkout.activeStep === 'delivery' && (
                   <DeliveryForm
                     formData={checkout.formData}
@@ -195,7 +180,6 @@ export default function Checkout() {
                   />
                 )}
                 
-                {/* Krok 3: Płatność */}
                 {checkout.activeStep === 'payment' && (
                   <PaymentForm
                     formData={checkout.formData}
@@ -207,7 +191,6 @@ export default function Checkout() {
                   />
                 )}
                 
-                {/* Krok 4: Podsumowanie i finalizacja */}
                 {checkout.activeStep === 'summary' && (
                   <OrderSummaryForm
                     formData={checkout.formData}
@@ -218,12 +201,12 @@ export default function Checkout() {
                     goToPreviousStep={checkout.goToPreviousStep}
                     isProcessing={checkout.isProcessing}
                     totalCost={checkout.getTotalCost()}
+                    serviceFee={checkout.getServiceFee()}
                     onSubmit={handleSubmit}
                   />
                 )}
               </div>
               
-              {/* Prawa kolumna - podsumowanie zamówienia */}
               <div className="lg:col-span-1">
                 <CheckoutSummary
                   productTitle={checkout.product.title}
@@ -232,6 +215,7 @@ export default function Checkout() {
                   deliveryCost={checkout.getDeliveryCost()}
                   discountValue={checkout.getDiscountAmount()}
                   discountApplied={checkout.discountApplied}
+                  serviceFee={checkout.getServiceFee()}
                   totalCost={checkout.getTotalCost()}
                   isTestMode={isTestMode}
                   discountCode={checkout.discountCode}
