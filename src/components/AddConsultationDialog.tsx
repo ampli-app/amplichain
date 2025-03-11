@@ -17,24 +17,12 @@ import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { MediaUploadSection } from '@/components/consultations/MediaUploadSection';
 import { MediaFile, uploadMediaToStorage } from '@/utils/mediaUtils';
+import { CategorySelect } from '@/components/consultations/CategorySelect';
 
 interface AddConsultationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-// Kategorie konsultacji
-const consultationCategories = [
-  { id: 'composition', name: 'Kompozycja' },
-  { id: 'arrangement', name: 'Aranżacja' },
-  { id: 'production', name: 'Produkcja muzyczna' },
-  { id: 'mixing', name: 'Mix i mastering' },
-  { id: 'instruments', name: 'Instrumenty muzyczne' },
-  { id: 'vocals', name: 'Wokal' },
-  { id: 'theory', name: 'Teoria muzyki' },
-  { id: 'recording', name: 'Nagrywanie' },
-  { id: 'live_sound', name: 'Realizacja dźwięku na żywo' }
-];
 
 export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDialogProps) {
   const { user } = useAuth();
@@ -45,7 +33,8 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
+  const [subcategoryId, setSubcategoryId] = useState<string | undefined>(undefined);
   const [isOnline, setIsOnline] = useState(true);
   const [isInPerson, setIsInPerson] = useState(false);
   const [location, setLocation] = useState('');
@@ -66,20 +55,13 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
     setTitle('');
     setDescription('');
     setPrice('');
-    setSelectedCategories([]);
+    setCategoryId(undefined);
+    setSubcategoryId(undefined);
     setIsOnline(true);
     setIsInPerson(false);
     setLocation('');
     setContactMethods([]);
-    setMedia([]); // Resetujemy media
-  };
-  
-  const toggleCategory = (category: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
+    setMedia([]);
   };
   
   const toggleContactMethod = (method: string) => {
@@ -110,10 +92,19 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
       return;
     }
     
-    if (selectedCategories.length === 0) {
+    if (!categoryId) {
       toast({
         title: "Brak kategorii",
-        description: "Wybierz przynajmniej jedną kategorię dla swoich konsultacji.",
+        description: "Wybierz kategorię dla swoich konsultacji.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!subcategoryId) {
+      toast({
+        title: "Brak podkategorii",
+        description: "Wybierz podkategorię dla swoich konsultacji.",
         variant: "destructive",
       });
       return;
@@ -162,10 +153,10 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
         title,
         description,
         price: Number(price),
-        categories: selectedCategories,
+        category_id: categoryId,
+        subcategory_id: subcategoryId,
         is_online: isOnline,
         location: isInPerson ? location : null,
-        availability: [], // Docelowo można dodać wybór dostępności
         contact_methods: contactMethods,
         images: allMediaUrls.length > 0 ? JSON.stringify(allMediaUrls) : null
       };
@@ -222,6 +213,13 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
+          
+          <CategorySelect
+            categoryId={categoryId}
+            setCategoryId={setCategoryId}
+            subcategoryId={subcategoryId}
+            setSubcategoryId={setSubcategoryId}
+          />
           
           <div className="grid gap-3">
             <Label htmlFor="description">Opis konsultacji</Label>
@@ -337,32 +335,6 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
             </div>
           </div>
           
-          <Separator />
-          
-          <div className="grid gap-3">
-            <Label>Kategorie konsultacji</Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {consultationCategories.map(category => (
-                <div 
-                  key={category.id}
-                  className="flex items-center space-x-2"
-                >
-                  <Checkbox 
-                    id={`category-${category.id}`}
-                    checked={selectedCategories.includes(category.name)}
-                    onCheckedChange={() => toggleCategory(category.name)}
-                  />
-                  <Label 
-                    htmlFor={`category-${category.id}`}
-                    className="font-normal cursor-pointer"
-                  >
-                    {category.name}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-          
           {/* Podgląd oferty konsultacji */}
           <div className="mt-4">
             <h3 className="font-medium mb-2">Podgląd oferty</h3>
@@ -373,16 +345,6 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
                   {description || "Opis konsultacji pojawi się tutaj..."}
                 </p>
               </div>
-              
-              {selectedCategories.length > 0 && (
-                <div className="flex flex-wrap gap-1 my-2">
-                  {selectedCategories.map((cat, idx) => (
-                    <Badge key={idx} variant="outline" className="text-xs">
-                      {cat}
-                    </Badge>
-                  ))}
-                </div>
-              )}
               
               <div className="flex items-center text-sm mt-2">
                 <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
