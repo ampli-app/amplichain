@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { XCircle } from 'lucide-react';
 
@@ -73,18 +72,16 @@ export function getProductPreviewUrl(imageUrl: string | string[] | null | undefi
     : 'https://placehold.co/600x400?text=Brak+zdjęcia';
 }
 
+interface MediaPreviewProps {
+  files?: File[];
+  imageUrls?: string[];
+  onRemove?: (index: number) => void;
+}
+
 /**
  * Component to preview media (images)
  */
-export function MediaPreview({ 
-  files, 
-  imageUrls, 
-  onRemove 
-}: { 
-  files?: File[],
-  imageUrls?: string[],
-  onRemove?: (index: number) => void
-}) {
+export function MediaPreview({ files, imageUrls, onRemove }: MediaPreviewProps) {
   const hasFiles = files && files.length > 0;
   const hasUrls = imageUrls && imageUrls.length > 0;
   

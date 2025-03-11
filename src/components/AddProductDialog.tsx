@@ -696,6 +696,10 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     setSubcategoryId(value);
   };
   
+  const showAuthDialog = () => {
+    setShowAuthDialog(true);
+  };
+  
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -948,11 +952,3 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
                           </div>
                         )
                       ))}
-                    </div>
-                  </ScrollArea>
-                )}
-              </div>
-              
-              <Separator />
-              
-              {
