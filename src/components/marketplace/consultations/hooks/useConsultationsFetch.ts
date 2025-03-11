@@ -50,6 +50,14 @@ export function useConsultationsFetch() {
         // Połącz dane konsultacji z profilami
         const consultationsWithProfiles = consultationsData.map(consultation => {
           const profile = profilesData?.find(p => p.id === consultation.user_id);
+          
+          // Dodaj domyślne obrazy, jeśli nie są dostępne
+          if (!consultation.images || consultation.images.length === 0) {
+            consultation.images = [
+              "https://images.unsplash.com/photo-1542744173-05336fcc7ad4?q=80&w=2000&auto=format&fit=crop"
+            ];
+          }
+          
           return {
             ...consultation,
             profiles: profile || { 

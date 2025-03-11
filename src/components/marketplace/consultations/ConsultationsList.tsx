@@ -35,6 +35,7 @@ export function ConsultationsList({
         {[1, 2, 3, 4].map(i => (
           <Card key={i}>
             <CardContent className="p-0">
+              <Skeleton className="h-48 w-full" /> {/* Miejsce na obrazek */}
               <div className="p-6">
                 <div className="flex items-center gap-4 mb-4">
                   <Skeleton className="w-12 h-12 rounded-full" />

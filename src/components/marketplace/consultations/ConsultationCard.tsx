@@ -7,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Consultation } from '@/types/consultations';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 
 export interface ConsultationCardProps {
   consultation: Consultation;
@@ -43,6 +44,11 @@ export function ConsultationCard({
       description: "Link do konsultacji został skopiowany do schowka.",
     });
   };
+
+  // Wybierz domyślny obraz lub pierwszy z tablicy jeśli istnieje
+  const image = consultation.images && consultation.images.length > 0 
+    ? consultation.images[0] 
+    : "https://images.unsplash.com/photo-1542744173-05336fcc7ad4?q=80&w=2000&auto=format&fit=crop";
   
   return (
     <Card className="overflow-hidden hover:shadow-md transition-all relative">
@@ -63,6 +69,26 @@ export function ConsultationCard({
         <Heart className={`h-4 w-4 ${isFavorite ? "fill-current text-red-500" : "text-zinc-400"}`} />
       </Button>
       
+      {/* Obraz konsultacji */}
+      <div className="relative">
+        <AspectRatio ratio={16/9}>
+          <img 
+            src={image} 
+            alt={consultation.title} 
+            className="w-full h-full object-cover"
+          />
+        </AspectRatio>
+        
+        {consultation.is_online ? (
+          <Badge className="absolute bottom-3 left-3 bg-green-500">Online</Badge>
+        ) : (
+          <Badge className="absolute bottom-3 left-3 bg-blue-500 flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
+            {consultation.location}
+          </Badge>
+        )}
+      </div>
+
       <CardContent className="p-6">
         <div className="flex items-center gap-4 mb-4">
           <Avatar>
@@ -85,15 +111,6 @@ export function ConsultationCard({
           {consultation.categories?.length > 0 && (
             <Badge variant="secondary">
               {consultation.categories[0]}
-            </Badge>
-          )}
-          
-          {consultation.is_online ? (
-            <Badge variant="outline" className="bg-green-50 text-green-700">Online</Badge>
-          ) : (
-            <Badge variant="outline" className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              {consultation.location}
             </Badge>
           )}
         </div>

@@ -1,4 +1,3 @@
-
 export interface Consultation {
   id: string;
   user_id: string;
@@ -13,6 +12,7 @@ export interface Consultation {
   contact_methods?: string[];
   created_at: string;
   updated_at: string;
+  images?: string[]; // Dodajemy obsługę obrazów
   profiles?: {
     id: string;
     username: string;
