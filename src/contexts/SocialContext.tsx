@@ -18,7 +18,7 @@ interface SocialContextProps {
   fetchFeedPosts: () => Promise<any[]>;
   fetchUserProfile: (userId: string) => Promise<SocialUser | null>;
   addPost: (postData: any) => Promise<any>;
-  createPost: (content: string, mediaUrl?: string) => Promise<void>;
+  createPost: (content: string, mediaUrl?: string, mediaType?: string, mediaFiles?: Array<{ url: string, type: string }>) => Promise<void>;
   likePost: (postId: string) => Promise<void>;
   unlikePost: (postId: string) => Promise<void>;
   addComment: (postId: string, comment: string) => Promise<void>;
@@ -34,7 +34,7 @@ interface SocialContextProps {
   sendConnectionRequest: (targetUserId: string) => Promise<void>;
   acceptConnectionRequest: (requestId: string) => Promise<void>;
   declineConnectionRequest: (requestId: string) => Promise<void>;
-  removeConnection: (connectionId: string) => Promise<void>;
+  removeConnection: (connectionId: string, keepFollowing?: boolean) => Promise<void>;
 }
 
 const SocialContext = createContext<SocialContextProps | null>(null);
@@ -94,9 +94,15 @@ export const SocialProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   };
 
-  const createPost = async (content: string, mediaUrl?: string) => {
+  const createPost = async (
+    content: string, 
+    mediaUrl?: string, 
+    mediaType?: string, 
+    mediaFiles?: Array<{ url: string, type: string }>
+  ) => {
     try {
       // Implementacja tworzenia posta
+      console.log('Creating post with:', { content, mediaUrl, mediaType, mediaFiles });
       return Promise.resolve();
     } catch (error) {
       console.error('Error creating post:', error);
@@ -299,9 +305,10 @@ export const SocialProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   };
 
-  const removeConnection = async (connectionId: string) => {
+  const removeConnection = async (connectionId: string, keepFollowing: boolean = false) => {
     try {
       // Implementacja usunięcia połączenia
+      console.log('Removing connection:', connectionId, 'Keep following:', keepFollowing);
       return Promise.resolve();
     } catch (error) {
       console.error('Error removing connection:', error);
