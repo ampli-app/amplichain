@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +6,6 @@ import { Search, Filter } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CategorySelection } from './CategorySelection';
-import { SubcategorySelection } from './categories/SubcategorySelection';
 import { MarketplaceFilters } from './MarketplaceFilters';
 import { ProductGrid } from './ProductGrid';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,7 +18,6 @@ interface Product {
   image_url: string | string[];
   category: string | null;
   category_id: string | null;
-  subcategory_id: string | null;
   rating: number | null;
   review_count: number | null;
   sale?: boolean | null;
@@ -64,7 +61,6 @@ export function ProductsTab({
   const [viewMode, setViewMode] = useState<'grid' | 'filters'>('grid');
   
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 999999]);
   const [minPrice, setMinPrice] = useState<string>('0');
@@ -95,7 +91,7 @@ export function ProductsTab({
 
   useEffect(() => {
     applyFilters();
-  }, [products, selectedCategory, selectedSubcategory, showTestingOnly, priceRange, selectedConditions, searchQuery, sortOption]);
+  }, [products, selectedCategory, showTestingOnly, priceRange, selectedConditions, searchQuery, sortOption]);
 
   useEffect(() => {
     updateDisplayedProducts();
@@ -110,14 +106,8 @@ export function ProductsTab({
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const categoryFromUrl = searchParams.get('category');
-    const subcategoryFromUrl = searchParams.get('subcategory');
-    
     if (categoryFromUrl) {
       setSelectedCategory(categoryFromUrl);
-    }
-    
-    if (subcategoryFromUrl) {
-      setSelectedSubcategory(subcategoryFromUrl);
     }
   }, [location.search]);
 
@@ -153,10 +143,6 @@ export function ProductsTab({
     
     if (selectedCategory) {
       filtered = filtered.filter(item => item.category_id === selectedCategory);
-      
-      if (selectedSubcategory) {
-        filtered = filtered.filter(item => item.subcategory_id === selectedSubcategory);
-      }
     }
     
     if (showTestingOnly) {
@@ -255,30 +241,12 @@ export function ProductsTab({
   
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(categoryId);
-    // Resetujemy wybraną podkategorię gdy zmieniamy kategorię
-    setSelectedSubcategory(null);
     
     const searchParams = new URLSearchParams(location.search);
     if (categoryId) {
       searchParams.set('category', categoryId);
     } else {
       searchParams.delete('category');
-    }
-    searchParams.delete('subcategory');
-    
-    const newQuery = searchParams.toString();
-    const newUrl = `${location.pathname}${newQuery ? `?${newQuery}` : ''}`;
-    navigate(newUrl, { replace: true });
-  };
-  
-  const handleSubcategorySelect = (subcategoryId: string | null) => {
-    setSelectedSubcategory(subcategoryId);
-    
-    const searchParams = new URLSearchParams(location.search);
-    if (subcategoryId) {
-      searchParams.set('subcategory', subcategoryId);
-    } else {
-      searchParams.delete('subcategory');
     }
     
     const newQuery = searchParams.toString();
@@ -382,14 +350,6 @@ export function ProductsTab({
           showAllCategoriesInBar={true}
         />
         
-        {selectedCategory && (
-          <SubcategorySelection
-            categoryId={selectedCategory}
-            selectedSubcategory={selectedSubcategory}
-            onSubcategorySelect={handleSubcategorySelect}
-          />
-        )}
-        
         <div className="flex flex-col lg:flex-row gap-8">
           <div className={`lg:w-64 space-y-6 ${viewMode === 'filters' ? 'block' : 'hidden lg:block'}`}>
             <MarketplaceFilters
@@ -436,31 +396,18 @@ export function ProductsTab({
             </div>
             
             <div className="mb-6">
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
                 {selectedCategory && (
                   <Badge variant="outline" className="px-3 py-1">
                     {categories.find(c => c.id === selectedCategory)?.name || 'Wybrana kategoria'}
                     <button 
                       className="ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
-                      onClick={() => handleCategorySelect('')}
+                      onClick={() => setSelectedCategory('')}
                     >
                       &times;
                     </button>
                   </Badge>
                 )}
-                
-                {selectedSubcategory && (
-                  <Badge variant="outline" className="px-3 py-1 border-primary/50">
-                    Podkategoria
-                    <button 
-                      className="ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
-                      onClick={() => handleSubcategorySelect(null)}
-                    >
-                      &times;
-                    </button>
-                  </Badge>
-                )}
-                
                 <span className="text-sm text-zinc-500">
                   {filteredProducts.length} {getProperResultsText(filteredProducts.length)}
                 </span>

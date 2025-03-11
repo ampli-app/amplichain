@@ -7,11 +7,10 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHashtags } from '@/contexts/social/useHashtags';
 import { Hashtag } from '@/types/social';
-import { Skeleton } from '@/components/ui/skeleton';
 
 export function PopularHashtagsSection() {
   const { user } = useAuth();
-  const { getPopularHashtags } = useHashtags(); // Removed user?.id parameter
+  const { getPopularHashtags } = useHashtags(user?.id);
   const [popularHashtags, setPopularHashtags] = useState<Hashtag[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,12 +43,7 @@ export function PopularHashtagsSection() {
       </div>
       <div className="flex flex-wrap gap-2">
         {loading ? (
-          <>
-            <Skeleton className="h-8 w-20 rounded-full" />
-            <Skeleton className="h-8 w-24 rounded-full" />
-            <Skeleton className="h-8 w-16 rounded-full" />
-            <Skeleton className="h-8 w-20 rounded-full" />
-          </>
+          <p className="text-sm text-rhythm-500">Ładowanie hashtagów...</p>
         ) : popularHashtags.length > 0 ? (
           popularHashtags.map((tag) => (
             <Link key={tag.id} to={`/hashtag/${tag.name}`}>

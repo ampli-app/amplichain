@@ -1,85 +1,45 @@
 
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
-import { Hashtag } from '@/types/social';
+import { Post, Hashtag } from '@/types/social';
+import { fetchPostsByHashtag, fetchPopularHashtags } from '@/utils/hashtagDataUtils';
 
-export const useHashtags = () => {
-  const followHashtag = async (hashtag: string) => {
+/**
+ * Hook do zarządzania i pobierania hashtagów
+ */
+export const useHashtags = (userId: string | undefined) => {
+  const [loading, setLoading] = useState(false);
+
+  /**
+   * Pobiera posty z określonym hashtagiem
+   */
+  const getPostsByHashtag = async (hashtagName: string): Promise<Post[]> => {
+    setLoading(true);
     try {
-      // Implementacja obserwowania hashtagu
-      return Promise.resolve();
+      const posts = await fetchPostsByHashtag(hashtagName, userId);
+      return posts;
     } catch (error) {
-      console.error('Error following hashtag:', error);
-      return Promise.reject(error);
-    }
-  };
-
-  const unfollowHashtag = async (hashtag: string) => {
-    try {
-      // Implementacja przestania obserwowania hashtagu
-      return Promise.resolve();
-    } catch (error) {
-      console.error('Error unfollowing hashtag:', error);
-      return Promise.reject(error);
-    }
-  };
-
-  const fetchTrendingHashtags = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('hashtags')
-        .select(`
-          id,
-          name,
-          count,
-          created_at
-        `)
-        .order('count', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-
-      return (data || []).map(hashtag => ({
-        id: hashtag.id,
-        name: hashtag.name,
-        postsCount: hashtag.count || 0
-      }));
-    } catch (error) {
-      console.error('Błąd podczas pobierania trendujących hashtagów:', error);
+      console.error('Błąd w useHashtags.getPostsByHashtag:', error);
       return [];
+    } finally {
+      setLoading(false);
     }
   };
-
+  
+  /**
+   * Pobiera popularne hashtagi
+   */
   const getPopularHashtags = async (): Promise<Hashtag[]> => {
     try {
-      const { data, error } = await supabase
-        .from('hashtags')
-        .select(`
-          id,
-          name,
-          count
-        `)
-        .order('count', { ascending: false })
-        .limit(5);
-
-      if (error) throw error;
-
-      return (data || []).map(hashtag => ({
-        id: hashtag.id,
-        name: hashtag.name,
-        postsCount: hashtag.count || 0
-      }));
+      return await fetchPopularHashtags();
     } catch (error) {
-      console.error('Błąd podczas pobierania popularnych hashtagów:', error);
+      console.error('Błąd w useHashtags.getPopularHashtags:', error);
       return [];
     }
   };
-
+  
   return {
-    followHashtag,
-    unfollowHashtag,
-    fetchTrendingHashtags,
-    getPopularHashtags
+    getPostsByHashtag,
+    getPopularHashtags,
+    loading
   };
 };

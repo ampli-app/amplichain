@@ -1,5 +1,5 @@
 
-export type Consultation = {
+export interface Consultation {
   id: string;
   user_id: string;
   title: string;
@@ -7,56 +7,64 @@ export type Consultation = {
   price: number;
   categories: string[];
   experience: string;
-  is_online: boolean;
-  location: string | null;
-  contact_methods: string[];
   availability: string[];
-  images?: string[] | string;
+  is_online: boolean;
+  location: string;
+  contact_methods?: string[];
   created_at: string;
   updated_at: string;
   profiles?: {
     id: string;
-    username: string | null;
-    full_name: string | null;
-    avatar_url: string | null;
+    username: string;
+    full_name: string;
+    avatar_url: string;
   };
-};
+}
 
-export type ConsultationOrder = {
+export interface ConsultationOrder {
   id: string;
   consultation_id: string;
   client_id: string;
   expert_id: string;
-  status: 'pending' | 'pending_payment' | 'accepted' | 'rejected' | 'cancelled' | 'completed';
-  is_client_confirmed: boolean;
-  is_expert_confirmed: boolean;
-  is_completed: boolean;
-  date: string;
-  time: string;
-  contact_method: string;
-  expires_at: string;
-  completed_at?: string;
-  created_at: string;
-  updated_at: string;
+  status: string;
   price: number;
   amount: number;
-  is_online: boolean;
+  date: string;
+  time: string;
+  contact_method?: string;
   is_paid: boolean;
-  location?: string | null;
+  is_completed: boolean;
+  is_client_confirmed?: boolean;
+  is_expert_confirmed?: boolean;
+  is_online: boolean;
+  location: string;
+  created_at: string;
+  completed_at?: string;
+  expires_at?: string;
   consultations?: Consultation;
   profiles?: {
     id: string;
-    username: string | null;
-    full_name: string | null;
-    avatar_url: string | null;
+    username: string;
+    full_name: string;
+    avatar_url: string;
   };
-};
+}
 
-export type ConsultationWithProfile = Consultation & {
-  profiles: {
-    id: string;
-    username: string | null;
-    full_name: string | null;
-    avatar_url: string | null;
-  };
-};
+export interface ConsultationRating {
+  id: string;
+  consultation_id: string;
+  order_id: string;
+  client_id: string;
+  expert_id: string;
+  rating: number;
+  comment?: string;
+  created_at: string;
+}
+
+export interface ConsultationCardProps {
+  consultation: Consultation;
+  isFavorite: boolean;
+  isOwner?: boolean;
+  onToggleFavorite: (id: string, isFavorite: boolean) => void;
+  onDelete?: (id: string) => void;
+}

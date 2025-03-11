@@ -50,21 +50,8 @@ export function useConsultationsFetch() {
         // Połącz dane konsultacji z profilami
         const consultationsWithProfiles = consultationsData.map(consultation => {
           const profile = profilesData?.find(p => p.id === consultation.user_id);
-          
-          // Przetwórz pole images, jeśli jest stringiem JSON
-          let processedImages = consultation.images || null;
-          if (typeof consultation.images === 'string') {
-            try {
-              processedImages = JSON.parse(consultation.images);
-            } catch (e) {
-              // Jeśli nie jest poprawnym JSON, pozostaw jako string
-              console.log('Nie można sparsować images jako JSON:', e);
-            }
-          }
-          
           return {
             ...consultation,
-            images: processedImages,
             profiles: profile || { 
               id: consultation.user_id,
               username: null, 

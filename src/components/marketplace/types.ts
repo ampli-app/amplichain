@@ -6,7 +6,6 @@ export interface Product {
   image_url: string | string[];
   category: string | null;
   category_id: string | null;
-  subcategory_id: string | null;
   rating: number | null;
   review_count: number | null;
   sale?: boolean | null;
@@ -23,14 +22,6 @@ export interface Category {
   name: string;
   slug: string;
   description: string | null;
-}
-
-export interface Subcategory {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  category_id: string;
 }
 
 export const productConditions = [
