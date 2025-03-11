@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,7 +55,6 @@ export function useConsultationData(id?: string) {
         return;
       }
       
-      // Ustaw wszystkie pola formularza z danych z bazy
       Object.entries(form).forEach(([key, setter]) => {
         if (typeof setter === 'function' && key.startsWith('set')) {
           const dataKey = key.slice(3).toLowerCase();
@@ -66,7 +64,6 @@ export function useConsultationData(id?: string) {
         }
       });
       
-      // Przygotuj media z pobranych danych
       if (data.images) {
         let imageArray: string[] = [];
         
@@ -77,11 +74,11 @@ export function useConsultationData(id?: string) {
             console.error('Błąd parsowania JSON zdjęć:', e);
           }
         } else if (Array.isArray(data.images)) {
-          imageArray = data.images;
+          imageArray = data.images.map(img => String(img)).filter(url => typeof url === 'string');
         }
         
         if (imageArray.length > 0) {
-          const mediaFiles: MediaFile[] = imageArray.map((url: string) => ({
+          const mediaFiles: MediaFile[] = imageArray.map((url) => ({
             url,
             type: 'image',
           }));
