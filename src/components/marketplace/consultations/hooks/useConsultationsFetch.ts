@@ -11,6 +11,11 @@ interface ProfileData {
   avatar_url: string;
 }
 
+// Interfejs dla potencjalnego błędu zapytania
+interface SelectQueryError {
+  error: true;
+}
+
 export function useConsultationsFetch() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,16 +50,18 @@ export function useConsultationsFetch() {
           
           let userProfile: ProfileData;
           
-          const profileData = consultation.profiles as ProfileData | null;
-          
-          if (profileData && 
-              typeof profileData === 'object' && 
-              !('error' in profileData)) {
+          // Sprawdzamy, czy profiles istnieje, jest obiektem i nie jest obiektem błędu
+          if (consultation.profiles && 
+              typeof consultation.profiles === 'object' && 
+              !('error' in consultation.profiles) &&
+              'id' in consultation.profiles) {
+            // Bezpieczne rzutowanie typów
+            const profile = consultation.profiles as any;
             userProfile = {
-              id: profileData.id,
-              username: profileData.username,
-              full_name: profileData.full_name,
-              avatar_url: profileData.avatar_url
+              id: profile.id || '',
+              username: profile.username || '',
+              full_name: profile.full_name || 'Ekspert',
+              avatar_url: profile.avatar_url || ''
             };
           } else {
             userProfile = {
