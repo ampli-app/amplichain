@@ -1,3 +1,4 @@
+
 export type Consultation = {
   id: string;
   user_id: string;

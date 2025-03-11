@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { XCircle } from 'lucide-react';
 
@@ -126,11 +127,13 @@ export async function uploadMediaToStorage(
         preview: URL.createObjectURL(file)
       };
     }
-    return file;
+    return file as MediaFile;
   });
   
   // Mock implementation - this would be replaced with actual Supabase upload logic
   console.log(`Would upload ${mediaFiles.length} files to ${storageBucket}`);
+  
+  // Return array of urls
   return mediaFiles.map(file => file.url || file.preview);
 }
 

@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 import { Consultation } from '@/types/consultations';
-import { EditConsultationDialog } from '@/components/EditConsultationDialog';
+import { EditConsultationDialog } from '@/components/consultations/EditConsultationDialog';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
