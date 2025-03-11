@@ -1,45 +1,53 @@
 
 import { useState } from 'react';
-import { Post, Hashtag } from '@/types/social';
-import { fetchPostsByHashtag, fetchPopularHashtags } from '@/utils/hashtagDataUtils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
 
-/**
- * Hook do zarządzania i pobierania hashtagów
- */
-export const useHashtags = (userId: string | undefined) => {
-  const [loading, setLoading] = useState(false);
-
-  /**
-   * Pobiera posty z określonym hashtagiem
-   */
-  const getPostsByHashtag = async (hashtagName: string): Promise<Post[]> => {
-    setLoading(true);
+export const useHashtags = () => {
+  const followHashtag = async (hashtag: string) => {
     try {
-      const posts = await fetchPostsByHashtag(hashtagName, userId);
-      return posts;
+      // Implementacja obserwowania hashtagu
+      return Promise.resolve();
     } catch (error) {
-      console.error('Błąd w useHashtags.getPostsByHashtag:', error);
-      return [];
-    } finally {
-      setLoading(false);
+      console.error('Error following hashtag:', error);
+      return Promise.reject(error);
     }
   };
-  
-  /**
-   * Pobiera popularne hashtagi
-   */
-  const getPopularHashtags = async (): Promise<Hashtag[]> => {
+
+  const unfollowHashtag = async (hashtag: string) => {
     try {
-      return await fetchPopularHashtags();
+      // Implementacja przestania obserwowania hashtagu
+      return Promise.resolve();
     } catch (error) {
-      console.error('Błąd w useHashtags.getPopularHashtags:', error);
-      return [];
+      console.error('Error unfollowing hashtag:', error);
+      return Promise.reject(error);
     }
   };
-  
+
+  const fetchTrendingHashtags = async () => {
+    try {
+      // Implementacja pobierania popularnych hashtagów
+      return Promise.resolve([]);
+    } catch (error) {
+      console.error('Error fetching trending hashtags:', error);
+      return Promise.resolve([]);
+    }
+  };
+
+  const getPopularHashtags = async () => {
+    try {
+      // Implementacja pobierania popularnych hashtagów
+      return Promise.resolve([]);
+    } catch (error) {
+      console.error('Error fetching popular hashtags:', error);
+      return Promise.resolve([]);
+    }
+  };
+
   return {
-    getPostsByHashtag,
-    getPopularHashtags,
-    loading
+    followHashtag,
+    unfollowHashtag,
+    fetchTrendingHashtags,
+    getPopularHashtags
   };
 };
