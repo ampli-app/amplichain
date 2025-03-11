@@ -423,6 +423,95 @@ export type Database = {
         }
         Relationships: []
       }
+      discount_codes: {
+        Row: {
+          active: boolean | null
+          code: string
+          created_at: string | null
+          description: string | null
+          discount_type: string
+          discount_value: number
+          id: string
+          min_order_value: number | null
+          name: string
+          single_use_per_user: boolean | null
+          updated_at: string | null
+          usage_count: number | null
+          usage_limit: number | null
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          code: string
+          created_at?: string | null
+          description?: string | null
+          discount_type: string
+          discount_value: number
+          id?: string
+          min_order_value?: number | null
+          name: string
+          single_use_per_user?: boolean | null
+          updated_at?: string | null
+          usage_count?: number | null
+          usage_limit?: number | null
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          min_order_value?: number | null
+          name?: string
+          single_use_per_user?: boolean | null
+          updated_at?: string | null
+          usage_count?: number | null
+          usage_limit?: number | null
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
+      discount_usage: {
+        Row: {
+          discount_code_id: string
+          discount_value: number
+          id: string
+          order_id: string | null
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          discount_code_id: string
+          discount_value: number
+          id?: string
+          order_id?: string | null
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          discount_code_id?: string
+          discount_value?: number
+          id?: string
+          order_id?: string | null
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_usage_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       discover_sliders: {
         Row: {
           active: boolean | null
@@ -1680,6 +1769,23 @@ export type Database = {
           p_hashtag_id: string
         }
         Returns: undefined
+      }
+      register_discount_usage: {
+        Args: {
+          p_discount_id: string
+          p_user_id: string
+          p_order_id: string
+          p_discount_value: number
+        }
+        Returns: boolean
+      }
+      validate_discount_code: {
+        Args: {
+          p_code: string
+          p_user_id: string
+          p_order_value: number
+        }
+        Returns: Json
       }
     }
     Enums: {

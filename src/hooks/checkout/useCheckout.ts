@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -44,6 +45,7 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
   const [discountCode, setDiscountCode] = useState('');
   const [discountApplied, setDiscountApplied] = useState(false);
   const [discountValue, setDiscountValue] = useState(0);
+  const [discountData, setDiscountData] = useState<any>(null);
   
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
@@ -339,7 +341,7 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     }, 1500);
   };
   
-  const handleApplyDiscount = () => {
+  const handleApplyDiscount = async () => {
     if (!discountCode) {
       toast({
         title: "Błąd",
@@ -349,28 +351,91 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
       return;
     }
     
-    const price = isTestMode && product?.testing_price 
-      ? parseFloat(product.testing_price) 
-      : parseFloat(product?.price || 0);
+    try {
+      const user = supabase.auth.getUser();
+      const userId = (await user).data.user?.id;
       
-    if (discountCode === "RABAT10") {
-      setDiscountApplied(true);
-      setDiscountValue(price * 0.1);
-      toast({
-        title: "Sukces",
-        description: "Kod rabatowy został zastosowany! Otrzymujesz 10% zniżki.",
-      });
-    } else if (discountCode === "RABAT20") {
-      setDiscountApplied(true);
-      setDiscountValue(price * 0.2);
-      toast({
-        title: "Sukces",
-        description: "Kod rabatowy został zastosowany! Otrzymujesz 20% zniżki.",
-      });
-    } else {
+      if (!userId) {
+        toast({
+          title: "Błąd",
+          description: "Musisz być zalogowany, aby skorzystać z kodu rabatowego.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Sprawdzamy walidność kodu rabatowego
+      const subtotal = getPrice() + getDeliveryCost();
+      
+      // Przykładowe proste sprawdzenie - w rzeczywistej aplikacji użylibyśmy funkcji supabase
+      if (discountCode === "RABAT10") {
+        setDiscountApplied(true);
+        const productPrice = getPrice();
+        setDiscountValue(productPrice * 0.1);
+        setDiscountData({
+          id: "example-id-1",
+          code: "RABAT10",
+          type: "percentage",
+          value: 10
+        });
+        toast({
+          title: "Sukces",
+          description: "Kod rabatowy został zastosowany! Otrzymujesz 10% zniżki na produkt.",
+        });
+      } else if (discountCode === "RABAT20") {
+        setDiscountApplied(true);
+        const productPrice = getPrice();
+        setDiscountValue(productPrice * 0.2);
+        setDiscountData({
+          id: "example-id-2",
+          code: "RABAT20",
+          type: "percentage",
+          value: 20
+        });
+        toast({
+          title: "Sukces",
+          description: "Kod rabatowy został zastosowany! Otrzymujesz 20% zniżki na produkt.",
+        });
+      } else if (discountCode === "DOSTAWA") {
+        setDiscountApplied(true);
+        const deliveryCost = getDeliveryCost();
+        setDiscountValue(deliveryCost);
+        setDiscountData({
+          id: "example-id-3",
+          code: "DOSTAWA",
+          type: "delivery",
+          value: 100
+        });
+        toast({
+          title: "Sukces",
+          description: "Kod rabatowy został zastosowany! Darmowa dostawa.",
+        });
+      } else if (discountCode === "BEZPROWIZJI") {
+        setDiscountApplied(true);
+        const serviceFee = getServiceFee();
+        setDiscountValue(serviceFee);
+        setDiscountData({
+          id: "example-id-4",
+          code: "BEZPROWIZJI",
+          type: "fee",
+          value: 100
+        });
+        toast({
+          title: "Sukces",
+          description: "Kod rabatowy został zastosowany! Brak opłaty serwisowej.",
+        });
+      } else {
+        toast({
+          title: "Błąd",
+          description: "Nieprawidłowy kod rabatowy.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Błąd podczas weryfikacji kodu rabatowego:", error);
       toast({
         title: "Błąd",
-        description: "Nieprawidłowy kod rabatowy.",
+        description: "Wystąpił problem podczas weryfikacji kodu rabatowego.",
         variant: "destructive",
       });
     }
@@ -404,6 +469,7 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     setDiscountCode('');
     setDiscountApplied(false);
     setDiscountValue(0);
+    setDiscountData(null);
   };
   
   const getProductImageUrl = () => {
