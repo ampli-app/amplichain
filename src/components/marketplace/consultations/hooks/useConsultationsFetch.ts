@@ -13,10 +13,13 @@ export function useConsultationsFetch() {
     try {
       console.log("Rozpoczęto pobieranie konsultacji");
       
-      // Pobierz wszystkie konsultacje
+      // Pobierz wszystkie konsultacje z dołączonymi danymi profilowymi
       const { data: consultationsData, error: consultationsError } = await supabase
         .from('consultations')
-        .select('*, profiles:user_id(id, username, full_name, avatar_url)')
+        .select(`
+          *,
+          profiles!consultations_user_id_fkey(id, username, full_name, avatar_url)
+        `)
         .order('created_at', { ascending: false });
       
       if (consultationsError) {
@@ -35,6 +38,27 @@ export function useConsultationsFetch() {
             ];
           }
           
+          // Przygotuj profil użytkownika - obsługa przypadku, gdy profiles może być null lub SelectQueryError
+          let userProfile;
+          
+          // Sprawdź, czy profiles istnieje i ma poprawną strukturę
+          if (consultation.profiles && typeof consultation.profiles === 'object' && !('error' in consultation.profiles)) {
+            userProfile = {
+              id: consultation.profiles.id || '',
+              username: consultation.profiles.username || '',
+              full_name: consultation.profiles.full_name || '',
+              avatar_url: consultation.profiles.avatar_url || ''
+            };
+          } else {
+            // Jeśli brak danych profilu lub wystąpił błąd, użyj domyślnych wartości
+            userProfile = {
+              id: '',
+              username: '',
+              full_name: 'Ekspert',
+              avatar_url: ''
+            };
+          }
+          
           // Konwertuj dane do właściwego typu Consultation
           return {
             id: consultation.id,
@@ -51,12 +75,7 @@ export function useConsultationsFetch() {
             created_at: consultation.created_at,
             updated_at: consultation.updated_at,
             images: consultation.images,
-            profiles: consultation.profiles ? {
-              id: consultation.profiles.id,
-              username: consultation.profiles.username || '',
-              full_name: consultation.profiles.full_name || '',
-              avatar_url: consultation.profiles.avatar_url || ''
-            } : undefined
+            profiles: userProfile
           } as Consultation;
         });
         
