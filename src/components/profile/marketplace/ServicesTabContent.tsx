@@ -16,7 +16,8 @@ export function ServicesTabContent({
   if (services.length === 0) {
     return (
       <MarketplaceEmptyState 
-        message="Nie masz jeszcze żadnych usług."
+        title="Brak usług"
+        description="Nie masz jeszcze żadnych usług."
         buttonText="Dodaj pierwszą usługę"
         onButtonClick={onAddService}
       />

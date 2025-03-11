@@ -18,7 +18,8 @@ export function ProductsTabContent({
   if (products.length === 0) {
     return (
       <MarketplaceEmptyState 
-        message="Nie masz jeszcze żadnych produktów."
+        title="Brak produktów"
+        description="Nie masz jeszcze żadnych produktów."
         buttonText="Dodaj pierwszy produkt"
         onButtonClick={onAddProduct}
       />
