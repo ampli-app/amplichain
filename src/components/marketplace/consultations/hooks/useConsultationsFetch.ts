@@ -60,11 +60,10 @@ export function useConsultationsFetch() {
         
         // 5. Łączymy dane konsultacji z danymi profili
         const processedConsultations = consultationsData.map(consultation => {
-          if (!consultation.images || consultation.images.length === 0) {
-            consultation.images = [
-              "https://images.unsplash.com/photo-1542744173-05336fcc7ad4?q=80&w=2000&auto=format&fit=crop"
-            ];
-          }
+          // Domyślny obrazek, jeśli nie ma obrazków w konsultacji
+          const defaultImages = [
+            "https://images.unsplash.com/photo-1542744173-05336fcc7ad4?q=80&w=2000&auto=format&fit=crop"
+          ];
           
           let userProfile: ProfileData = {
             id: '',
@@ -98,7 +97,7 @@ export function useConsultationsFetch() {
             contact_methods: consultation.contact_methods || [],
             created_at: consultation.created_at,
             updated_at: consultation.updated_at,
-            images: consultation.images,
+            images: defaultImages,  // Dodajemy domyślne obrazki
             profiles: userProfile
           } as Consultation;
         });
