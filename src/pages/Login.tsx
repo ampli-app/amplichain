@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, Mail, Lock } from 'lucide-react';
@@ -15,7 +14,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,11 +57,7 @@ export default function Login() {
   };
 
   const handleGoogleLogin = async () => {
-    // We'll implement Google login in a future update
-    toast({
-      title: "Niedostępne",
-      description: "Logowanie przez Google będzie dostępne wkrótce.",
-    });
+    await loginWithGoogle();
   };
 
   return (

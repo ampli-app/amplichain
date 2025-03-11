@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +9,7 @@ interface AuthContextType {
   session: Session | null;
   login: (email: string, password: string) => Promise<{ error: any | null }>;
   signup: (email: string, password: string, fullName: string) => Promise<{ error: any | null }>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
 }
@@ -22,10 +22,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize auth state from Supabase
     const initAuth = async () => {
       try {
-        // Check if we have a session
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -48,20 +46,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initAuth();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user || null);
       setLoading(false);
     });
 
-    // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  // Login function with email/password
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
@@ -96,12 +91,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Signup function
   const signup = async (email: string, password: string, fullName: string) => {
     try {
       setLoading(true);
       
-      // First check if a user with this email already exists
       const { data: existingUsers, error: checkError } = await supabase
         .from('profiles')
         .select('email')
@@ -118,7 +111,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: new Error('User with this email already exists') };
       }
       
-      // If no existing user, proceed with signup
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -139,7 +131,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error };
       }
 
-      // If signUp is successful but email confirmation is required
       if (data.user && !data.session) {
         toast({
           title: "Email weryfikacyjny wysłany",
@@ -168,7 +159,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Logout function
+  const loginWithGoogle = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+
+      if (error) {
+        toast({
+          title: "Logowanie przez Google nieudane",
+          description: error.message,
+          variant: 'destructive',
+        });
+        console.error('Google login error:', error);
+      }
+    } catch (err: any) {
+      console.error('Unexpected Google login error:', err);
+      toast({
+        title: "Błąd logowania",
+        description: 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       setLoading(true);
@@ -209,6 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         login, 
         signup,
+        loginWithGoogle,
         logout,
         loading
       }}
