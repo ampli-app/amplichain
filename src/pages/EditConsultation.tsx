@@ -6,7 +6,6 @@ import { Footer } from '@/components/Footer';
 import { BasicInfoSection } from '@/components/consultations/BasicInfoSection';
 import { AvailabilitySection } from '@/components/consultations/AvailabilitySection';
 import { ContactMethodsSection } from '@/components/consultations/ContactMethodsSection';
-import { CategoriesSection } from '@/components/consultations/CategoriesSection';
 import { MediaUploadSection } from '@/components/consultations/MediaUploadSection';
 import { ConsultationFormContainer } from '@/components/consultations/ConsultationFormContainer';
 import { ConsultationFormLoader } from '@/components/consultations/ConsultationFormLoader';
@@ -28,14 +27,6 @@ export default function EditConsultation() {
       prev.includes(method) 
         ? prev.filter(m => m !== method)
         : [...prev, method]
-    );
-  };
-
-  const toggleCategory = (category: string) => {
-    form.setSelectedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
     );
   };
   
@@ -61,6 +52,10 @@ export default function EditConsultation() {
               setDescription={form.setDescription}
               price={form.price}
               setPrice={form.setPrice}
+              categoryId={form.categoryId}
+              setCategoryId={form.setCategoryId}
+              subcategoryId={form.subcategoryId}
+              setSubcategoryId={form.setSubcategoryId}
             />
             
             <Separator />
@@ -87,13 +82,6 @@ export default function EditConsultation() {
             <ContactMethodsSection
               contactMethods={form.contactMethods}
               toggleContactMethod={toggleContactMethod}
-            />
-            
-            <Separator />
-            
-            <CategoriesSection
-              selectedCategories={form.selectedCategories}
-              toggleCategory={toggleCategory}
             />
           </ConsultationFormContainer>
         </div>
