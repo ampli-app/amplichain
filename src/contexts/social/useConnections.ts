@@ -20,12 +20,27 @@ export const useConnections = (currentUserId?: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, full_name, avatar_url, bio')
+        .select('id, username, full_name, avatar_url, bio, role, followers, following, connections')
         .eq('id', userId)
         .single();
 
       if (error) throw error;
-      return data as SocialUser;
+      
+      if (data) {
+        return {
+          id: data.id,
+          name: data.full_name || data.username || '',
+          username: data.username || '',
+          avatar: data.avatar_url || '',
+          role: data.role || 'user',
+          bio: data.bio || '',
+          connectionStatus: 'none',
+          followersCount: data.followers || 0,
+          followingCount: data.following || 0,
+          connectionsCount: data.connections || 0,
+        };
+      }
+      return null;
     } catch (error) {
       console.error('Błąd podczas pobierania profilu użytkownika:', error);
       return null;
@@ -101,14 +116,25 @@ export const useConnections = (currentUserId?: string) => {
 
   const fetchUserSuggestions = async () => {
     try {
-      // Pobierz przykładowe sugestie użytkowników
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, full_name, avatar_url, bio')
+        .select('id, username, full_name, avatar_url, bio, role, followers, following, connections')
         .limit(5);
 
       if (error) throw error;
-      return data as SocialUser[];
+
+      return data.map(profile => ({
+        id: profile.id,
+        name: profile.full_name || profile.username || '',
+        username: profile.username || '',
+        avatar: profile.avatar_url || '',
+        role: profile.role || 'user',
+        bio: profile.bio || '',
+        connectionStatus: 'none',
+        followersCount: profile.followers || 0,
+        followingCount: profile.following || 0,
+        connectionsCount: profile.connections || 0,
+      })) as SocialUser[];
     } catch (error) {
       console.error('Błąd podczas pobierania sugestii użytkowników:', error);
       return [];

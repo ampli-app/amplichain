@@ -29,12 +29,22 @@ export const useHashtags = () => {
     try {
       const { data, error } = await supabase
         .from('hashtags')
-        .select('id, name, count')
+        .select(`
+          id,
+          name,
+          count,
+          created_at
+        `)
         .order('count', { ascending: false })
         .limit(10);
 
       if (error) throw error;
-      return data || [];
+
+      return (data || []).map(hashtag => ({
+        id: hashtag.id,
+        name: hashtag.name,
+        postsCount: hashtag.count || 0
+      }));
     } catch (error) {
       console.error('Błąd podczas pobierania trendujących hashtagów:', error);
       return [];
@@ -45,12 +55,21 @@ export const useHashtags = () => {
     try {
       const { data, error } = await supabase
         .from('hashtags')
-        .select('id, name, count')
+        .select(`
+          id,
+          name,
+          count
+        `)
         .order('count', { ascending: false })
         .limit(5);
 
       if (error) throw error;
-      return data || [];
+
+      return (data || []).map(hashtag => ({
+        id: hashtag.id,
+        name: hashtag.name,
+        postsCount: hashtag.count || 0
+      }));
     } catch (error) {
       console.error('Błąd podczas pobierania popularnych hashtagów:', error);
       return [];

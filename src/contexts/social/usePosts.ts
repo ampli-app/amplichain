@@ -12,11 +12,21 @@ export const usePosts = (userId?: string) => {
       const { data, error } = await supabase
         .from('feed_posts')
         .select(`
-          id, content, created_at, updated_at, media_url, media_type,
-          user_id, 
-          profiles:profiles(id, username, full_name, avatar_url),
-          likes:post_likes(id, user_id),
-          comments:post_comments(id, content, created_at, user_id, profiles:profiles(id, username, full_name, avatar_url))
+          id, 
+          content, 
+          created_at, 
+          updated_at,
+          user_id,
+          profiles!feed_posts_user_id_fkey (id, username, full_name, avatar_url),
+          feed_post_likes (id, user_id),
+          feed_post_media (id, url, type),
+          feed_post_comments (
+            id, 
+            content, 
+            created_at, 
+            user_id,
+            profiles!feed_post_comments_user_id_fkey (id, username, full_name, avatar_url)
+          )
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
@@ -37,11 +47,21 @@ export const usePosts = (userId?: string) => {
       const { data, error } = await supabase
         .from('feed_posts')
         .select(`
-          id, content, created_at, updated_at, media_url, media_type,
-          user_id, 
-          profiles:profiles(id, username, full_name, avatar_url),
-          likes:post_likes(id, user_id),
-          comments:post_comments(id, content, created_at, user_id, profiles:profiles(id, username, full_name, avatar_url))
+          id, 
+          content, 
+          created_at, 
+          updated_at,
+          user_id,
+          profiles!feed_posts_user_id_fkey (id, username, full_name, avatar_url),
+          feed_post_likes (id, user_id),
+          feed_post_media (id, url, type),
+          feed_post_comments (
+            id, 
+            content, 
+            created_at, 
+            user_id,
+            profiles!feed_post_comments_user_id_fkey (id, username, full_name, avatar_url)
+          )
         `)
         .order('created_at', { ascending: false })
         .limit(10);
