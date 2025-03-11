@@ -100,7 +100,7 @@ export function ConsultationCard({
           {isOwner && (
             <>
               <Button variant="outline" size="sm" asChild>
-                <Link to={`/consultations/edit/${id}`}>
+                <Link to={`/edit-consultation/${id}`}>
                   <PenSquare className="h-4 w-4 mr-1" />
                   Edytuj
                 </Link>

@@ -1,432 +1,203 @@
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Navbar } from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
+import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  ArrowLeft, Save, Trash2, Loader2, PlusCircle, X, Upload
-} from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from '@/components/ui/badge';
-import { Consultation } from '@/types/consultations';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { ChevronLeft, Trash2, Upload, X, Loader2, Save } from 'lucide-react';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-// Kategorie konsultacji
-const consultationCategories = [
-  { id: 'composition', name: 'Kompozycja' },
-  { id: 'arrangement', name: 'Aranżacja' },
-  { id: 'production', name: 'Produkcja muzyczna' },
-  { id: 'mixing', name: 'Mix i mastering' },
-  { id: 'instruments', name: 'Instrumenty muzyczne' },
-  { id: 'vocals', name: 'Wokal' },
-  { id: 'theory', name: 'Teoria muzyki' },
-  { id: 'recording', name: 'Nagrywanie' },
-  { id: 'live_sound', name: 'Realizacja dźwięku na żywo' }
+// Kategorie konsultacji - takie same jak w ConsultationsMarketplaceContent
+const CONSULTATION_CATEGORIES = [
+  'Kompozycja',
+  'Aranżacja',
+  'Produkcja muzyczna',
+  'Mix i mastering',
+  'Teoria muzyki',
+  'Nagrywanie',
+  'Wokal'
 ];
 
-interface ConsultationImage {
-  file: File | null;
-  preview: string;
-  existingUrl?: string;
-}
+// Metody kontaktu
+const CONTACT_METHODS = [
+  { id: 'chat', label: 'Czat w aplikacji' },
+  { id: 'video', label: 'Wideorozmowa' },
+  { id: 'phone', label: 'Rozmowa telefoniczna' },
+  { id: 'email', label: 'Email' }
+];
 
 export default function EditConsultation() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { isLoggedIn, user } = useAuth();
+  const { user } = useAuth();
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
-  const [priceType, setPriceType] = useState('za godzinę');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [experienceYears, setExperienceYears] = useState('');
-  const [isOnline, setIsOnline] = useState(true);
-  const [isInPerson, setIsInPerson] = useState(false);
+  const [experience, setExperience] = useState('');
   const [location, setLocation] = useState('');
+  const [isOnline, setIsOnline] = useState(true);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [contactMethods, setContactMethods] = useState<string[]>([]);
   
-  // Tagi
-  const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
-  
-  // Multi-image support
-  const [consultationImages, setConsultationImages] = useState<ConsultationImage[]>([]);
-  const MAX_IMAGES = 8;
+  // Images handling
+  const [images, setImages] = useState<string[]>([]);
+  const [fileUploading, setFileUploading] = useState(false);
   
   useEffect(() => {
-    // Check if user is logged in
-    if (!isLoggedIn) {
-      toast({
-        title: "Dostęp zabroniony",
-        description: "Musisz być zalogowany, aby edytować konsultacje.",
-        variant: "destructive",
-      });
+    if (!user) {
       navigate('/login');
       return;
     }
     
-    // Fetch consultation data
-    if (id) {
-      fetchConsultationData(id);
-    } else {
-      // If no ID, redirect to marketplace
-      navigate('/marketplace');
-    }
-  }, [id, isLoggedIn, user]);
+    fetchConsultationData();
+  }, [user, id]);
   
-  const fetchConsultationData = async (consultationId: string) => {
+  const fetchConsultationData = async () => {
+    if (!id) return;
+    
     setIsLoading(true);
+    
     try {
       const { data, error } = await supabase
         .from('consultations')
         .select('*')
-        .eq('id', consultationId)
+        .eq('id', id)
         .single();
       
       if (error) {
-        console.error('Error fetching consultation:', error);
+        throw error;
+      }
+      
+      if (data.user_id !== user?.id) {
         toast({
-          title: "Błąd",
-          description: "Nie udało się pobrać danych konsultacji.",
-          variant: "destructive",
+          title: "Brak dostępu",
+          description: "Nie masz uprawnień do edycji tej konsultacji.",
+          variant: "destructive"
         });
-        navigate('/marketplace');
+        navigate('/marketplace?tab=consultations');
         return;
       }
       
-      if (!data) {
-        toast({
-          title: "Konsultacja nie znaleziona",
-          description: "Nie znaleziono konsultacji o podanym ID.",
-          variant: "destructive",
-        });
-        navigate('/marketplace');
-        return;
-      }
-      
-      // Check if this consultation belongs to the current user
-      if (user?.id !== data.user_id) {
-        toast({
-          title: "Brak uprawnień",
-          description: "Nie możesz edytować konsultacji innych użytkowników.",
-          variant: "destructive",
-        });
-        navigate('/marketplace');
-        return;
-      }
-      
-      // Set form state with consultation data
-      setTitle(data.title);
+      // Populate form data
+      setTitle(data.title || '');
       setDescription(data.description || '');
-      setPrice(data.price.toString());
-      setPriceType('za godzinę'); // Domyślnie
-      setSelectedCategories(data.categories || []);
-      setExperienceYears(data.experience || '');
-      setIsOnline(data.is_online);
-      setIsInPerson(data.location ? true : false);
+      setPrice(data.price?.toString() || '');
+      setExperience(data.experience || '');
       setLocation(data.location || '');
+      setIsOnline(data.is_online);
+      setSelectedCategories(data.categories || []);
       setContactMethods(data.contact_methods || []);
+      setImages(data.images || []);
       
-      // Obsługa zdjęć konsultacji
-      if (data.images && data.images.length > 0) {
-        const imagesWithPreviews = data.images.map(url => ({
-          file: null,
-          preview: url,
-          existingUrl: url
-        }));
-        
-        setConsultationImages(imagesWithPreviews);
-      } else {
-        // Brak zdjęć - dodaj domyślne
-        setConsultationImages([{
-          file: null,
-          preview: "https://images.unsplash.com/photo-1542744173-05336fcc7ad4?q=80&w=2000&auto=format&fit=crop",
-          existingUrl: "https://images.unsplash.com/photo-1542744173-05336fcc7ad4?q=80&w=2000&auto=format&fit=crop"
-        }]);
-      }
-      
-    } catch (err) {
-      console.error('Unexpected error:', err);
+    } catch (error) {
+      console.error('Error fetching consultation:', error);
       toast({
         title: "Błąd",
-        description: "Wystąpił nieoczekiwany błąd.",
-        variant: "destructive",
+        description: "Nie udało się pobrać danych konsultacji.",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
   
-  const handleMultipleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files);
-      
-      // Sprawdź ile jeszcze możemy dodać zdjęć
-      const remainingSlots = MAX_IMAGES - consultationImages.length;
-      
-      if (remainingSlots <= 0) {
-        toast({
-          title: "Limit zdjęć",
-          description: `Możesz dodać maksymalnie ${MAX_IMAGES} zdjęć. Usuń niektóre istniejące zdjęcia przed dodaniem nowych.`,
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Limit liczby zdjęć
-      const filesToProcess = files.slice(0, remainingSlots);
-      
-      if (files.length > remainingSlots) {
-        toast({
-          title: "Limit zdjęć",
-          description: `Możesz dodać jeszcze tylko ${remainingSlots} zdjęć. Wybrano pierwsze ${filesToProcess.length}.`,
-          variant: "destructive",
-        });
-      }
-      
-      // Przetwórz każdy plik
-      const newImages: ConsultationImage[] = [];
-      let processedFiles = 0;
-      
-      filesToProcess.forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          newImages.push({
-            file,
-            preview: reader.result as string
-          });
-          
-          processedFiles++;
-          
-          // Po przetworzeniu wszystkich plików, zaktualizuj stan
-          if (processedFiles === filesToProcess.length) {
-            setConsultationImages(prev => [...prev, ...newImages]);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-  };
-  
-  const handleAddImageClick = () => {
-    const fileInput = document.getElementById('multiple-images');
-    if (fileInput) {
-      fileInput.click();
-    }
-  };
-  
-  const handleRemoveImage = (index: number) => {
-    const updatedImages = [...consultationImages];
-    updatedImages.splice(index, 1);
-    setConsultationImages(updatedImages);
-  };
-  
-  const uploadImages = async (): Promise<string[]> => {
-    const uploadedUrls: string[] = [];
+  const handleSave = async () => {
+    if (!user || !id) return;
     
-    // Najpierw dodaj wszystkie istniejące URL
-    consultationImages.forEach(img => {
-      if (img.existingUrl && !img.file) {
-        uploadedUrls.push(img.existingUrl);
-      }
-    });
-    
-    // Następnie prześlij nowe pliki
-    const filesToUpload = consultationImages.filter(img => img.file);
-    
-    for (const image of filesToUpload) {
-      if (!image.file) continue;
-      
-      // Generuj unikalną nazwę pliku
-      const fileExt = image.file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `consultation-images/${fileName}`;
-      
-      try {
-        const { data, error } = await supabase.storage
-          .from('consultations')
-          .upload(filePath, image.file);
-        
-        if (error) {
-          console.error('Error uploading image:', error);
-          toast({
-            title: "Błąd",
-            description: `Nie udało się przesłać zdjęcia: ${error.message}`,
-            variant: "destructive",
-          });
-          continue;
-        }
-        
-        // Pobierz publiczny URL
-        const { data: urlData } = supabase.storage
-          .from('consultations')
-          .getPublicUrl(filePath);
-        
-        uploadedUrls.push(urlData.publicUrl);
-      } catch (err) {
-        console.error('Unexpected error during upload:', err);
-      }
-    }
-    
-    return uploadedUrls;
-  };
-  
-  const validateForm = () => {
+    // Walidacja podstawowa
     if (!title.trim()) {
       toast({
-        title: "Brak tytułu konsultacji",
-        description: "Podaj tytuł konsultacji.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    if (!price.trim() || isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
-      toast({
-        title: "Nieprawidłowa cena",
-        description: "Podaj poprawną cenę konsultacji.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    if (selectedCategories.length === 0) {
-      toast({
-        title: "Brak kategorii",
-        description: "Wybierz przynajmniej jedną kategorię konsultacji.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    if (isInPerson && !location.trim()) {
-      toast({
-        title: "Brak lokalizacji",
-        description: "Podaj lokalizację dla konsultacji stacjonarnych.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    if (contactMethods.length === 0) {
-      toast({
-        title: "Brak metod kontaktu",
-        description: "Wybierz przynajmniej jedną metodę kontaktu dla swoich konsultacji.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    return true;
-  };
-  
-  const addTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags(prev => [...prev, tagInput.trim()]);
-      setTagInput('');
-    }
-  };
-  
-  const removeTag = (tagToRemove: string) => {
-    setTags(prev => prev.filter(tag => tag !== tagToRemove));
-  };
-  
-  const toggleCategory = (category: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
-  };
-  
-  const toggleContactMethod = (method: string) => {
-    setContactMethods(prev => 
-      prev.includes(method) 
-        ? prev.filter(m => m !== method)
-        : [...prev, method]
-    );
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!isLoggedIn || !user) {
-      toast({
-        title: "Wymagane logowanie",
-        description: "Musisz być zalogowany, aby edytować konsultacje.",
-        variant: "destructive",
+        title: "Błąd walidacji",
+        description: "Tytuł jest wymagany.",
+        variant: "destructive"
       });
       return;
     }
     
-    if (!validateForm()) {
+    if (!price || isNaN(Number(price)) || Number(price) <= 0) {
+      toast({
+        title: "Błąd walidacji",
+        description: "Cena musi być liczbą większą od zera.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (selectedCategories.length === 0) {
+      toast({
+        title: "Błąd walidacji", 
+        description: "Wybierz co najmniej jedną kategorię.",
+        variant: "destructive"
+      });
       return;
     }
     
     setIsSaving(true);
     
     try {
-      // Prześlij wszystkie zdjęcia
-      const imageUrls = await uploadImages();
-      
-      const consultationData = {
-        title,
-        description,
-        price: parseFloat(price),
-        categories: selectedCategories,
-        experience: experienceYears,
-        is_online: isOnline,
-        location: isInPerson ? location : null,
-        contact_methods: contactMethods,
-        images: imageUrls,
-      };
-      
       const { error } = await supabase
         .from('consultations')
-        .update(consultationData)
-        .eq('id', id);
+        .update({
+          title,
+          description,
+          price: Number(price),
+          experience,
+          location,
+          is_online: isOnline,
+          categories: selectedCategories,
+          contact_methods: contactMethods,
+          images,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('user_id', user.id);
       
       if (error) {
-        console.error('Error updating consultation:', error);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się zaktualizować konsultacji.",
-          variant: "destructive",
-        });
-        return;
+        throw error;
       }
       
       toast({
-        title: "Sukces",
-        description: "Konsultacja została zaktualizowana.",
+        title: "Zapisano zmiany",
+        description: "Konsultacja została zaktualizowana pomyślnie."
       });
       
-      // Powróć do strony profilu z aktywną zakładką konsultacji
-      navigate('/profile?tab=marketplace&marketplaceTab=consultations');
+      navigate('/marketplace?tab=consultations');
       
-    } catch (err) {
-      console.error('Unexpected error:', err);
+    } catch (error) {
+      console.error('Error updating consultation:', error);
       toast({
-        title: "Błąd",
-        description: "Wystąpił nieoczekiwany błąd.",
-        variant: "destructive",
+        title: "Błąd zapisu",
+        description: "Nie udało się zaktualizować konsultacji. Spróbuj ponownie.",
+        variant: "destructive"
       });
     } finally {
       setIsSaving(false);
@@ -434,396 +205,352 @@ export default function EditConsultation() {
   };
   
   const handleDelete = async () => {
-    if (!id) return;
-    
-    const confirmed = window.confirm("Czy na pewno chcesz usunąć tę konsultację?");
-    if (!confirmed) return;
-    
-    setIsDeleting(true);
+    if (!user || !id) return;
     
     try {
       const { error } = await supabase
         .from('consultations')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
       
       if (error) {
-        console.error('Error deleting consultation:', error);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się usunąć konsultacji.",
-          variant: "destructive",
-        });
-        return;
+        throw error;
       }
       
       toast({
-        title: "Sukces",
-        description: "Konsultacja została usunięta.",
+        title: "Konsultacja usunięta",
+        description: "Konsultacja została usunięta pomyślnie."
       });
       
-      // Przejdź do marketplace
-      navigate('/profile?tab=marketplace&marketplaceTab=consultations');
+      navigate('/marketplace?tab=consultations');
       
-    } catch (err) {
-      console.error('Unexpected error:', err);
+    } catch (error) {
+      console.error('Error deleting consultation:', error);
       toast({
-        title: "Błąd",
-        description: "Wystąpił nieoczekiwany błąd.",
-        variant: "destructive",
+        title: "Błąd usuwania",
+        description: "Nie udało się usunąć konsultacji. Spróbuj ponownie.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    
+    if (!files || files.length === 0) {
+      return;
+    }
+    
+    setFileUploading(true);
+    
+    try {
+      const file = files[0];
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user!.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('consultation_images')
+        .upload(filePath, file);
+      
+      if (uploadError) {
+        throw uploadError;
+      }
+      
+      const { data } = supabase.storage
+        .from('consultation_images')
+        .getPublicUrl(filePath);
+      
+      setImages(prev => [...prev, data.publicUrl]);
+      
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Błąd przesyłania",
+        description: "Nie udało się przesłać obrazu. Spróbuj ponownie.",
+        variant: "destructive"
       });
     } finally {
-      setIsDeleting(false);
+      setFileUploading(false);
+    }
+  };
+  
+  const handleRemoveImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const toggleCategory = (category: string) => {
+    if (selectedCategories.includes(category)) {
+      setSelectedCategories(prev => prev.filter(c => c !== category));
+    } else {
+      setSelectedCategories(prev => [...prev, category]);
+    }
+  };
+  
+  const toggleContactMethod = (method: string) => {
+    if (contactMethods.includes(method)) {
+      setContactMethods(prev => prev.filter(m => m !== method));
+    } else {
+      setContactMethods(prev => [...prev, method]);
     }
   };
   
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1 pt-24 pb-16 flex items-center justify-center">
-          <div className="text-center">
-            <div className="mb-4">
-              <Loader2 className="animate-spin h-10 w-10 text-primary mx-auto" />
-            </div>
-            <p className="text-rhythm-600 dark:text-rhythm-400">Ładowanie danych konsultacji...</p>
-          </div>
-        </main>
-        <Footer />
+      <div className="container max-w-4xl py-8 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Ładowanie danych konsultacji...</p>
+        </div>
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
+    <div className="container max-w-4xl py-8">
+      <div className="flex items-center justify-between mb-6">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/marketplace?tab=consultations')}
+          className="flex items-center"
+        >
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Powrót do konsultacji
+        </Button>
+        
+        <Button 
+          variant="destructive" 
+          onClick={() => setShowDeleteDialog(true)}
+          className="flex items-center"
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Usuń konsultację
+        </Button>
+      </div>
       
-      <main className="flex-1 pt-24 pb-16">
-        <div className="container px-4 mx-auto">
-          <div className="mb-8">
-            <Link 
-              to={`/profile?tab=marketplace&marketplaceTab=consultations`} 
-              className="inline-flex items-center gap-2 text-rhythm-600 hover:text-primary transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Wróć do moich konsultacji
-            </Link>
+      <div className="bg-card rounded-lg border p-6 shadow-sm">
+        <h1 className="text-2xl font-bold mb-6">Edytuj konsultację</h1>
+        
+        <div className="space-y-6">
+          {/* Podstawowe informacje */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Podstawowe informacje</h2>
+            
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Tytuł konsultacji*</Label>
+                <Input 
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Np. Konsultacja produkcji muzycznej"
+                  maxLength={100}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="description">Opis</Label>
+                <Textarea 
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Opisz szczegółowo swoją ofertę konsultacji"
+                  rows={5}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="price">Cena za godzinę (PLN)*</Label>
+                  <Input 
+                    id="price"
+                    type="number"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="Np. 150"
+                    min={1}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="experience">Poziom doświadczenia (w latach)</Label>
+                  <Input 
+                    id="experience"
+                    value={experience}
+                    onChange={(e) => setExperience(e.target.value)}
+                    placeholder="Np. 5"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
           
-          <Card className="max-w-4xl mx-auto">
-            <CardHeader>
-              <CardTitle>Edytuj konsultację</CardTitle>
-            </CardHeader>
+          <Separator />
+          
+          {/* Kategorie */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Kategorie*</h2>
+            <p className="text-muted-foreground text-sm">Wybierz kategorie, które najlepiej opisują twoją konsultację.</p>
             
-            <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-6">
-                <div className="grid gap-3">
-                  <Label htmlFor="title">Tytuł oferty konsultacji</Label>
-                  <Input 
-                    id="title" 
-                    placeholder="np. Konsultacje z zakresu produkcji muzycznej"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    required
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {CONSULTATION_CATEGORIES.map((category) => (
+                <div key={category} className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`category-${category}`}
+                    checked={selectedCategories.includes(category)}
+                    onCheckedChange={() => toggleCategory(category)}
                   />
+                  <label 
+                    htmlFor={`category-${category}`}
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    {category}
+                  </label>
                 </div>
-                
-                <div className="grid gap-3">
-                  <Label htmlFor="description">Opis konsultacji</Label>
-                  <Textarea 
-                    id="description" 
-                    placeholder="Opisz szczegółowo zakres swoich konsultacji, swoje doświadczenie i co uczestnik może zyskać..."
-                    rows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+              ))}
+            </div>
+          </div>
+          
+          <Separator />
+          
+          {/* Dostępność */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Dostępność</h2>
+            
+            <div className="flex items-center space-x-2">
+              <Switch 
+                id="online"
+                checked={isOnline}
+                onCheckedChange={setIsOnline}
+              />
+              <Label htmlFor="online">Konsultacje online</Label>
+            </div>
+            
+            {!isOnline && (
+              <div className="space-y-2">
+                <Label htmlFor="location">Lokalizacja</Label>
+                <Input 
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Np. Warszawa, Centrum"
+                />
+              </div>
+            )}
+          </div>
+          
+          <Separator />
+          
+          {/* Metody kontaktu */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Metody kontaktu</h2>
+            <p className="text-muted-foreground text-sm">Wybierz preferowane metody kontaktu z klientami.</p>
+            
+            <div className="grid grid-cols-2 gap-2">
+              {CONTACT_METHODS.map((method) => (
+                <div key={method.id} className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`method-${method.id}`}
+                    checked={contactMethods.includes(method.id)}
+                    onCheckedChange={() => toggleContactMethod(method.id)}
                   />
+                  <label 
+                    htmlFor={`method-${method.id}`}
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    {method.label}
+                  </label>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="grid gap-3">
-                    <Label htmlFor="price">Cena</Label>
-                    <div className="flex gap-2">
-                      <Input 
-                        id="price" 
-                        type="number"
-                        placeholder="0.00"
-                        min="0"
-                        step="0.01"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        className="flex-1"
-                        required
-                      />
-                      <Select value={priceType} onValueChange={setPriceType}>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Wybierz typ" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="za godzinę">za godzinę</SelectItem>
-                          <SelectItem value="za sesję">za sesję</SelectItem>
-                          <SelectItem value="za projekt">za projekt</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  <div className="grid gap-3">
-                    <Label htmlFor="experience">Lata doświadczenia</Label>
-                    <Input 
-                      id="experience" 
-                      type="number"
-                      placeholder="np. 5"
-                      min="0"
-                      value={experienceYears}
-                      onChange={(e) => setExperienceYears(e.target.value)}
-                    />
-                  </div>
+              ))}
+            </div>
+          </div>
+          
+          <Separator />
+          
+          {/* Zdjęcia */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Zdjęcia</h2>
+            <p className="text-muted-foreground text-sm">Dodaj zdjęcia, które reprezentują twoją konsultację (opcjonalnie).</p>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {images.map((image, index) => (
+                <div key={index} className="relative group aspect-square">
+                  <img 
+                    src={image} 
+                    alt={`Konsultacja ${index + 1}`} 
+                    className="w-full h-full object-cover rounded-md"
+                  />
+                  <button
+                    onClick={() => handleRemoveImage(index)}
+                    className="absolute top-2 right-2 p-1 rounded-full bg-black/50 text-white hover:bg-red-500/80 transition-colors"
+                    aria-label="Usuń zdjęcie"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-                
-                <div className="grid gap-3">
-                  <Label>Sposób prowadzenia konsultacji</Label>
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center space-x-2">
-                      <Switch 
-                        checked={isOnline} 
-                        onCheckedChange={setIsOnline}
-                        id="online"
-                      />
-                      <Label htmlFor="online" className="font-normal cursor-pointer">Online (zdalna)</Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Switch 
-                        checked={isInPerson} 
-                        onCheckedChange={setIsInPerson}
-                        id="in-person"
-                      />
-                      <Label htmlFor="in-person" className="font-normal cursor-pointer">Stacjonarnie</Label>
-                    </div>
-                    
-                    {isInPerson && (
-                      <div className="pl-6 pt-2">
-                        <Label htmlFor="location" className="mb-2 block">Lokalizacja</Label>
-                        <Input 
-                          id="location" 
-                          placeholder="np. Warszawa, Kraków"
-                          value={location}
-                          onChange={(e) => setLocation(e.target.value)}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="grid gap-3">
-                  <Label>Metody kontaktu</Label>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="contact-video"
-                        checked={contactMethods.includes('video')}
-                        onCheckedChange={() => toggleContactMethod('video')}
-                      />
-                      <Label htmlFor="contact-video" className="font-normal cursor-pointer">
-                        Rozmowa wideo (Zoom, Google Meet, itp.)
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="contact-phone"
-                        checked={contactMethods.includes('phone')}
-                        onCheckedChange={() => toggleContactMethod('phone')}
-                      />
-                      <Label htmlFor="contact-phone" className="font-normal cursor-pointer">
-                        Rozmowa telefoniczna
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="contact-chat"
-                        checked={contactMethods.includes('chat')}
-                        onCheckedChange={() => toggleContactMethod('chat')}
-                      />
-                      <Label htmlFor="contact-chat" className="font-normal cursor-pointer">
-                        Czat tekstowy
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="grid gap-3">
-                  <Label>Kategorie konsultacji</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {consultationCategories.map(category => (
-                      <div 
-                        key={category.id}
-                        className="flex items-center space-x-2"
-                      >
-                        <Checkbox 
-                          id={`category-${category.id}`}
-                          checked={selectedCategories.includes(category.name)}
-                          onCheckedChange={() => toggleCategory(category.name)}
-                        />
-                        <Label 
-                          htmlFor={`category-${category.id}`}
-                          className="font-normal cursor-pointer"
-                        >
-                          {category.name}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Multi-image upload component */}
-                <div className="grid gap-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <Label htmlFor="images">Zdjęcia konsultacji ({consultationImages.length}/{MAX_IMAGES})</Label>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleAddImageClick}
-                      disabled={consultationImages.length >= MAX_IMAGES}
-                      className="flex items-center gap-1"
-                    >
-                      <PlusCircle className="h-4 w-4" />
-                      Dodaj zdjęcie
-                    </Button>
-                  </div>
-                  
-                  {/* Hidden input for uploading multiple images */}
+              ))}
+              
+              {images.length < 5 && (
+                <div className="aspect-square flex items-center justify-center border-2 border-dashed rounded-md border-muted-foreground/25 relative">
                   <input
                     type="file"
-                    id="multiple-images"
-                    multiple
+                    id="imageUpload"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     accept="image/*"
-                    className="hidden"
-                    onChange={handleMultipleImageUpload}
+                    onChange={handleImageUpload}
+                    disabled={fileUploading}
                   />
-                  
-                  {/* Drop zone for images */}
-                  {consultationImages.length < MAX_IMAGES && (
-                    <div 
-                      className="border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
-                      onClick={handleAddImageClick}
-                    >
-                      <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                      <p className="text-sm">
-                        Przeciągnij zdjęcia tutaj lub kliknij, aby wybrać
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Możesz dodać maksymalnie {MAX_IMAGES} zdjęć (pozostało {MAX_IMAGES - consultationImages.length})
-                      </p>
-                    </div>
-                  )}
-                  
-                  {/* Image previews */}
-                  {consultationImages.length > 0 && (
-                    <ScrollArea className="h-44 rounded-md border p-4">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        {consultationImages.map((image, index) => (
-                          <div key={index} className="relative group">
-                            <div className="aspect-square rounded-md overflow-hidden border bg-gray-100 dark:bg-gray-800">
-                              <img 
-                                src={image.preview} 
-                                alt={`Consultation preview ${index + 1}`} 
-                                className="w-full h-full object-contain"
-                              />
-                            </div>
-                            <Button 
-                              type="button"
-                              variant="destructive" 
-                              size="icon" 
-                              className="h-6 w-6 absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => handleRemoveImage(index)}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  )}
-                </div>
-                
-                <div className="grid gap-3">
-                  <Label>Tagi (słowa kluczowe)</Label>
-                  <div className="flex gap-2">
-                    <Input 
-                      placeholder="Dodaj tag i naciśnij Enter"
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          addTag();
-                        }
-                      }}
-                    />
-                    <Button type="button" size="icon" onClick={addTag}>
-                      <PlusCircle className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  {tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {tags.map(tag => (
-                        <Badge key={tag} variant="secondary" className="px-2 py-1 gap-1">
-                          {tag}
-                          <button 
-                            className="ml-1 hover:text-destructive"
-                            onClick={() => removeTag(tag)}
-                            type="button"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
+                  {fileUploading ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  ) : (
+                    <div className="text-center">
+                      <Upload className="h-6 w-6 mb-1 mx-auto text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">Dodaj zdjęcie</p>
                     </div>
                   )}
                 </div>
-              </CardContent>
-              
-              <CardFooter className="flex justify-between">
-                <Button 
-                  variant="destructive" 
-                  type="button" 
-                  onClick={handleDelete}
-                  disabled={isSaving || isDeleting}
-                >
-                  {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Usuń konsultację
-                </Button>
-                
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    type="button"
-                    onClick={() => navigate('/profile?tab=marketplace&marketplaceTab=consultations')}
-                    disabled={isSaving || isDeleting}
-                  >
-                    Anuluj
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    disabled={isSaving || isDeleting}
-                  >
-                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    <Save className="mr-2 h-4 w-4" />
-                    Zapisz zmiany
-                  </Button>
-                </div>
-              </CardFooter>
-            </form>
-          </Card>
+              )}
+            </div>
+          </div>
         </div>
-      </main>
+        
+        <div className="mt-8 flex justify-end">
+          <Button 
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Zapisywanie...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Zapisz zmiany
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
       
-      <Footer />
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Czy na pewno chcesz usunąć tę konsultację?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ta akcja jest nieodwracalna. Konsultacja zostanie trwale usunięta z systemu.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              Usuń
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
