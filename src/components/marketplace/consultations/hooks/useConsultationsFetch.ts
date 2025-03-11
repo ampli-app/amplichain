@@ -11,11 +11,6 @@ interface ProfileData {
   avatar_url: string;
 }
 
-// Interfejs dla potencjalnego błędu zapytania
-interface SelectQueryError {
-  error: true;
-}
-
 export function useConsultationsFetch() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,12 +20,10 @@ export function useConsultationsFetch() {
     try {
       console.log("Rozpoczęto pobieranie konsultacji");
       
+      // 1. Najpierw pobieramy konsultacje bez relacji
       const { data: consultationsData, error: consultationsError } = await supabase
         .from('consultations')
-        .select(`
-          *,
-          profiles!consultations_user_id_fkey(id, username, full_name, avatar_url)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
       
       if (consultationsError) {
@@ -40,7 +33,32 @@ export function useConsultationsFetch() {
       
       console.log(`Pobrano ${consultationsData?.length || 0} konsultacji`, consultationsData);
       
-      if (consultationsData) {
+      if (consultationsData && consultationsData.length > 0) {
+        // 2. Pobieramy identyfikatory użytkowników z konsultacji
+        const userIds = [...new Set(consultationsData.map(c => c.user_id))];
+        
+        // 3. Pobieramy profile użytkowników
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', userIds);
+        
+        if (profilesError) {
+          console.error('Błąd pobierania profili:', profilesError);
+          // Kontynuujemy mimo błędu, użyjemy domyślnych danych
+        }
+        
+        console.log('Pobrane profile:', profilesData);
+        
+        // 4. Tworzymy mapę profili dla szybkiego dostępu
+        const profilesMap: Record<string, any> = {};
+        if (profilesData) {
+          profilesData.forEach(profile => {
+            profilesMap[profile.id] = profile;
+          });
+        }
+        
+        // 5. Łączymy dane konsultacji z danymi profili
         const processedConsultations = consultationsData.map(consultation => {
           if (!consultation.images || consultation.images.length === 0) {
             consultation.images = [
@@ -55,13 +73,9 @@ export function useConsultationsFetch() {
             avatar_url: ''
           };
           
-          // Poprawione sprawdzenie, aby TypeScript był zadowolony
-          if (consultation.profiles && 
-              typeof consultation.profiles === 'object') {
-            // Używamy non-null assertion operator, ponieważ już sprawdziliśmy, że profiles istnieje
-            const profile = consultation.profiles as Record<string, any>;
-            
-            // Dodatkowe sprawdzenie czy profile ma wymagane pola
+          // Sprawdzamy czy mamy profil dla tego użytkownika
+          const profile = profilesMap[consultation.user_id];
+          if (profile) {
             userProfile = {
               id: profile.id?.toString() || '',
               username: profile.username?.toString() || '',
