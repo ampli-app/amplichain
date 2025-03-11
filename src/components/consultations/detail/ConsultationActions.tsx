@@ -44,33 +44,31 @@ export const ConsultationActions = ({
   }
 
   return (
-    <>
+    <div className="relative">
       <Button 
-        className="w-full gap-2"
+        variant="secondary"
+        size="icon" 
+        className="absolute -top-14 right-3 opacity-70 hover:opacity-100 z-10"
+        onClick={onToggleFavorite}
+      >
+        <Heart className={`h-4 w-4 ${isFavorite ? "fill-current text-red-500" : "text-zinc-400"}`} />
+      </Button>
+      
+      <Button 
+        className="w-full gap-2 mt-4"
         onClick={onBuy}
       >
         Kup teraz
       </Button>
       
-      <div className="flex gap-4">
-        <Button 
-          variant="outline" 
-          className="flex-1 gap-2"
-          onClick={onToggleFavorite}
-        >
-          <Heart className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
-          {isFavorite ? 'Dodano do ulubionych' : 'Dodaj do ulubionych'}
-        </Button>
-        
-        <Button 
-          variant="secondary" 
-          className="gap-2"
-          onClick={onShare}
-        >
-          <Share2 className="h-4 w-4" />
-          Udostępnij
-        </Button>
-      </div>
-    </>
+      <Button 
+        variant="secondary" 
+        className="w-full gap-2 mt-2"
+        onClick={onShare}
+      >
+        <Share2 className="h-4 w-4" />
+        Udostępnij
+      </Button>
+    </div>
   );
 };
