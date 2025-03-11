@@ -49,10 +49,10 @@ export function useConsultationsFetch() {
             !('error' in profileData)
           ) {
             userProfile = {
-              id: profileData.id || '',
-              username: profileData.username || '',
-              full_name: profileData.full_name || '',
-              avatar_url: profileData.avatar_url || ''
+              id: profileData && profileData.id ? profileData.id : '',
+              username: profileData && profileData.username ? profileData.username : '',
+              full_name: profileData && profileData.full_name ? profileData.full_name : '',
+              avatar_url: profileData && profileData.avatar_url ? profileData.avatar_url : ''
             };
           } else {
             // Jeśli brak danych profilu lub wystąpił błąd, użyj domyślnych wartości
