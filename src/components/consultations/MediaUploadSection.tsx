@@ -33,7 +33,8 @@ export function MediaUploadSection({ media, setMedia, disabled = false }: MediaU
         <MediaPreview
           media={media}
           onRemoveMedia={(index) => {
-            setMedia(prev => prev.filter((_, i) => i !== index));
+            const updatedMedia = media.filter((_, i) => i !== index);
+            setMedia(updatedMedia);
           }}
           disabled={disabled}
         />
