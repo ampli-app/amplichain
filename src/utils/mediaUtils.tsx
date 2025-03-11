@@ -40,6 +40,17 @@ export const handleFileUpload = (
   }
 };
 
+export const extractHashtags = (text: string): string[] => {
+  // Ekstrakcja hashtagów z tekstu za pomocą wyrażenia regularnego
+  const hashtagRegex = /#(\w+)/g;
+  const matches = text.match(hashtagRegex);
+  
+  if (!matches) return [];
+  
+  // Usunięcie znaku # z początku każdego hashtagu
+  return matches.map(tag => tag.substring(1));
+};
+
 export const uploadMediaToStorage = async (file: File, path: string): Promise<string | null> => {
   try {
     const fileName = `${Date.now()}_${file.name}`;

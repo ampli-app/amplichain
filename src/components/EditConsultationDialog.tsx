@@ -215,7 +215,7 @@ export function EditConsultationDialog({ open, onOpenChange, consultation }: Edi
       const uploadedImages: string[] = [];
       
       for (const item of media) {
-        if (!item.file) {
+        if (item.url) {
           uploadedImages.push(item.url);
         }
       }
@@ -238,7 +238,7 @@ export function EditConsultationDialog({ open, onOpenChange, consultation }: Edi
         is_online: isOnline,
         location: isInPerson ? location : null,
         contact_methods: contactMethods,
-        images: uploadedImages.length > 0 ? JSON.stringify(uploadedImages) : null,
+        images: uploadedImages,
         updated_at: new Date().toISOString()
       };
       
