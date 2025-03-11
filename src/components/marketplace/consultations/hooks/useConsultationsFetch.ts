@@ -38,7 +38,7 @@ export function useConsultationsFetch() {
         throw consultationsError;
       }
       
-      console.log(`Pobrano ${consultationsData?.length || 0} konsultacji`);
+      console.log(`Pobrano ${consultationsData?.length || 0} konsultacji`, consultationsData);
       
       if (consultationsData) {
         const processedConsultations = consultationsData.map(consultation => {
@@ -53,10 +53,8 @@ export function useConsultationsFetch() {
           // Poprawione sprawdzenie, aby TypeScript był zadowolony
           if (consultation.profiles && 
               typeof consultation.profiles === 'object' && 
-              !('error' in consultation.profiles) &&
-              'id' in consultation.profiles) {
-            // Używamy zmiennej pomocniczej, żeby TypeScript nie zgłaszał błędów
-            const profile = consultation.profiles as any;
+              !('error' in consultation.profiles)) {
+            const profile = consultation.profiles as Record<string, any>;
             userProfile = {
               id: profile.id || '',
               username: profile.username || '',
