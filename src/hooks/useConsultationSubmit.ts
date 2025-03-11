@@ -35,6 +35,7 @@ export function useConsultationSubmit(id?: string) {
       const consultationData = {
         ...form.getFormData(),
         images: allMediaUrls.length > 0 ? allMediaUrls : null,
+        user_id: user.id
       };
       
       let operation;

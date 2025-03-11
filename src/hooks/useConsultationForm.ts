@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { toast } from '@/components/ui/use-toast';
-import { MediaFile } from '@/components/social/MediaPreview';
+import { MediaFile } from '@/utils/mediaUtils';
 
 export function useConsultationForm(initialData?: any) {
   const [title, setTitle] = useState(initialData?.title || '');

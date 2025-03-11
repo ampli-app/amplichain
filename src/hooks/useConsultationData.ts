@@ -67,12 +67,26 @@ export function useConsultationData(id?: string) {
       });
       
       // Przygotuj media z pobranych danych
-      if (data.images && Array.isArray(data.images)) {
-        const mediaFiles: MediaFile[] = data.images.map((url: string) => ({
-          url,
-          type: 'image',
-        }));
-        form.setMedia(mediaFiles);
+      if (data.images) {
+        let imageArray: string[] = [];
+        
+        if (typeof data.images === 'string') {
+          try {
+            imageArray = JSON.parse(data.images);
+          } catch (e) {
+            console.error('Błąd parsowania JSON zdjęć:', e);
+          }
+        } else if (Array.isArray(data.images)) {
+          imageArray = data.images;
+        }
+        
+        if (imageArray.length > 0) {
+          const mediaFiles: MediaFile[] = imageArray.map((url: string) => ({
+            url,
+            type: 'image',
+          }));
+          form.setMedia(mediaFiles);
+        }
       }
       
     } catch (error) {
