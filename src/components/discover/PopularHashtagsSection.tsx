@@ -10,7 +10,7 @@ import { Hashtag } from '@/types/social';
 
 export function PopularHashtagsSection() {
   const { user } = useAuth();
-  const { getPopularHashtags } = useHashtags(user?.id);
+  const { getPopularHashtags } = useHashtags(); // Removed user?.id parameter
   const [popularHashtags, setPopularHashtags] = useState<Hashtag[]>([]);
   const [loading, setLoading] = useState(true);
 
