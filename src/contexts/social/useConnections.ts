@@ -1,105 +1,276 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { SocialUser } from './types';
 
 export const useConnections = (currentUserId?: string) => {
   const [users, setUsers] = useState<SocialUser[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (currentUserId) {
+      fetchUserSuggestions().then(suggestions => {
+        setUsers(suggestions);
+      });
+    }
+  }, [currentUserId]);
 
   const fetchUserProfile = async (userId: string): Promise<SocialUser | null> => {
     try {
-      // Implementacja pobierania profilu użytkownika
-      return Promise.resolve(null);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url, bio')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      return data as SocialUser;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
-      return Promise.resolve(null);
+      console.error('Błąd podczas pobierania profilu użytkownika:', error);
+      return null;
     }
   };
 
   const followUser = async (userId: string) => {
     try {
-      // Implementacja obserwowania użytkownika
+      if (!currentUserId) throw new Error('Użytkownik musi być zalogowany');
+
+      const { error } = await supabase
+        .from('followings')
+        .insert([{ follower_id: currentUserId, following_id: userId }]);
+
+      if (error) throw error;
       return Promise.resolve();
     } catch (error) {
-      console.error('Error following user:', error);
+      console.error('Błąd podczas obserwowania użytkownika:', error);
       return Promise.reject(error);
     }
   };
 
   const unfollowUser = async (userId: string) => {
     try {
-      // Implementacja przestania obserwowania użytkownika
+      if (!currentUserId) throw new Error('Użytkownik musi być zalogowany');
+
+      const { error } = await supabase
+        .from('followings')
+        .delete()
+        .eq('follower_id', currentUserId)
+        .eq('following_id', userId);
+
+      if (error) throw error;
       return Promise.resolve();
     } catch (error) {
-      console.error('Error unfollowing user:', error);
+      console.error('Błąd podczas anulowania obserwowania użytkownika:', error);
       return Promise.reject(error);
     }
   };
 
   const fetchUserConnections = async (userId: string) => {
     try {
-      // Implementacja pobierania połączeń użytkownika
-      return Promise.resolve([]);
+      const { data, error } = await supabase
+        .from('connections')
+        .select(`
+          user_id1, user_id2,
+          profiles1:profiles!connections_user_id1_fkey(id, username, full_name, avatar_url),
+          profiles2:profiles!connections_user_id2_fkey(id, username, full_name, avatar_url)
+        `)
+        .or(`user_id1.eq.${userId},user_id2.eq.${userId}`);
+
+      if (error) throw error;
+
+      // Przekształć dane, aby zawsze zwracać profil drugiego użytkownika
+      const connections = data?.map(conn => {
+        const isUser1 = conn.user_id1 === userId;
+        const otherProfile = isUser1 ? conn.profiles2 : conn.profiles1;
+        
+        return {
+          id: otherProfile.id,
+          username: otherProfile.username,
+          full_name: otherProfile.full_name,
+          avatar_url: otherProfile.avatar_url
+        };
+      }) || [];
+
+      return connections;
     } catch (error) {
-      console.error('Error fetching user connections:', error);
-      return Promise.resolve([]);
+      console.error('Błąd podczas pobierania połączeń użytkownika:', error);
+      return [];
     }
   };
 
   const fetchUserSuggestions = async () => {
     try {
-      // Implementacja pobierania sugestii użytkowników
-      return Promise.resolve([]);
+      // Pobierz przykładowe sugestie użytkowników
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url, bio')
+        .limit(5);
+
+      if (error) throw error;
+      return data as SocialUser[];
     } catch (error) {
-      console.error('Error fetching user suggestions:', error);
-      return Promise.resolve([]);
+      console.error('Błąd podczas pobierania sugestii użytkowników:', error);
+      return [];
     }
   };
 
   const sendConnectionRequest = async (targetUserId: string) => {
     try {
-      // Implementacja wysyłania zaproszenia do połączenia
+      if (!currentUserId) throw new Error('Użytkownik musi być zalogowany');
+
+      const { error } = await supabase
+        .from('connection_requests')
+        .insert([{ sender_id: currentUserId, receiver_id: targetUserId }]);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Sukces",
+        description: "Zaproszenie zostało wysłane",
+      });
+      
       return Promise.resolve();
     } catch (error) {
-      console.error('Error sending connection request:', error);
+      console.error('Błąd podczas wysyłania zaproszenia:', error);
+      
+      toast({
+        title: "Błąd",
+        description: "Nie udało się wysłać zaproszenia",
+        variant: "destructive",
+      });
+      
       return Promise.reject(error);
     }
   };
 
   const acceptConnectionRequest = async (requestId: string) => {
     try {
-      // Implementacja akceptacji zaproszenia
+      // Najpierw pobierz dane zaproszenia
+      const { data: requestData, error: requestError } = await supabase
+        .from('connection_requests')
+        .select('sender_id, receiver_id')
+        .eq('id', requestId)
+        .single();
+
+      if (requestError) throw requestError;
+
+      // Utwórz nowe połączenie
+      const { error: connectionError } = await supabase
+        .from('connections')
+        .insert([{ 
+          user_id1: requestData.sender_id, 
+          user_id2: requestData.receiver_id 
+        }]);
+
+      if (connectionError) throw connectionError;
+
+      // Usuń zaproszenie
+      const { error: deleteError } = await supabase
+        .from('connection_requests')
+        .delete()
+        .eq('id', requestId);
+
+      if (deleteError) throw deleteError;
+
+      toast({
+        title: "Sukces",
+        description: "Zaproszenie zostało zaakceptowane",
+      });
+      
       return Promise.resolve();
     } catch (error) {
-      console.error('Error accepting connection request:', error);
+      console.error('Błąd podczas akceptowania zaproszenia:', error);
+      
+      toast({
+        title: "Błąd",
+        description: "Nie udało się zaakceptować zaproszenia",
+        variant: "destructive",
+      });
+      
       return Promise.reject(error);
     }
   };
 
   const declineConnectionRequest = async (requestId: string) => {
     try {
-      // Implementacja odrzucenia zaproszenia
+      const { error } = await supabase
+        .from('connection_requests')
+        .delete()
+        .eq('id', requestId);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Sukces",
+        description: "Zaproszenie zostało odrzucone",
+      });
+      
       return Promise.resolve();
     } catch (error) {
-      console.error('Error declining connection request:', error);
+      console.error('Błąd podczas odrzucania zaproszenia:', error);
+      
+      toast({
+        title: "Błąd",
+        description: "Nie udało się odrzucić zaproszenia",
+        variant: "destructive",
+      });
+      
       return Promise.reject(error);
     }
   };
 
   const removeConnection = async (connectionId: string, keepFollowing: boolean = false) => {
     try {
-      // Implementacja usunięcia połączenia
-      console.log('Removing connection:', connectionId, 'Keep following:', keepFollowing);
+      if (!currentUserId) throw new Error('Użytkownik musi być zalogowany');
+
+      // Znajdź dane połączenia
+      const { data, error: findError } = await supabase
+        .from('connections')
+        .select('user_id1, user_id2')
+        .or(`id.eq.${connectionId}`)
+        .single();
+
+      if (findError) throw findError;
+
+      // Usuń połączenie
+      const { error: deleteError } = await supabase
+        .from('connections')
+        .delete()
+        .eq('id', connectionId);
+
+      if (deleteError) throw deleteError;
+
+      // Jeśli użytkownik nie chce dalej obserwować drugiego użytkownika
+      if (!keepFollowing) {
+        const otherUserId = data.user_id1 === currentUserId ? data.user_id2 : data.user_id1;
+        
+        // Usuń relację obserwowania
+        await unfollowUser(otherUserId);
+      }
+      
+      toast({
+        title: "Sukces",
+        description: "Połączenie zostało usunięte",
+      });
+      
       return Promise.resolve();
     } catch (error) {
-      console.error('Error removing connection:', error);
+      console.error('Błąd podczas usuwania połączenia:', error);
+      
+      toast({
+        title: "Błąd",
+        description: "Nie udało się usunąć połączenia",
+        variant: "destructive",
+      });
+      
       return Promise.reject(error);
     }
   };
 
   return {
     users,
+    loading,
     fetchUserProfile,
     followUser,
     unfollowUser,

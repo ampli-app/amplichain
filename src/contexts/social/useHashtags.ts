@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import { Hashtag } from '@/types/social';
 
 export const useHashtags = () => {
   const followHashtag = async (hashtag: string) => {
@@ -26,21 +27,33 @@ export const useHashtags = () => {
 
   const fetchTrendingHashtags = async () => {
     try {
-      // Implementacja pobierania popularnych hashtagów
-      return Promise.resolve([]);
+      const { data, error } = await supabase
+        .from('hashtags')
+        .select('id, name, count')
+        .order('count', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      return data || [];
     } catch (error) {
-      console.error('Error fetching trending hashtags:', error);
-      return Promise.resolve([]);
+      console.error('Błąd podczas pobierania trendujących hashtagów:', error);
+      return [];
     }
   };
 
-  const getPopularHashtags = async () => {
+  const getPopularHashtags = async (): Promise<Hashtag[]> => {
     try {
-      // Implementacja pobierania popularnych hashtagów
-      return Promise.resolve([]);
+      const { data, error } = await supabase
+        .from('hashtags')
+        .select('id, name, count')
+        .order('count', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      return data || [];
     } catch (error) {
-      console.error('Error fetching popular hashtags:', error);
-      return Promise.resolve([]);
+      console.error('Błąd podczas pobierania popularnych hashtagów:', error);
+      return [];
     }
   };
 
