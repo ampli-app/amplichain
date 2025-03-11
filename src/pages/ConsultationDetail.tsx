@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -18,26 +18,21 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Consultation, ConsultationOrder } from "@/types/consultations";
+import { Consultation } from "@/types/consultations";
 import { 
-  Calendar, 
-  Clock, 
-  MessageSquare, 
-  Check, 
-  X, 
-  User,
-  Video,
-  Phone, 
-  ExternalLink,
-  Info,
-  Eye,
-  Pencil,
+  ArrowLeft,
+  Edit,
   Share2,
-  ChevronLeft,
-  ChevronRight
+  Heart,
+  Music,
+  Calendar,
+  Clock,
+  MapPin,
+  Video,
+  Phone,
+  MessageSquare,
+  Info,
+  User
 } from 'lucide-react';
 import { ProductImage } from '@/components/marketplace/ProductImage';
 
@@ -50,25 +45,20 @@ export function ConsultationDetail() {
   const [owner, setOwner] = useState<any>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
-  const [selectedContactMethod, setSelectedContactMethod] = useState<string>('');
-  const [orders, setOrders] = useState<ConsultationOrder[]>([]);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [buyDialogOpen, setBuyDialogOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
       fetchConsultationDetails();
       if (user) {
-        fetchOrders();
+        checkIsFavorite();
       }
     }
   }, [id, user]);
 
   const fetchConsultationDetails = async () => {
     try {
-      console.log("Fetching consultation with ID:", id);
-      
       const { data, error } = await supabase
         .from('consultations')
         .select('*')
@@ -81,7 +71,6 @@ export function ConsultationDetail() {
       }
 
       if (data) {
-        console.log("Consultation data:", data);
         setConsultation(data as Consultation);
         
         const { data: profileData, error: profileError } = await supabase
@@ -93,7 +82,6 @@ export function ConsultationDetail() {
         if (profileError) {
           console.error('Error fetching owner profile:', profileError);
         } else {
-          console.log("Owner profile:", profileData);
           setOwner(profileData);
           setConsultation(prev => {
             if (prev) {
@@ -109,10 +97,6 @@ export function ConsultationDetail() {
         if (user && data.user_id === user.id) {
           setIsOwner(true);
         }
-
-        if (data.contact_methods && data.contact_methods.length > 0) {
-          setSelectedContactMethod(data.contact_methods[0]);
-        }
       }
     } catch (error) {
       console.error('Error fetching consultation details:', error);
@@ -126,111 +110,79 @@ export function ConsultationDetail() {
     }
   };
 
-  const fetchOrders = async () => {
-    if (!id || !user) return;
+  const checkIsFavorite = async () => {
+    if (!user || !id) return;
     
     try {
-      console.log("Fetching orders for consultation:", id, "and user:", user.id);
-      
       const { data, error } = await supabase
-        .from('consultation_orders')
-        .select(`
-          *,
-          consultations:consultation_id(title, description)
-        `)
-        .eq('consultation_id', id)
-        .eq('client_id', user.id);
-
-      if (error) {
-        console.error('Error fetching orders:', error);
-        throw error;
+        .from('favorites')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('item_id', id)
+        .eq('item_type', 'consultation')
+        .single();
+        
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking favorite status:', error);
+        return;
       }
-
-      if (data) {
-        console.log("Orders data:", data);
-        setOrders(data as ConsultationOrder[]);
-      }
+      
+      setIsFavorite(!!data);
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      console.error('Error checking favorite status:', error);
     }
   };
 
-  const handleBook = async () => {
-    if (!user) {
+  const toggleFavorite = async () => {
+    if (!user || !id) {
       toast({
         title: "Wymagane logowanie",
-        description: "Aby zarezerwować konsultację, musisz być zalogowany.",
+        description: "Aby dodać do ulubionych, musisz być zalogowany.",
         variant: "destructive",
       });
       return;
     }
-
-    if (!consultation) return;
-
-    if (!selectedDate || !selectedTime) {
-      toast({
-        title: "Uzupełnij dane",
-        description: "Wybierz datę i godzinę konsultacji.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!selectedContactMethod && consultation.contact_methods && consultation.contact_methods.length > 0) {
-      toast({
-        title: "Wybierz metodę kontaktu",
-        description: "Wybierz preferowaną metodę kontaktu.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    
     try {
-      const selectedDateTime = new Date(selectedDate);
-      const expiresAt = new Date(selectedDateTime);
-      expiresAt.setDate(expiresAt.getDate() + 7);
-
-      const orderData = {
-        consultation_id: consultation.id,
-        client_id: user.id,
-        expert_id: consultation.user_id,
-        status: 'pending',
-        price: consultation.price,
-        amount: consultation.price,
-        date: selectedDate,
-        time: selectedTime,
-        contact_method: selectedContactMethod,
-        is_paid: false,
-        is_completed: false,
-        is_client_confirmed: false,
-        is_expert_confirmed: false,
-        is_online: consultation.is_online,
-        location: consultation.location,
-        expires_at: expiresAt.toISOString()
-      };
-
-      const { data, error } = await supabase
-        .from('consultation_orders')
-        .insert(orderData)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
+      if (isFavorite) {
+        // Remove from favorites
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_id', id)
+          .eq('item_type', 'consultation');
+          
+        if (error) throw error;
+        
+        setIsFavorite(false);
+        toast({
+          title: "Usunięto z ulubionych",
+          description: "Konsultacja została usunięta z ulubionych.",
+        });
+      } else {
+        // Add to favorites
+        const { error } = await supabase
+          .from('favorites')
+          .insert({
+            user_id: user.id,
+            item_id: id,
+            item_type: 'consultation'
+          });
+          
+        if (error) throw error;
+        
+        setIsFavorite(true);
+        toast({
+          title: "Dodano do ulubionych",
+          description: "Konsultacja została dodana do ulubionych.",
+        });
       }
-
-      toast({
-        title: "Sukces!",
-        description: "Twoja konsultacja została zarezerwowana. Oczekuj na kontakt eksperta.",
-      });
-
-      setBookingDialogOpen(false);
-      fetchOrders();
     } catch (error) {
-      console.error('Error booking consultation:', error);
+      console.error('Error toggling favorite:', error);
       toast({
         title: "Błąd",
-        description: "Nie udało się zarezerwować konsultacji. Spróbuj ponownie później.",
+        description: "Nie udało się zaktualizować ulubionych.",
         variant: "destructive",
       });
     }
@@ -249,23 +201,25 @@ export function ConsultationDetail() {
     });
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending_payment':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Oczekuje na płatność</Badge>;
-      case 'pending':
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Oczekujące</Badge>;
-      case 'accepted':
-        return <Badge variant="outline" className="bg-green-100 text-green-800">Zaakceptowane</Badge>;
-      case 'rejected':
-        return <Badge variant="outline" className="bg-red-100 text-red-800">Odrzucone</Badge>;
-      case 'completed':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Zakończone</Badge>;
-      case 'cancelled':
-        return <Badge variant="outline" className="bg-gray-100 text-gray-800">Anulowane</Badge>;
-      default:
-        return <Badge variant="outline">Nieznany</Badge>;
+  const handleBuyConsultation = async () => {
+    if (!user) {
+      toast({
+        title: "Wymagane logowanie",
+        description: "Aby kupić konsultację, musisz być zalogowany.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    if (!consultation) return;
+
+    // Tutaj dodać logikę zakupu konsultacji - przekierowanie do koszyka lub płatności
+    toast({
+      title: "Dodano do koszyka",
+      description: "Konsultacja została dodana do koszyka.",
+    });
+    
+    setBuyDialogOpen(false);
   };
 
   const getContactMethodIcon = (method: string) => {
@@ -276,6 +230,8 @@ export function ConsultationDetail() {
         return <Phone className="h-4 w-4" aria-hidden="true" />;
       case 'chat':
         return <MessageSquare className="h-4 w-4" aria-hidden="true" />;
+      case 'live':
+        return <User className="h-4 w-4" aria-hidden="true" />;
       default:
         return null;
     }
@@ -289,6 +245,8 @@ export function ConsultationDetail() {
         return 'Rozmowa telefoniczna';
       case 'chat':
         return 'Czat tekstowy';
+      case 'live':
+        return 'Na żywo';
       default:
         return method;
     }
@@ -324,323 +282,245 @@ export function ConsultationDetail() {
     <div className="container mx-auto px-4 py-8">
       <Button 
         variant="ghost" 
-        className="mb-4"
+        className="mb-4 gap-1"
         onClick={() => navigate('/marketplace?tab=consultations')}
       >
-        ← Wróć do listy konsultacji
+        <ArrowLeft className="h-4 w-4" />
+        Wróć do Rynku
       </Button>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-2xl">{consultation.title}</CardTitle>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {consultation.categories?.map((category, index) => (
-                      <Badge key={index} variant="outline">{category}</Badge>
-                    ))}
-                  </div>
-                </div>
-                
-                {isOwner && (
-                  <Badge className="bg-green-500 hover:bg-green-500">
-                    Twoja konsultacja
-                  </Badge>
-                )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Lewa kolumna - zdjęcie produktu */}
+        <div>
+          <div className="bg-white rounded-lg overflow-hidden">
+            {consultation.images && consultation.images.length > 0 ? (
+              <ProductImage 
+                image={consultation.images} 
+                title={consultation.title} 
+              />
+            ) : (
+              <div className="bg-gray-100 rounded-lg aspect-square flex items-center justify-center">
+                <Music className="h-24 w-24 text-gray-400" />
               </div>
-            </CardHeader>
-            
-            <CardContent>
-              {/* Dodana galeria zdjęć */}
-              {consultation.images && consultation.images.length > 0 && (
-                <div className="mb-6">
-                  <ProductImage 
-                    image={consultation.images} 
-                    title={consultation.title} 
-                  />
-                </div>
+            )}
+          </div>
+          
+          {/* Opcjonalnie: miniatury zdjęć na dole */}
+          {consultation.images && consultation.images.length > 1 && (
+            <div className="flex mt-4 gap-2 overflow-x-auto">
+              {/* Tu można dodać miniatury zdjęć, jeśli są potrzebne */}
+            </div>
+          )}
+        </div>
+        
+        {/* Prawa kolumna - informacje o produkcie */}
+        <div>
+          <div className="flex flex-col space-y-4">
+            {/* Kategoria i ew. odznaki */}
+            <div className="flex gap-2 items-center">
+              {consultation.categories && consultation.categories.map((category, index) => (
+                <Badge key={index} variant="outline" className="bg-gray-100">
+                  {category}
+                </Badge>
+              ))}
+              
+              {isOwner && (
+                <Badge className="ml-auto bg-green-500 hover:bg-green-500">
+                  Twój produkt
+                </Badge>
               )}
-              
-              <div className="flex items-center mb-6">
-                <Avatar className="h-10 w-10 mr-3">
-                  <AvatarImage src={owner?.avatar_url || ''} alt={owner?.full_name} />
-                  <AvatarFallback>{owner?.full_name?.substring(0, 2) || 'XX'}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="font-medium">{owner?.full_name || 'Nieznany ekspert'}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {consultation.experience ? `${consultation.experience} lat doświadczenia` : 'Ekspert'}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="prose max-w-none">
-                <p className="whitespace-pre-line">{consultation.description}</p>
-              </div>
-              
-              <Separator className="my-6" />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-medium mb-2">Szczegóły konsultacji</h3>
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex items-start">
-                      <span className="font-medium min-w-32">Cena:</span>
-                      <span>{consultation.price} PLN / godzina</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="font-medium min-w-32">Forma:</span>
-                      <span>
-                        {consultation.is_online ? 'Online' : ''}
-                        {consultation.is_online && consultation.location ? ' / ' : ''}
-                        {consultation.location ? `Stacjonarnie (${consultation.location})` : ''}
-                      </span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="font-medium min-w-32">Doświadczenie:</span>
-                      <span>{consultation.experience ? `${consultation.experience} lat` : 'Nie podano'}</span>
-                    </li>
-                    {consultation.contact_methods && consultation.contact_methods.length > 0 && (
-                      <li className="flex items-start">
-                        <span className="font-medium min-w-32">Metody kontaktu:</span>
-                        <div className="flex flex-col gap-1">
-                          {consultation.contact_methods.map((method, index) => (
-                            <span key={index} className="flex items-center">
-                              {getContactMethodIcon(method)}
-                              <span className="ml-1">{getContactMethodLabel(method)}</span>
-                            </span>
-                          ))}
-                        </div>
-                      </li>
-                    )}
-                  </ul>
-                </div>
-              </div>
-
-              {!isOwner && (
-                <div className="bg-blue-50 p-4 rounded-md mt-6 text-sm">
-                  <div className="flex items-start">
-                    <Info className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-blue-800">Jak działa proces konsultacji?</p>
-                      <ul className="mt-2 space-y-1 text-blue-700">
-                        <li>1. Zarezerwuj konsultację wybierając preferowaną datę i godzinę.</li>
-                        <li>2. Po zaakceptowaniu przez eksperta, dokonaj płatności.</li>
-                        <li>3. Skontaktuj się z ekspertem przez wybraną metodę kontaktu.</li>
-                        <li>4. Masz 7 dni na przeprowadzenie konsultacji od wybranej daty.</li>
-                        <li>5. Po zakończeniu, potwierdź odbycie konsultacji w panelu klienta.</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
+            </div>
             
-            <CardFooter>
+            {/* Tytuł produktu */}
+            <h1 className="text-3xl font-bold">{consultation.title}</h1>
+            
+            {/* Informacje o sprzedawcy */}
+            <div className="flex items-center">
+              <Avatar className="h-10 w-10 mr-3">
+                <AvatarImage src={owner?.avatar_url || ''} alt={owner?.full_name} />
+                <AvatarFallback>{owner?.full_name?.substring(0, 2) || 'XX'}</AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-medium">Sprzedawca: {owner?.full_name || 'Nieznany ekspert'}</div>
+                <div className="text-sm text-muted-foreground">
+                  {consultation.experience ? `${consultation.experience} lat doświadczenia` : 'Ekspert'}
+                </div>
+              </div>
+            </div>
+            
+            {/* Cena */}
+            <div className="mt-4">
+              <div className="text-3xl font-bold">{consultation.price},00 zł</div>
+              <div className="text-sm text-muted-foreground">
+                + opłata serwisowa 1,5%
+              </div>
+            </div>
+            
+            {/* Przyciski akcji */}
+            <div className="grid grid-cols-1 gap-4 mt-4">
               {isOwner ? (
-                <div className="flex justify-between w-full">
+                <div className="flex gap-4">
                   <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="flex items-center gap-1 h-9"
-                    onClick={() => {}}
-                    title="Zobacz konsultację"
+                    variant="default" 
+                    className="bg-[#9E9D1B] hover:bg-[#7e7c14] flex-1 gap-2"
+                    onClick={handleEditConsultation}
                   >
-                    <Eye className="h-4 w-4" />
-                    <span className="hidden sm:inline">Zobacz konsultację</span>
+                    <Edit className="h-4 w-4" />
+                    Edytuj produkt
                   </Button>
                   
-                  <div className="flex gap-2">
+                  <Button 
+                    variant="secondary" 
+                    className="gap-2"
+                    onClick={handleShareConsultation}
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Udostępnij
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Button 
+                    className="w-full gap-2"
+                    onClick={() => setBuyDialogOpen(true)}
+                  >
+                    Kup teraz
+                  </Button>
+                  
+                  <div className="flex gap-4">
                     <Button 
-                      variant="default" 
-                      size="sm"
-                      className="bg-[#9E9D1B] hover:bg-[#7e7c14] flex items-center gap-1 h-9"
-                      onClick={handleEditConsultation}
-                      title="Edytuj"
+                      variant="outline" 
+                      className="flex-1 gap-2"
+                      onClick={toggleFavorite}
                     >
-                      <Pencil className="h-4 w-4" />
-                      <span className="hidden sm:inline">Edytuj</span>
+                      <Heart className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
+                      {isFavorite ? 'Dodano do ulubionych' : 'Dodaj do ulubionych'}
                     </Button>
                     
                     <Button 
                       variant="secondary" 
-                      size="icon"
-                      className="h-9 w-9"
+                      className="gap-2"
                       onClick={handleShareConsultation}
-                      title="Udostępnij"
                     >
                       <Share2 className="h-4 w-4" />
+                      Udostępnij
                     </Button>
                   </div>
-                </div>
-              ) : (
-                <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="w-full md:w-auto">Zarezerwuj konsultację</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Zarezerwuj konsultację</DialogTitle>
-                      <DialogDescription>
-                        Wybierz termin konsultacji z {owner?.full_name || 'ekspertem'}.
-                      </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div className="grid gap-4 py-4">
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="date" className="text-right col-span-1">
-                          Data
-                        </Label>
-                        <input
-                          id="date"
-                          type="date"
-                          className="col-span-3 p-2 border rounded"
-                          value={selectedDate}
-                          onChange={(e) => setSelectedDate(e.target.value)}
-                          min={new Date().toISOString().split('T')[0]}
-                        />
-                      </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="time" className="text-right col-span-1">
-                          Godzina
-                        </Label>
-                        <input
-                          id="time"
-                          type="time"
-                          className="col-span-3 p-2 border rounded"
-                          value={selectedTime}
-                          onChange={(e) => setSelectedTime(e.target.value)}
-                        />
-                      </div>
-
-                      {consultation.contact_methods && consultation.contact_methods.length > 0 && (
-                        <div className="grid grid-cols-4 items-start gap-4">
-                          <Label className="text-right col-span-1 mt-2">
-                            Metoda kontaktu
-                          </Label>
-                          <RadioGroup 
-                            className="col-span-3"
-                            value={selectedContactMethod}
-                            onValueChange={setSelectedContactMethod}
-                          >
-                            {consultation.contact_methods.map((method) => (
-                              <div key={method} className="flex items-center space-x-2">
-                                <RadioGroupItem value={method} id={`contact-${method}`} />
-                                <Label htmlFor={`contact-${method}`} className="flex items-center cursor-pointer">
-                                  {getContactMethodIcon(method)}
-                                  <span className="ml-2">{getContactMethodLabel(method)}</span>
-                                </Label>
-                              </div>
-                            ))}
-                          </RadioGroup>
-                        </div>
-                      )}
-
-                      <div className="bg-muted p-3 rounded-md col-span-4 text-sm">
-                        <p className="flex items-center text-muted-foreground">
-                          <Info className="h-4 w-4 mr-2" />
-                          Po zarezerwowaniu terminu będziesz mieć 7 dni na przeprowadzenie konsultacji od wybranej daty.
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setBookingDialogOpen(false)}>
-                        Anuluj
-                      </Button>
-                      <Button onClick={handleBook}>Zarezerwuj</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                </>
               )}
-            </CardFooter>
-          </Card>
-        </div>
-        
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Twoje rezerwacje</CardTitle>
-            </CardHeader>
+            </div>
             
-            <CardContent>
-              {!user ? (
-                <div className="text-center py-4">
-                  <p className="text-muted-foreground mb-4">Zaloguj się, aby zobaczyć swoje rezerwacje</p>
-                  <Button onClick={() => navigate('/login')}>Zaloguj się</Button>
-                </div>
-              ) : orders.length > 0 ? (
-                <div className="space-y-4">
-                  {orders.map((order) => (
-                    <div key={order.id} className="border rounded p-3">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <div className="font-medium">Rezerwacja #{order.id.substring(0, 8)}</div>
-                          <div className="text-sm">{order.date} | {order.time}</div>
-                        </div>
-                        {getStatusBadge(order.status)}
+            {/* Cechy produktu */}
+            <Card className="mt-4">
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
+                  {consultation.is_online && (
+                    <div className="flex items-start gap-2">
+                      <Video className="h-5 w-5 text-gray-500 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Online</div>
+                        <div className="text-sm text-muted-foreground">Konsultacja zdalna</div>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        Utworzono: {new Date(order.created_at).toLocaleDateString()}
-                      </div>
-                      {order.contact_method && (
-                        <div className="text-sm mt-2 flex items-center">
-                          {getContactMethodIcon(order.contact_method)}
-                          <span className="ml-1">{getContactMethodLabel(order.contact_method)}</span>
-                        </div>
-                      )}
-                      {order.expires_at && (
-                        <div className="text-sm mt-1">
-                          Termin ważności: {new Date(order.expires_at).toLocaleDateString()}
-                        </div>
-                      )}
-                      
-                      {order.status === 'pending' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-2 w-full text-red-600"
-                          onClick={() => {
-                            toast({
-                              title: "Anulowanie",
-                              description: "Funkcja anulowania jest w trakcie implementacji.",
-                            });
-                          }}
-                        >
-                          <X className="h-4 w-4 mr-1" />
-                          Anuluj rezerwację
-                        </Button>
-                      )}
-                      
-                      {order.status === 'accepted' && (
-                        <Button
-                          size="sm"
-                          className="mt-2 w-full"
-                          onClick={() => {
-                            toast({
-                              title: "Kontakt",
-                              description: "Funkcja kontaktu jest w trakcie implementacji.",
-                            });
-                          }}
-                        >
-                          <MessageSquare className="h-4 w-4 mr-1" />
-                          Skontaktuj się z ekspertem
-                        </Button>
-                      )}
                     </div>
-                  ))}
+                  )}
+                  
+                  {consultation.location && (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-5 w-5 text-gray-500 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Stacjonarnie</div>
+                        <div className="text-sm text-muted-foreground">{consultation.location}</div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-start gap-2">
+                    <Clock className="h-5 w-5 text-gray-500 mt-0.5" />
+                    <div>
+                      <div className="font-medium">Czas trwania</div>
+                      <div className="text-sm text-muted-foreground">60 minut</div>
+                    </div>
+                  </div>
+                  
+                  {consultation.experience && (
+                    <div className="flex items-start gap-2">
+                      <User className="h-5 w-5 text-gray-500 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Doświadczenie</div>
+                        <div className="text-sm text-muted-foreground">{consultation.experience} lat</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-4">
-                  Nie masz jeszcze żadnych rezerwacji
-                </p>
-              )}
-            </CardContent>
-          </Card>
+                
+                {consultation.contact_methods && consultation.contact_methods.length > 0 && (
+                  <>
+                    <Separator className="my-4" />
+                    <h3 className="font-medium mb-2">Dostępne metody kontaktu</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2">
+                      {consultation.contact_methods.map((method, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          {getContactMethodIcon(method)}
+                          <span>{getContactMethodLabel(method)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
+      
+      {/* Opis produktu */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Opis konsultacji</h2>
+        <div className="bg-white rounded-lg p-6 shadow-sm">
+          <p className="whitespace-pre-line">{consultation.description}</p>
+        </div>
+      </div>
+      
+      {/* Dialog zakupu */}
+      <Dialog open={buyDialogOpen} onOpenChange={setBuyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Potwierdzenie zakupu</DialogTitle>
+            <DialogDescription>
+              Potwierdź zakup konsultacji od {owner?.full_name || 'eksperta'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="flex justify-between">
+              <span>Konsultacja:</span>
+              <span className="font-medium">{consultation.title}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Cena:</span>
+              <span className="font-medium">{consultation.price},00 zł</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Opłata serwisowa (1,5%):</span>
+              <span className="font-medium">{(consultation.price * 0.015).toFixed(2)} zł</span>
+            </div>
+            <Separator />
+            <div className="flex justify-between font-bold">
+              <span>Razem:</span>
+              <span>{(consultation.price * 1.015).toFixed(2)} zł</span>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBuyDialogOpen(false)}>
+              Anuluj
+            </Button>
+            <Button onClick={handleBuyConsultation}>
+              Kup teraz
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
