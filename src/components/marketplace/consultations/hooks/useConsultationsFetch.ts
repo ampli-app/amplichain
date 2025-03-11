@@ -50,12 +50,12 @@ export function useConsultationsFetch() {
           
           let userProfile: ProfileData;
           
-          // Sprawdzamy, czy profiles istnieje, jest obiektem i nie jest obiektem błędu
+          // Dodajemy dodatkowe sprawdzenie, czy consultation.profiles jest null
           if (consultation.profiles && 
               typeof consultation.profiles === 'object' && 
               !('error' in consultation.profiles) &&
               'id' in consultation.profiles) {
-            // Bezpieczne rzutowanie typów
+            // Używamy zmiennej pomocniczej, żeby TypeScript nie zgłaszał błędów
             const profile = consultation.profiles as any;
             userProfile = {
               id: profile.id || '',

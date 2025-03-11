@@ -1478,7 +1478,6 @@ export type Database = {
           for_testing: boolean | null
           id: string
           image_url: string | null
-          images: string[] | null
           location: string | null
           price: number
           rating: number | null
@@ -1500,7 +1499,6 @@ export type Database = {
           for_testing?: boolean | null
           id?: string
           image_url?: string | null
-          images?: string[] | null
           location?: string | null
           price: number
           rating?: number | null
@@ -1522,7 +1520,6 @@ export type Database = {
           for_testing?: boolean | null
           id?: string
           image_url?: string | null
-          images?: string[] | null
           location?: string | null
           price?: number
           rating?: number | null
