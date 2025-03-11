@@ -16,7 +16,7 @@ export interface ConsultationFormData {
 
 export interface MediaFile {
   file?: File;
-  preview: string;
+  preview?: string;
   url?: string;
   type?: string;
 }

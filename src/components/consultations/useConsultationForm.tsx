@@ -5,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { ConsultationFormData, MediaFile } from './types';
+import { validateConsultationForm } from './utils/validationUtils';
+import { uploadConsultationImages } from './utils/uploadUtils';
 
 export function useConsultationForm(consultation: Consultation | null, onClose: () => void) {
   const navigate = useNavigate();
@@ -94,94 +96,6 @@ export function useConsultationForm(consultation: Consultation | null, onClose: 
     setFormData(prev => ({ ...prev, [field]: value }));
   };
   
-  const validateForm = () => {
-    if (!formData.title.trim()) {
-      toast({
-        title: "Brak tytułu",
-        description: "Podaj tytuł dla swoich konsultacji.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    if (!formData.price || isNaN(Number(formData.price)) || Number(formData.price) <= 0) {
-      toast({
-        title: "Nieprawidłowa cena",
-        description: "Podaj prawidłową cenę za konsultacje.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    if (formData.selectedCategories.length === 0) {
-      toast({
-        title: "Brak kategorii",
-        description: "Wybierz przynajmniej jedną kategorię dla swoich konsultacji.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    if (formData.isInPerson && !formData.location.trim()) {
-      toast({
-        title: "Brak lokalizacji",
-        description: "Podaj lokalizację dla konsultacji stacjonarnych.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    if (formData.contactMethods.length === 0) {
-      toast({
-        title: "Brak metod kontaktu",
-        description: "Wybierz przynajmniej jedną metodę kontaktu dla swoich konsultacji.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    return true;
-  };
-  
-  const uploadImages = async (consultationId: string) => {
-    const uploadedImages: string[] = [];
-    
-    // First add existing images (URLs)
-    for (const item of formData.media) {
-      if (item.url) {
-        uploadedImages.push(item.url);
-      }
-    }
-    
-    // Then upload new files
-    for (const item of formData.media) {
-      if (item.file) {
-        try {
-          const fileName = `${Date.now()}_${item.file.name}`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('consultations')
-            .upload(`${consultationId}/${fileName}`, item.file);
-            
-          if (uploadError) throw uploadError;
-          
-          if (uploadData) {
-            const { data: urlData } = supabase.storage
-              .from('consultations')
-              .getPublicUrl(`${consultationId}/${fileName}`);
-              
-            if (urlData) {
-              uploadedImages.push(urlData.publicUrl);
-            }
-          }
-        } catch (error) {
-          console.error("Error uploading file:", error);
-        }
-      }
-    }
-    
-    return uploadedImages;
-  };
-  
   const handleSubmit = async () => {
     if (!consultation || !consultation.id) {
       toast({
@@ -192,14 +106,14 @@ export function useConsultationForm(consultation: Consultation | null, onClose: 
       return;
     }
     
-    if (!validateForm()) {
+    if (!validateConsultationForm(formData)) {
       return;
     }
     
     setIsLoading(true);
     
     try {
-      const uploadedImages = await uploadImages(consultation.id);
+      const uploadedImages = await uploadConsultationImages(consultation.id, formData.media);
       
       const consultationData = {
         title: formData.title,

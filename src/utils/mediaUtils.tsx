@@ -4,7 +4,7 @@ import { XCircle } from 'lucide-react';
 
 export interface MediaFile {
   file?: File;
-  preview: string;
+  preview?: string;
   url?: string;
   type?: string;
 }
@@ -91,7 +91,7 @@ export function handleFileUpload(
   event: React.ChangeEvent<HTMLInputElement>,
   currentFiles: MediaFile[],
   setFiles: (files: MediaFile[]) => void,
-  fileInputRef: React.RefObject<HTMLInputElement>,
+  fileInputRef: React.RefObject<HTMLInputElement> | number,
   maxFiles: number = 4
 ) {
   if (!event.target.files?.length) return;
@@ -134,7 +134,7 @@ export async function uploadMediaToStorage(
   console.log(`Would upload ${mediaFiles.length} files to ${storageBucket}`);
   
   // Return array of urls
-  return mediaFiles.map(file => file.url || file.preview);
+  return mediaFiles.map(file => file.url || file.preview || '');
 }
 
 export function extractHashtags(text: string): string[] {
@@ -156,7 +156,7 @@ export function MediaPreview({ media, imageUrls, onRemoveMedia, disabled }: Medi
         <div key={`media-${index}`} className="relative group">
           <div className="aspect-square rounded-md overflow-hidden border bg-muted/50">
             <img 
-              src={item.preview || item.url} 
+              src={item.preview || item.url || ''} 
               alt={`Preview ${index + 1}`} 
               className="w-full h-full object-cover"
             />
