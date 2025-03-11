@@ -48,25 +48,25 @@ export function useConsultationsFetch() {
             ];
           }
           
-          let userProfile: ProfileData;
+          let userProfile: ProfileData = {
+            id: '',
+            username: '',
+            full_name: 'Ekspert',
+            avatar_url: ''
+          };
           
           // Poprawione sprawdzenie, aby TypeScript był zadowolony
           if (consultation.profiles && 
-              typeof consultation.profiles === 'object' && 
-              !('error' in consultation.profiles)) {
+              typeof consultation.profiles === 'object') {
+            // Używamy non-null assertion operator, ponieważ już sprawdziliśmy, że profiles istnieje
             const profile = consultation.profiles as Record<string, any>;
+            
+            // Dodatkowe sprawdzenie czy profile ma wymagane pola
             userProfile = {
-              id: profile.id || '',
-              username: profile.username || '',
-              full_name: profile.full_name || 'Ekspert',
-              avatar_url: profile.avatar_url || ''
-            };
-          } else {
-            userProfile = {
-              id: '',
-              username: '',
-              full_name: 'Ekspert',
-              avatar_url: ''
+              id: profile.id?.toString() || '',
+              username: profile.username?.toString() || '',
+              full_name: profile.full_name?.toString() || 'Ekspert',
+              avatar_url: profile.avatar_url?.toString() || ''
             };
           }
           
