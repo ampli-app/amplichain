@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +22,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Consultation, ConsultationOrder } from "@/types/consultations";
+import { ProductImage } from '@/components/marketplace/ProductImage';
+import { EditConsultationDialog } from '@/components/EditConsultationDialog';
 import { 
   Calendar, 
   Clock, 
@@ -47,6 +50,7 @@ export function ConsultationDetail() {
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedContactMethod, setSelectedContactMethod] = useState<string>('');
@@ -233,7 +237,9 @@ export function ConsultationDetail() {
   };
 
   const handleEditConsultation = () => {
-    navigate(`/edit-consultation/${consultation?.id}`);
+    if (consultation) {
+      setEditDialogOpen(true);
+    }
   };
 
   const handleShareConsultation = () => {
@@ -316,6 +322,20 @@ export function ConsultationDetail() {
     );
   }
 
+  // Przygotuj zdjęcia konsultacji
+  let consultationImages: string[] = [];
+  if (consultation.images) {
+    if (typeof consultation.images === 'string') {
+      try {
+        consultationImages = JSON.parse(consultation.images);
+      } catch (e) {
+        consultationImages = [consultation.images];
+      }
+    } else if (Array.isArray(consultation.images)) {
+      consultationImages = consultation.images;
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <Button 
@@ -347,6 +367,18 @@ export function ConsultationDetail() {
                 )}
               </div>
             </CardHeader>
+            
+            {/* Dodajemy zdjęcia konsultacji */}
+            {consultationImages.length > 0 && (
+              <div className="px-6">
+                <div className="aspect-video relative rounded-md overflow-hidden mb-6">
+                  <ProductImage 
+                    image={consultationImages} 
+                    title={consultation.title} 
+                  />
+                </div>
+              </div>
+            )}
             
             <CardContent>
               <div className="flex items-center mb-6">
@@ -627,6 +659,13 @@ export function ConsultationDetail() {
           </Card>
         </div>
       </div>
+
+      {/* Dialog edycji konsultacji */}
+      <EditConsultationDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        consultation={consultation}
+      />
     </div>
   );
 }

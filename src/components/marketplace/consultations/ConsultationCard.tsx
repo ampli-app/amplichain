@@ -7,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Consultation } from '@/types/consultations';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
+import { ProductImage } from '@/components/marketplace/ProductImage';
 
 export interface ConsultationCardProps {
   consultation: Consultation;
@@ -32,7 +33,7 @@ export function ConsultationCard({
   
   const handleEditClick = () => {
     console.log("Navigating to edit consultation:", consultation.id);
-    navigate(`/consultations/edit/${consultation.id}`);
+    navigate(`/edit-consultation/${consultation.id}`);
   };
   
   const handleShareClick = () => {
@@ -62,6 +63,16 @@ export function ConsultationCard({
       >
         <Heart className={`h-4 w-4 ${isFavorite ? "fill-current text-red-500" : "text-zinc-400"}`} />
       </Button>
+      
+      {/* Dodajemy komponent ProductImage do wyświetlania zdjęć */}
+      {consultation.images && (
+        <div className="aspect-square">
+          <ProductImage 
+            image={consultation.images} 
+            title={consultation.title} 
+          />
+        </div>
+      )}
       
       <CardContent className="p-6">
         <div className="flex items-center gap-4 mb-4">

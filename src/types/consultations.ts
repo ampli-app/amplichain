@@ -11,6 +11,7 @@ export interface Consultation {
   is_online: boolean;
   location: string;
   contact_methods?: string[];
+  images?: string[] | string;
   created_at: string;
   updated_at: string;
   profiles?: {
