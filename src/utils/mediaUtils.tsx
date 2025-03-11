@@ -1,15 +1,18 @@
 import React from 'react';
 import { XCircle } from 'lucide-react';
 
-export type MediaFile = {
-  file: File;
+export interface MediaFile {
+  file?: File;
   preview: string;
-};
+  url?: string;
+  type?: string;
+}
 
 export interface MediaPreviewProps {
-  files?: File[];
+  media?: MediaFile[];
   imageUrls?: string[];
-  onRemove?: (index: number) => void;
+  onRemoveMedia?: (index: number) => void;
+  disabled?: boolean;
 }
 
 /**
@@ -87,6 +90,7 @@ export function handleFileUpload(
   event: React.ChangeEvent<HTMLInputElement>,
   currentFiles: MediaFile[],
   setFiles: (files: MediaFile[]) => void,
+  fileInputRef: React.RefObject<HTMLInputElement>,
   maxFiles: number = 4
 ) {
   if (!event.target.files?.length) return;
@@ -107,18 +111,27 @@ export function handleFileUpload(
 }
 
 export async function uploadMediaToStorage(
-  files: MediaFile[] | File,
+  files: MediaFile[] | File[] | File,
   storageBucket: string
 ): Promise<string[]> {
   if (!Array.isArray(files)) {
-    files = [{ file: files, preview: URL.createObjectURL(files) }];
+    files = [files];
   }
   
+  // Convert all items to MediaFile format
+  const mediaFiles = files.map(file => {
+    if (file instanceof File) {
+      return { 
+        file, 
+        preview: URL.createObjectURL(file)
+      };
+    }
+    return file;
+  });
+  
   // Mock implementation - this would be replaced with actual Supabase upload logic
-  console.log(`Would upload ${files.length} files to ${storageBucket}`);
-  return files.map(file => 
-    typeof file === 'object' && 'preview' in file ? file.preview : URL.createObjectURL(file)
-  );
+  console.log(`Would upload ${mediaFiles.length} files to ${storageBucket}`);
+  return mediaFiles.map(file => file.url || file.preview);
 }
 
 export function extractHashtags(text: string): string[] {
@@ -128,27 +141,27 @@ export function extractHashtags(text: string): string[] {
   return matches ? matches.map(tag => tag.substring(1)) : [];
 }
 
-export function MediaPreview({ files, imageUrls, onRemove }: MediaPreviewProps) {
-  const hasFiles = files && files.length > 0;
+export function MediaPreview({ media, imageUrls, onRemoveMedia, disabled }: MediaPreviewProps) {
+  const hasMedia = media && media.length > 0;
   const hasUrls = imageUrls && imageUrls.length > 0;
   
-  if (!hasFiles && !hasUrls) return null;
+  if (!hasMedia && !hasUrls) return null;
   
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
-      {hasFiles && files.map((file, index) => (
-        <div key={`file-${index}`} className="relative group">
+      {hasMedia && media.map((item, index) => (
+        <div key={`media-${index}`} className="relative group">
           <div className="aspect-square rounded-md overflow-hidden border bg-muted/50">
             <img 
-              src={URL.createObjectURL(file)} 
+              src={item.preview || item.url} 
               alt={`Preview ${index + 1}`} 
               className="w-full h-full object-cover"
             />
           </div>
-          {onRemove && (
+          {onRemoveMedia && !disabled && (
             <button
               type="button"
-              onClick={() => onRemove(index)}
+              onClick={() => onRemoveMedia(index)}
               className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <XCircle className="h-5 w-5" />
@@ -166,10 +179,10 @@ export function MediaPreview({ files, imageUrls, onRemove }: MediaPreviewProps) 
               className="w-full h-full object-cover"
             />
           </div>
-          {onRemove && (
+          {onRemoveMedia && (
             <button
               type="button"
-              onClick={() => onRemove(index + (files?.length || 0))}
+              onClick={() => onRemoveMedia(index + (media?.length || 0))}
               className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <XCircle className="h-5 w-5" />

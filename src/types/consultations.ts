@@ -1,4 +1,3 @@
-
 export type Consultation = {
   id: string;
   user_id: string;
@@ -11,9 +10,9 @@ export type Consultation = {
   location: string | null;
   contact_methods: string[];
   availability: string[];
+  images?: string[] | string;
   created_at: string;
   updated_at: string;
-  images?: string[] | string;
   profiles?: {
     id: string;
     username: string | null;
@@ -31,9 +30,18 @@ export type ConsultationOrder = {
   is_client_confirmed: boolean;
   is_expert_confirmed: boolean;
   is_completed: boolean;
+  date: string;
+  time: string;
+  contact_method: string;
+  expires_at: string;
   completed_at?: string;
   created_at: string;
   updated_at: string;
+  price: number;
+  amount: number;
+  is_online: boolean;
+  is_paid: boolean;
+  location?: string | null;
   consultations?: Consultation;
   profiles?: {
     id: string;
