@@ -16,8 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { Consultation } from '@/types/consultations';
-import { MediaFile, handleFileUpload, uploadMediaToStorage } from '@/utils/mediaUtils';
-import { MediaPreview } from '@/utils/mediaUtils';
+import { MediaFile, handleFileUpload, uploadMediaToStorage, MediaPreview } from '@/utils/mediaUtils';
 
 interface EditConsultationDialogProps {
   open: boolean;
@@ -25,7 +24,6 @@ interface EditConsultationDialogProps {
   consultation: Consultation | null;
 }
 
-// Kategorie konsultacji
 const consultationCategories = [
   { id: 'composition', name: 'Kompozycja' },
   { id: 'arrangement', name: 'Aranżacja' },
@@ -44,7 +42,6 @@ export function EditConsultationDialog({ open, onOpenChange, consultation }: Edi
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Formularz konsultacji
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -55,14 +52,11 @@ export function EditConsultationDialog({ open, onOpenChange, consultation }: Edi
   const [isInPerson, setIsInPerson] = useState(false);
   const [location, setLocation] = useState('');
   
-  // Metody kontaktu
   const [contactMethods, setContactMethods] = useState<string[]>([]);
   
-  // Tagi i etykiety
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   
-  // Zdjęcia konsultacji
   const [media, setMedia] = useState<MediaFile[]>([]);
   
   useEffect(() => {
@@ -77,7 +71,7 @@ export function EditConsultationDialog({ open, onOpenChange, consultation }: Edi
     setTitle(data.title || '');
     setDescription(data.description || '');
     setPrice(data.price ? data.price.toString() : '');
-    setPriceType('za godzinę'); // Domyślna wartość, można dostosować jeśli konsultacja ma to pole
+    setPriceType('za godzinę');
     setSelectedCategories(data.categories || []);
     setExperienceYears(data.experience || '');
     setIsOnline(data.is_online);
@@ -85,7 +79,6 @@ export function EditConsultationDialog({ open, onOpenChange, consultation }: Edi
     setLocation(data.location || '');
     setContactMethods(data.contact_methods || []);
     
-    // Wczytaj zdjęcia jeśli istnieją
     if (data.images) {
       let imageArray: string[] = [];
       
@@ -99,7 +92,6 @@ export function EditConsultationDialog({ open, onOpenChange, consultation }: Edi
         imageArray = data.images;
       }
       
-      // Konwertuj na format MediaFile
       const mediaFiles: MediaFile[] = imageArray.map(url => ({
         url,
         type: 'image'
@@ -159,7 +151,6 @@ export function EditConsultationDialog({ open, onOpenChange, consultation }: Edi
   };
   
   const handleSubmit = async () => {
-    // Walidacja formularza
     if (!title.trim()) {
       toast({
         title: "Brak tytułu",
@@ -221,18 +212,14 @@ export function EditConsultationDialog({ open, onOpenChange, consultation }: Edi
         throw new Error("Nie jesteś zalogowany.");
       }
       
-      // Prześlij wszystkie nowe zdjęcia do storage
       const uploadedImages: string[] = [];
       
-      // Najpierw zbierz istniejące już URLe
       for (const item of media) {
         if (!item.file) {
-          // To jest już przesłany plik, dodaj URL
           uploadedImages.push(item.url);
         }
       }
       
-      // Prześlij nowe pliki
       for (const item of media) {
         if (item.file) {
           const filePath = await uploadMediaToStorage(item.file, `consultations/${consultation.id}`);
@@ -273,7 +260,6 @@ export function EditConsultationDialog({ open, onOpenChange, consultation }: Edi
       onOpenChange(false);
       resetForm();
       
-      // Przekieruj na stronę szczegółów konsultacji
       navigate(`/consultations/${consultation.id}`);
       
     } catch (error) {
@@ -431,7 +417,6 @@ export function EditConsultationDialog({ open, onOpenChange, consultation }: Edi
             </div>
           </div>
           
-          {/* Zdjęcia konsultacji */}
           <div className="grid gap-3">
             <Label>Zdjęcia konsultacji</Label>
             
@@ -528,7 +513,6 @@ export function EditConsultationDialog({ open, onOpenChange, consultation }: Edi
             )}
           </div>
           
-          {/* Podgląd oferty konsultacji */}
           <div className="mt-4">
             <h3 className="font-medium mb-2">Podgląd oferty</h3>
             <Card className="p-4">
