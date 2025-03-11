@@ -52,12 +52,13 @@ export function useConsultationsFetch() {
           const profile = profilesData?.find(p => p.id === consultation.user_id);
           
           // Przetwórz pole images, jeśli jest stringiem JSON
-          let processedImages = consultation.images;
+          let processedImages = consultation.images || null;
           if (typeof consultation.images === 'string') {
             try {
               processedImages = JSON.parse(consultation.images);
             } catch (e) {
               // Jeśli nie jest poprawnym JSON, pozostaw jako string
+              console.log('Nie można sparsować images jako JSON:', e);
             }
           }
           

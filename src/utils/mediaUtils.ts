@@ -1,6 +1,9 @@
 
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { X } from 'lucide-react';
+import React from 'react';
+import { Button } from '@/components/ui/button';
 
 export type MediaFile = {
   url: string;
@@ -108,4 +111,55 @@ export const extractHashtags = (content: string): string[] => {
   if (!matches) return [];
   
   return [...new Set(matches.map(tag => tag.substring(1).toLowerCase()))];
+};
+
+// Komponent do podglądu mediów
+export const MediaPreview: React.FC<{
+  media: MediaFile[];
+  onRemoveMedia: (index: number) => void;
+  disabled?: boolean;
+}> = ({ media, onRemoveMedia, disabled = false }) => {
+  if (media.length === 0) return null;
+  
+  return (
+    <div className="grid grid-cols-3 gap-2 my-2">
+      {media.map((item, index) => (
+        <div key={index} className="relative group rounded overflow-hidden border border-border aspect-square">
+          {item.type === 'image' && (
+            <img
+              src={item.url}
+              alt={item.name || `Zdjęcie ${index + 1}`}
+              className="w-full h-full object-cover"
+            />
+          )}
+          {item.type === 'video' && (
+            <video
+              src={item.url}
+              className="w-full h-full object-cover"
+              controls
+            />
+          )}
+          {item.type === 'document' && (
+            <div className="flex items-center justify-center w-full h-full bg-muted p-2 text-center">
+              <div>
+                <p className="font-medium truncate max-w-full">{item.name}</p>
+                <p className="text-xs text-muted-foreground">{item.fileType}</p>
+              </div>
+            </div>
+          )}
+          
+          <Button
+            className="absolute top-1 right-1 h-6 w-6 p-0 bg-background/80 hover:bg-background text-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            size="icon"
+            variant="destructive"
+            onClick={() => onRemoveMedia(index)}
+            disabled={disabled}
+            type="button"
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
 };

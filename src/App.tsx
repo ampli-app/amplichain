@@ -1,21 +1,22 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
-import { LandingPage } from '@/pages/LandingPage';
-import { Register } from '@/pages/Register';
-import { Login } from '@/pages/Login';
-import { Profile } from '@/pages/Profile';
-import { ForgotPassword } from '@/pages/ForgotPassword';
-import { ResetPassword } from '@/pages/ResetPassword';
-import { Discover } from '@/pages/Discover';
-import { Marketplace } from '@/pages/Marketplace';
-import { ProductDetail } from '@/pages/ProductDetail';
-import { EditProduct } from '@/pages/EditProduct';
-import { TermsOfService } from '@/pages/TermsOfService';
-import { PrivacyPolicy } from '@/pages/PrivacyPolicy';
+import LandingPage from '@/pages/LandingPage';
+import Register from '@/pages/Register';
+import Login from '@/pages/Login';
+import Profile from '@/pages/Profile';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
+import Discover from '@/pages/Discover';
+import Marketplace from '@/pages/Marketplace';
+import ProductDetail from '@/pages/ProductDetail';
+import EditProduct from '@/pages/EditProduct';
+import TermsOfService from '@/pages/TermsOfService';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import ConsultationDetail from './pages/ConsultationDetail';
 import { EditConsultation } from './pages/EditConsultation';
 
