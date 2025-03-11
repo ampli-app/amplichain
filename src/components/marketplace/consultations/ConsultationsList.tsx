@@ -5,6 +5,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConsultationCard } from './ConsultationCard';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ConsultationsListProps {
   consultations: any[];
@@ -15,6 +17,7 @@ interface ConsultationsListProps {
   onPageChange: (page: number) => void;
   onToggleFavorite: (consultationId: string, isFavorite: boolean) => void;
   onAddConsultationClick: () => void;
+  refetchConsultations?: () => void;
 }
 
 export function ConsultationsList({
@@ -25,9 +28,46 @@ export function ConsultationsList({
   favorites,
   onPageChange,
   onToggleFavorite,
-  onAddConsultationClick
+  onAddConsultationClick,
+  refetchConsultations
 }: ConsultationsListProps) {
   const { user } = useAuth();
+  
+  const handleDelete = async (id: string) => {
+    if (!user) return;
+    
+    const confirmed = window.confirm("Czy na pewno chcesz usunąć tę konsultację?");
+    if (!confirmed) return;
+    
+    try {
+      const { error } = await supabase
+        .from('consultations')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);  // Dodatkowe zabezpieczenie
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Usunięto konsultację",
+        description: "Konsultacja została pomyślnie usunięta.",
+      });
+      
+      // Odśwież listę konsultacji
+      if (refetchConsultations) {
+        refetchConsultations();
+      }
+    } catch (err) {
+      console.error('Error deleting consultation:', err);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się usunąć konsultacji.",
+        variant: "destructive",
+      });
+    }
+  };
   
   if (loading) {
     return (
@@ -85,6 +125,7 @@ export function ConsultationsList({
             isFavorite={favorites[consultation.id] || false}
             isOwner={user?.id === consultation.user_id}
             onToggleFavorite={onToggleFavorite}
+            onDelete={user?.id === consultation.user_id ? handleDelete : undefined}
           />
         ))}
       </div>

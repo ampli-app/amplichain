@@ -1,167 +1,133 @@
 
-import { Heart, Calendar, User, MapPin, Share2, Eye, Pencil } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Consultation } from '@/types/consultations';
-import { useNavigate } from 'react-router-dom';
-import { toast } from '@/components/ui/use-toast';
+import { Clock, Heart, PenSquare, Trash2 } from 'lucide-react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-
-export interface ConsultationCardProps {
-  consultation: Consultation;
-  isFavorite: boolean;
-  isOwner?: boolean;
-  onToggleFavorite: (id: string, isFavorite: boolean) => void;
-  onDelete?: (id: string) => void;
-}
+import { ConsultationCardProps } from '@/types/consultations';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function ConsultationCard({ 
   consultation, 
   isFavorite, 
   isOwner = false,
-  onToggleFavorite, 
-  onDelete 
+  onToggleFavorite,
+  onDelete
 }: ConsultationCardProps) {
-  const navigate = useNavigate();
-  
-  const handleViewClick = () => {
-    console.log("Navigating to consultation details:", consultation.id);
-    navigate(`/consultations/${consultation.id}`);
-  };
-  
-  const handleEditClick = () => {
-    console.log("Navigating to edit consultation:", consultation.id);
-    navigate(`/consultations/edit/${consultation.id}`);
-  };
-  
-  const handleShareClick = () => {
-    const consultationUrl = `${window.location.origin}/consultations/${consultation.id}`;
-    navigator.clipboard.writeText(consultationUrl);
-    toast({
-      title: "Link skopiowany",
-      description: "Link do konsultacji został skopiowany do schowka.",
-    });
-  };
-
-  // Wybierz domyślny obraz lub pierwszy z tablicy jeśli istnieje
-  const image = consultation.images && consultation.images.length > 0 
-    ? consultation.images[0] 
+  const { id, title, description, price, categories, profiles, images } = consultation;
+  const displayImage = images && images.length > 0 
+    ? images[0] 
     : "https://images.unsplash.com/photo-1542744173-05336fcc7ad4?q=80&w=2000&auto=format&fit=crop";
+
+  // Limit description length
+  const shortDescription = description && description.length > 120 
+    ? description.substring(0, 120) + '...' 
+    : description;
   
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-all relative">
-      {/* Badge dla właściciela */}
-      {isOwner && (
-        <Badge className="absolute top-3 left-3 z-10 bg-green-500 hover:bg-green-500">
-          Twoja konsultacja
-        </Badge>
-      )}
-      
-      {/* Przycisk ulubionych */}
-      <Button 
-        variant="secondary"
-        size="icon" 
-        className="absolute top-3 right-3 opacity-70 hover:opacity-100 z-10"
-        onClick={() => onToggleFavorite(consultation.id, isFavorite)}
-      >
-        <Heart className={`h-4 w-4 ${isFavorite ? "fill-current text-red-500" : "text-zinc-400"}`} />
-      </Button>
-      
-      {/* Obraz konsultacji */}
-      <div className="relative">
-        <AspectRatio ratio={16/9}>
-          <img 
-            src={image} 
-            alt={consultation.title} 
-            className="w-full h-full object-cover"
-          />
-        </AspectRatio>
-        
-        {consultation.is_online ? (
-          <Badge className="absolute bottom-3 left-3 bg-green-500">Online</Badge>
-        ) : (
-          <Badge className="absolute bottom-3 left-3 bg-blue-500 flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
-            {consultation.location}
-          </Badge>
-        )}
-      </div>
-
-      <CardContent className="p-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Avatar>
-            <AvatarImage 
-              src={consultation.profiles?.avatar_url || undefined} 
-              alt={consultation.profiles?.full_name || "Użytkownik"} 
-            />
-            <AvatarFallback><User /></AvatarFallback>
-          </Avatar>
-          <div>
-            <h3 className="font-medium">{consultation.profiles?.full_name || "Użytkownik"}</h3>
-            <p className="text-sm text-muted-foreground">@{consultation.profiles?.username || "użytkownik"}</p>
-          </div>
-        </div>
-        
-        <h4 className="text-lg font-medium mb-2">{consultation.title}</h4>
-        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{consultation.description}</p>
-        
-        <div className="flex flex-wrap gap-2 mb-4">
-          {consultation.categories?.length > 0 && (
-            <Badge variant="secondary">
-              {consultation.categories[0]}
-            </Badge>
-          )}
-        </div>
-        
-        <div className="flex items-center space-x-2 mb-4">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            {consultation.availability?.length > 0 ? `Dostępne terminy: ${consultation.availability.length}` : "Brak dostępnych terminów"}
-          </span>
-        </div>
-        
-        <div className="flex items-center justify-between mt-4">
-          {/* Cena - w takim samym stylu jak w MarketplaceItem */}
-          <div className="font-semibold text-lg bg-primary/10 px-2 py-1 rounded text-primary">
-            {new Intl.NumberFormat('pl-PL', {
-              style: 'currency',
-              currency: 'PLN'
-            }).format(consultation.price)}
+    <Card className="overflow-hidden h-full flex flex-col">
+      <CardContent className="p-0">
+        <Link to={`/consultations/${id}`}>
+          <div className="relative">
+            <AspectRatio ratio={16/9}>
+              <img
+                src={displayImage}
+                alt={title}
+                className="object-cover w-full h-full"
+              />
+            </AspectRatio>
+            
+            {isOwner && (
+              <div className="absolute top-2 right-2 bg-background/80 px-2 py-1 rounded-md text-xs font-medium">
+                Twoja konsultacja
+              </div>
+            )}
           </div>
           
-          {/* Przyciski - podobnie jak w ProductActions */}
-          {isOwner ? (
-            <div className="flex gap-2">
+          <div className="p-6">
+            <div className="flex items-center gap-4 mb-4">
+              <Avatar>
+                <AvatarImage src={profiles?.avatar_url || ''} />
+                <AvatarFallback>{profiles?.full_name?.substring(0, 2) || '??'}</AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="font-medium">{profiles?.full_name || 'Ekspert'}</h3>
+                <p className="text-sm text-muted-foreground">{profiles?.username || 'użytkownik'}</p>
+              </div>
+            </div>
+            
+            <h2 className="text-xl font-bold mb-2 line-clamp-2">{title}</h2>
+            
+            <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
+              {shortDescription || 'Brak opisu'}
+            </p>
+            
+            {categories && categories.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-4">
+                {categories.slice(0, 3).map((category, idx) => (
+                  <Badge key={idx} variant="outline" className="text-xs">
+                    {category}
+                  </Badge>
+                ))}
+                {categories.length > 3 && (
+                  <Badge variant="outline" className="text-xs">
+                    +{categories.length - 3}
+                  </Badge>
+                )}
+              </div>
+            )}
+            
+            <div className="flex items-center text-sm mt-auto">
+              <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+              <span className="font-medium">{price} PLN za godzinę</span>
+            </div>
+          </div>
+        </Link>
+      </CardContent>
+      
+      <CardFooter className="px-6 pb-6 pt-0 mt-auto flex justify-between">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onToggleFavorite(id, isFavorite)}
+          className={isFavorite ? 'text-red-500 hover:text-red-600' : ''}
+        >
+          <Heart className={`h-5 w-5 ${isFavorite ? 'fill-red-500' : ''}`} />
+        </Button>
+        
+        <div className="flex gap-2">
+          {isOwner && (
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/consultations/edit/${id}`}>
+                  <PenSquare className="h-4 w-4 mr-1" />
+                  Edytuj
+                </Link>
+              </Button>
+              
               {onDelete && (
-                <Button variant="destructive" size="sm" onClick={() => onDelete(consultation.id)}>
-                  <span className="hidden sm:inline">Usuń</span>
-                  <span className="sm:hidden">Usuń</span>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={() => onDelete(id)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Usuń
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={handleViewClick}>
-                <Eye className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Zobacz</span>
-              </Button>
-              <Button 
-                variant="default" 
-                size="sm"
-                className="bg-[#9E9D1B] hover:bg-[#7e7c14]"
-                onClick={handleEditClick}
-              >
-                <Pencil className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Edytuj</span>
-              </Button>
-              <Button variant="secondary" size="icon" className="h-9 w-9" onClick={handleShareClick}>
-                <Share2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <Button onClick={handleViewClick}>Rezerwuj</Button>
+            </>
+          )}
+          
+          {!isOwner && (
+            <Button asChild>
+              <Link to={`/consultations/${id}`}>
+                Szczegóły
+              </Link>
+            </Button>
           )}
         </div>
-      </CardContent>
+      </CardFooter>
     </Card>
   );
 }
