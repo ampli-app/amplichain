@@ -41,13 +41,18 @@ export function useConsultationsFetch() {
           // Przygotuj profil użytkownika - obsługa przypadku, gdy profiles może być null lub SelectQueryError
           let userProfile;
           
-          // Sprawdź, czy profiles istnieje i ma poprawną strukturę
-          if (consultation.profiles && typeof consultation.profiles === 'object' && !('error' in consultation.profiles)) {
+          // Bezpieczne sprawdzenie, czy profiles istnieje i ma poprawną strukturę
+          if (
+            consultation.profiles && 
+            typeof consultation.profiles === 'object' && 
+            consultation.profiles !== null && 
+            !('error' in consultation.profiles)
+          ) {
             userProfile = {
-              id: consultation.profiles.id || '',
-              username: consultation.profiles.username || '',
-              full_name: consultation.profiles.full_name || '',
-              avatar_url: consultation.profiles.avatar_url || ''
+              id: consultation.profiles?.id || '',
+              username: consultation.profiles?.username || '',
+              full_name: consultation.profiles?.full_name || '',
+              avatar_url: consultation.profiles?.avatar_url || ''
             };
           } else {
             // Jeśli brak danych profilu lub wystąpił błąd, użyj domyślnych wartości
