@@ -61,10 +61,6 @@ export default function EditConsultation() {
               setDescription={form.setDescription}
               price={form.price}
               setPrice={form.setPrice}
-              priceType={form.priceType}
-              setPriceType={form.setPriceType}
-              experienceYears={form.experienceYears}
-              setExperienceYears={form.setExperienceYears}
             />
             
             <Separator />

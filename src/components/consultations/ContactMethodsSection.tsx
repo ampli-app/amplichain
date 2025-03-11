@@ -45,6 +45,16 @@ export function ContactMethodsSection({
             Czat tekstowy
           </Label>
         </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox 
+            id="contact-live"
+            checked={contactMethods.includes('live')}
+            onCheckedChange={() => toggleContactMethod('live')}
+          />
+          <Label htmlFor="contact-live" className="font-normal cursor-pointer">
+            Na żywo
+          </Label>
+        </div>
       </div>
     </div>
   );

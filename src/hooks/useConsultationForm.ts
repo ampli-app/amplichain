@@ -7,15 +7,11 @@ export function useConsultationForm(initialData?: any) {
   const [title, setTitle] = useState(initialData?.title || '');
   const [description, setDescription] = useState(initialData?.description || '');
   const [price, setPrice] = useState(initialData?.price?.toString() || '');
-  const [priceType, setPriceType] = useState('za godzinę');
   const [selectedCategories, setSelectedCategories] = useState<string[]>(initialData?.categories || []);
-  const [experienceYears, setExperienceYears] = useState(initialData?.experience || '');
   const [isOnline, setIsOnline] = useState(initialData?.is_online ?? true);
   const [isInPerson, setIsInPerson] = useState(!!initialData?.location);
   const [location, setLocation] = useState(initialData?.location || '');
   const [contactMethods, setContactMethods] = useState<string[]>(initialData?.contact_methods || []);
-  const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
   const [media, setMedia] = useState<MediaFile[]>(
     initialData?.images ? 
     (Array.isArray(initialData.images) ? 
@@ -77,7 +73,6 @@ export function useConsultationForm(initialData?: any) {
     title,
     description,
     price: Number(price),
-    experience: experienceYears,
     categories: selectedCategories,
     is_online: isOnline,
     location: isInPerson ? location : null,
@@ -93,12 +88,8 @@ export function useConsultationForm(initialData?: any) {
     setDescription,
     price,
     setPrice,
-    priceType,
-    setPriceType,
     selectedCategories,
     setSelectedCategories,
-    experienceYears,
-    setExperienceYears,
     isOnline,
     setIsOnline,
     isInPerson,
@@ -107,10 +98,6 @@ export function useConsultationForm(initialData?: any) {
     setLocation,
     contactMethods,
     setContactMethods,
-    tagInput,
-    setTagInput,
-    tags,
-    setTags,
     media,
     setMedia,
     validateForm,

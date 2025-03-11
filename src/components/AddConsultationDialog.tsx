@@ -5,14 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { Loader2, Clock, Tag, Plus, X } from 'lucide-react';
+import { Loader2, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
@@ -46,19 +45,13 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
-  const [priceType, setPriceType] = useState('za godzinę');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [experienceYears, setExperienceYears] = useState('');
   const [isOnline, setIsOnline] = useState(true);
   const [isInPerson, setIsInPerson] = useState(false);
   const [location, setLocation] = useState('');
   
   // Metody kontaktu
   const [contactMethods, setContactMethods] = useState<string[]>([]);
-  
-  // Tagi i etykiety
-  const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
   
   // Dodajemy stan dla mediów
   const [media, setMedia] = useState<MediaFile[]>([]);
@@ -73,15 +66,11 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
     setTitle('');
     setDescription('');
     setPrice('');
-    setPriceType('za godzinę');
     setSelectedCategories([]);
-    setExperienceYears('');
     setIsOnline(true);
     setIsInPerson(false);
     setLocation('');
     setContactMethods([]);
-    setTags([]);
-    setTagInput('');
     setMedia([]); // Resetujemy media
   };
   
@@ -99,17 +88,6 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
         ? prev.filter(m => m !== method)
         : [...prev, method]
     );
-  };
-  
-  const addTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags(prev => [...prev, tagInput.trim()]);
-      setTagInput('');
-    }
-  };
-  
-  const removeTag = (tagToRemove: string) => {
-    setTags(prev => prev.filter(tag => tag !== tagToRemove));
   };
   
   const handleSubmit = async () => {
@@ -184,7 +162,6 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
         title,
         description,
         price: Number(price),
-        experience: experienceYears,
         categories: selectedCategories,
         is_online: isOnline,
         location: isInPerson ? location : null,
@@ -257,44 +234,18 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
             />
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="grid gap-3">
-              <Label htmlFor="price">Cena</Label>
-              <div className="flex gap-2">
-                <Input 
-                  id="price" 
-                  type="number"
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="flex-1"
-                />
-                <Select value={priceType} onValueChange={setPriceType}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Wybierz typ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="za godzinę">za godzinę</SelectItem>
-                    <SelectItem value="za sesję">za sesję</SelectItem>
-                    <SelectItem value="za projekt">za projekt</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="grid gap-3">
-              <Label htmlFor="experience">Lata doświadczenia</Label>
-              <Input 
-                id="experience" 
-                type="number"
-                placeholder="np. 5"
-                min="0"
-                value={experienceYears}
-                onChange={(e) => setExperienceYears(e.target.value)}
-              />
-            </div>
+          <div className="grid gap-3">
+            <Label htmlFor="price">Cena (PLN)</Label>
+            <Input 
+              id="price" 
+              type="number"
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="flex-1"
+            />
           </div>
           
           {/* Dodajemy sekcję przesyłania zdjęć */}
@@ -373,6 +324,16 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
                   Czat tekstowy
                 </Label>
               </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="contact-live"
+                  checked={contactMethods.includes('live')}
+                  onCheckedChange={() => toggleContactMethod('live')}
+                />
+                <Label htmlFor="contact-live" className="font-normal cursor-pointer">
+                  Na żywo
+                </Label>
+              </div>
             </div>
           </div>
           
@@ -402,43 +363,6 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
             </div>
           </div>
           
-          <div className="grid gap-3">
-            <Label>Tagi (słowa kluczowe)</Label>
-            <div className="flex gap-2">
-              <Input 
-                placeholder="Dodaj tag i naciśnij Enter"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addTag();
-                  }
-                }}
-              />
-              <Button type="button" size="icon" onClick={addTag}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            {tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {tags.map(tag => (
-                  <Badge key={tag} variant="secondary" className="px-2 py-1 gap-1">
-                    <Tag className="h-3 w-3" />
-                    {tag}
-                    <button 
-                      className="ml-1 hover:text-destructive"
-                      onClick={() => removeTag(tag)}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
-          
           {/* Podgląd oferty konsultacji */}
           <div className="mt-4">
             <h3 className="font-medium mb-2">Podgląd oferty</h3>
@@ -463,7 +387,7 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
               <div className="flex items-center text-sm mt-2">
                 <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
                 <span className="font-medium">
-                  {price ? `${price} PLN` : "Cena"} {price ? priceType : ""}
+                  {price ? `${price} PLN` : "Cena"}
                 </span>
               </div>
               
