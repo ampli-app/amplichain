@@ -1,6 +1,16 @@
-
 import React from 'react';
 import { XCircle } from 'lucide-react';
+
+export type MediaFile = {
+  file: File;
+  preview: string;
+};
+
+export interface MediaPreviewProps {
+  files?: File[];
+  imageUrls?: string[];
+  onRemove?: (index: number) => void;
+}
 
 /**
  * Processes images from input element to be used in forms
@@ -73,13 +83,6 @@ export function getProductPreviewUrl(imageUrl: string | string[] | null | undefi
     : 'https://placehold.co/600x400?text=Brak+zdjęcia';
 }
 
-// MediaFile type definition for use with media components
-export interface MediaFile {
-  file: File;
-  preview: string;
-}
-
-// Required additional utility function for components that need it 
 export function handleFileUpload(
   event: React.ChangeEvent<HTMLInputElement>,
   currentFiles: MediaFile[],
@@ -103,14 +106,21 @@ export function handleFileUpload(
   }
 }
 
-// Function to upload media files to Supabase storage
-export async function uploadMediaToStorage(files: MediaFile[], storageBucket: string): Promise<string[]> {
+export async function uploadMediaToStorage(
+  files: MediaFile[] | File,
+  storageBucket: string
+): Promise<string[]> {
+  if (!Array.isArray(files)) {
+    files = [{ file: files, preview: URL.createObjectURL(files) }];
+  }
+  
   // Mock implementation - this would be replaced with actual Supabase upload logic
   console.log(`Would upload ${files.length} files to ${storageBucket}`);
-  return files.map(file => URL.createObjectURL(file.file));
+  return files.map(file => 
+    typeof file === 'object' && 'preview' in file ? file.preview : URL.createObjectURL(file)
+  );
 }
 
-// Extract hashtags from text
 export function extractHashtags(text: string): string[] {
   if (!text) return [];
   const hashtagRegex = /#(\w+)/g;
@@ -118,15 +128,6 @@ export function extractHashtags(text: string): string[] {
   return matches ? matches.map(tag => tag.substring(1)) : [];
 }
 
-interface MediaPreviewProps {
-  files?: File[];
-  imageUrls?: string[];
-  onRemove?: (index: number) => void;
-}
-
-/**
- * Component to preview media (images)
- */
 export function MediaPreview({ files, imageUrls, onRemove }: MediaPreviewProps) {
   const hasFiles = files && files.length > 0;
   const hasUrls = imageUrls && imageUrls.length > 0;
