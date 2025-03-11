@@ -2,6 +2,7 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { CategorySelect } from './CategorySelect';
 
 interface BasicInfoSectionProps {
   title: string;
@@ -10,6 +11,10 @@ interface BasicInfoSectionProps {
   setDescription: (value: string) => void;
   price: string;
   setPrice: (value: string) => void;
+  categoryId: string | undefined;
+  setCategoryId: (value: string) => void;
+  subcategoryId: string | undefined;
+  setSubcategoryId: (value: string) => void;
 }
 
 export function BasicInfoSection({
@@ -19,6 +24,10 @@ export function BasicInfoSection({
   setDescription,
   price,
   setPrice,
+  categoryId,
+  setCategoryId,
+  subcategoryId,
+  setSubcategoryId,
 }: BasicInfoSectionProps) {
   return (
     <div className="grid gap-6">
@@ -31,6 +40,13 @@ export function BasicInfoSection({
           onChange={(e) => setTitle(e.target.value)}
         />
       </div>
+      
+      <CategorySelect
+        categoryId={categoryId}
+        setCategoryId={setCategoryId}
+        subcategoryId={subcategoryId}
+        setSubcategoryId={setSubcategoryId}
+      />
       
       <div className="grid gap-3">
         <Label htmlFor="description">Opis konsultacji</Label>

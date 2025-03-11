@@ -114,6 +114,33 @@ export type Database = {
           },
         ]
       }
+      consultation_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       consultation_orders: {
         Row: {
           amount: number
@@ -274,10 +301,49 @@ export type Database = {
           },
         ]
       }
+      consultation_subcategories: {
+        Row: {
+          category_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultation_subcategories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "consultation_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consultations: {
         Row: {
           availability: string[] | null
           categories: string[] | null
+          category_id: string | null
           contact_methods: string[] | null
           created_at: string
           description: string | null
@@ -287,6 +353,7 @@ export type Database = {
           is_online: boolean | null
           location: string | null
           price: number
+          subcategory_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -294,6 +361,7 @@ export type Database = {
         Insert: {
           availability?: string[] | null
           categories?: string[] | null
+          category_id?: string | null
           contact_methods?: string[] | null
           created_at?: string
           description?: string | null
@@ -303,6 +371,7 @@ export type Database = {
           is_online?: boolean | null
           location?: string | null
           price: number
+          subcategory_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -310,6 +379,7 @@ export type Database = {
         Update: {
           availability?: string[] | null
           categories?: string[] | null
+          category_id?: string | null
           contact_methods?: string[] | null
           created_at?: string
           description?: string | null
@@ -319,11 +389,27 @@ export type Database = {
           is_online?: boolean | null
           location?: string | null
           price?: number
+          subcategory_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "consultations_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "consultation_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultations_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "consultation_subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversation_participants: {
         Row: {

@@ -7,7 +7,8 @@ export function useConsultationForm(initialData?: any) {
   const [title, setTitle] = useState(initialData?.title || '');
   const [description, setDescription] = useState(initialData?.description || '');
   const [price, setPrice] = useState(initialData?.price?.toString() || '');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(initialData?.categories || []);
+  const [categoryId, setCategoryId] = useState<string | undefined>(initialData?.category_id);
+  const [subcategoryId, setSubcategoryId] = useState<string | undefined>(initialData?.subcategory_id);
   const [isOnline, setIsOnline] = useState(initialData?.is_online ?? true);
   const [isInPerson, setIsInPerson] = useState(!!initialData?.location);
   const [location, setLocation] = useState(initialData?.location || '');
@@ -39,10 +40,19 @@ export function useConsultationForm(initialData?: any) {
       return false;
     }
     
-    if (selectedCategories.length === 0) {
+    if (!categoryId) {
       toast({
         title: "Brak kategorii",
-        description: "Wybierz przynajmniej jedną kategorię dla swoich konsultacji.",
+        description: "Wybierz kategorię dla swoich konsultacji.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!subcategoryId) {
+      toast({
+        title: "Brak podkategorii",
+        description: "Wybierz podkategorię dla swoich konsultacji.",
         variant: "destructive",
       });
       return false;
@@ -73,10 +83,10 @@ export function useConsultationForm(initialData?: any) {
     title,
     description,
     price: Number(price),
-    categories: selectedCategories,
+    category_id: categoryId,
+    subcategory_id: subcategoryId,
     is_online: isOnline,
     location: isInPerson ? location : null,
-    availability: [],
     contact_methods: contactMethods,
     images: media.length > 0 ? JSON.stringify(media.map(m => m.url)) : null,
   });
@@ -88,8 +98,10 @@ export function useConsultationForm(initialData?: any) {
     setDescription,
     price,
     setPrice,
-    selectedCategories,
-    setSelectedCategories,
+    categoryId,
+    setCategoryId,
+    subcategoryId,
+    setSubcategoryId,
     isOnline,
     setIsOnline,
     isInPerson,
