@@ -50,7 +50,7 @@ export function useConsultationsFetch() {
           
           let userProfile: ProfileData;
           
-          // Dodajemy dodatkowe sprawdzenie, czy consultation.profiles jest null
+          // Poprawione sprawdzenie, aby TypeScript był zadowolony
           if (consultation.profiles && 
               typeof consultation.profiles === 'object' && 
               !('error' in consultation.profiles) &&
