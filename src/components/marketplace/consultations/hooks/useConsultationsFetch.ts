@@ -8,10 +8,6 @@ export function useConsultationsFetch() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
   
-  useEffect(() => {
-    fetchConsultations();
-  }, []);
-  
   const fetchConsultations = async () => {
     setLoading(true);
     try {
@@ -20,7 +16,7 @@ export function useConsultationsFetch() {
       // Pobierz wszystkie konsultacje
       const { data: consultationsData, error: consultationsError } = await supabase
         .from('consultations')
-        .select('*')
+        .select('*, profiles:user_id(*)')
         .order('created_at', { ascending: false });
       
       if (consultationsError) {
@@ -30,27 +26,8 @@ export function useConsultationsFetch() {
       
       console.log(`Pobrano ${consultationsData?.length || 0} konsultacji`);
       
-      if (consultationsData && consultationsData.length > 0) {
-        // Pobierz unikalne ID użytkowników
-        const userIds = [...new Set(consultationsData.map(c => c.user_id))];
-        
-        console.log(`Pobieranie profili dla ${userIds.length} użytkowników`);
-        
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, username, full_name, avatar_url')
-          .in('id', userIds);
-          
-        if (profilesError) {
-          console.error('Błąd pobierania profili:', profilesError);
-        }
-        
-        console.log(`Pobrano ${profilesData?.length || 0} profili`);
-        
-        // Połącz dane konsultacji z profilami
-        const consultationsWithProfiles = consultationsData.map(consultation => {
-          const profile = profilesData?.find(p => p.id === consultation.user_id);
-          
+      if (consultationsData) {
+        const processedConsultations = consultationsData.map(consultation => {
           // Dodaj domyślne obrazy, jeśli nie są dostępne
           if (!consultation.images || consultation.images.length === 0) {
             consultation.images = [
@@ -58,19 +35,10 @@ export function useConsultationsFetch() {
             ];
           }
           
-          return {
-            ...consultation,
-            profiles: profile || { 
-              id: consultation.user_id,
-              username: null, 
-              full_name: null, 
-              avatar_url: null 
-            }
-          };
+          return consultation;
         });
         
-        console.log("Połączone dane konsultacji z profilami:", consultationsWithProfiles);
-        setConsultations(consultationsWithProfiles);
+        setConsultations(processedConsultations);
       } else {
         setConsultations([]);
       }
@@ -85,6 +53,10 @@ export function useConsultationsFetch() {
       setLoading(false);
     }
   };
+  
+  useEffect(() => {
+    fetchConsultations();
+  }, []);
   
   return { consultations, loading, fetchConsultations };
 }

@@ -28,7 +28,7 @@ export function ConsultationCard({
   return (
     <Card className="overflow-hidden h-full flex flex-col">
       <CardContent className="p-0">
-        <Link to={`/consultations/${id}`}>
+        <Link to={`/consultation/${id}`}>
           <div className="relative">
             <AspectRatio ratio={16/9}>
               <img
@@ -121,7 +121,7 @@ export function ConsultationCard({
           
           {!isOwner && (
             <Button asChild>
-              <Link to={`/consultations/${id}`}>
+              <Link to={`/consultation/${id}`}>
                 Szczegóły
               </Link>
             </Button>
