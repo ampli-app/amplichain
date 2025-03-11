@@ -47,10 +47,10 @@ export function MyConsultations() {
       
       // 3. Przetwórz dane konsultacji
       const processedConsultations = consultationsData?.map(consultation => {
-        // Domyślny obrazek
-        const defaultImages = [
-          "https://images.unsplash.com/photo-1542744173-05336fcc7ad4?q=80&w=2000&auto=format&fit=crop"
-        ];
+        // Użyj obrazów z bazy danych jeśli są dostępne, w przeciwnym razie użyj domyślnego obrazka
+        const images = consultation.images && Array.isArray(consultation.images) && consultation.images.length > 0
+          ? consultation.images
+          : ["https://images.unsplash.com/photo-1542744173-05336fcc7ad4?q=80&w=2000&auto=format&fit=crop"];
         
         return {
           id: consultation.id,
@@ -66,7 +66,7 @@ export function MyConsultations() {
           contact_methods: consultation.contact_methods || [],
           created_at: consultation.created_at,
           updated_at: consultation.updated_at,
-          images: defaultImages,
+          images: images,
           profiles: {
             id: profileData.id,
             username: profileData.username || '',

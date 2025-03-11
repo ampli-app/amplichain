@@ -283,6 +283,7 @@ export type Database = {
           description: string | null
           experience: string | null
           id: string
+          images: Json | null
           is_online: boolean | null
           location: string | null
           price: number
@@ -298,6 +299,7 @@ export type Database = {
           description?: string | null
           experience?: string | null
           id?: string
+          images?: Json | null
           is_online?: boolean | null
           location?: string | null
           price: number
@@ -313,6 +315,7 @@ export type Database = {
           description?: string | null
           experience?: string | null
           id?: string
+          images?: Json | null
           is_online?: boolean | null
           location?: string | null
           price?: number

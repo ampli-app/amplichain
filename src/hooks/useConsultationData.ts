@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useConsultationForm } from '@/hooks/useConsultationForm';
 import { useAuth } from '@/contexts/AuthContext';
+import { MediaFile } from '@/utils/mediaUtils';
 
 export function useConsultationData(id?: string) {
   const { user } = useAuth();
@@ -55,6 +56,7 @@ export function useConsultationData(id?: string) {
         return;
       }
       
+      // Ustaw wszystkie pola formularza z danych z bazy
       Object.entries(form).forEach(([key, setter]) => {
         if (typeof setter === 'function' && key.startsWith('set')) {
           const dataKey = key.slice(3).toLowerCase();
@@ -63,6 +65,15 @@ export function useConsultationData(id?: string) {
           }
         }
       });
+      
+      // Przygotuj media z pobranych danych
+      if (data.images && Array.isArray(data.images)) {
+        const mediaFiles: MediaFile[] = data.images.map((url: string) => ({
+          url,
+          type: 'image',
+        }));
+        form.setMedia(mediaFiles);
+      }
       
     } catch (error) {
       console.error('Error fetching consultation:', error);
