@@ -1,14 +1,13 @@
 
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { LogIn, Mail, Lock } from 'lucide-react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { toast } from '@/components/ui/use-toast';
-import { motion } from 'framer-motion';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -17,13 +16,13 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
       toast({
         title: "Błąd",
-        description: "Proszę wypełnić wszystkie pola",
+        description: "Wprowadź adres e-mail i hasło",
         variant: "destructive",
       });
       return;
@@ -32,24 +31,17 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      const { error } = await login(email, password);
-      
-      if (error) {
-        console.error('Login error:', error);
-        // Error toast is already shown by the AuthContext
-      } else {
-        toast({
-          title: "Sukces",
-          description: "Zalogowałeś się pomyślnie!",
-        });
-        
-        navigate('/discovery');
-      }
-    } catch (error) {
-      console.error('Unexpected error during login:', error);
+      await login(email, password);
       toast({
-        title: "Błąd",
-        description: "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",
+        title: "Zalogowano pomyślnie",
+        description: "Witamy z powrotem!",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error("Błąd logowania:", error);
+      toast({
+        title: "Błąd logowania",
+        description: "Nieprawidłowy adres e-mail lub hasło",
         variant: "destructive",
       });
     } finally {
@@ -57,118 +49,81 @@ export default function Login() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    // We'll implement Google login in a future update
-    toast({
-      title: "Niedostępne",
-      description: "Logowanie przez Google będzie dostępne wkrótce.",
-    });
-  };
-
   return (
-    <div className="min-h-screen flex flex-col bg-rhythm-50 dark:bg-rhythm-950/50">
-      <header className="py-6">
-        <div className="container px-4 mx-auto">
-          <Link to="/" className="flex items-center">
-            <img 
-              src="/lovable-uploads/f8ca029f-1e5e-42c9-ae3a-01ffb67072b4.png"
-              alt="Amplichain logo" 
-              className="h-8"
-            />
-          </Link>
-        </div>
-      </header>
-      
-      <main className="flex-1 flex justify-center items-center py-12">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md px-8 py-10 bg-white dark:bg-rhythm-900 rounded-xl shadow-sm border"
-        >
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2">Witaj z powrotem</h1>
-            <p className="text-rhythm-600 dark:text-rhythm-400">Zaloguj się na swoje konto, aby kontynuować</p>
-          </div>
+    <div className="flex items-center justify-center min-h-screen bg-background p-4">
+      <div className="w-full max-w-md">
+        <Card>
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-center">Logowanie</CardTitle>
+            <CardDescription className="text-center">
+              Wprowadź dane logowania, aby kontynuować
+            </CardDescription>
+          </CardHeader>
           
-          <Button 
-            variant="outline" 
-            className="w-full mb-6 h-11 gap-2"
-            onClick={handleGoogleLogin}
-            disabled={isLoading}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 186.69 190.5">
-              <g transform="translate(1184.583 765.171)">
-                <path d="M-1089.333-687.239v36.888h51.262c-2.251 11.863-9.006 21.908-19.137 28.662l30.913 23.986c18.011-16.625 28.402-41.044 28.402-70.052 0-6.754-.606-13.249-1.732-19.483z" fill="#4285f4"/>
-                <path d="M-1142.714-651.791l-6.972 5.337-24.679 19.223h0c15.673 31.086 47.796 52.561 85.03 52.561 25.717 0 47.278-8.486 63.038-23.033l-30.913-23.986c-8.486 5.715-19.31 9.179-32.125 9.179-24.765 0-45.806-16.712-53.34-39.226z" fill="#34a853"/>
-                <path d="M-1174.365-712.61c-6.494 12.815-10.217 27.276-10.217 42.689s3.723 29.874 10.217 42.689c0 .086 31.693-24.592 31.693-24.592-1.905-5.715-3.031-11.776-3.031-18.098s1.126-12.383 3.031-18.098z" fill="#fbbc05"/>
-                <path d="M-1089.333-727.244c14.028 0 26.497 4.849 36.455 14.201l27.276-27.276c-16.539-15.413-38.013-24.852-63.731-24.852-37.234 0-69.359 21.388-85.032 52.561l31.692 24.592c7.533-22.514 28.575-39.226 53.34-39.226z" fill="#ea4335"/>
-              </g>
-            </svg>
-            Kontynuuj z Google
-          </Button>
-          
-          <div className="relative mb-6">
-            <Separator />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="bg-white dark:bg-rhythm-900 px-2 text-sm text-rhythm-500">lub kontynuuj przez email</span>
-            </div>
-          </div>
-          
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
+          <form onSubmit={handleLogin}>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-rhythm-500 h-4 w-4" />
-                  <Input 
-                    id="email"
-                    type="email" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10" 
-                    placeholder="nazwa@example.com" 
-                    autoComplete="email"
-                  />
-                </div>
+                <Label htmlFor="email">Adres e-mail</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="email@example.com" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
               
               <div className="space-y-2">
-                <div className="flex justify-between">
+                <div className="flex items-center justify-between">
                   <Label htmlFor="password">Hasło</Label>
-                  <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="px-0 text-sm font-medium"
+                    onClick={() => navigate('/forgot-password')}
+                  >
                     Zapomniałeś hasła?
-                  </Link>
+                  </Button>
                 </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-rhythm-500 h-4 w-4" />
-                  <Input 
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                  />
-                </div>
+                <Input 
+                  id="password" 
+                  type="password" 
+                  placeholder="••••••••" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
               </div>
-              
-              <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                {isLoading ? 'Logowanie...' : 'Zaloguj się'}
-                {!isLoading && <LogIn className="ml-2 h-4 w-4" />}
+            </CardContent>
+            
+            <CardFooter className="flex flex-col">
+              <Button className="w-full" type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Logowanie...
+                  </>
+                ) : (
+                  "Zaloguj się"
+                )}
               </Button>
-            </div>
+              
+              <div className="mt-4 text-center text-sm">
+                Nie masz konta?{" "}
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  className="p-0"
+                  onClick={() => navigate('/register')}
+                >
+                  Zarejestruj się
+                </Button>
+              </div>
+            </CardFooter>
           </form>
-          
-          <div className="mt-6 text-center text-sm">
-            <span className="text-rhythm-600 dark:text-rhythm-400">Nie masz konta? </span>
-            <Link to="/signup" className="text-primary font-medium hover:underline">
-              Zarejestruj się
-            </Link>
-          </div>
-        </motion.div>
-      </main>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -73,6 +73,51 @@ export function getProductPreviewUrl(imageUrl: string | string[] | null | undefi
     : 'https://placehold.co/600x400?text=Brak+zdjęcia';
 }
 
+// MediaFile type definition for use with media components
+export interface MediaFile {
+  file: File;
+  preview: string;
+}
+
+// Required additional utility function for components that need it 
+export function handleFileUpload(
+  event: React.ChangeEvent<HTMLInputElement>,
+  currentFiles: MediaFile[],
+  setFiles: (files: MediaFile[]) => void,
+  maxFiles: number = 4
+) {
+  if (!event.target.files?.length) return;
+  
+  const newFiles = Array.from(event.target.files).map(file => ({
+    file,
+    preview: URL.createObjectURL(file)
+  }));
+  
+  const updatedFiles = [...currentFiles, ...newFiles];
+  
+  if (updatedFiles.length > maxFiles) {
+    alert(`Można dodać maksymalnie ${maxFiles} plików`);
+    setFiles(updatedFiles.slice(0, maxFiles));
+  } else {
+    setFiles(updatedFiles);
+  }
+}
+
+// Function to upload media files to Supabase storage
+export async function uploadMediaToStorage(files: MediaFile[], storageBucket: string): Promise<string[]> {
+  // Mock implementation - this would be replaced with actual Supabase upload logic
+  console.log(`Would upload ${files.length} files to ${storageBucket}`);
+  return files.map(file => URL.createObjectURL(file.file));
+}
+
+// Extract hashtags from text
+export function extractHashtags(text: string): string[] {
+  if (!text) return [];
+  const hashtagRegex = /#(\w+)/g;
+  const matches = text.match(hashtagRegex);
+  return matches ? matches.map(tag => tag.substring(1)) : [];
+}
+
 interface MediaPreviewProps {
   files?: File[];
   imageUrls?: string[];
