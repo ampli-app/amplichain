@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { MediaFile } from '@/components/social/MediaPreview';
@@ -110,7 +111,9 @@ export function useConsultationForm(initialData?: any) {
     setTagInput,
     tags,
     setTags,
+    media,
+    setMedia,
     validateForm,
     getFormData,
-   
-
+  };
+}
