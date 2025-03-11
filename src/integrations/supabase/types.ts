@@ -1481,6 +1481,7 @@ export type Database = {
           review_count: number | null
           sale: boolean | null
           sale_percentage: number | null
+          subcategory_id: string | null
           testing_price: number | null
           title: string
           updated_at: string
@@ -1501,6 +1502,7 @@ export type Database = {
           review_count?: number | null
           sale?: boolean | null
           sale_percentage?: number | null
+          subcategory_id?: string | null
           testing_price?: number | null
           title: string
           updated_at?: string
@@ -1521,6 +1523,7 @@ export type Database = {
           review_count?: number | null
           sale?: boolean | null
           sale_percentage?: number | null
+          subcategory_id?: string | null
           testing_price?: number | null
           title?: string
           updated_at?: string
@@ -1532,6 +1535,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "subcategories"
             referencedColumns: ["id"]
           },
         ]
@@ -1704,6 +1714,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      subcategories: {
+        Row: {
+          category_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcategories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

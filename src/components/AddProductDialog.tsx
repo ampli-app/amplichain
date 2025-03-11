@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -85,6 +84,11 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
   const [isForTesting, setIsForTesting] = useState(false);
   const [testingPrice, setTestingPrice] = useState('');
   
+  // Dodajemy nowe stany dla podkategorii
+  const [subcategories, setSubcategories] = useState<any[]>([]);
+  const [subcategoryId, setSubcategoryId] = useState<string>('');
+  const [isSubcategoriesLoading, setIsSubcategoriesLoading] = useState(false);
+  
   // Fetch categories from Supabase
   useEffect(() => {
     async function fetchCategories() {
@@ -144,6 +148,16 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     fetchDeliveryOptions();
   }, []);
   
+  // Dodaj nowy useEffect dla ładowania podkategorii gdy zmienia się kategoria
+  useEffect(() => {
+    if (categoryId) {
+      fetchSubcategories(categoryId);
+    } else {
+      setSubcategories([]);
+      setSubcategoryId('');
+    }
+  }, [categoryId]);
+  
   useEffect(() => {
     if (open && !isLoggedIn) {
       onOpenChange(false);
@@ -162,6 +176,33 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
       fetchProductData(productId);
     }
   }, [open, isLoggedIn, productId]);
+  
+  // Funkcja do pobierania podkategorii
+  const fetchSubcategories = async (categoryId: string) => {
+    try {
+      setIsSubcategoriesLoading(true);
+      const { data, error } = await supabase
+        .from('subcategories')
+        .select('*')
+        .eq('category_id', categoryId)
+        .order('name');
+      
+      if (error) {
+        console.error('Błąd podczas pobierania podkategorii:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się pobrać podkategorii. Spróbuj ponownie później.",
+          variant: "destructive",
+        });
+      } else if (data) {
+        setSubcategories(data);
+      }
+    } catch (err) {
+      console.error('Nieoczekiwany błąd:', err);
+    } finally {
+      setIsSubcategoriesLoading(false);
+    }
+  };
   
   const fetchProductData = async (id: string) => {
     setIsLoading(true);
@@ -206,6 +247,11 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         setCondition(data.condition || 'new');
         setLocation(data.location || '');
         setSelectedDeliveryOptions(selectedOptions);
+        
+        // Ustawienie podkategorii
+        if (data.subcategory_id) {
+          setSubcategoryId(data.subcategory_id);
+        }
         
         // Handle category selection
         if (data.category_id && data.categories) {
@@ -286,6 +332,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     setIsForTesting(false);
     setTestingPrice('');
     setSelectedDeliveryOptions([]);
+    setSubcategoryId('');
   };
   
   const handleMultipleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -545,6 +592,7 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
         price: parseFloat(price),
         category: selectedCategory?.name, // Keep for backward compatibility
         category_id: categoryId, // Store the category ID
+        subcategory_id: subcategoryId || null, // Dodajemy ID podkategorii
         image_url: imageUrlsJson, // Store JSON string of image URLs
         for_testing: isForTesting,
         testing_price: isForTesting ? parseFloat(testingPrice) : null,
@@ -636,11 +684,16 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
   
   const handleCategoryChange = (categoryId: string) => {
     setCategoryId(categoryId);
+    setSubcategoryId(''); // Resetujemy wybraną podkategorię gdy zmieniamy kategorię
     // Get category name from id
     const selectedCategory = categories.find(cat => cat.id === categoryId);
     if (selectedCategory) {
       setCategory(selectedCategory.name);
     }
+  };
+  
+  const handleSubcategoryChange = (value: string) => {
+    setSubcategoryId(value);
   };
   
   return (
@@ -719,6 +772,37 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
                   </Select>
                 </div>
               </div>
+              
+              {/* Dodajemy pole wyboru podkategorii */}
+              {categoryId && (
+                <div className="grid gap-3">
+                  <Label htmlFor="subcategory">Podkategoria</Label>
+                  <Select value={subcategoryId} onValueChange={handleSubcategoryChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Wybierz podkategorię" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isSubcategoriesLoading ? (
+                        <div className="flex items-center justify-center p-2">
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          <span>Ładowanie podkategorii...</span>
+                        </div>
+                      ) : subcategories.length > 0 ? (
+                        <>
+                          <SelectItem value="">Brak podkategorii</SelectItem>
+                          {subcategories.map((subcat) => (
+                            <SelectItem key={subcat.id} value={subcat.id}>{subcat.name}</SelectItem>
+                          ))}
+                        </>
+                      ) : (
+                        <div className="p-2 text-sm text-muted-foreground">
+                          Brak podkategorii dla wybranej kategorii
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               
               {/* Stan produktu */}
               <div className="grid gap-3">
@@ -871,80 +955,4 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
               
               <Separator />
               
-              {/* Testing option with improved UI */}
-              <div className="space-y-4 bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex justify-between">
-                  <div className="flex items-start space-x-2">
-                    <Checkbox 
-                      id="forTesting" 
-                      checked={isForTesting}
-                      onCheckedChange={(checked) => setIsForTesting(checked as boolean)}
-                      className="mt-1"
-                    />
-                    <div>
-                      <Label htmlFor="forTesting" className="text-base font-medium">Udostępnij do testów przed zakupem</Label>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Umożliwia potencjalnym kupującym wypożyczenie produktu na tydzień w niższej cenie.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                {isForTesting && (
-                  <div className="pl-6 pt-2">
-                    <Label htmlFor="testingPrice">Cena tygodniowego testu (PLN)</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Input 
-                        id="testingPrice" 
-                        type="number"
-                        placeholder="0.00"
-                        min="0"
-                        step="0.01"
-                        value={testingPrice}
-                        onChange={(e) => setTestingPrice(e.target.value)}
-                        className="max-w-xs"
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        Sugerowane: {price ? `${Math.round(Number(price) * 0.15)} PLN` : 'obliczane na podstawie ceny'}
-                      </span>
-                    </div>
-                    <Alert className="mt-3 bg-blue-100/50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        Produkty z opcją testów są częściej wybierane przez kupujących. Zalecana cena testu to 10-20% wartości produktu.
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                onOpenChange(false);
-                resetForm();
-              }}
-              disabled={isLoading}
-            >
-              Anuluj
-            </Button>
-            <Button onClick={handleSubmit} disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditMode ? 'Zapisz zmiany' : 'Dodaj produkt'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <AuthRequiredDialog 
-        open={showAuthDialog} 
-        onOpenChange={setShowAuthDialog} 
-        title="Wymagane logowanie"
-        description="Aby dodać produkt do rynku, musisz być zalogowany."
-      />
-    </>
-  );
-}
+              {
