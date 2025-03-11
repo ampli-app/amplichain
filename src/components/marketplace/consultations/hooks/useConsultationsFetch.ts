@@ -42,17 +42,17 @@ export function useConsultationsFetch() {
           let userProfile;
           
           // Bezpieczne sprawdzenie, czy profiles istnieje i ma poprawną strukturę
+          const profileData = consultation.profiles;
           if (
-            consultation.profiles && 
-            typeof consultation.profiles === 'object' && 
-            consultation.profiles !== null && 
-            !('error' in consultation.profiles)
+            profileData && 
+            typeof profileData === 'object' && 
+            !('error' in profileData)
           ) {
             userProfile = {
-              id: consultation.profiles?.id || '',
-              username: consultation.profiles?.username || '',
-              full_name: consultation.profiles?.full_name || '',
-              avatar_url: consultation.profiles?.avatar_url || ''
+              id: profileData.id || '',
+              username: profileData.username || '',
+              full_name: profileData.full_name || '',
+              avatar_url: profileData.avatar_url || ''
             };
           } else {
             // Jeśli brak danych profilu lub wystąpił błąd, użyj domyślnych wartości
