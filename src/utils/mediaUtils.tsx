@@ -1,6 +1,8 @@
 
-import React from 'react';
-import { XCircle } from 'lucide-react';
+import React, { RefObject } from 'react';
+import { X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface MediaFile {
   file?: File;
@@ -9,190 +11,112 @@ export interface MediaFile {
   type?: string;
 }
 
-export interface MediaPreviewProps {
+export const handleFileUpload = (
+  e: React.ChangeEvent<HTMLInputElement>,
+  media: MediaFile[],
+  setMedia: React.Dispatch<React.SetStateAction<MediaFile[]>>,
+  fileInputRef: RefObject<HTMLInputElement>
+) => {
+  if (!e.target.files?.length) return;
+  
+  const newFiles = Array.from(e.target.files).map(file => ({
+    file,
+    preview: URL.createObjectURL(file),
+    type: file.type.startsWith('image/') ? 'image' : 'file'
+  }));
+  
+  const updatedFiles = [...media, ...newFiles];
+  
+  if (updatedFiles.length > 6) {
+    alert(`Można dodać maksymalnie 6 plików`);
+    setMedia(updatedFiles.slice(0, 6));
+  } else {
+    setMedia(updatedFiles);
+  }
+  
+  // Reset input
+  if (fileInputRef.current) {
+    fileInputRef.current.value = '';
+  }
+};
+
+export const uploadMediaToStorage = async (file: File, path: string): Promise<string | null> => {
+  try {
+    const fileName = `${Date.now()}_${file.name}`;
+    const fullPath = `${path}/${fileName}`;
+    
+    const { data, error } = await supabase.storage
+      .from(path.split('/')[0])
+      .upload(fullPath.substring(path.split('/')[0].length + 1), file);
+    
+    if (error) throw error;
+    
+    if (data) {
+      const { data: urlData } = supabase.storage
+        .from(path.split('/')[0])
+        .getPublicUrl(fullPath.substring(path.split('/')[0].length + 1));
+      
+      if (urlData) {
+        return urlData.publicUrl;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error uploading media:', error);
+    return null;
+  }
+};
+
+interface MediaPreviewProps {
   media?: MediaFile[];
   imageUrls?: string[];
-  onRemoveMedia?: (index: number) => void;
+  onRemoveMedia: (index: number) => void;
   disabled?: boolean;
 }
 
-/**
- * Processes images from input element to be used in forms
- * @param event Input file change event
- * @param setImages Function to set images state
- * @param maxImages Maximum number of images allowed
- */
-export function handleImagesChange(
-  event: React.ChangeEvent<HTMLInputElement>,
-  setImages: React.Dispatch<React.SetStateAction<File[]>>,
-  maxImages: number = 8
-) {
-  if (event.target.files && event.target.files.length > 0) {
-    const filesArray = Array.from(event.target.files);
-    
-    setImages(prevImages => {
-      const totalImages = [...prevImages, ...filesArray];
-      
-      if (totalImages.length > maxImages) {
-        const message = `Można dodać maksymalnie ${maxImages} zdjęć. Wybrano pierwsze ${maxImages}.`;
-        alert(message);
-        return totalImages.slice(0, maxImages);
-      }
-      
-      return totalImages;
-    });
+export const MediaPreview: React.FC<MediaPreviewProps> = ({
+  media,
+  imageUrls,
+  onRemoveMedia,
+  disabled = false
+}) => {
+  const urls = media 
+    ? media.map(m => m.preview || m.url) 
+    : imageUrls || [];
+  
+  if (!urls.length) {
+    return null;
   }
-}
-
-/**
- * Removes an image from the images array
- * @param index Index of the image to remove
- * @param setImages Function to set images state
- */
-export function removeImage(
-  index: number,
-  setImages: React.Dispatch<React.SetStateAction<File[]>>
-) {
-  setImages(prevImages => prevImages.filter((_, i) => i !== index));
-}
-
-/**
- * Parses image URL string to array
- * @param imageUrl Image URL string or array
- * @returns Array of image URLs
- */
-export function parseImageUrl(imageUrl: string | string[] | null | undefined): string[] {
-  if (!imageUrl) return [];
-  
-  if (Array.isArray(imageUrl)) {
-    return imageUrl;
-  }
-  
-  try {
-    const parsed = JSON.parse(imageUrl);
-    return Array.isArray(parsed) ? parsed : [imageUrl];
-  } catch (e) {
-    return [imageUrl];
-  }
-}
-
-/**
- * Gets a single preview URL for a product
- * @param imageUrl Image URL string or array
- */
-export function getProductPreviewUrl(imageUrl: string | string[] | null | undefined): string {
-  const images = parseImageUrl(imageUrl);
-  return images.length > 0 
-    ? images[0] 
-    : 'https://placehold.co/600x400?text=Brak+zdjęcia';
-}
-
-export function handleFileUpload(
-  event: React.ChangeEvent<HTMLInputElement>,
-  currentFiles: MediaFile[],
-  setFiles: (files: MediaFile[]) => void,
-  fileInputRef: React.RefObject<HTMLInputElement> | number,
-  maxFiles: number = 4
-) {
-  if (!event.target.files?.length) return;
-  
-  const newFiles = Array.from(event.target.files).map(file => ({
-    file,
-    preview: URL.createObjectURL(file)
-  }));
-  
-  const updatedFiles = [...currentFiles, ...newFiles];
-  
-  if (updatedFiles.length > maxFiles) {
-    alert(`Można dodać maksymalnie ${maxFiles} plików`);
-    setFiles(updatedFiles.slice(0, maxFiles));
-  } else {
-    setFiles(updatedFiles);
-  }
-}
-
-export async function uploadMediaToStorage(
-  files: MediaFile[] | File[] | File,
-  storageBucket: string
-): Promise<string[]> {
-  if (!Array.isArray(files)) {
-    files = [files];
-  }
-  
-  // Convert all items to MediaFile format
-  const mediaFiles = files.map(file => {
-    if (file instanceof File) {
-      return { 
-        file, 
-        preview: URL.createObjectURL(file)
-      };
-    }
-    return file as MediaFile;
-  });
-  
-  // Mock implementation - this would be replaced with actual Supabase upload logic
-  console.log(`Would upload ${mediaFiles.length} files to ${storageBucket}`);
-  
-  // Return array of urls
-  return mediaFiles.map(file => file.url || file.preview || '');
-}
-
-export function extractHashtags(text: string): string[] {
-  if (!text) return [];
-  const hashtagRegex = /#(\w+)/g;
-  const matches = text.match(hashtagRegex);
-  return matches ? matches.map(tag => tag.substring(1)) : [];
-}
-
-export function MediaPreview({ media, imageUrls, onRemoveMedia, disabled }: MediaPreviewProps) {
-  const hasMedia = media && media.length > 0;
-  const hasUrls = imageUrls && imageUrls.length > 0;
-  
-  if (!hasMedia && !hasUrls) return null;
   
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
-      {hasMedia && media.map((item, index) => (
-        <div key={`media-${index}`} className="relative group">
-          <div className="aspect-square rounded-md overflow-hidden border bg-muted/50">
-            <img 
-              src={item.preview || item.url || ''} 
-              alt={`Preview ${index + 1}`} 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          {onRemoveMedia && !disabled && (
-            <button
-              type="button"
-              onClick={() => onRemoveMedia(index)}
-              className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <XCircle className="h-5 w-5" />
-            </button>
-          )}
-        </div>
-      ))}
-      
-      {hasUrls && imageUrls.map((url, index) => (
-        <div key={`url-${index}`} className="relative group">
-          <div className="aspect-square rounded-md overflow-hidden border bg-muted/50">
+    <div className="grid grid-cols-3 gap-2 mb-4">
+      {urls.map((url, index) => (
+        url && (
+          <div key={index} className="relative rounded-md overflow-hidden aspect-square group border">
             <img 
               src={url} 
-              alt={`Image ${index + 1}`} 
+              alt={`Preview ${index + 1}`} 
               className="w-full h-full object-cover"
+              onError={(e) => {
+                // Fallback for invalid images
+                const target = e.target as HTMLImageElement;
+                target.src = '/placeholder.svg';
+              }}
             />
-          </div>
-          {onRemoveMedia && (
-            <button
+            <Button 
               type="button"
-              onClick={() => onRemoveMedia(index + (media?.length || 0))}
-              className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              variant="destructive"
+              size="icon"
+              className="absolute top-1 right-1 opacity-80 hover:opacity-100"
+              onClick={() => onRemoveMedia(index)}
+              disabled={disabled}
             >
-              <XCircle className="h-5 w-5" />
-            </button>
-          )}
-        </div>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )
       ))}
     </div>
   );
-}
+};

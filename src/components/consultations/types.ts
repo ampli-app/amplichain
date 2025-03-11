@@ -20,3 +20,8 @@ export interface MediaFile {
   url?: string;
   type?: string;
 }
+
+export interface MediaUploadResult {
+  publicUrl: string;
+  type: string;
+}

@@ -124,7 +124,7 @@ export function useConsultationForm(consultation: Consultation | null, onClose: 
         is_online: formData.isOnline,
         location: formData.isInPerson ? formData.location : null,
         contact_methods: formData.contactMethods,
-        images: uploadedImages.length > 0 ? JSON.stringify(uploadedImages) : null,
+        images: uploadedImages.length > 0 ? uploadedImages : null,
         updated_at: new Date().toISOString()
       };
       

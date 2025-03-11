@@ -2,7 +2,7 @@
 import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { MediaPreview } from '@/utils/mediaUtils';
+import { MediaPreview, handleFileUpload } from '@/utils/mediaUtils';
 import { ImageIcon } from 'lucide-react';
 import { ConsultationFormData, MediaFile } from './types';
 
@@ -21,30 +21,12 @@ export function ConsultationMediaUpload({ formData, onChange, isLoading = false 
     onChange('media', updatedMedia);
   };
   
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files?.length) return;
-    
-    const newFiles = Array.from(event.target.files).map(file => ({
-      file,
-      preview: URL.createObjectURL(file)
-    }));
-    
-    const updatedFiles = [...media, ...newFiles];
-    
-    if (updatedFiles.length > 6) {
-      alert(`Można dodać maksymalnie 6 zdjęć`);
-      onChange('media', updatedFiles.slice(0, 6));
-    } else {
-      onChange('media', updatedFiles);
-    }
-  };
-  
   return (
     <div className="grid gap-3">
       <Label>Zdjęcia konsultacji</Label>
       
       <MediaPreview 
-        imageUrls={media.map(m => m.url || m.preview)} 
+        media={media} 
         onRemoveMedia={handleRemoveMedia} 
         disabled={isLoading}
       />
@@ -56,7 +38,7 @@ export function ConsultationMediaUpload({ formData, onChange, isLoading = false 
           className="hidden"
           accept="image/*"
           multiple
-          onChange={handleFileChange}
+          onChange={(e) => handleFileUpload(e, media, (newMedia) => onChange('media', newMedia), fileInputRef)}
         />
         <Button 
           type="button" 

@@ -283,6 +283,7 @@ export type Database = {
           description: string | null
           experience: string | null
           id: string
+          images: string[] | null
           is_online: boolean | null
           location: string | null
           price: number
@@ -298,6 +299,7 @@ export type Database = {
           description?: string | null
           experience?: string | null
           id?: string
+          images?: string[] | null
           is_online?: boolean | null
           location?: string | null
           price: number
@@ -313,6 +315,7 @@ export type Database = {
           description?: string | null
           experience?: string | null
           id?: string
+          images?: string[] | null
           is_online?: boolean | null
           location?: string | null
           price?: number
@@ -1475,6 +1478,7 @@ export type Database = {
           for_testing: boolean | null
           id: string
           image_url: string | null
+          images: string[] | null
           location: string | null
           price: number
           rating: number | null
@@ -1496,6 +1500,7 @@ export type Database = {
           for_testing?: boolean | null
           id?: string
           image_url?: string | null
+          images?: string[] | null
           location?: string | null
           price: number
           rating?: number | null
@@ -1517,6 +1522,7 @@ export type Database = {
           for_testing?: boolean | null
           id?: string
           image_url?: string | null
+          images?: string[] | null
           location?: string | null
           price?: number
           rating?: number | null
