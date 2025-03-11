@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -145,7 +144,6 @@ export function ConsultationDetail() {
     
     try {
       if (isFavorite) {
-        // Remove from favorites
         const { error } = await supabase
           .from('favorites')
           .delete()
@@ -161,7 +159,6 @@ export function ConsultationDetail() {
           description: "Konsultacja została usunięta z ulubionych.",
         });
       } else {
-        // Add to favorites
         const { error } = await supabase
           .from('favorites')
           .insert({
@@ -213,7 +210,6 @@ export function ConsultationDetail() {
 
     if (!consultation) return;
 
-    // Tutaj dodać logikę zakupu konsultacji - przekierowanie do koszyka lub płatności
     toast({
       title: "Dodano do koszyka",
       description: "Konsultacja została dodana do koszyka.",
@@ -290,7 +286,6 @@ export function ConsultationDetail() {
       </Button>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Lewa kolumna - zdjęcie produktu */}
         <div>
           <div className="bg-white rounded-lg overflow-hidden">
             {consultation.images && consultation.images.length > 0 ? (
@@ -304,19 +299,10 @@ export function ConsultationDetail() {
               </div>
             )}
           </div>
-          
-          {/* Opcjonalnie: miniatury zdjęć na dole */}
-          {consultation.images && consultation.images.length > 1 && (
-            <div className="flex mt-4 gap-2 overflow-x-auto">
-              {/* Tu można dodać miniatury zdjęć, jeśli są potrzebne */}
-            </div>
-          )}
         </div>
         
-        {/* Prawa kolumna - informacje o produkcie */}
         <div>
           <div className="flex flex-col space-y-4">
-            {/* Kategoria i ew. odznaki */}
             <div className="flex gap-2 items-center">
               {consultation.categories && consultation.categories.map((category, index) => (
                 <Badge key={index} variant="outline" className="bg-gray-100">
@@ -331,10 +317,8 @@ export function ConsultationDetail() {
               )}
             </div>
             
-            {/* Tytuł produktu */}
             <h1 className="text-3xl font-bold">{consultation.title}</h1>
             
-            {/* Informacje o sprzedawcy */}
             <div className="flex items-center">
               <Avatar className="h-10 w-10 mr-3">
                 <AvatarImage src={owner?.avatar_url || ''} alt={owner?.full_name} />
@@ -348,7 +332,6 @@ export function ConsultationDetail() {
               </div>
             </div>
             
-            {/* Cena */}
             <div className="mt-4">
               <div className="text-3xl font-bold">{consultation.price},00 zł</div>
               <div className="text-sm text-muted-foreground">
@@ -356,7 +339,6 @@ export function ConsultationDetail() {
               </div>
             </div>
             
-            {/* Przyciski akcji */}
             <div className="grid grid-cols-1 gap-4 mt-4">
               {isOwner ? (
                 <div className="flex gap-4">
@@ -410,7 +392,6 @@ export function ConsultationDetail() {
               )}
             </div>
             
-            {/* Cechy produktu */}
             <Card className="mt-4">
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
@@ -473,7 +454,6 @@ export function ConsultationDetail() {
         </div>
       </div>
       
-      {/* Opis produktu */}
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">Opis konsultacji</h2>
         <div className="bg-white rounded-lg p-6 shadow-sm">
@@ -481,7 +461,6 @@ export function ConsultationDetail() {
         </div>
       </div>
       
-      {/* Dialog zakupu */}
       <Dialog open={buyDialogOpen} onOpenChange={setBuyDialogOpen}>
         <DialogContent>
           <DialogHeader>
