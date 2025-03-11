@@ -1,6 +1,6 @@
-
 import { useState } from 'react';
 import { toast } from '@/components/ui/use-toast';
+import { MediaFile } from '@/components/social/MediaPreview';
 
 export function useConsultationForm(initialData?: any) {
   const [title, setTitle] = useState(initialData?.title || '');
@@ -15,6 +15,13 @@ export function useConsultationForm(initialData?: any) {
   const [contactMethods, setContactMethods] = useState<string[]>(initialData?.contact_methods || []);
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
+  const [media, setMedia] = useState<MediaFile[]>(
+    initialData?.images ? 
+    (Array.isArray(initialData.images) ? 
+      initialData.images.map((url: string) => ({ url, type: 'image' })) : 
+      JSON.parse(initialData.images).map((url: string) => ({ url, type: 'image' }))
+    ) : []
+  );
 
   const validateForm = () => {
     if (!title.trim()) {
@@ -75,6 +82,7 @@ export function useConsultationForm(initialData?: any) {
     location: isInPerson ? location : null,
     availability: [],
     contact_methods: contactMethods,
+    images: media.length > 0 ? JSON.stringify(media.map(m => m.url)) : null,
   });
 
   return {
@@ -104,5 +112,5 @@ export function useConsultationForm(initialData?: any) {
     setTags,
     validateForm,
     getFormData,
-  };
-}
+   
+

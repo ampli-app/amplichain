@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,12 +8,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Upload } from 'lucide-react';
 import { BasicInfoSection } from '@/components/consultations/BasicInfoSection';
 import { AvailabilitySection } from '@/components/consultations/AvailabilitySection';
 import { ContactMethodsSection } from '@/components/consultations/ContactMethodsSection';
 import { CategoriesSection } from '@/components/consultations/CategoriesSection';
 import { useConsultationForm } from '@/hooks/useConsultationForm';
+import { MediaPreview } from '@/components/social/MediaPreview';
+import { handleFileUpload, uploadMediaToStorage } from '@/utils/mediaUtils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function EditConsultation() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +25,7 @@ export default function EditConsultation() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const form = useConsultationForm();
   
@@ -98,10 +102,21 @@ export default function EditConsultation() {
       if (!user) {
         throw new Error("Nie jesteś zalogowany.");
       }
+
+      const mediaUrls = await Promise.all(
+        form.media
+          .filter(m => m.file) // tylko nowe pliki
+          .map(m => uploadMediaToStorage(m.file!, 'consultation-images'))
+      );
+
+      const allMediaUrls = form.media
+        .filter(m => !m.file) // stare pliki (tylko url)
+        .map(m => m.url)
+        .concat(mediaUrls.filter(url => url !== null) as string[]);
       
       const consultationData = {
-        user_id: user.id,
-        ...form.getFormData()
+        ...form.getFormData(),
+        images: allMediaUrls.length > 0 ? JSON.stringify(allMediaUrls) : null,
       };
       
       let operation;
@@ -198,6 +213,32 @@ export default function EditConsultation() {
                 experienceYears={form.experienceYears}
                 setExperienceYears={form.setExperienceYears}
               />
+              
+              <Separator />
+
+              <div className="grid gap-3">
+                <Label>Zdjęcia</Label>
+                <div className="grid gap-4">
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="cursor-pointer"
+                    onChange={(e) => handleFileUpload(e, form.media, form.setMedia, fileInputRef)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Możesz dodać maksymalnie 6 zdjęć. Dozwolone formaty: JPG, PNG.
+                  </p>
+                  <MediaPreview
+                    media={form.media}
+                    onRemoveMedia={(index) => {
+                      form.setMedia(prev => prev.filter((_, i) => i !== index));
+                    }}
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
               
               <Separator />
               
