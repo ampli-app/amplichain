@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,8 +35,11 @@ import {
   Info,
   Eye,
   Pencil,
-  Share2
+  Share2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
+import { ProductImage } from '@/components/marketplace/ProductImage';
 
 export function ConsultationDetail() {
   const { id } = useParams<{ id: string }>();
@@ -349,6 +353,16 @@ export function ConsultationDetail() {
             </CardHeader>
             
             <CardContent>
+              {/* Dodana galeria zdjęć */}
+              {consultation.images && consultation.images.length > 0 && (
+                <div className="mb-6">
+                  <ProductImage 
+                    image={consultation.images} 
+                    title={consultation.title} 
+                  />
+                </div>
+              )}
+              
               <div className="flex items-center mb-6">
                 <Avatar className="h-10 w-10 mr-3">
                   <AvatarImage src={owner?.avatar_url || ''} alt={owner?.full_name} />
