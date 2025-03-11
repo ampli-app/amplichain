@@ -16,7 +16,7 @@ export function useConsultationsFetch() {
       // Pobierz wszystkie konsultacje
       const { data: consultationsData, error: consultationsError } = await supabase
         .from('consultations')
-        .select('*, profiles:user_id(*)')
+        .select('*, profiles:user_id(id, username, full_name, avatar_url)')
         .order('created_at', { ascending: false });
       
       if (consultationsError) {
@@ -35,7 +35,29 @@ export function useConsultationsFetch() {
             ];
           }
           
-          return consultation;
+          // Konwertuj dane do właściwego typu Consultation
+          return {
+            id: consultation.id,
+            user_id: consultation.user_id,
+            title: consultation.title,
+            description: consultation.description || '',
+            price: consultation.price,
+            categories: consultation.categories || [],
+            experience: consultation.experience || '',
+            availability: consultation.availability || [],
+            is_online: consultation.is_online || false,
+            location: consultation.location || '',
+            contact_methods: consultation.contact_methods || [],
+            created_at: consultation.created_at,
+            updated_at: consultation.updated_at,
+            images: consultation.images,
+            profiles: consultation.profiles ? {
+              id: consultation.profiles.id,
+              username: consultation.profiles.username || '',
+              full_name: consultation.profiles.full_name || '',
+              avatar_url: consultation.profiles.avatar_url || ''
+            } : undefined
+          } as Consultation;
         });
         
         setConsultations(processedConsultations);
