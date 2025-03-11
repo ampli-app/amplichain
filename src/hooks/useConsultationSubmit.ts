@@ -21,20 +21,22 @@ export function useConsultationSubmit(id?: string) {
         throw new Error("Nie jesteś zalogowany.");
       }
 
-      const mediaUrls = await Promise.all(
-        form.media
-          .filter((m: any) => m.file) // tylko nowe pliki
-          .map((m: any) => uploadMediaToStorage(m.file!, 'consultation-images'))
-      );
-
+      // Obsługa przesyłania nowych mediów
+      const newMediaPromises = form.media
+        .filter((m: any) => m.file) // tylko nowe pliki
+        .map((m: any) => uploadMediaToStorage(m.file!, 'consultation-images'));
+      
+      const uploadedMediaUrls = await Promise.all(newMediaPromises);
+      
+      // Połącz istniejące i nowe media
       const allMediaUrls = form.media
         .filter((m: any) => !m.file) // stare pliki (tylko url)
         .map((m: any) => m.url)
-        .concat(mediaUrls.filter((url: string | null) => url !== null) as string[]);
+        .concat(uploadedMediaUrls.filter((url: string | null) => url !== null) as string[]);
       
       const consultationData = {
         ...form.getFormData(),
-        images: allMediaUrls.length > 0 ? allMediaUrls : null,
+        images: allMediaUrls.length > 0 ? JSON.stringify(allMediaUrls) : null,
         user_id: user.id
       };
       

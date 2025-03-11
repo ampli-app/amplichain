@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -69,12 +70,15 @@ export function useConsultationData(id?: string) {
         
         if (typeof data.images === 'string') {
           try {
-            imageArray = JSON.parse(data.images);
+            const parsedImages = JSON.parse(data.images);
+            if (Array.isArray(parsedImages)) {
+              imageArray = parsedImages.map(img => String(img)).filter(url => typeof url === 'string' && url);
+            }
           } catch (e) {
             console.error('Błąd parsowania JSON zdjęć:', e);
           }
         } else if (Array.isArray(data.images)) {
-          imageArray = data.images.map(img => String(img)).filter(url => typeof url === 'string');
+          imageArray = data.images.map(img => String(img)).filter(url => typeof url === 'string' && url);
         }
         
         if (imageArray.length > 0) {
