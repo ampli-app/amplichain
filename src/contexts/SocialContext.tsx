@@ -1,17 +1,24 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import { SocialUser, Notification } from './social/types';
 
 interface SocialContextProps {
   isInitialized: boolean;
-  notifications: any[];
+  notifications: Notification[];
   unreadNotifications: number;
+  currentUser: SocialUser | null;
+  users: SocialUser[];
+  loading: boolean;
   refreshNotifications: () => Promise<void>;
   markNotificationsAsRead: () => Promise<void>;
+  markNotificationAsRead: (notificationId: string) => Promise<void>;
+  markAllNotificationsAsRead: () => Promise<void>;
   fetchUserPosts: (userId: string) => Promise<any[]>;
   fetchFeedPosts: () => Promise<any[]>;
+  fetchUserProfile: (userId: string) => Promise<SocialUser | null>;
   addPost: (postData: any) => Promise<any>;
+  createPost: (content: string, mediaUrl?: string) => Promise<void>;
   likePost: (postId: string) => Promise<void>;
   unlikePost: (postId: string) => Promise<void>;
   addComment: (postId: string, comment: string) => Promise<void>;
@@ -19,8 +26,11 @@ interface SocialContextProps {
   followHashtag: (hashtag: string) => Promise<void>;
   unfollowHashtag: (hashtag: string) => Promise<void>;
   fetchTrendingHashtags: () => Promise<any[]>;
+  getPopularHashtags: () => Promise<any[]>;
   fetchUserConnections: (userId: string) => Promise<any[]>;
   fetchUserSuggestions: () => Promise<any[]>;
+  followUser: (userId: string) => Promise<void>;
+  unfollowUser: (userId: string) => Promise<void>;
   sendConnectionRequest: (targetUserId: string) => Promise<void>;
   acceptConnectionRequest: (requestId: string) => Promise<void>;
   declineConnectionRequest: (requestId: string) => Promise<void>;
@@ -31,12 +41,16 @@ const SocialContext = createContext<SocialContextProps | null>(null);
 
 export const SocialProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [currentUser, setCurrentUser] = useState<SocialUser | null>(null);
+  const [users, setUsers] = useState<SocialUser[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Inicjalizacja kontekstu
     setIsInitialized(true);
+    setLoading(false);
   }, []);
 
   const refreshNotifications = async () => {
@@ -57,6 +71,76 @@ export const SocialProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     } catch (error) {
       console.error('Error marking notifications as read:', error);
       return Promise.reject(error);
+    }
+  };
+
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      // Implementacja oznaczania pojedynczego powiadomienia jako przeczytane
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      return Promise.reject(error);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    try {
+      // Implementacja oznaczania wszystkich powiadomień jako przeczytane
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      return Promise.reject(error);
+    }
+  };
+
+  const createPost = async (content: string, mediaUrl?: string) => {
+    try {
+      // Implementacja tworzenia posta
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Error creating post:', error);
+      return Promise.reject(error);
+    }
+  };
+
+  const fetchUserProfile = async (userId: string): Promise<SocialUser | null> => {
+    try {
+      // Implementacja pobierania profilu użytkownika
+      return Promise.resolve(null);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return Promise.resolve(null);
+    }
+  };
+
+  const followUser = async (userId: string) => {
+    try {
+      // Implementacja obserwowania użytkownika
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Error following user:', error);
+      return Promise.reject(error);
+    }
+  };
+
+  const unfollowUser = async (userId: string) => {
+    try {
+      // Implementacja przestania obserwowania użytkownika
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Error unfollowing user:', error);
+      return Promise.reject(error);
+    }
+  };
+
+  const getPopularHashtags = async () => {
+    try {
+      // Implementacja pobierania popularnych hashtagów
+      return Promise.resolve([]);
+    } catch (error) {
+      console.error('Error fetching popular hashtags:', error);
+      return Promise.resolve([]);
     }
   };
 
@@ -229,11 +313,18 @@ export const SocialProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     isInitialized,
     notifications,
     unreadNotifications,
+    currentUser,
+    users,
+    loading,
     refreshNotifications,
     markNotificationsAsRead,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
     fetchUserPosts,
     fetchFeedPosts,
+    fetchUserProfile,
     addPost,
+    createPost,
     likePost,
     unlikePost,
     addComment,
@@ -241,8 +332,11 @@ export const SocialProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     followHashtag,
     unfollowHashtag,
     fetchTrendingHashtags,
+    getPopularHashtags,
     fetchUserConnections,
     fetchUserSuggestions,
+    followUser,
+    unfollowUser,
     sendConnectionRequest,
     acceptConnectionRequest,
     declineConnectionRequest,
