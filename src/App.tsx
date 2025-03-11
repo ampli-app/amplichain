@@ -48,10 +48,7 @@ function App() {
           <Route path="/edit-product/:id" element={<EditProduct />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          
-          {/* Dodajemy nową ścieżkę do edycji konsultacji */}
           <Route path="/edit-consultation/:id" element={<EditConsultation />} />
-          
           <Route path="/consultations/:id" element={<ConsultationDetail />} />
         </Routes>
         <Footer />
