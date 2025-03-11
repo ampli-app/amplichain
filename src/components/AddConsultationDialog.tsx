@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,8 @@ import { Loader2, Clock, Tag, Plus, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
+import { MediaUploadSection } from '@/components/consultations/MediaUploadSection';
+import { MediaFile, uploadMediaToStorage } from '@/utils/mediaUtils';
 
 interface AddConsultationDialogProps {
   open: boolean;
@@ -57,6 +60,9 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   
+  // Dodajemy stan dla mediów
+  const [media, setMedia] = useState<MediaFile[]>([]);
+  
   useEffect(() => {
     if (open) {
       resetForm();
@@ -76,6 +82,7 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
     setContactMethods([]);
     setTags([]);
     setTagInput('');
+    setMedia([]); // Resetujemy media
   };
   
   const toggleCategory = (category: string) => {
@@ -159,6 +166,19 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
         throw new Error("Nie jesteś zalogowany.");
       }
       
+      // Obsługa przesyłania nowych mediów
+      const mediaPromises = media
+        .filter(m => m.file) // tylko nowe pliki
+        .map(m => uploadMediaToStorage(m.file!, 'consultation-images'));
+      
+      const uploadedMediaUrls = await Promise.all(mediaPromises);
+      
+      // Wszystkie media URL
+      const allMediaUrls = media
+        .filter(m => !m.file) // stare pliki (tylko url)
+        .map(m => m.url)
+        .concat(uploadedMediaUrls.filter(url => url !== null) as string[]);
+      
       const consultationData = {
         user_id: user.id,
         title,
@@ -170,6 +190,7 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
         location: isInPerson ? location : null,
         availability: [], // Docelowo można dodać wybór dostępności
         contact_methods: contactMethods,
+        images: allMediaUrls.length > 0 ? JSON.stringify(allMediaUrls) : null
       };
       
       const { data, error } = await supabase
@@ -275,6 +296,14 @@ export function AddConsultationDialog({ open, onOpenChange }: AddConsultationDia
               />
             </div>
           </div>
+          
+          {/* Dodajemy sekcję przesyłania zdjęć */}
+          <MediaUploadSection
+            media={media}
+            setMedia={setMedia}
+            disabled={isLoading}
+            maxFiles={6}
+          />
           
           <div className="grid gap-3">
             <Label>Sposób prowadzenia konsultacji</Label>
