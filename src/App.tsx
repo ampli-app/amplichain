@@ -26,19 +26,21 @@ function App() {
   }
 
   return (
-    <div className="bg-background text-foreground">
+    <div className="bg-background text-foreground min-h-screen flex flex-col">
       <Navbar />
-      <Routes>
-        <Route path="/" element={<Discover />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/discover" element={<Discover />} />
-        <Route path="/marketplace" element={<Marketplace />} />
-        <Route path="/marketplace/:id" element={<ProductDetail />} />
-        <Route path="/edit-product/:id" element={<EditProduct />} />
-        <Route path="/edit-consultation/:id" element={<EditConsultation />} />
-        <Route path="/consultations/:id" element={<ConsultationDetail />} />
-      </Routes>
+      <main className="flex-grow pt-20">
+        <Routes>
+          <Route path="/" element={<Discover />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/discover" element={<Discover />} />
+          <Route path="/marketplace" element={<Marketplace />} />
+          <Route path="/marketplace/:id" element={<ProductDetail />} />
+          <Route path="/edit-product/:id" element={<EditProduct />} />
+          <Route path="/edit-consultation/:id" element={<EditConsultation />} />
+          <Route path="/consultations/:id" element={<ConsultationDetail />} />
+        </Routes>
+      </main>
       <Footer />
       <Toaster />
     </div>
