@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import { Loader2, X, Upload, Plus, PlusCircle, AlertCircle, Trash2 } from 'lucid
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { MediaPreview } from '@/utils/mediaUtils';
 
 interface AddProductDialogProps {
   open: boolean;
@@ -696,10 +698,6 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
     setSubcategoryId(value);
   };
   
-  const showAuthDialog = () => {
-    setShowAuthDialog(true);
-  };
-  
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -952,3 +950,71 @@ export function AddProductDialog({ open, onOpenChange, productId }: AddProductDi
                           </div>
                         )
                       ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </div>
+              
+              {/* Opcja testowania produktu (checkbox i cena) */}
+              <div className="grid gap-3 border-t pt-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="for-testing" 
+                    checked={isForTesting}
+                    onCheckedChange={(checked) => setIsForTesting(checked === true)}
+                  />
+                  <Label htmlFor="for-testing">Produkt dostępny do testowania przez klientów</Label>
+                </div>
+                
+                {isForTesting && (
+                  <div className="grid gap-3 pl-6">
+                    <Label htmlFor="testing-price">Cena tygodniowego testu (PLN)</Label>
+                    <Input 
+                      id="testing-price" 
+                      type="number"
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      value={testingPrice}
+                      onChange={(e) => setTestingPrice(e.target.value)}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Podaj cenę za tygodniowy test produktu przez klienta.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)} 
+              disabled={isLoading}
+            >
+              Anuluj
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Zapisywanie...
+                </>
+              ) : isEditMode ? 'Aktualizuj produkt' : 'Dodaj produkt'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <AuthRequiredDialog 
+        open={showAuthDialog} 
+        onOpenChange={setShowAuthDialog}
+      />
+    </>
+  );
+}
