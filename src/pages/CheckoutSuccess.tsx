@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { useParams, useLocation, Link } from 'react-router-dom';
+import { useParams, useLocation, Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -20,10 +19,13 @@ import {
 import { toast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CheckoutSuccess() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const isTestMode = location.search.includes('mode=test');
   
   const [isLoading, setIsLoading] = useState(true);
@@ -34,6 +36,7 @@ export default function CheckoutSuccess() {
     phone: "123-456-789",
     location: ""
   });
+  const [orderCreated, setOrderCreated] = useState(false);
   
   // Generujemy losowy numer zamówienia
   const orderNumber = `ORD-${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
@@ -46,7 +49,7 @@ export default function CheckoutSuccess() {
   testEndDate.setDate(testEndDate.getDate() + 7);
   
   useEffect(() => {
-    if (!id) return;
+    if (!id || !user) return;
     
     const fetchProductData = async () => {
       setIsLoading(true);
@@ -77,6 +80,11 @@ export default function CheckoutSuccess() {
           if (data.user_id) {
             fetchSellerInfo(data.user_id);
           }
+          
+          // Create order if it doesn't exist yet
+          if (!orderCreated) {
+            createOrder(data);
+          }
         }
       } catch (err) {
         console.error('Unexpected error:', err);
@@ -86,7 +94,93 @@ export default function CheckoutSuccess() {
     };
     
     fetchProductData();
-  }, [id]);
+  }, [id, user, orderCreated]);
+  
+  const createOrder = async (productData: any) => {
+    if (!user || !productData) return;
+    
+    try {
+      // Sprawdź, czy zamówienie już istnieje
+      const { data: existingOrders, error: fetchError } = await supabase
+        .from('product_orders')
+        .select('id')
+        .eq('product_id', productData.id)
+        .eq('buyer_id', user.id)
+        .eq('status', 'oczekujące')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (fetchError) {
+        console.error('Błąd podczas sprawdzania istniejących zamówień:', fetchError);
+        return;
+      }
+      
+      // Jeśli zamówienie już istnieje, nie tworzymy nowego
+      if (existingOrders && existingOrders.length > 0) {
+        console.log('Zamówienie już istnieje:', existingOrders[0].id);
+        setOrderCreated(true);
+        return;
+      }
+      
+      // Pobierz opcję dostawy (używamy kuriera jako domyślnej opcji)
+      const { data: deliveryOptions, error: deliveryError } = await supabase
+        .from('delivery_options')
+        .select('*')
+        .eq('name', 'Kurier')
+        .limit(1);
+      
+      if (deliveryError || !deliveryOptions || deliveryOptions.length === 0) {
+        console.error('Błąd podczas pobierania opcji dostawy:', deliveryError);
+        return;
+      }
+      
+      const deliveryOption = deliveryOptions[0];
+      
+      // Cena produktu zależna od trybu (test/zakup)
+      const productPrice = isTestMode && productData.testing_price 
+        ? parseFloat(productData.testing_price) 
+        : parseFloat(productData.price);
+      
+      const totalAmount = productPrice + deliveryOption.price;
+      
+      // Utwórz nowe zamówienie
+      const { data, error } = await supabase
+        .from('product_orders')
+        .insert({
+          product_id: productData.id,
+          buyer_id: user.id,
+          seller_id: productData.user_id,
+          total_amount: totalAmount,
+          delivery_option_id: deliveryOption.id,
+          status: 'oczekujące',
+          payment_method: 'Karta płatnicza',
+          order_type: isTestMode ? 'test' : 'purchase',
+          test_end_date: isTestMode ? testEndDate.toISOString() : null
+        })
+        .select();
+      
+      if (error) {
+        console.error('Błąd podczas tworzenia zamówienia:', error);
+        toast({
+          title: "Ostrzeżenie",
+          description: "Zamówienie mogło nie zostać zapisane poprawnie. Sprawdź swoje zamówienia.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (data) {
+        console.log('Zamówienie utworzone:', data[0].id);
+        setOrderCreated(true);
+        toast({
+          title: "Sukces",
+          description: "Zamówienie zostało pomyślnie zapisane.",
+        });
+      }
+    } catch (err) {
+      console.error('Nieoczekiwany błąd podczas tworzenia zamówienia:', err);
+    }
+  };
   
   const fetchSellerInfo = async (userId: string) => {
     try {
@@ -113,33 +207,6 @@ export default function CheckoutSuccess() {
     } catch (err) {
       console.error('Unexpected error fetching seller info:', err);
     }
-  };
-  
-  const handleCopyOrderNumber = () => {
-    navigator.clipboard.writeText(orderNumber).then(
-      () => {
-        toast({
-          title: "Skopiowano",
-          description: "Numer zamówienia został skopiowany do schowka.",
-        });
-      },
-      (err) => {
-        console.error('Could not copy text: ', err);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się skopiować numeru zamówienia.",
-          variant: "destructive",
-        });
-      }
-    );
-  };
-  
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('pl-PL', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    }).format(date);
   };
   
   if (isLoading) {
@@ -221,6 +288,33 @@ export default function CheckoutSuccess() {
     }
     
     return '/placeholder.svg';
+  };
+  
+  const handleCopyOrderNumber = () => {
+    navigator.clipboard.writeText(orderNumber).then(
+      () => {
+        toast({
+          title: "Skopiowano",
+          description: "Numer zamówienia został skopiowany do schowka.",
+        });
+      },
+      (err) => {
+        console.error('Could not copy text: ', err);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się skopiować numeru zamówienia.",
+          variant: "destructive",
+        });
+      }
+    );
+  };
+  
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('pl-PL', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(date);
   };
   
   return (
@@ -394,11 +488,11 @@ export default function CheckoutSuccess() {
                       </ul>
                       
                       <div className="flex gap-4 flex-col sm:flex-row mt-6">
-                        <Button className="gap-2" variant="outline">
+                        <Button className="gap-2" variant="outline" onClick={() => navigate('/orders')}>
                           <ArrowLeft className="h-4 w-4" />
                           Moje zamówienia
                         </Button>
-                        <Button className="gap-2">
+                        <Button className="gap-2" onClick={() => navigate(`/marketplace/${id}`)}>
                           <ShoppingCart className="h-4 w-4" />
                           Kup teraz
                         </Button>
@@ -424,3 +518,4 @@ export default function CheckoutSuccess() {
     </div>
   );
 }
+
