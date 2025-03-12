@@ -14,14 +14,14 @@ export default function Feed() {
   const { isLoggedIn } = useAuth();
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   const [reload, setReload] = useState(false);
-  
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   const handlePostCreated = () => {
-    // Ustaw reload na true, aby wymusić ponowne załadowanie postów
     setReload(prev => !prev);
+    setIsCreatePostModalOpen(false);
   };
 
   return (
@@ -68,6 +68,7 @@ export default function Feed() {
       <CreatePostModal 
         isOpen={isCreatePostModalOpen}
         onClose={() => setIsCreatePostModalOpen(false)}
+        onPostCreated={handlePostCreated}
       />
       
       <Footer />

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Post } from '@/types/social';
 import { PostItem } from './PostItem';
@@ -16,23 +15,19 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
   const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [loading, setLoading] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
   useEffect(() => {
     fetchPosts();
   }, []);
-  
-  // Funkcja do pobierania postów z Supabase
+
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      const { data: postsData, error } = await supabase
+      const { data: postsData, error: postsError } = await supabase
         .from('feed_posts')
         .select(`
-          id,
-          content,
-          created_at,
-          is_poll,
-          user_id,
+          *,
           feed_post_media (id, url, type),
           feed_post_files (id, name, url, type, size),
           feed_post_poll_options (
@@ -49,13 +44,13 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
         `)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Błąd podczas pobierania postów:', error);
+      if (postsError) {
+        console.error('Błąd podczas pobierania postów:', postsError);
         return;
       }
 
-      // Pobierz dane autorów postów
       const userIds = [...new Set(postsData?.map(post => post.user_id) || [])];
+      
       const { data: usersData, error: usersError } = await supabase
         .from('profiles')
         .select('id, full_name, avatar_url, role')
@@ -63,13 +58,12 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
 
       if (usersError) {
         console.error('Błąd podczas pobierania danych użytkowników:', usersError);
+        return;
       }
 
-      // Przetwórz dane na format Post
       const formattedPosts: Post[] = postsData?.map(post => {
         const authorProfile = usersData?.find(user => user.id === post.user_id);
         
-        // Utwórz obiekt autora z danymi z profilu lub domyślnymi wartościami
         const author = authorProfile ? {
           name: authorProfile.full_name || 'Nieznany użytkownik',
           avatar: authorProfile.avatar_url || '',
@@ -80,7 +74,6 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
           role: ''
         };
         
-        // Przetwarzanie multimediów
         const media = post.feed_post_media?.map(media => ({
           url: media.url,
           type: media.type as 'image' | 'video'
@@ -99,19 +92,18 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
           votes: option.feed_post_poll_votes?.length || 0
         })) : undefined;
         
-        // Sprawdź, czy użytkownik zagłosował
         const userVoted = post.is_poll && user ? 
-          (post.feed_post_poll_options?.find(option => 
+          post.feed_post_poll_options?.find(option => 
             option.feed_post_poll_votes?.some(vote => vote.user_id === user.id)
-          )?.id || undefined) : 
+          )?.id : 
           undefined;
-        
-        // Pobierz hashtagi
-        const hashtags = post.feed_post_hashtags?.filter(ph => ph.hashtags).map(ph => ph.hashtags.name) || [];
+
+        const hashtags = post.feed_post_hashtags
+          ?.filter(ph => ph.hashtags)
+          .map(ph => ph.hashtags.name) || [];
         
         const timeAgo = formatTimeAgo(new Date(post.created_at));
         
-        // Sprawdź, czy bieżący użytkownik polubił post
         const userLiked = user ? post.feed_post_likes?.some(like => like.user_id === user.id) : false;
         
         return {
@@ -123,11 +115,11 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
           timeAgo,
           media: media.length > 0 ? media : undefined,
           files: files.length > 0 ? files : undefined,
-          likes: post.feed_post_likes?.length || 0,
-          comments: post.feed_post_comments?.length || 0,
           isPoll: post.is_poll || false,
           pollOptions,
           userVoted,
+          likes: post.feed_post_likes?.length || 0,
+          comments: post.feed_post_comments?.length || 0,
           userLiked,
           hashtags
         };
@@ -136,12 +128,17 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
       setPosts(formattedPosts);
     } catch (error) {
       console.error('Nieoczekiwany błąd:', error);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił błąd podczas ładowania postów",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
+      setLoadingUsers(false);
     }
   };
 
-  // Dodaj funkcję do obsługi polubień
   const handleLikeToggle = async (postId: string, isLiked: boolean) => {
     if (!user) {
       toast({
@@ -154,14 +151,12 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
     
     try {
       if (isLiked) {
-        // Usuń polubienie
         await supabase
           .from('feed_post_likes')
           .delete()
           .eq('post_id', postId)
           .eq('user_id', user.id);
       } else {
-        // Dodaj polubienie
         await supabase
           .from('feed_post_likes')
           .insert({
@@ -170,9 +165,7 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
           });
       }
       
-      // Odśwież posty po aktualizacji
       fetchPosts();
-      
     } catch (error) {
       console.error('Błąd podczas aktualizacji polubienia:', error);
       toast({
@@ -182,8 +175,7 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
       });
     }
   };
-  
-  // Funkcja do dodawania komentarza
+
   const handleAddComment = async (postId: string, content: string) => {
     if (!user) {
       toast({
@@ -205,7 +197,6 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
           content: content.trim()
         });
       
-      // Odśwież posty po dodaniu komentarza
       fetchPosts();
       
       return true;
@@ -219,8 +210,7 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
       return false;
     }
   };
-  
-  // Funkcja do dodawania odpowiedzi na komentarz
+
   const handleAddReply = async (postId: string, parentCommentId: string, content: string) => {
     if (!user) {
       toast({
@@ -243,7 +233,6 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
           parent_id: parentCommentId
         });
       
-      // Odśwież posty po dodaniu odpowiedzi
       fetchPosts();
       
       return true;
@@ -262,15 +251,15 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
     post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
     post.author.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  
-  if (loading) {
+
+  if (loading || loadingUsers) {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-  
+
   if (filteredPosts.length === 0) {
     return (
       <div className="text-center py-12">
@@ -288,14 +277,14 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-6">
       {filteredPosts.map((post, index) => (
         <PostItem 
           key={post.id} 
           post={post} 
-          index={index} 
+          index={index}
           onLikeToggle={handleLikeToggle}
           onAddComment={handleAddComment}
           onAddReply={handleAddReply}
@@ -305,7 +294,6 @@ export function FeedPostsList({ posts: initialPosts, searchQuery = '' }: FeedPos
   );
 }
 
-// Funkcja pomocnicza do formatowania czasu
 function formatTimeAgo(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
