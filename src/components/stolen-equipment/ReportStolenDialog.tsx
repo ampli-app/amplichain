@@ -446,32 +446,29 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
                   )}
                 />
 
-                <div className="pb-8"></div>
+                <Separator className="mt-6" />
+                
+                <div className="flex w-full gap-3 justify-end">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => onOpenChange(false)}
+                    className="flex-1 sm:flex-none"
+                  >
+                    Anuluj
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="flex-1 sm:flex-none bg-[#8a9a14] hover:bg-[#788618]"
+                  >
+                    {isSubmitting ? "Wysyłanie..." : "Zgłoś kradzież"}
+                  </Button>
+                </div>
               </form>
             </Form>
           </div>
         </ScrollArea>
-
-        <Separator className="my-4" />
-        
-        <div className="flex w-full gap-3 justify-end mt-2">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => onOpenChange(false)}
-            className="flex-1 sm:flex-none"
-          >
-            Anuluj
-          </Button>
-          <Button 
-            type="button" 
-            disabled={isSubmitting}
-            onClick={form.handleSubmit(onSubmit)}
-            className="flex-1 sm:flex-none bg-[#8a9a14] hover:bg-[#788618]"
-          >
-            {isSubmitting ? "Wysyłanie..." : "Zgłoś kradzież"}
-          </Button>
-        </div>
       </DialogContent>
     </Dialog>
   );
