@@ -1,3 +1,4 @@
+
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, Pencil, Share2, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,11 +37,8 @@ export function ProductActions({ id, isUserProduct, onBuyNow }: ProductActionsPr
   
   const handleBuyNow = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onBuyNow) {
-      onBuyNow();
-    } else {
-      navigate(`/marketplace/${id}`);
-    }
+    // Przekierowanie do checkoutu zamiast tworzenia zamówienia od razu
+    navigate(`/checkout/${id}`);
   };
 
   return (

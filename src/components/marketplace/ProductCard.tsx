@@ -14,9 +14,7 @@ interface ProductCardProps {
 export function ProductCard({ product, isOwner }: ProductCardProps) {
   const navigate = useNavigate();
   
-  const handleBuyNow = () => {
-    navigate(`/checkout/${product.id}`);
-  };
+  // Usuwamy handleBuyNow, ponieważ przekierowanie będzie obsługiwane w komponencie ProductActions
   
   return (
     <div className="group relative bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow overflow-hidden">
@@ -43,7 +41,6 @@ export function ProductCard({ product, isOwner }: ProductCardProps) {
         <ProductActions 
           id={product.id}
           isUserProduct={isOwner}
-          onBuyNow={handleBuyNow}
         />
       </div>
     </div>

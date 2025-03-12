@@ -225,78 +225,16 @@ export default function ProductDetail() {
     }
   };
 
-  const createOrder = async () => {
-    if (!isLoggedIn || !user) {
-      setShowAuthDialog(true);
-      return;
-    }
-    
-    if (!product) return;
-    
-    setIsProcessingOrder(true);
-    
-    try {
-      const deliveryOption = selectedDeliveryOption || deliveryOptions[0];
-      
-      if (!deliveryOption) {
-        toast({
-          title: "Błąd",
-          description: "Brak dostępnych metod dostawy dla tego produktu.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const totalAmount = product.price + deliveryOption.price;
-      
-      const { data, error } = await supabase
-        .from('product_orders')
-        .insert({
-          product_id: product.id,
-          buyer_id: user.id,
-          seller_id: product.user_id,
-          total_amount: totalAmount,
-          delivery_option_id: deliveryOption.id,
-          status: 'oczekujące',
-          payment_method: 'Przelew bankowy'
-        })
-        .select();
-      
-      if (error) {
-        console.error('Błąd podczas tworzenia zamówienia:', error);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się utworzyć zamówienia. Spróbuj ponownie później.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      toast({
-        title: "Sukces",
-        description: "Zamówienie zostało utworzone pomyślnie!",
-      });
-      
-      navigate('/orders');
-    } catch (err) {
-      console.error('Nieoczekiwany błąd:', err);
-      toast({
-        title: "Błąd",
-        description: "Wystąpił nieoczekiwany błąd. Spróbuj ponownie później.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessingOrder(false);
-    }
-  };
-
-  const handleAddToCart = () => {
+  const handleBuyNow = () => {
     if (!isLoggedIn) {
       setShowAuthDialog(true);
       return;
     }
     
-    createOrder();
+    if (product && product.id) {
+      const path = purchaseType === 'test' ? `/checkout/${product.id}?mode=test` : `/checkout/${product.id}`;
+      navigate(path);
+    }
   };
 
   const handleDelete = async () => {
@@ -658,7 +596,7 @@ export default function ProductDetail() {
                   ) : (
                     <Button 
                       className="w-full gap-2 py-6 text-base mt-4"
-                      onClick={handleAddToCart}
+                      onClick={handleBuyNow}
                       disabled={isProcessingOrder}
                     >
                       {isProcessingOrder ? (

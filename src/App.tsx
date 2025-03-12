@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Index from './pages/Index';
@@ -49,6 +50,8 @@ function App() {
               <Route path="/groups/:id" element={<GroupDetail />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/checkout" element={<Checkout />} />
+              <Route path="/checkout/:id" element={<Checkout />} />
+              <Route path="/checkout/success/:id" element={<CheckoutSuccess />} />
               <Route path="/checkout/success" element={<CheckoutSuccess />} />
               <Route path="/connections" element={<Connections />} />
               <Route path="/favorites" element={<Favorites />} />
