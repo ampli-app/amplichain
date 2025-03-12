@@ -178,7 +178,7 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
               Musisz być zalogowany, aby zgłosić kradzież sprzętu.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="mt-4 flex gap-2 justify-end">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Anuluj</Button>
             <Button onClick={() => {
               onOpenChange(false);
@@ -451,23 +451,25 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
           </div>
         </ScrollArea>
 
-        <DialogFooter className="mt-6 gap-2 flex-wrap sm:flex-nowrap">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto"
-          >
-            Anuluj
-          </Button>
-          <Button 
-            type="button" 
-            disabled={isSubmitting}
-            onClick={form.handleSubmit(onSubmit)}
-            className="w-full sm:w-auto"
-          >
-            {isSubmitting ? "Wysyłanie..." : "Zgłoś kradzież"}
-          </Button>
+        <DialogFooter className="mt-6 pt-4 border-t gap-3">
+          <div className="flex w-full justify-between gap-3 sm:justify-end">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              className="flex-1 sm:flex-none"
+            >
+              Anuluj
+            </Button>
+            <Button 
+              type="button" 
+              disabled={isSubmitting}
+              onClick={form.handleSubmit(onSubmit)}
+              className="flex-1 sm:flex-none bg-[#8a9a14] hover:bg-[#788618]"
+            >
+              {isSubmitting ? "Wysyłanie..." : "Zgłoś kradzież"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
