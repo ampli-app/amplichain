@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Info, MapPin, Calendar } from 'lucide-react';
@@ -14,7 +13,6 @@ import { StolenEquipmentInfo } from '@/components/stolen-equipment/StolenEquipme
 import { ReportStolenDialog } from '@/components/stolen-equipment/ReportStolenDialog';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Sample data
 const sampleItems = [
   {
     id: '1',
@@ -73,14 +71,25 @@ export default function StolenEquipment() {
   
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleSeeAllClick = () => {
     navigate('/stolen-equipment/all');
   };
 
-  const filteredItems = selectedCategory && selectedCategory !== 'all'
-    ? sampleItems.filter(item => item.category.toLowerCase() === selectedCategory.toLowerCase())
-    : sampleItems;
+  const filteredItems = sampleItems
+    .filter(item => {
+      const categoryMatch = !selectedCategory || selectedCategory === 'all'
+        ? true
+        : item.category.toLowerCase() === selectedCategory.toLowerCase();
+
+      const searchMatch = !searchQuery || 
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.location.toLowerCase().includes(searchQuery.toLowerCase());
+
+      return categoryMatch && searchMatch;
+    });
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -116,6 +125,27 @@ export default function StolenEquipment() {
               selectedCategory={selectedCategory}
               onCategorySelect={setSelectedCategory}
             />
+            
+            {/* Search bar */}
+            <div className="relative max-w-md w-full mt-6">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input 
+                placeholder="Szukaj po nazwie, opisie..."
+                className="pl-10 pr-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full"
+                  onClick={() => setSearchQuery('')}
+                >
+                  ×
+                </Button>
+              )}
+            </div>
             
             {/* Stolen equipment items */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
