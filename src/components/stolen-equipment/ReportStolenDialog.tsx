@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useCategories, useLocations } from '@/hooks/useStolenEquipment';
 import { useQueryClient } from '@tanstack/react-query';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 import {
   Dialog,
@@ -445,32 +446,32 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
                   )}
                 />
 
-                <div className="h-4"></div>
+                <div className="pb-8"></div>
               </form>
             </Form>
           </div>
         </ScrollArea>
 
-        <DialogFooter className="mt-6 pt-4 border-t gap-3">
-          <div className="flex w-full justify-between gap-3 sm:justify-end">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              className="flex-1 sm:flex-none"
-            >
-              Anuluj
-            </Button>
-            <Button 
-              type="button" 
-              disabled={isSubmitting}
-              onClick={form.handleSubmit(onSubmit)}
-              className="flex-1 sm:flex-none bg-[#8a9a14] hover:bg-[#788618]"
-            >
-              {isSubmitting ? "Wysyłanie..." : "Zgłoś kradzież"}
-            </Button>
-          </div>
-        </DialogFooter>
+        <Separator className="my-4" />
+        
+        <div className="flex w-full gap-3 justify-end mt-2">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            className="flex-1 sm:flex-none"
+          >
+            Anuluj
+          </Button>
+          <Button 
+            type="button" 
+            disabled={isSubmitting}
+            onClick={form.handleSubmit(onSubmit)}
+            className="flex-1 sm:flex-none bg-[#8a9a14] hover:bg-[#788618]"
+          >
+            {isSubmitting ? "Wysyłanie..." : "Zgłoś kradzież"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
