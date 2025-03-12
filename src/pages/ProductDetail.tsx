@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -21,7 +20,8 @@ import {
   Pencil,
   Trash2,
   MapPin,
-  Package
+  Package,
+  Loader2
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -88,6 +88,9 @@ export default function ProductDetail() {
     rating: 4.5
   });
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+
+  // Dodajemy stan oraz funkcje dla obsługi zamówień
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -219,39 +222,84 @@ export default function ProductDetail() {
     }
   };
 
+  // Funkcja do tworzenia zamówienia po kliknięciu "Kup teraz"
+  const createOrder = async () => {
+    if (!isLoggedIn || !user) {
+      setShowAuthDialog(true);
+      return;
+    }
+    
+    if (!product) return;
+    
+    setIsProcessingOrder(true);
+    
+    try {
+      // Pobierz informacje o dostawie
+      const deliveryOption = selectedDeliveryOption || deliveryOptions[0];
+      
+      if (!deliveryOption) {
+        toast({
+          title: "Błąd",
+          description: "Brak dostępnych metod dostawy dla tego produktu.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Oblicz całkowitą kwotę zamówienia (produkt + dostawa)
+      const totalAmount = product.price + deliveryOption.price;
+      
+      // Utwórz zamówienie w bazie danych
+      const { data, error } = await supabase
+        .from('product_orders')
+        .insert({
+          product_id: product.id,
+          buyer_id: user.id,
+          seller_id: product.user_id,
+          total_amount: totalAmount,
+          delivery_option_id: deliveryOption.id,
+          status: 'oczekujące',
+          payment_method: 'Przelew bankowy' // Domyślna metoda płatności, można rozszerzyć później
+        })
+        .select();
+      
+      if (error) {
+        console.error('Błąd podczas tworzenia zamówienia:', error);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się utworzyć zamówienia. Spróbuj ponownie później.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Przejdź do strony potwierdzenia zamówienia
+      toast({
+        title: "Sukces",
+        description: "Zamówienie zostało utworzone pomyślnie!",
+      });
+      
+      // Przekierowanie do strony z zamówieniami
+      navigate('/orders');
+    } catch (err) {
+      console.error('Nieoczekiwany błąd:', err);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił nieoczekiwany błąd. Spróbuj ponownie później.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingOrder(false);
+    }
+  };
+
   const handleAddToCart = () => {
     if (!isLoggedIn) {
       setShowAuthDialog(true);
       return;
     }
     
-    if (product) {
-      try {
-        // Dodajemy console.log dla debugowania
-        console.log("Navigating to checkout:", purchaseType, id);
-        
-        // Zamiast dodawać do koszyka, przechodzimy bezpośrednio do checkout
-        if (purchaseType === 'test') {
-          navigate(`/checkout/${id}/test`);
-        } else {
-          navigate(`/checkout/${id}`);
-        }
-      } catch (err) {
-        console.error("Navigation error:", err);
-        toast({
-          title: "Błąd",
-          description: "Wystąpił problem podczas przechodzenia do finalizacji zakupu.",
-          variant: "destructive",
-        });
-      }
-    } else {
-      console.error("Can't navigate to checkout - product is null");
-      toast({
-        title: "Błąd",
-        description: "Brak danych produktu - nie można kontynuować.",
-        variant: "destructive",
-      });
-    }
+    createOrder();
   };
 
   const handleDelete = async () => {
@@ -616,8 +664,13 @@ export default function ProductDetail() {
                     <Button 
                       className="w-full gap-2 py-6 text-base mt-4"
                       onClick={handleAddToCart}
+                      disabled={isProcessingOrder}
                     >
-                      <ShoppingCart className="h-5 w-5" />
+                      {isProcessingOrder ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <ShoppingCart className="h-5 w-5" />
+                      )}
                       {purchaseType === 'buy' ? 'Kup teraz' : 'Zamów test'}
                     </Button>
                   )}

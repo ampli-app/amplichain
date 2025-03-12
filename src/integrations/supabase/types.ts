@@ -1533,6 +1533,90 @@ export type Database = {
           },
         ]
       }
+      order_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          order_id: string
+          read: boolean | null
+          recipient_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          order_id: string
+          read?: boolean | null
+          recipient_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          order_id?: string
+          read?: boolean | null
+          recipient_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_notifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_details"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "order_notifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "product_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_status_history: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          order_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string | null
+          order_id: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          order_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_status_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_details"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "order_status_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "product_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_delivery_options: {
         Row: {
           created_at: string | null
@@ -1562,6 +1646,72 @@ export type Database = {
           },
           {
             foreignKeyName: "product_delivery_options_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_orders: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          delivery_option_id: string | null
+          id: string
+          notes: string | null
+          payment_method: string | null
+          product_id: string
+          seller_id: string
+          shipping_address: string | null
+          shipping_method: string | null
+          status: string
+          total_amount: number
+          tracking_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          delivery_option_id?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          product_id: string
+          seller_id: string
+          shipping_address?: string | null
+          shipping_method?: string | null
+          status?: string
+          total_amount: number
+          tracking_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          delivery_option_id?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          product_id?: string
+          seller_id?: string
+          shipping_address?: string | null
+          shipping_method?: string | null
+          status?: string
+          total_amount?: number
+          tracking_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_orders_delivery_option_id_fkey"
+            columns: ["delivery_option_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_orders_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
@@ -1956,7 +2106,48 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      order_details: {
+        Row: {
+          buyer_avatar: string | null
+          buyer_id: string | null
+          buyer_name: string | null
+          created_at: string | null
+          delivery_option_id: string | null
+          delivery_option_name: string | null
+          delivery_price: number | null
+          notes: string | null
+          order_id: string | null
+          payment_method: string | null
+          product_id: string | null
+          product_image: string | null
+          product_title: string | null
+          seller_avatar: string | null
+          seller_id: string | null
+          seller_name: string | null
+          shipping_address: string | null
+          shipping_method: string | null
+          status: string | null
+          total_amount: number | null
+          tracking_number: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_orders_delivery_option_id_fkey"
+            columns: ["delivery_option_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_moderate_group: {

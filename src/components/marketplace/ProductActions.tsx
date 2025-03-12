@@ -1,15 +1,15 @@
-
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Eye, Pencil, Share2 } from 'lucide-react';
+import { Eye, Pencil, Share2, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 
 interface ProductActionsProps {
   id: string;
   isUserProduct: boolean;
+  onBuyNow?: () => void;
 }
 
-export function ProductActions({ id, isUserProduct }: ProductActionsProps) {
+export function ProductActions({ id, isUserProduct, onBuyNow }: ProductActionsProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isDiscoverPage = location.pathname === '/discover';
@@ -33,6 +33,15 @@ export function ProductActions({ id, isUserProduct }: ProductActionsProps) {
       description: "Link do produktu został skopiowany do schowka.",
     });
   };
+  
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onBuyNow) {
+      onBuyNow();
+    } else {
+      navigate(`/marketplace/${id}`);
+    }
+  };
 
   return (
     <div className="flex justify-between mt-4">
@@ -51,6 +60,20 @@ export function ProductActions({ id, isUserProduct }: ProductActionsProps) {
       </div>
       
       <div className="flex gap-2">
+        {/* Buy button only for non-user products */}
+        {!isUserProduct && (
+          <Button 
+            variant="default" 
+            size="sm"
+            className="flex items-center gap-1 h-9"
+            onClick={handleBuyNow}
+            title="Kup teraz"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            <span className={isDiscoverPage ? "hidden" : "hidden sm:inline"}>Kup teraz</span>
+          </Button>
+        )}
+        
         {/* Edit button only for user's products */}
         {isUserProduct && (
           <Button 

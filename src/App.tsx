@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Index from './pages/Index';
@@ -24,6 +23,7 @@ import EditProduct from './pages/EditProduct';
 import EditConsultation from './pages/EditConsultation';
 import StolenEquipment from './pages/StolenEquipment';
 import StolenEquipmentAll from './pages/StolenEquipmentAll';
+import Orders from './pages/Orders';
 import { AuthProvider } from './contexts/AuthContext';
 import { SocialProvider } from './contexts/SocialContext';
 import { Toaster } from '@/components/ui/toaster';
@@ -57,6 +57,7 @@ function App() {
               <Route path="/edit-product/:id?" element={<EditProduct />} />
               <Route path="/stolen-equipment" element={<StolenEquipment />} />
               <Route path="/stolen-equipment/all" element={<StolenEquipmentAll />} />
+              <Route path="/orders" element={<Orders />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
