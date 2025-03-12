@@ -14,7 +14,8 @@ import {
   LogOut,
   Settings,
   Compass,
-  Heart
+  Heart,
+  ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSocial } from '@/contexts/SocialContext';
@@ -81,6 +82,7 @@ export function Navbar() {
           <nav className="hidden md:flex items-center gap-1 h-14">
             <NavItem to="/feed" text="Feed" icon={Rss} active={isActive('/feed')} />
             <NavItem to="/marketplace" text="Marketplace" icon={ShoppingBag} active={isActive('/marketplace')} />
+            <NavItem to="/stolen-equipment" text="Baza skradzionych" icon={ShieldAlert} active={isActive('/stolen-equipment')} />
             <NavItem to="/groups" text="Grupy" icon={Users} active={isActive('/groups')} />
             <NavItem to="/connections" text="Sieć" icon={Users} active={isActive('/connections')} />
           </nav>
@@ -188,6 +190,7 @@ export function Navbar() {
             
             <MobileNavItem to="/feed" label="Feed" icon={<Rss className="h-4 w-4" />} active={isActive('/feed')} />
             <MobileNavItem to="/marketplace" label="Marketplace" icon={<ShoppingBag className="h-4 w-4" />} active={isActive('/marketplace')} />
+            <MobileNavItem to="/stolen-equipment" label="Baza skradzionych" icon={<ShieldAlert className="h-4 w-4" />} active={isActive('/stolen-equipment')} />
             <MobileNavItem to="/groups" label="Grupy" icon={<Users className="h-4 w-4" />} active={isActive('/groups')} />
             <MobileNavItem to="/connections" label="Sieć" icon={<Users className="h-4 w-4" />} active={isActive('/connections')} />
             
