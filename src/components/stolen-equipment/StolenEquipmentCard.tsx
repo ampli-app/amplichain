@@ -4,17 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-
-export interface StolenEquipmentItem {
-  id: string;
-  title: string;
-  location: string;
-  date: string;
-  description: string;
-  image: string;
-  status: 'verified' | 'unverified' | 'recovered';
-  category: string;
-}
+import { StolenEquipmentItem } from '@/hooks/useStolenEquipment';
 
 interface StolenEquipmentCardProps {
   item: StolenEquipmentItem;
@@ -64,13 +54,16 @@ export function StolenEquipmentCard({ item }: StolenEquipmentCardProps) {
       <div className="relative">
         {getStatusBadge()}
         <Badge className="absolute top-2 right-2 bg-blue-500">
-          {item.category}
+          {item.category_name || 'Inne'}
         </Badge>
         <div className="aspect-square bg-gray-100 dark:bg-gray-800 overflow-hidden">
           <img 
-            src={item.image} 
+            src={item.image_url} 
             alt={item.title} 
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/placeholder.svg';
+            }}
           />
         </div>
       </div>

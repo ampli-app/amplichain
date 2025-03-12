@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Info, MapPin, Calendar } from 'lucide-react';
@@ -13,58 +14,8 @@ import { StolenEquipmentCard } from '@/components/stolen-equipment/StolenEquipme
 import { StolenEquipmentInfo } from '@/components/stolen-equipment/StolenEquipmentInfo';
 import { ReportStolenDialog } from '@/components/stolen-equipment/ReportStolenDialog';
 import { useAuth } from '@/contexts/AuthContext';
-
-const sampleItems = [
-  {
-    id: '1',
-    title: 'Fender Stratocaster (1976)',
-    location: 'Warszawa, Mokotów',
-    date: '12.03.2025',
-    description: 'Czarny Stratocaster z charakterystycznym wytarciem lakieru na korpusie przy pickguardzie. Numer seryjny: 765438.',
-    image: '/lovable-uploads/e6773bd4-a479-47fc-a893-b16486c67ba5.png',
-    status: 'verified' as const,
-    category: 'Gitary'
-  },
-  {
-    id: '2',
-    title: 'Roland JP-8000',
-    location: 'Kraków, Kazimierz',
-    date: '05.03.2025',
-    description: 'Syntezator ze srebrną naklejką studia na tylnej części obudowy. Numer seryjny: 2873921.',
-    image: '/lovable-uploads/e6773bd4-a479-47fc-a893-b16486c67ba5.png',
-    status: 'unverified' as const,
-    category: 'Syntezatory'
-  },
-  {
-    id: '3',
-    title: 'Shure SM7B + Cloudlifter',
-    location: 'Gdańsk',
-    date: '01.03.2025',
-    description: 'Mikrofon z wytartym logo Shure i niebieskim Cloudlifter. Na Cloudlifterze naklejka z logiem studia XYZ.',
-    image: '/lovable-uploads/e6773bd4-a479-47fc-a893-b16486c67ba5.png',
-    status: 'recovered' as const,
-    category: 'Mikrofony'
-  },
-];
-
-const categories = [
-  { id: 'all', name: 'Wszystkie', icon: 'All' },
-  { id: 'guitars', name: 'Gitary', icon: 'Guitar' },
-  { id: 'synths', name: 'Syntezatory', icon: 'Synth' },
-  { id: 'studio', name: 'Sprzęt studyjny', icon: 'Studio' },
-  { id: 'accessories', name: 'Akcesoria', icon: 'Accessories' },
-  { id: 'interfaces', name: 'Interfejsy Audio', icon: 'Interface' },
-  { id: 'controllers', name: 'Kontrolery', icon: 'Controller' },
-  { id: 'microphones', name: 'Mikrofony', icon: 'Microphone' },
-  { id: 'monitors', name: 'Monitory', icon: 'Monitor' },
-  { id: 'software', name: 'Oprogramowanie', icon: 'Software' },
-];
-
-const locations = [
-  { id: 'warszawa', name: 'Warszawa' },
-  { id: 'krakow', name: 'Kraków' },
-  { id: 'gdansk', name: 'Gdańsk' },
-];
+import { useStolenEquipment, useCategories } from '@/hooks/useStolenEquipment';
+import { toast } from 'sonner';
 
 export default function StolenEquipment() {
   const { isLoggedIn } = useAuth();
@@ -74,23 +25,29 @@ export default function StolenEquipment() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const { data: categories = [], isLoading: isCategoriesLoading } = useCategories();
+  const { 
+    data: stolenItems = [], 
+    isLoading: isItemsLoading, 
+    error 
+  } = useStolenEquipment(selectedCategory, searchQuery);
+
+  if (error) {
+    toast.error("Wystąpił błąd podczas ładowania danych");
+  }
+
   const handleSeeAllClick = () => {
     navigate('/stolen-equipment/all');
   };
 
-  const filteredItems = sampleItems
-    .filter(item => {
-      const categoryMatch = !selectedCategory || selectedCategory === 'all'
-        ? true
-        : item.category.toLowerCase() === selectedCategory.toLowerCase();
-
-      const searchMatch = !searchQuery || 
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.location.toLowerCase().includes(searchQuery.toLowerCase());
-
-      return categoryMatch && searchMatch;
-    });
+  const categoryOptions = [
+    { id: 'all', name: 'Wszystkie', icon: 'All' },
+    ...categories.map((category) => ({
+      id: category.id,
+      name: category.name,
+      icon: category.slug || category.name
+    }))
+  ];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -121,11 +78,19 @@ export default function StolenEquipment() {
               </Button>
             </div>
             
-            <StolenEquipmentCategories 
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onCategorySelect={setSelectedCategory}
-            />
+            {isCategoriesLoading ? (
+              <div className="flex overflow-x-auto pb-2 gap-2">
+                {Array(8).fill(0).map((_, index) => (
+                  <div key={index} className="h-10 w-32 rounded-full bg-gray-200 animate-pulse"></div>
+                ))}
+              </div>
+            ) : (
+              <StolenEquipmentCategories 
+                categories={categoryOptions}
+                selectedCategory={selectedCategory}
+                onCategorySelect={setSelectedCategory}
+              />
+            )}
             
             {/* Search bar */}
             <div className="relative max-w-md w-full mt-6">
@@ -149,14 +114,45 @@ export default function StolenEquipment() {
             </div>
             
             {/* Stolen equipment items */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-              {filteredItems.map(item => (
-                <StolenEquipmentCard 
-                  key={item.id}
-                  item={item}
-                />
-              ))}
-            </div>
+            {isItemsLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                {Array(6).fill(0).map((_, index) => (
+                  <Card key={index} className="overflow-hidden animate-pulse">
+                    <div className="aspect-square bg-gray-200"></div>
+                    <CardContent className="p-4">
+                      <div className="h-6 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-1"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2 mb-3"></div>
+                      <div className="h-16 bg-gray-200 rounded mb-4"></div>
+                      <div className="flex space-x-2">
+                        <div className="h-9 bg-gray-200 rounded flex-1"></div>
+                        <div className="h-9 bg-gray-200 rounded w-32"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : stolenItems.length === 0 ? (
+              <div className="text-center py-12 mt-8 border rounded-md">
+                <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-xl font-medium mb-2">Nie znaleziono sprzętu</h3>
+                <p className="text-muted-foreground mb-6">
+                  Spróbuj zmienić kryteria wyszukiwania lub zgłoś kradzież sprzętu
+                </p>
+                <Button onClick={() => setShowReportDialog(true)}>
+                  Zgłoś kradzież
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                {stolenItems.map(item => (
+                  <StolenEquipmentCard 
+                    key={item.id}
+                    item={item}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>
