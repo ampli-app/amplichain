@@ -81,6 +81,7 @@ export default function ProductDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [product, setProduct] = useState<ProductDetailProps | null>(null);
   const [deliveryOptions, setDeliveryOptions] = useState<DeliveryOption[]>([]);
+  const [selectedDeliveryOption, setSelectedDeliveryOption] = useState<DeliveryOption | null>(null);
   const [isUserProduct, setIsUserProduct] = useState(false);
   const [sellerInfo, setSellerInfo] = useState({
     name: "Sprzedawca",
@@ -89,7 +90,6 @@ export default function ProductDetail() {
   });
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-  // Dodajemy stan oraz funkcje dla obsługi zamówień
   const [isProcessingOrder, setIsProcessingOrder] = useState(false);
 
   useEffect(() => {
@@ -130,7 +130,6 @@ export default function ProductDetail() {
             fetchSellerInfo(data.user_id);
           }
           
-          // Pobierz opcje dostawy dla produktu
           fetchDeliveryOptions(data.id);
         } else {
           console.error('No product data found');
@@ -155,11 +154,16 @@ export default function ProductDetail() {
     fetchProduct();
   }, [id, user]);
 
+  useEffect(() => {
+    if (deliveryOptions.length > 0 && !selectedDeliveryOption) {
+      setSelectedDeliveryOption(deliveryOptions[0]);
+    }
+  }, [deliveryOptions, selectedDeliveryOption]);
+
   const fetchDeliveryOptions = async (productId: string) => {
     try {
       console.log("Fetching delivery options for product ID:", productId);
       
-      // Pobierz opcje dostawy dla produktu
       const { data: productDeliveryData, error: productDeliveryError } = await supabase
         .from('product_delivery_options')
         .select('delivery_option_id')
@@ -170,7 +174,6 @@ export default function ProductDetail() {
         return;
       }
       
-      // Pobierz szczegóły opcji dostawy
       if (productDeliveryData && productDeliveryData.length > 0) {
         const deliveryOptionIds = productDeliveryData.map(option => option.delivery_option_id);
         
@@ -222,7 +225,6 @@ export default function ProductDetail() {
     }
   };
 
-  // Funkcja do tworzenia zamówienia po kliknięciu "Kup teraz"
   const createOrder = async () => {
     if (!isLoggedIn || !user) {
       setShowAuthDialog(true);
@@ -234,7 +236,6 @@ export default function ProductDetail() {
     setIsProcessingOrder(true);
     
     try {
-      // Pobierz informacje o dostawie
       const deliveryOption = selectedDeliveryOption || deliveryOptions[0];
       
       if (!deliveryOption) {
@@ -246,10 +247,8 @@ export default function ProductDetail() {
         return;
       }
       
-      // Oblicz całkowitą kwotę zamówienia (produkt + dostawa)
       const totalAmount = product.price + deliveryOption.price;
       
-      // Utwórz zamówienie w bazie danych
       const { data, error } = await supabase
         .from('product_orders')
         .insert({
@@ -259,7 +258,7 @@ export default function ProductDetail() {
           total_amount: totalAmount,
           delivery_option_id: deliveryOption.id,
           status: 'oczekujące',
-          payment_method: 'Przelew bankowy' // Domyślna metoda płatności, można rozszerzyć później
+          payment_method: 'Przelew bankowy'
         })
         .select();
       
@@ -273,13 +272,11 @@ export default function ProductDetail() {
         return;
       }
       
-      // Przejdź do strony potwierdzenia zamówienia
       toast({
         title: "Sukces",
         description: "Zamówienie zostało utworzone pomyślnie!",
       });
       
-      // Przekierowanie do strony z zamówieniami
       navigate('/orders');
     } catch (err) {
       console.error('Nieoczekiwany błąd:', err);
@@ -427,7 +424,6 @@ export default function ProductDetail() {
       }).format(originalPrice)
     : undefined;
   
-  // Przygotuj opcje dostawy do wyświetlenia
   const hasPickupOption = deliveryOptions.some(option => option.name === 'Odbiór osobisty');
 
   const specifications: Record<string, string> = {
@@ -557,7 +553,6 @@ export default function ProductDetail() {
                   </div>
                 </div>
                 
-                {/* Opcje dostawy */}
                 {deliveryOptions.length > 0 && (
                   <div className="mb-6">
                     <h3 className="font-medium mb-2">Dostępne metody dostawy:</h3>

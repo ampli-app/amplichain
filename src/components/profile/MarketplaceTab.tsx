@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
@@ -24,84 +25,27 @@ export function MarketplaceTab({
   onDeleteService,
   onDeleteConsultation
 }: MarketplaceTabProps) {
-  const [products, setProducts] = useState<any[]>([]);
-  const [services, setServices] = useState<any[]>([]);
-  const [consultations, setConsultations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeMarketplaceTab, setActiveMarketplaceTab] = useState('products');
+  const [activeConsultationsTab, setActiveConsultationsTab] = useState('items');
   
   const [showAddProductDialog, setShowAddProductDialog] = useState(false);
   const [showAddServiceDialog, setShowAddServiceDialog] = useState(false);
   const [showAddConsultationDialog, setShowAddConsultationDialog] = useState(false);
   
-  const [activeMarketplaceTab, setActiveMarketplaceTab] = useState('products');
-  const [activeConsultationsTab, setActiveConsultationsTab] = useState('items');
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     if (profileId) {
-      fetchMarketplaceItems();
-      
       const urlParams = new URLSearchParams(window.location.search);
       const marketplaceTabParam = urlParams.get('marketplaceTab');
       
       if (marketplaceTabParam && ['products', 'services', 'consultations'].includes(marketplaceTabParam)) {
         setActiveMarketplaceTab(marketplaceTabParam);
       }
-    }
-  }, [profileId]);
-  
-  const fetchMarketplaceItems = async () => {
-    setLoading(true);
-    try {
-      const { data: productsData, error: productsError } = await supabase
-        .from('products')
-        .select('*')
-        .eq('user_id', profileId);
-        
-      if (productsError) throw productsError;
-      setProducts(productsData || []);
       
-      const { data: servicesData, error: servicesError } = await supabase
-        .from('services')
-        .select('*')
-        .eq('user_id', profileId);
-        
-      if (servicesError) throw servicesError;
-      setServices(servicesData || []);
-      
-      const { data: consultationsData, error: consultationsError } = await supabase
-        .from('consultations')
-        .select('*')
-        .eq('user_id', profileId);
-        
-      if (consultationsError) throw consultationsError;
-      setConsultations(consultationsData || []);
-      
-    } catch (error) {
-      console.error('Error fetching marketplace items:', error);
-      toast({
-        title: "Błąd",
-        description: "Nie udało się załadować elementów marketplace.",
-        variant: "destructive",
-      });
-    } finally {
       setLoading(false);
     }
-  };
-  
-  const handleProductDeleted = async (id: string) => {
-    await onDeleteProduct(id);
-    setProducts(products.filter(p => p.id !== id));
-  };
-  
-  const handleServiceDeleted = async (id: string) => {
-    await onDeleteService(id);
-    setServices(services.filter(s => s.id !== id));
-  };
-  
-  const handleConsultationDeleted = async (id: string) => {
-    await onDeleteConsultation(id);
-    setConsultations(consultations.filter(c => c.id !== id));
-  };
+  }, [profileId]);
   
   const handleMarketplaceTabChange = (value: string) => {
     setActiveMarketplaceTab(value);
@@ -138,16 +82,14 @@ export function MarketplaceTab({
         
         <TabsContent value="products">
           <ProductsTabContent 
-            products={products} 
-            isOwner={true}
-            onDelete={handleProductDeleted}
-            onAddProduct={() => setShowAddProductDialog(true)}
+            userId={profileId}
+            isOwnProfile={true} 
           />
         </TabsContent>
         
         <TabsContent value="services">
           <ServicesTabContent 
-            services={services}
+            services={[]}
             onDelete={handleServiceDeleted}
             onAddService={() => setShowAddServiceDialog(true)}
           />

@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit, Trash2, Eye, ExternalLink } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ProductImage } from './ProductImage';
 import { ProductPrice } from './ProductPrice';
+import { ProductActions } from './ProductActions';
 
 export interface ProductCardProps {
   product: any;
@@ -28,7 +29,7 @@ export function ProductCard({ product, isOwner = false, onDelete }: ProductCardP
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const navigate = useNavigate();
   
-  const { id, title, description, price, category, images, sale_percentage, for_testing, testing_price } = product;
+  const { id, title, price, category, image_url, sale_percentage, for_testing, testing_price } = product;
   
   const handleViewProduct = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -55,7 +56,7 @@ export function ProductCard({ product, isOwner = false, onDelete }: ProductCardP
       >
         <div className="relative">
           <ProductImage 
-            image={images?.[0] || '/placeholder.svg'} 
+            image={typeof image_url === 'string' ? image_url : (Array.isArray(image_url) && image_url.length > 0 ? image_url[0] : '/placeholder.svg')} 
             title={title}
           />
           

@@ -16,6 +16,8 @@ export interface Order {
   product_image?: string;
   buyer_name?: string;
   seller_name?: string;
+  tracking_number?: string;
+  notes?: string;
 }
 
 export interface OrderStatusUpdate {

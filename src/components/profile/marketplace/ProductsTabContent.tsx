@@ -78,8 +78,7 @@ export function ProductsTabContent({ userId, isOwnProfile }: ProductsTabContentP
                 review_count: product.review_count || 0,
                 image_url: product.image_url || '/placeholder.svg'
               }}
-              userId={userId}
-              showActions={true}
+              isOwner={isOwnProfile}
             />
           ))}
         </div>
