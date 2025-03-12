@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Calendar, MapPin, Upload } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -107,17 +108,19 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `stolen-equipment/${fileName}`;
+      const filePath = `${fileName}`;
 
+      // Używamy nowego bucketa 'stolen-equipment' zamiast 'public'
       const { error: uploadError, data } = await supabase.storage
-        .from('public')
+        .from('stolen-equipment')
         .upload(filePath, file);
 
       if (uploadError) {
         throw uploadError;
       }
 
-      const { data: { publicUrl } } = supabase.storage.from('public').getPublicUrl(filePath);
+      // Pobierz publiczny URL pliku z nowego bucketa
+      const { data: { publicUrl } } = supabase.storage.from('stolen-equipment').getPublicUrl(filePath);
       
       setImagePreview(publicUrl);
       form.setValue("image_url", publicUrl);
