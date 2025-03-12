@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
-interface StolenEquipmentItem {
+export interface StolenEquipmentItem {
   id: string;
   title: string;
   location: string;

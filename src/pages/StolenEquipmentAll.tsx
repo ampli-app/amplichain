@@ -7,6 +7,7 @@ import { StolenEquipmentFilters } from '@/components/stolen-equipment/StolenEqui
 import { StolenEquipmentGrid } from '@/components/stolen-equipment/StolenEquipmentGrid';
 import { ReportStolenDialog } from '@/components/stolen-equipment/ReportStolenDialog';
 import { CategorySelection } from '@/components/marketplace/CategorySelection';
+import { Plus } from 'lucide-react';
 
 // Sample data
 const sampleItems = [
@@ -17,7 +18,7 @@ const sampleItems = [
     date: '12.03.2025',
     description: 'Czarny Stratocaster z charakterystycznym wytarciem lakieru na korpusie przy pickguardzie. Numer seryjny: 765438.',
     image: '/lovable-uploads/e6773bd4-a479-47fc-a893-b16486c67ba5.png',
-    status: 'verified',
+    status: 'verified' as const,
     category: 'Gitary'
   },
   {
@@ -27,7 +28,7 @@ const sampleItems = [
     date: '05.03.2025',
     description: 'Syntezator ze srebrną naklejką studia na tylnej części obudowy. Numer seryjny: 2873921.',
     image: '/lovable-uploads/e6773bd4-a479-47fc-a893-b16486c67ba5.png',
-    status: 'unverified',
+    status: 'unverified' as const,
     category: 'Syntezatory'
   },
   {
@@ -37,7 +38,7 @@ const sampleItems = [
     date: '01.03.2025',
     description: 'Mikrofon z wytartym logo Shure i niebieskim Cloudlifter. Na Cloudlifterze naklejka z logiem studia XYZ.',
     image: '/lovable-uploads/e6773bd4-a479-47fc-a893-b16486c67ba5.png',
-    status: 'recovered',
+    status: 'recovered' as const,
     category: 'Mikrofony'
   },
   {
@@ -47,7 +48,7 @@ const sampleItems = [
     date: '20.02.2025',
     description: 'Syntezator z charakterystycznym zarysowaniem na obudowie. Brakuje jednego pokrętła.',
     image: '/lovable-uploads/e6773bd4-a479-47fc-a893-b16486c67ba5.png',
-    status: 'verified',
+    status: 'verified' as const,
     category: 'Syntezatory'
   },
   {
@@ -57,7 +58,7 @@ const sampleItems = [
     date: '15.02.2025',
     description: 'Sunburst, rok 2018. Delikatny odprysk lakieru przy pickupie mostkowym.',
     image: '/lovable-uploads/e6773bd4-a479-47fc-a893-b16486c67ba5.png',
-    status: 'verified',
+    status: 'verified' as const,
     category: 'Gitary'
   },
   {
@@ -67,7 +68,7 @@ const sampleItems = [
     date: '10.02.2025',
     description: 'Interface audio z widocznym zadrapaniem na górnym panelu.',
     image: '/lovable-uploads/e6773bd4-a479-47fc-a893-b16486c67ba5.png',
-    status: 'unverified',
+    status: 'unverified' as const,
     category: 'Interfejsy Audio'
   },
 ];

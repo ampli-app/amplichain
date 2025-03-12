@@ -23,7 +23,7 @@ const sampleItems = [
     date: '12.03.2025',
     description: 'Czarny Stratocaster z charakterystycznym wytarciem lakieru na korpusie przy pickguardzie. Numer seryjny: 765438.',
     image: '/lovable-uploads/e6773bd4-a479-47fc-a893-b16486c67ba5.png',
-    status: 'verified',
+    status: 'verified' as const,
     category: 'Gitary'
   },
   {
@@ -33,7 +33,7 @@ const sampleItems = [
     date: '05.03.2025',
     description: 'Syntezator ze srebrną naklejką studia na tylnej części obudowy. Numer seryjny: 2873921.',
     image: '/lovable-uploads/e6773bd4-a479-47fc-a893-b16486c67ba5.png',
-    status: 'unverified',
+    status: 'unverified' as const,
     category: 'Syntezatory'
   },
   {
@@ -43,7 +43,7 @@ const sampleItems = [
     date: '01.03.2025',
     description: 'Mikrofon z wytartym logo Shure i niebieskim Cloudlifter. Na Cloudlifterze naklejka z logiem studia XYZ.',
     image: '/lovable-uploads/e6773bd4-a479-47fc-a893-b16486c67ba5.png',
-    status: 'recovered',
+    status: 'recovered' as const,
     category: 'Mikrofony'
   },
 ];
