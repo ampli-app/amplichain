@@ -1,4 +1,3 @@
-
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -61,17 +60,17 @@ export const handleFileUpload = (
   }
 };
 
-export const uploadMediaToStorage = async (file: File, pathPrefix: string): Promise<string | null> => {
+export const uploadMediaToStorage = async (file: File, bucketName: string = 'media'): Promise<string | null> => {
   try {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `${pathPrefix}/${fileName}`;
+    const filePath = `${fileName}`;
     
-    console.log('Przesyłanie pliku do bucketa media:', filePath, 'typ:', file.type, 'rozmiar:', file.size);
+    console.log(`Przesyłanie pliku do bucketa ${bucketName}:`, filePath, 'typ:', file.type, 'rozmiar:', file.size);
     
-    // Używamy bucketa 'media'
+    // Używamy określonego bucketa (domyślnie 'media')
     const { data, error } = await supabase.storage
-      .from('media')
+      .from(bucketName)
       .upload(filePath, file);
     
     if (error) {
@@ -86,7 +85,7 @@ export const uploadMediaToStorage = async (file: File, pathPrefix: string): Prom
     
     // Pobierz publiczny URL pliku
     const { data: { publicUrl } } = supabase.storage
-      .from('media')
+      .from(bucketName)
       .getPublicUrl(filePath);
     
     console.log('Plik przesłany pomyślnie, URL:', publicUrl);

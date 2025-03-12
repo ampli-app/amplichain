@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Calendar, MapPin, Upload } from 'lucide-react';
+import { Calendar, Upload } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -13,6 +13,8 @@ import { useCategories, useLocations } from '@/hooks/useStolenEquipment';
 import { useQueryClient } from '@tanstack/react-query';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { MediaFile } from '@/components/social/MediaPreview';
+import { uploadMediaToStorage } from '@/utils/mediaUtils';
 
 import {
   Dialog,
@@ -44,6 +46,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { MediaUploadSection } from '@/components/consultations/MediaUploadSection';
 
 const reportFormSchema = z.object({
   title: z.string()
@@ -76,7 +79,7 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
   const { isLoggedIn, user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [media, setMedia] = useState<MediaFile[]>([]);
   const { data: categories = [] } = useCategories();
   const { data: locations = [] } = useLocations();
   const queryClient = useQueryClient();
@@ -95,44 +98,6 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
     },
   });
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Zdjęcie jest za duże. Maksymalny rozmiar to 5MB");
-      return;
-    }
-
-    setUploadingImage(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      // Używamy nowego bucketa 'stolen-equipment' zamiast 'public'
-      const { error: uploadError, data } = await supabase.storage
-        .from('stolen-equipment')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      // Pobierz publiczny URL pliku z nowego bucketa
-      const { data: { publicUrl } } = supabase.storage.from('stolen-equipment').getPublicUrl(filePath);
-      
-      setImagePreview(publicUrl);
-      form.setValue("image_url", publicUrl);
-      toast.success("Zdjęcie zostało przesłane");
-    } catch (error) {
-      console.error("Błąd podczas przesyłania zdjęcia:", error);
-      toast.error("Nie udało się przesłać zdjęcia");
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
   const onSubmit = async (values: ReportFormValues) => {
     if (!isLoggedIn) {
       toast.error("Musisz być zalogowany, aby zgłosić kradzież sprzętu");
@@ -141,6 +106,26 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
 
     setIsSubmitting(true);
     try {
+      // Najpierw prześlij zdjęcie, jeśli zostało dodane
+      let imageUrl = values.image_url;
+      if (media.length > 0) {
+        setUploadingImage(true);
+        const mediaItem = media[0];
+        
+        if (mediaItem.file) {
+          // Prześlij zdjęcie do bucketa 'stolen-equipment'
+          imageUrl = await uploadMediaToStorage(mediaItem.file, 'stolen-equipment');
+          setUploadingImage(false);
+          
+          if (!imageUrl) {
+            throw new Error("Nie udało się przesłać zdjęcia");
+          }
+        } else if (mediaItem.url) {
+          // Jeśli to URL, po prostu go użyj
+          imageUrl = mediaItem.url;
+        }
+      }
+
       const formattedDate = format(values.date, 'dd.MM.yyyy');
 
       const { error } = await supabase.from('stolen_equipment').insert({
@@ -151,7 +136,7 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
         date: formattedDate,
         serial_number: values.serial_number || null,
         contact_info: values.contact_info || null,
-        image_url: values.image_url || null,
+        image_url: imageUrl || null,
         user_id: user?.id,
         status: 'unverified',
       });
@@ -160,7 +145,7 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
 
       toast.success("Twoje zgłoszenie zostało przyjęte");
       form.reset();
-      setImagePreview(null);
+      setMedia([]);
       onOpenChange(false);
       
       queryClient.invalidateQueries({ queryKey: ['stolenEquipment'] });
@@ -169,6 +154,7 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
       toast.error("Wystąpił błąd podczas zgłaszania kradzieży");
     } finally {
       setIsSubmitting(false);
+      setUploadingImage(false);
     }
   };
 
@@ -393,52 +379,23 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
                   name="image_url"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Zdjęcie sprzętu (opcjonalnie)</FormLabel>
+                      <FormLabel>Zdjęcie sprzętu</FormLabel>
                       <FormControl>
-                        <div className="grid gap-2">
-                          <Input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            disabled={uploadingImage}
-                            className="hidden"
-                            id="image-upload"
+                        <div className="mt-1">
+                          <MediaUploadSection
+                            media={media}
+                            setMedia={(newMedia) => {
+                              setMedia(newMedia);
+                              // Ustawienie URL pierwszego zdjęcia jako wartość pola
+                              if (newMedia.length > 0) {
+                                field.onChange(newMedia[0].url);
+                              } else {
+                                field.onChange("");
+                              }
+                            }}
+                            disabled={isSubmitting || uploadingImage}
+                            maxFiles={1} // Tylko jedno zdjęcie
                           />
-                          <label htmlFor="image-upload">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="w-full"
-                              disabled={uploadingImage}
-                              asChild
-                            >
-                              <span>
-                                <Upload className="mr-2 h-4 w-4" />
-                                {uploadingImage ? "Przesyłanie..." : "Dodaj zdjęcie"}
-                              </span>
-                            </Button>
-                          </label>
-                          {imagePreview && (
-                            <div className="mt-2 relative">
-                              <img
-                                src={imagePreview}
-                                alt="Podgląd"
-                                className="w-full max-h-48 object-contain rounded-md border"
-                              />
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                className="absolute top-2 right-2"
-                                onClick={() => {
-                                  setImagePreview(null);
-                                  form.setValue("image_url", "");
-                                }}
-                              >
-                                Usuń
-                              </Button>
-                            </div>
-                          )}
                         </div>
                       </FormControl>
                       <FormDescription>
@@ -462,10 +419,10 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
                   </Button>
                   <Button 
                     type="submit" 
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || uploadingImage}
                     className="flex-1 sm:flex-none bg-[#8a9a14] hover:bg-[#788618]"
                   >
-                    {isSubmitting ? "Wysyłanie..." : "Zgłoś kradzież"}
+                    {isSubmitting || uploadingImage ? "Wysyłanie..." : "Zgłoś kradzież"}
                   </Button>
                 </div>
               </form>
