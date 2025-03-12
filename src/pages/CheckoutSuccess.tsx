@@ -38,10 +38,8 @@ export default function CheckoutSuccess() {
   });
   const [orderCreated, setOrderCreated] = useState(false);
   
-  // Generujemy losowy numer zamówienia
   const orderNumber = `ORD-${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
   
-  // Symulujemy czas dostawy
   const estimatedDeliveryDate = new Date();
   estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + 3);
   
@@ -55,7 +53,6 @@ export default function CheckoutSuccess() {
       setIsLoading(true);
       
       try {
-        // Fetch product data
         const { data, error } = await supabase
           .from('products')
           .select('*')
@@ -76,12 +73,10 @@ export default function CheckoutSuccess() {
         if (data) {
           setProduct(data);
           
-          // Fetch seller info
           if (data.user_id) {
             fetchSellerInfo(data.user_id);
           }
           
-          // Create order if it doesn't exist yet
           if (!orderCreated) {
             createOrder(data);
           }
@@ -100,7 +95,8 @@ export default function CheckoutSuccess() {
     if (!user || !productData) return;
     
     try {
-      // Sprawdź, czy zamówienie już istnieje
+      console.log('Rozpoczynam tworzenie zamówienia dla produktu:', productData.id);
+      
       const { data: existingOrders, error: fetchError } = await supabase
         .from('product_orders')
         .select('id')
@@ -115,14 +111,12 @@ export default function CheckoutSuccess() {
         return;
       }
       
-      // Jeśli zamówienie już istnieje, nie tworzymy nowego
       if (existingOrders && existingOrders.length > 0) {
         console.log('Zamówienie już istnieje:', existingOrders[0].id);
         setOrderCreated(true);
         return;
       }
       
-      // Pobierz opcję dostawy (używamy kuriera jako domyślnej opcji)
       const { data: deliveryOptions, error: deliveryError } = await supabase
         .from('delivery_options')
         .select('*')
@@ -136,17 +130,24 @@ export default function CheckoutSuccess() {
       
       const deliveryOption = deliveryOptions[0];
       
-      // Cena produktu zależna od trybu (test/zakup)
       const productPrice = isTestMode && productData.testing_price 
         ? parseFloat(productData.testing_price) 
         : parseFloat(productData.price);
       
       const totalAmount = productPrice + deliveryOption.price;
       
-      // Utwórz nowe zamówienie
+      console.log('Tworzę nowe zamówienie z danymi:', {
+        productId: productData.id,
+        buyerId: user.id,
+        sellerId: productData.user_id,
+        totalAmount: totalAmount,
+        deliveryOptionId: deliveryOption.id,
+        isTestMode: isTestMode
+      });
+      
       const { data, error } = await supabase
         .from('product_orders')
-        .insert({
+        .insert([{
           product_id: productData.id,
           buyer_id: user.id,
           seller_id: productData.user_id,
@@ -156,7 +157,7 @@ export default function CheckoutSuccess() {
           payment_method: 'Karta płatnicza',
           order_type: isTestMode ? 'test' : 'purchase',
           test_end_date: isTestMode ? testEndDate.toISOString() : null
-        })
+        }])
         .select();
       
       if (error) {
@@ -170,7 +171,7 @@ export default function CheckoutSuccess() {
       }
       
       if (data) {
-        console.log('Zamówienie utworzone:', data[0].id);
+        console.log('Zamówienie utworzone pomyślnie:', data[0]);
         setOrderCreated(true);
         toast({
           title: "Sukces",
@@ -184,7 +185,6 @@ export default function CheckoutSuccess() {
   
   const fetchSellerInfo = async (userId: string) => {
     try {
-      // Usunięto pole 'email', którego nie ma w tabeli 'profiles'
       const { data, error } = await supabase
         .from('profiles')
         .select('full_name, avatar_url')
@@ -200,7 +200,6 @@ export default function CheckoutSuccess() {
         setSellerInfo(prev => ({
           ...prev,
           name: data.full_name || "Sprzedawca",
-          // Używamy domyślnego maila zamiast próby pobrania z tabeli
           location: product?.location || ""
         }));
       }
@@ -260,24 +259,20 @@ export default function CheckoutSuccess() {
     ? parseFloat(product.testing_price) 
     : parseFloat(product.price);
   
-  // Zakładamy że wybraliśmy pierwszą opcję dostawy
   const deliveryCost = 15.99;
   const totalCost = productPrice + deliveryCost;
   
-  // Przygotowanie URL obrazka produktu
   const getProductImageUrl = () => {
     if (!product.image_url) return '/placeholder.svg';
     
     try {
       if (typeof product.image_url === 'string') {
-        // Spróbuj sparsować jako JSON
         try {
           const images = JSON.parse(product.image_url);
           if (Array.isArray(images) && images.length > 0) {
             return images[0];
           }
         } catch (e) {
-          // To nie jest JSON, więc traktujemy jako zwykły string
           return product.image_url;
         }
       } else if (Array.isArray(product.image_url) && product.image_url.length > 0) {
@@ -518,4 +513,3 @@ export default function CheckoutSuccess() {
     </div>
   );
 }
-
