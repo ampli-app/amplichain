@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Notifications } from '@/components/Notifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { Menu, X, LogIn, User, Settings, LogOut, ShoppingBag, Package } from 'lucide-react';
+import { Menu, X, LogIn, User, Settings, LogOut, ShoppingBag, Package, Globe } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +41,7 @@ export function Navbar() {
     { name: 'Strona główna', href: '/' },
     { name: 'Rynek', href: '/marketplace' },
     { name: 'Feed', href: '/feed' },
+    { name: 'Skradziony Sprzęt', href: '/stolen-equipment' },
     { name: 'O nas', href: '/about' },
   ];
   
@@ -53,8 +55,9 @@ export function Navbar() {
       <nav className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
-            <Link to="/" className="text-xl font-bold">
-              Logo
+            <Link to="/" className="flex items-center text-xl font-bold">
+              <Globe className="h-6 w-6 mr-2 text-primary" />
+              <span className="text-primary font-bold">Amplichain</span>
             </Link>
             
             <div className="hidden md:ml-8 md:flex md:items-center md:space-x-4">
@@ -65,8 +68,8 @@ export function Navbar() {
                   className={cn(
                     'px-3 py-2 rounded-md text-sm font-medium transition-colors',
                     location.pathname === item.href
-                      ? 'text-primary'
-                      : 'text-muted-foreground hover:text-primary'
+                      ? 'text-primary bg-primary/10'
+                      : 'text-muted-foreground hover:text-primary hover:bg-primary/5'
                   )}
                 >
                   {item.name}
