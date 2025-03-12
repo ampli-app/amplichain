@@ -4,17 +4,7 @@ import { Search, Filter, Grid3X3, List } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { StolenEquipmentCard } from './StolenEquipmentCard';
-
-interface StolenEquipmentItem {
-  id: string;
-  title: string;
-  location: string;
-  date: string;
-  description: string;
-  image: string;
-  status: 'verified' | 'unverified' | 'recovered';
-  category: string;
-}
+import { StolenEquipmentItem } from '@/hooks/useStolenEquipment';
 
 interface StolenEquipmentGridProps {
   items: StolenEquipmentItem[];

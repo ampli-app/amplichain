@@ -6,7 +6,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { StolenEquipmentHeader } from '@/components/stolen-equipment/StolenEquipmentHeader';
 import { StolenEquipmentCategories } from '@/components/stolen-equipment/StolenEquipmentCategories';
