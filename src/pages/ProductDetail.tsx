@@ -89,6 +89,7 @@ export default function ProductDetail() {
   });
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedDeliveryOption, setSelectedDeliveryOption] = useState<DeliveryOption | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -128,7 +129,6 @@ export default function ProductDetail() {
             fetchSellerInfo(data.user_id);
           }
           
-          // Pobierz opcje dostawy dla produktu
           fetchDeliveryOptions(data.id);
         } else {
           console.error('No product data found');
@@ -157,7 +157,6 @@ export default function ProductDetail() {
     try {
       console.log("Fetching delivery options for product ID:", productId);
       
-      // Pobierz opcje dostawy dla produktu
       const { data: productDeliveryData, error: productDeliveryError } = await supabase
         .from('product_delivery_options')
         .select('delivery_option_id')
@@ -168,7 +167,6 @@ export default function ProductDetail() {
         return;
       }
       
-      // Pobierz szczegóły opcji dostawy
       if (productDeliveryData && productDeliveryData.length > 0) {
         const deliveryOptionIds = productDeliveryData.map(option => option.delivery_option_id);
         
@@ -228,14 +226,11 @@ export default function ProductDetail() {
     
     if (product) {
       try {
-        // Dodajemy console.log dla debugowania
         console.log("Navigating to checkout:", purchaseType, id);
         
         if (purchaseType === 'test' && product.testing_price) {
-          // Tworzymy zamówienie dla produktu testowego
           createOrder(product.testing_price);
         } else {
-          // Tworzymy zamówienie dla normalnego zakupu
           createOrder(product.price);
         }
       } catch (err) {
@@ -262,7 +257,6 @@ export default function ProductDetail() {
     setIsProcessing(true);
     
     try {
-      // Pobieramy informacje o opcji dostawy, jeśli została wybrana
       let deliveryOptionId = null;
       let deliveryPrice = 0;
       
@@ -271,10 +265,8 @@ export default function ProductDetail() {
         deliveryPrice = selectedDeliveryOption.price;
       }
       
-      // Obliczamy łączną wartość zamówienia
       const totalAmount = price + deliveryPrice;
       
-      // Tworzymy zamówienie
       const { data, error } = await supabase
         .from('product_orders')
         .insert({
@@ -295,12 +287,22 @@ export default function ProductDetail() {
         description: "Zamówienie zostało złożone pomyślnie.",
       });
       
-      // Przekierowujemy do strony ze szczegółami zamówienia
       navigate(`/order-details/${data.id}`);
     } catch (error) {
       console.error('Błąd podczas tworzenia zamówienia:', error);
       toast({
         title: "Błąd",
         description: "Nie udało się złożyć zamówienia. Spróbuj ponownie później.",
-       
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
+  return (
+    <div>
+      {/* Component rendering logic goes here */}
+    </div>
+  );
+}
