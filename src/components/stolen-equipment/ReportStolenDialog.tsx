@@ -65,7 +65,7 @@ const reportFormSchema = z.object({
   }),
   serial_number: z.string().optional(),
   contact_info: z.string().optional(),
-  image_url: z.string().optional(),
+  images: z.array(z.string()).optional(),
 });
 
 type ReportFormValues = z.infer<typeof reportFormSchema>;
@@ -78,7 +78,7 @@ interface ReportStolenDialogProps {
 export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogProps) {
   const { isLoggedIn, user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [media, setMedia] = useState<MediaFile[]>([]);
   const { data: categories = [] } = useCategories();
   const { data: locations = [] } = useLocations();
@@ -94,7 +94,7 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
       date: new Date(),
       serial_number: "",
       contact_info: "",
-      image_url: "",
+      images: [],
     },
   });
 
@@ -106,24 +106,35 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
 
     setIsSubmitting(true);
     try {
-      // Najpierw prześlij zdjęcie, jeśli zostało dodane
-      let imageUrl = values.image_url;
+      // Najpierw prześlij zdjęcia, jeśli zostały dodane
+      const imageUrls: string[] = [];
+      
       if (media.length > 0) {
-        setUploadingImage(true);
-        const mediaItem = media[0];
+        setUploadingImages(true);
         
-        if (mediaItem.file) {
-          // Prześlij zdjęcie do bucketa 'stolen-equipment'
-          imageUrl = await uploadMediaToStorage(mediaItem.file, 'stolen-equipment');
-          setUploadingImage(false);
-          
-          if (!imageUrl) {
-            throw new Error("Nie udało się przesłać zdjęcia");
+        // Prześlij wszystkie zdjęcia asynchronicznie
+        const uploadPromises = media.map(async (mediaItem) => {
+          if (mediaItem.file) {
+            // Prześlij zdjęcie do bucketa 'stolen-equipment'
+            const imageUrl = await uploadMediaToStorage(mediaItem.file, 'stolen-equipment');
+            
+            if (imageUrl) {
+              return imageUrl;
+            }
+          } else if (mediaItem.url) {
+            // Jeśli to URL, po prostu go użyj
+            return mediaItem.url;
           }
-        } else if (mediaItem.url) {
-          // Jeśli to URL, po prostu go użyj
-          imageUrl = mediaItem.url;
-        }
+          return null;
+        });
+        
+        // Poczekaj na przesłanie wszystkich zdjęć
+        const results = await Promise.all(uploadPromises);
+        results.forEach(url => {
+          if (url) imageUrls.push(url);
+        });
+        
+        setUploadingImages(false);
       }
 
       const formattedDate = format(values.date, 'dd.MM.yyyy');
@@ -136,7 +147,8 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
         date: formattedDate,
         serial_number: values.serial_number || null,
         contact_info: values.contact_info || null,
-        image_url: imageUrl || null,
+        image_url: imageUrls.length > 0 ? imageUrls[0] : null, // Pierwsze zdjęcie jako główne
+        images: imageUrls.length > 0 ? imageUrls : null, // Wszystkie zdjęcia jako tablica
         user_id: user?.id,
         status: 'unverified',
       });
@@ -154,7 +166,7 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
       toast.error("Wystąpił błąd podczas zgłaszania kradzieży");
     } finally {
       setIsSubmitting(false);
-      setUploadingImage(false);
+      setUploadingImages(false);
     }
   };
 
@@ -376,30 +388,27 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
 
                 <FormField
                   control={form.control}
-                  name="image_url"
+                  name="images"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Zdjęcie sprzętu</FormLabel>
+                      <FormLabel>Zdjęcia sprzętu</FormLabel>
                       <FormControl>
                         <div className="mt-1">
                           <MediaUploadSection
                             media={media}
                             setMedia={(newMedia) => {
                               setMedia(newMedia);
-                              // Ustawienie URL pierwszego zdjęcia jako wartość pola
-                              if (newMedia.length > 0) {
-                                field.onChange(newMedia[0].url);
-                              } else {
-                                field.onChange("");
-                              }
+                              // Ustawienie URL zdjęć jako wartość pola
+                              const imageUrls = newMedia.map(item => item.url);
+                              field.onChange(imageUrls);
                             }}
-                            disabled={isSubmitting || uploadingImage}
-                            maxFiles={1} // Tylko jedno zdjęcie
+                            disabled={isSubmitting || uploadingImages}
+                            maxFiles={6} // Zwiększono limit z 1 do 6 zdjęć
                           />
                         </div>
                       </FormControl>
                       <FormDescription>
-                        Dodaj zdjęcie sprzętu, które pomoże w jego identyfikacji.
+                        Dodaj do 6 zdjęć sprzętu, które pomogą w jego identyfikacji.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -419,10 +428,10 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
                   </Button>
                   <Button 
                     type="submit" 
-                    disabled={isSubmitting || uploadingImage}
+                    disabled={isSubmitting || uploadingImages}
                     className="flex-1 sm:flex-none bg-[#8a9a14] hover:bg-[#788618]"
                   >
-                    {isSubmitting || uploadingImage ? "Wysyłanie..." : "Zgłoś kradzież"}
+                    {isSubmitting || uploadingImages ? "Wysyłanie..." : "Zgłoś kradzież"}
                   </Button>
                 </div>
               </form>

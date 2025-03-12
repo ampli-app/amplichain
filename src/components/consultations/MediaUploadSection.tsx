@@ -1,11 +1,11 @@
 
 import { useRef, useState } from 'react';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { MediaPreview, MediaFile } from '@/components/social/MediaPreview';
 import { handleFileUpload } from '@/utils/mediaUtils';
-import { Upload, PlusCircle, X } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 
 interface MediaUploadSectionProps {
   media: MediaFile[];
@@ -63,18 +63,7 @@ export function MediaUploadSection({
   return (
     <div className="grid gap-3">
       <div className="flex items-center justify-between">
-        <Label>Zdjęcia konsultacji ({media.length}/{maxFiles})</Label>
-        <Button 
-          type="button" 
-          variant="outline" 
-          size="sm" 
-          onClick={handleAddImageClick}
-          disabled={disabled || media.length >= maxFiles}
-          className="flex items-center gap-1"
-        >
-          <PlusCircle className="h-4 w-4" />
-          Dodaj zdjęcie
-        </Button>
+        <Label>Zdjęcia ({media.length}/{maxFiles})</Label>
       </div>
       
       <input
