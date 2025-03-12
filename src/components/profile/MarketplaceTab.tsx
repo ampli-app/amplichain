@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
@@ -90,7 +89,7 @@ export function MarketplaceTab({
         <TabsContent value="services">
           <ServicesTabContent 
             services={[]}
-            onDelete={handleServiceDeleted}
+            onDelete={onDeleteService}
             onAddService={() => setShowAddServiceDialog(true)}
           />
         </TabsContent>

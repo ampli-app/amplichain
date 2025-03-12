@@ -4,10 +4,11 @@ import { Card } from '@/components/ui/card';
 import { ReactNode } from 'react';
 
 interface MarketplaceEmptyStateProps {
-  icon?: ReactNode;
+  icon: ReactNode;
   title: string;
   description: string;
   buttonText?: string;
+  buttonIcon?: ReactNode;
   onButtonClick?: () => void;
 }
 
@@ -16,6 +17,7 @@ export function MarketplaceEmptyState({
   title,
   description,
   buttonText,
+  buttonIcon,
   onButtonClick
 }: MarketplaceEmptyStateProps) {
   return (
@@ -25,6 +27,7 @@ export function MarketplaceEmptyState({
       <p className="text-muted-foreground mb-4">{description}</p>
       {buttonText && onButtonClick && (
         <Button onClick={onButtonClick}>
+          {buttonIcon && <span className="mr-2">{buttonIcon}</span>}
           {buttonText}
         </Button>
       )}
