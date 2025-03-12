@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Index from './pages/Index';
@@ -23,9 +24,6 @@ import EditProduct from './pages/EditProduct';
 import EditConsultation from './pages/EditConsultation';
 import StolenEquipment from './pages/StolenEquipment';
 import StolenEquipmentAll from './pages/StolenEquipmentAll';
-import OrderDetails from './pages/OrderDetails';
-import MyOrders from './pages/MyOrders';
-import SellerOrders from './pages/SellerOrders';
 import { AuthProvider } from './contexts/AuthContext';
 import { SocialProvider } from './contexts/SocialContext';
 import { Toaster } from '@/components/ui/toaster';
@@ -59,9 +57,6 @@ function App() {
               <Route path="/edit-product/:id?" element={<EditProduct />} />
               <Route path="/stolen-equipment" element={<StolenEquipment />} />
               <Route path="/stolen-equipment/all" element={<StolenEquipmentAll />} />
-              <Route path="/order-details/:id" element={<OrderDetails />} />
-              <Route path="/my-orders" element={<MyOrders />} />
-              <Route path="/seller-orders" element={<SellerOrders />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
