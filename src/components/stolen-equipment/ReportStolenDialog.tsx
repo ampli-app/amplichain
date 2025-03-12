@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Calendar, MapPin, Upload } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -11,6 +10,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useCategories, useLocations } from '@/hooks/useStolenEquipment';
 import { useQueryClient } from '@tanstack/react-query';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 import {
   Dialog,
@@ -108,7 +108,6 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `stolen-equipment/${fileName}`;
 
-      // Upload image to Supabase Storage
       const { error: uploadError, data } = await supabase.storage
         .from('public')
         .upload(filePath, file);
@@ -117,7 +116,6 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
         throw uploadError;
       }
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage.from('public').getPublicUrl(filePath);
       
       setImagePreview(publicUrl);
@@ -139,7 +137,6 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
 
     setIsSubmitting(true);
     try {
-      // Format date to string
       const formattedDate = format(values.date, 'dd.MM.yyyy');
 
       const { error } = await supabase.from('stolen_equipment').insert({
@@ -152,7 +149,7 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
         contact_info: values.contact_info || null,
         image_url: values.image_url || null,
         user_id: user?.id,
-        status: 'unverified', // Nowe zgłoszenia zawsze mają status "niezweryfikowany"
+        status: 'unverified',
       });
 
       if (error) throw error;
@@ -162,7 +159,6 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
       setImagePreview(null);
       onOpenChange(false);
       
-      // Invalidate query to refresh data
       queryClient.invalidateQueries({ queryKey: ['stolenEquipment'] });
     } catch (error) {
       console.error("Błąd podczas zgłaszania kradzieży:", error);
@@ -186,8 +182,6 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
             <Button variant="outline" onClick={() => onOpenChange(false)}>Anuluj</Button>
             <Button onClick={() => {
               onOpenChange(false);
-              // Przekierowanie do strony logowania
-              // (możesz zastąpić to odpowiednim kodem przekierowania)
               toast.info("Przekierowanie do strony logowania");
             }}>Zaloguj się</Button>
           </DialogFooter>
@@ -198,7 +192,7 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Zgłoś kradzież sprzętu</DialogTitle>
           <DialogDescription>
@@ -206,49 +200,129 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nazwa sprzętu</FormLabel>
-                  <FormControl>
-                    <Input placeholder="np. Fender Stratocaster (1976)" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Podaj pełną nazwę, model i rok produkcji sprzętu (jeśli znany).
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ScrollArea className="max-h-[calc(90vh-180px)] pr-4">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="category_id"
+                name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kategoria</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Wybierz kategorię" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Nazwa sprzętu</FormLabel>
+                    <FormControl>
+                      <Input placeholder="np. Fender Stratocaster (1976)" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Podaj pełną nazwę, model i rok produkcji sprzętu (jeśli znany).
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="category_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Kategoria</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Wybierz kategorię" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Lokalizacja</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Wybierz lokalizację" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {locations.map((location) => (
+                            <SelectItem key={location.id} value={location.name}>
+                              {location.name}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="other">Inna lokalizacja</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {field.value === "other" && (
+                        <Input 
+                          className="mt-2" 
+                          placeholder="Wpisz lokalizację"
+                          onChange={(e) => form.setValue("location", e.target.value)}
+                        />
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data kradzieży</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PP", { locale: pl })
+                            ) : (
+                              <span>Wybierz datę</span>
+                            )}
+                            <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -256,209 +330,137 @@ export function ReportStolenDialog({ open, onOpenChange }: ReportStolenDialogPro
 
               <FormField
                 control={form.control}
-                name="location"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lokalizacja</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Wybierz lokalizację" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {locations.map((location) => (
-                          <SelectItem key={location.id} value={location.name}>
-                            {location.name}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="other">Inna lokalizacja</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {field.value === "other" && (
-                      <Input 
-                        className="mt-2" 
-                        placeholder="Wpisz lokalizację"
-                        onChange={(e) => form.setValue("location", e.target.value)}
+                    <FormLabel>Szczegółowy opis</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Opisz szczegółowo jak wygląda sprzęt, wszelkie znaki szczególne, naklejki, wytarcia, itp."
+                        className="min-h-[120px]"
+                        {...field}
                       />
-                    )}
+                    </FormControl>
+                    <FormDescription>
+                      Podaj jak najwięcej szczegółów, które pomogą w identyfikacji sprzętu.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
 
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Data kradzieży</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PP", { locale: pl })
-                          ) : (
-                            <span>Wybierz datę</span>
-                          )}
-                          <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="serial_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Numer seryjny (opcjonalnie)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="np. 123456789" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Podaj numer seryjny jeśli go znasz - pomoże to w identyfikacji sprzętu.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Szczegółowy opis</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Opisz szczegółowo jak wygląda sprzęt, wszelkie znaki szczególne, naklejki, wytarcia, itp."
-                      className="min-h-[120px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Podaj jak najwięcej szczegółów, które pomogą w identyfikacji sprzętu.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="contact_info"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dane kontaktowe (opcjonalnie)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="np. telefon, email, inne" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Podaj dane kontaktowe, jeśli chcesz by osoby z informacjami mogły się z Tobą skontaktować bezpośrednio.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="serial_number"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Numer seryjny (opcjonalnie)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="np. 123456789" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Podaj numer seryjny jeśli go znasz - pomoże to w identyfikacji sprzętu.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="contact_info"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Dane kontaktowe (opcjonalnie)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="np. telefon, email, inne" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Podaj dane kontaktowe, jeśli chcesz by osoby z informacjami mogły się z Tobą skontaktować bezpośrednio.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="image_url"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Zdjęcie sprzętu (opcjonalnie)</FormLabel>
-                  <FormControl>
-                    <div className="grid gap-2">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        disabled={uploadingImage}
-                        className="hidden"
-                        id="image-upload"
-                      />
-                      <label htmlFor="image-upload">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full"
+              <FormField
+                control={form.control}
+                name="image_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Zdjęcie sprzętu (opcjonalnie)</FormLabel>
+                    <FormControl>
+                      <div className="grid gap-2">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
                           disabled={uploadingImage}
-                          asChild
-                        >
-                          <span>
-                            <Upload className="mr-2 h-4 w-4" />
-                            {uploadingImage ? "Przesyłanie..." : "Dodaj zdjęcie"}
-                          </span>
-                        </Button>
-                      </label>
-                      {imagePreview && (
-                        <div className="mt-2 relative">
-                          <img
-                            src={imagePreview}
-                            alt="Podgląd"
-                            className="w-full max-h-48 object-contain rounded-md border"
-                          />
+                          className="hidden"
+                          id="image-upload"
+                        />
+                        <label htmlFor="image-upload">
                           <Button
                             type="button"
-                            variant="destructive"
-                            size="sm"
-                            className="absolute top-2 right-2"
-                            onClick={() => {
-                              setImagePreview(null);
-                              form.setValue("image_url", "");
-                            }}
+                            variant="outline"
+                            className="w-full"
+                            disabled={uploadingImage}
+                            asChild
                           >
-                            Usuń
+                            <span>
+                              <Upload className="mr-2 h-4 w-4" />
+                              {uploadingImage ? "Przesyłanie..." : "Dodaj zdjęcie"}
+                            </span>
                           </Button>
-                        </div>
-                      )}
-                    </div>
-                  </FormControl>
-                  <FormDescription>
-                    Dodaj zdjęcie sprzętu, które pomoże w jego identyfikacji.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                        </label>
+                        {imagePreview && (
+                          <div className="mt-2 relative">
+                            <img
+                              src={imagePreview}
+                              alt="Podgląd"
+                              className="w-full max-h-48 object-contain rounded-md border"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute top-2 right-2"
+                              onClick={() => {
+                                setImagePreview(null);
+                                form.setValue("image_url", "");
+                              }}
+                            >
+                              Usuń
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      Dodaj zdjęcie sprzętu, które pomoże w jego identyfikacji.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Anuluj
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Wysyłanie..." : "Zgłoś kradzież"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+              <div className="h-4"></div>
+            </form>
+          </Form>
+        </ScrollArea>
+
+        <DialogFooter className="mt-6">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Anuluj
+          </Button>
+          <Button 
+            type="button" 
+            disabled={isSubmitting}
+            onClick={form.handleSubmit(onSubmit)}
+          >
+            {isSubmitting ? "Wysyłanie..." : "Zgłoś kradzież"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
