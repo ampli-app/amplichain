@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -8,39 +9,59 @@ import { CreatePostModal } from '@/components/CreatePostModal';
 import { FeedPostsList } from '@/components/social/FeedPostsList';
 import { FeedPostCreate } from '@/components/social/FeedPostCreate';
 import { useAuth } from '@/contexts/AuthContext';
-import { getPosts } from '@/services/postService'; // Zakładam, że masz taką usługę do pobierania postów
+import { toast } from '@/components/ui/use-toast';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Feed() {
   const { isLoggedIn } = useAuth();
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
-  const [reload, setReload] = useState(false);
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  useEffect(() => {
-    if (isLoggedIn) {
-      fetchPosts();
-    }
-  }, [isLoggedIn, reload]);
+  const { data: posts, isLoading, error } = useQuery({
+    queryKey: ['feed-posts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('feed_posts')
+        .select(`
+          *,
+          feed_post_media (id, url, type),
+          feed_post_files (id, name, url, type, size),
+          feed_post_poll_options (
+            id, 
+            text,
+            feed_post_poll_votes (id, user_id)
+          ),
+          feed_post_likes (id, user_id),
+          feed_post_comments (id),
+          feed_post_hashtags (
+            hashtag_id,
+            hashtags (id, name)
+          )
+        `)
+        .order('created_at', { ascending: false });
 
-  const fetchPosts = async () => {
-    try {
-      setLoading(true);
-      const fetchedPosts = await getPosts();
-      setPosts(fetchedPosts);
-    } catch (error) {
-      console.error("Błąd podczas ładowania postów:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (error) {
+        throw new Error('Nie udało się pobrać postów');
+      }
+
+      return data || [];
+    },
+    enabled: isLoggedIn
+  });
+
+  if (error) {
+    toast({
+      title: "Błąd",
+      description: "Wystąpił błąd podczas ładowania postów",
+      variant: "destructive",
+    });
+  }
 
   const handlePostCreated = () => {
-    setReload(prev => !prev);
     setIsCreatePostModalOpen(false);
   };
 
@@ -77,12 +98,12 @@ export default function Feed() {
               
               {isLoggedIn ? (
                 <>
-                  {loading ? (
+                  {isLoading ? (
                     <div className="text-center py-8">
                       <p>Ładowanie postów...</p>
                     </div>
                   ) : (
-                    <FeedPostsList posts={posts} key={String(reload)} />
+                    <FeedPostsList posts={posts || []} />
                   )}
                 </>
               ) : (
