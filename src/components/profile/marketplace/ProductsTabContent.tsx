@@ -5,7 +5,7 @@ import { Product } from '@/components/marketplace/types';
 import { ProductCard } from '@/components/marketplace/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Package } from 'lucide-react';
+import { Package, Plus } from 'lucide-react';
 import { MarketplaceEmptyState } from './MarketplaceEmptyState';
 import { toast } from '@/components/ui/use-toast';
 

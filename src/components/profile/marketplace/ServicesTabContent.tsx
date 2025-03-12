@@ -1,6 +1,6 @@
-
 import { ServiceCard } from '@/components/marketplace/services/ServiceCard';
 import { MarketplaceEmptyState } from './MarketplaceEmptyState';
+import { Wrench } from 'lucide-react';
 
 interface ServicesTabContentProps {
   services: any[];
