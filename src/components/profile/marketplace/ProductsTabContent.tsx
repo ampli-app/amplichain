@@ -5,7 +5,7 @@ import { Product } from '@/components/marketplace/types';
 import { ProductCard } from '@/components/marketplace/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Plus, Package } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { MarketplaceEmptyState } from './MarketplaceEmptyState';
 import { toast } from '@/components/ui/use-toast';
 
@@ -39,7 +39,10 @@ export function ProductsTabContent({ userId, isOwnProfile }: ProductsTabContentP
           return;
         }
         
-        setProducts(data || []);
+        setProducts((data || []).map(product => ({
+          ...product,
+          user_id: product.user_id || userId // Ensure user_id is always set
+        })));
       } catch (err) {
         console.error('Unexpected error:', err);
       } finally {
@@ -72,12 +75,7 @@ export function ProductsTabContent({ userId, isOwnProfile }: ProductsTabContentP
           {products.map(product => (
             <ProductCard
               key={product.id}
-              product={{
-                ...product,
-                rating: product.rating || 0,
-                review_count: product.review_count || 0,
-                image_url: product.image_url || '/placeholder.svg'
-              }}
+              product={product}
               isOwner={isOwnProfile}
             />
           ))}
@@ -90,16 +88,6 @@ export function ProductsTabContent({ userId, isOwnProfile }: ProductsTabContentP
             ? "Nie dodałeś jeszcze żadnych produktów. Kliknij przycisk powyżej, aby dodać swój pierwszy produkt."
             : "Ten użytkownik nie ma jeszcze żadnych produktów."}
         />
-      )}
-      
-      {isOwnProfile && products.length > 0 && (
-        <div className="flex justify-center mt-8">
-          <Button variant="outline" asChild>
-            <Link to="/orders">
-              Zarządzaj zamówieniami
-            </Link>
-          </Button>
-        </div>
       )}
     </div>
   );

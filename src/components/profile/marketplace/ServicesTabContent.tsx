@@ -16,6 +16,7 @@ export function ServicesTabContent({
   if (services.length === 0) {
     return (
       <MarketplaceEmptyState 
+        icon={<Wrench className="h-12 w-12 text-primary/20" />}
         title="Brak usług"
         description="Nie masz jeszcze żadnych usług."
         buttonText="Dodaj pierwszą usługę"

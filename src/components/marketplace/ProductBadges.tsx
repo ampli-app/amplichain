@@ -1,15 +1,20 @@
-
 import { Badge } from '@/components/ui/badge';
 
 interface ProductBadgesProps {
-  forTesting: boolean;
-  isUserProduct: boolean;
-  sale: boolean;
+  forTesting?: boolean;
+  isUserProduct?: boolean;
+  sale?: boolean;
   salePercentage?: number | null;
   hideInDiscover?: boolean;
 }
 
-export function ProductBadges({ forTesting, isUserProduct, sale, salePercentage, hideInDiscover = false }: ProductBadgesProps) {
+export function ProductBadges({ 
+  forTesting = false, 
+  isUserProduct = false, 
+  sale = false, 
+  salePercentage, 
+  hideInDiscover = false 
+}: ProductBadgesProps) {
   return (
     <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-2">
       {forTesting && (

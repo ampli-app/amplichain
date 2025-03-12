@@ -138,6 +138,7 @@ export function MyConsultations() {
   if (consultations.length === 0) {
     return (
       <MarketplaceEmptyState
+        icon={<PlusCircle className="h-12 w-12 text-primary/20" />}
         title="Nie masz jeszcze żadnych konsultacji"
         description="Dodaj swoją pierwszą ofertę konsultacji i zacznij dzielić się swoją wiedzą"
         buttonText="Dodaj konsultację"

@@ -1,24 +1,10 @@
+
 import { useNavigate } from 'react-router-dom';
 import { ProductImage } from './ProductImage';
 import { ProductPrice } from './ProductPrice';
 import { ProductBadges } from './ProductBadges';
 import { ProductActions } from './ProductActions';
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  image_url: string | string[];
-  category: string;
-  category_id: string;
-  sale?: boolean;
-  sale_percentage?: number;
-  rating: number;
-  review_count: number;
-  user_id: string;
-  location?: string;
-  condition?: string;
-}
+import { Product } from './types';
 
 interface ProductCardProps {
   product: Product;
@@ -34,15 +20,25 @@ export function ProductCard({ product, isOwner }: ProductCardProps) {
   
   return (
     <div className="group relative bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-      <ProductImage imageUrl={product.image_url} title={product.title} />
-      <ProductBadges product={product} />
+      <ProductImage 
+        image={product.image_url} 
+        title={product.title} 
+      />
+      <ProductBadges 
+        forTesting={product.for_testing || false}
+        isUserProduct={isOwner}
+        sale={product.sale || false}
+        salePercentage={product.sale_percentage}
+      />
       
       <div className="p-4">
         <h3 className="font-medium mb-1 line-clamp-2">{product.title}</h3>
         <ProductPrice 
           price={product.price} 
-          sale={product.sale}
+          sale={product.sale || false}
           salePercentage={product.sale_percentage}
+          forTesting={product.for_testing || false}
+          testingPrice={product.testing_price}
         />
         <ProductActions 
           id={product.id}
