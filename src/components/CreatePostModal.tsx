@@ -6,9 +6,10 @@ import { FeedPostCreate } from './social/FeedPostCreate';
 interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onPostCreated?: () => void; // Added this prop as optional
 }
 
-export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
+export function CreatePostModal({ isOpen, onClose, onPostCreated }: CreatePostModalProps) {
   const [open, setOpen] = useState(isOpen);
   
   useEffect(() => {
@@ -23,8 +24,13 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
   const handlePostCreated = () => {
     // Automatycznie zamknij modal po pomyślnym utworzeniu posta
     handleClose();
-    // Odśwież stronę, aby pokazać nowy post
-    window.location.reload();
+    // Wywołaj callback jeśli został przekazany
+    if (onPostCreated) {
+      onPostCreated();
+    } else {
+      // Odśwież stronę, aby pokazać nowy post (zachowanie awaryjne)
+      window.location.reload();
+    }
   };
   
   return (
