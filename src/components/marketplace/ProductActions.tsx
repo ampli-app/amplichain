@@ -58,7 +58,6 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       return;
     }
 
-    // Sprawdź jeszcze raz dostępność produktu przed rozpoczęciem procesu rezerwacji
     if (!isAvailable) {
       toast({
         title: "Produkt niedostępny",
@@ -73,7 +72,6 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       return;
     }
     
-    // Zapobiegaj wielokrotnemu kliknięciu
     if (isReserving) {
       return;
     }
@@ -81,17 +79,13 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
     setIsReserving(true);
     
     try {
-      // Anuluj wszystkie poprzednie rezerwacje (w tym wygasłe)
       await cancelPreviousReservations();
       
-      // Sprawdź, czy URL zawiera parametr trybu testowego
       const isTestMode = location.search.includes('mode=test');
       
-      // Jeśli mamy dane produktu, użyj ich do utworzenia rezerwacji
       if (product) {
         const reservation = await initiateOrder(product, isTestMode);
         if (reservation) {
-          // Dodaj parametr rezerwacji do URL
           if (isTestMode) {
             navigate(`/checkout/${id}?mode=test&orderId=${reservation.id}`);
           } else {
@@ -100,7 +94,6 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
           return;
         }
       } else {
-        // Jeśli nie mamy danych produktu, po prostu przekieruj do checkoutu
         if (isTestMode) {
           navigate(`/checkout/${id}?mode=test`);
         } else {
@@ -115,7 +108,6 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         variant: "destructive",
       });
     } finally {
-      // Opóźnij resetowanie stanu rezerwacji, aby zapobiec podwójnym kliknięciom
       setTimeout(() => {
         setIsReserving(false);
       }, 1000);
@@ -185,7 +177,6 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
 
   return (
     <div className="flex justify-between mt-4">
-      {/* Button container to ensure proper alignment */}
       <div>
         <Button 
           variant="outline" 
@@ -200,10 +191,8 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       </div>
       
       <div className="flex gap-2">
-        {/* Buy button only for non-user products */}
         {!isUserProduct && renderBuyButton()}
         
-        {/* Edit button only for user's products */}
         {isUserProduct && (
           <Button 
             variant="default" 
@@ -217,7 +206,6 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
           </Button>
         )}
         
-        {/* Share button */}
         <Button 
           variant="secondary" 
           size="icon"
