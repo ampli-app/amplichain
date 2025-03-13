@@ -1,0 +1,73 @@
+
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+export const useProductAvailability = (productId: string | undefined) => {
+  const [isAvailable, setIsAvailable] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [productStatus, setProductStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!productId) {
+      setIsLoading(false);
+      return;
+    }
+
+    const checkAvailability = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('status')
+          .eq('id', productId)
+          .single();
+
+        if (error) {
+          console.error('Błąd podczas sprawdzania dostępności produktu:', error);
+          setIsAvailable(false);
+        } else {
+          setProductStatus(data.status);
+          setIsAvailable(data.status === 'available');
+        }
+      } catch (err) {
+        console.error('Nieoczekiwany błąd:', err);
+        setIsAvailable(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAvailability();
+
+    // Ustaw subskrypcję na zmiany w tabeli products
+    const channel = supabase
+      .channel('product-status-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'products',
+          filter: `id=eq.${productId}`,
+        },
+        (payload) => {
+          console.log('Produkt został zaktualizowany:', payload);
+          if (payload.new && 'status' in payload.new) {
+            setProductStatus(payload.new.status as string);
+            setIsAvailable(payload.new.status === 'available');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [productId]);
+
+  return {
+    isAvailable,
+    isLoading,
+    productStatus
+  };
+};

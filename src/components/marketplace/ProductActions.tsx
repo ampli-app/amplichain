@@ -1,11 +1,13 @@
 
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Eye, Pencil, Share2, ShoppingCart } from 'lucide-react';
+import { Eye, Pencil, Share2, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
+import { useProductAvailability } from '@/hooks/useProductAvailability';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ProductActionsProps {
   id: string;
@@ -22,6 +24,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
   const [isReserving, setIsReserving] = useState(false);
   
   const { initiateOrder, cancelPreviousReservations } = useOrderReservation({ productId: id });
+  const { isAvailable, isLoading: isCheckingAvailability, productStatus } = useProductAvailability(id);
   
   const handleViewProduct = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -53,6 +56,16 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         variant: "destructive",
       });
       navigate('/login');
+      return;
+    }
+
+    // Sprawdź jeszcze raz dostępność produktu przed rozpoczęciem procesu rezerwacji
+    if (!isAvailable) {
+      toast({
+        title: "Produkt niedostępny",
+        description: "Ten produkt jest obecnie zarezerwowany lub został sprzedany.",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -100,6 +113,67 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
     }
   };
 
+  const renderBuyButton = () => {
+    if (isCheckingAvailability) {
+      return (
+        <Button 
+          variant="default" 
+          size="sm"
+          className="flex items-center gap-1 h-9"
+          disabled={true}
+          title="Sprawdzanie dostępności..."
+        >
+          <ShoppingCart className="h-4 w-4" />
+          <span className={isDiscoverPage ? "hidden" : "hidden sm:inline"}>
+            Sprawdzanie...
+          </span>
+        </Button>
+      );
+    }
+
+    if (!isAvailable) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="default" 
+                size="sm"
+                className="flex items-center gap-1 h-9 bg-gray-500"
+                disabled={true}
+                title="Produkt niedostępny"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                <span className={isDiscoverPage ? "hidden" : "hidden sm:inline"}>
+                  Niedostępny
+                </span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Ten produkt jest {productStatus === 'reserved' ? 'zarezerwowany' : 'niedostępny'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    return (
+      <Button 
+        variant="default" 
+        size="sm"
+        className="flex items-center gap-1 h-9"
+        onClick={handleBuyNow}
+        disabled={isReserving}
+        title="Kup teraz"
+      >
+        <ShoppingCart className="h-4 w-4" />
+        <span className={isDiscoverPage ? "hidden" : "hidden sm:inline"}>
+          {isReserving ? "Rezerwowanie..." : "Kup teraz"}
+        </span>
+      </Button>
+    );
+  };
+
   return (
     <div className="flex justify-between mt-4">
       {/* Button container to ensure proper alignment */}
@@ -118,21 +192,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       
       <div className="flex gap-2">
         {/* Buy button only for non-user products */}
-        {!isUserProduct && (
-          <Button 
-            variant="default" 
-            size="sm"
-            className="flex items-center gap-1 h-9"
-            onClick={handleBuyNow}
-            disabled={isReserving}
-            title="Kup teraz"
-          >
-            <ShoppingCart className="h-4 w-4" />
-            <span className={isDiscoverPage ? "hidden" : "hidden sm:inline"}>
-              {isReserving ? "Rezerwowanie..." : "Kup teraz"}
-            </span>
-          </Button>
-        )}
+        {!isUserProduct && renderBuyButton()}
         
         {/* Edit button only for user's products */}
         {isUserProduct && (

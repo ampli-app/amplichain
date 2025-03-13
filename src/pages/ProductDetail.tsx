@@ -21,12 +21,14 @@ import {
   Trash2,
   MapPin,
   Package,
-  Loader2
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthRequiredDialog } from '@/components/AuthRequiredDialog';
+import { useProductAvailability } from '@/hooks/useProductAvailability';
 
 interface ProductDetailProps {
   id: string;
@@ -225,15 +227,49 @@ export default function ProductDetail() {
     }
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (!isLoggedIn) {
       setShowAuthDialog(true);
       return;
     }
     
-    if (product && product.id) {
-      const path = purchaseType === 'test' ? `/checkout/${product.id}?mode=test` : `/checkout/${product.id}`;
-      navigate(path);
+    try {
+      const { data: currentProductData, error: productCheckError } = await supabase
+        .from('products')
+        .select('status')
+        .eq('id', product.id)
+        .single();
+      
+      if (productCheckError) {
+        console.error('Błąd podczas sprawdzania statusu produktu:', productCheckError);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się sprawdzić dostępności produktu.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (currentProductData.status !== 'available') {
+        toast({
+          title: "Produkt niedostępny",
+          description: "Ten produkt jest obecnie zarezerwowany lub został sprzedany.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (product && product.id) {
+        const path = purchaseType === 'test' ? `/checkout/${product.id}?mode=test` : `/checkout/${product.id}`;
+        navigate(path);
+      }
+    } catch (err) {
+      console.error('Nieoczekiwany błąd:', err);
+      toast({
+        title: "Błąd",
+        description: "Wystąpił problem podczas sprawdzania dostępności produktu.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -379,6 +415,8 @@ export default function ProductDetail() {
     "Wsparcie przed i po zakupie",
     "Bezpieczne płatności"
   ];
+
+  const { isAvailable, isLoading: isCheckingAvailability } = useProductAvailability(id);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -597,14 +635,22 @@ export default function ProductDetail() {
                     <Button 
                       className="w-full gap-2 py-6 text-base mt-4"
                       onClick={handleBuyNow}
-                      disabled={isProcessingOrder}
+                      disabled={isProcessingOrder || !isAvailable || isCheckingAvailability}
                     >
-                      {isProcessingOrder ? (
+                      {isProcessingOrder || isCheckingAvailability ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
-                        <ShoppingCart className="h-5 w-5" />
+                        isAvailable ? (
+                          <ShoppingCart className="h-5 w-5" />
+                        ) : (
+                          <AlertTriangle className="h-5 w-5" />
+                        )
                       )}
-                      {purchaseType === 'buy' ? 'Kup teraz' : 'Zamów test'}
+                      {isCheckingAvailability 
+                        ? 'Sprawdzanie dostępności...' 
+                        : isAvailable 
+                          ? (purchaseType === 'buy' ? 'Kup teraz' : 'Zamów test') 
+                          : 'Produkt niedostępny'}
                     </Button>
                   )}
                 </div>

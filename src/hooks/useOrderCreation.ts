@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -43,6 +44,11 @@ export const useOrderCreation = (userId: string | undefined) => {
       
       if (productError) {
         console.error('Błąd podczas sprawdzania statusu produktu:', productError);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się sprawdzić statusu produktu.",
+          variant: "destructive",
+        });
         return;
       }
       
@@ -126,7 +132,7 @@ export const useOrderCreation = (userId: string | undefined) => {
           product_id: productData.id,
           buyer_id: userId,
           seller_id: productData.user_id,
-          total_amount: totalAmount,
+          total_amount: totalAmount.toString(), // Konwersja number na string
           delivery_option_id: deliveryOption.id,
           status: 'reserved',
           payment_method: 'Karta płatnicza',

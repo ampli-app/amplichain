@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -16,12 +15,10 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
   const [reservationExpiresAt, setReservationExpiresAt] = useState<Date | null>(null);
   const [paymentDeadline, setPaymentDeadline] = useState<Date | null>(null);
   
-  // Funkcja do sprawdzania i aktualizacji wygasłych rezerwacji
   const checkExpiredReservations = async () => {
     if (!user) return;
     
     try {
-      // Wywołaj funkcję bezpośrednio z poziomu klienta
       const { error } = await supabase.rpc('cleanup_expired_orders');
       
       if (error) {
@@ -34,14 +31,12 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     }
   };
   
-  // Sprawdzenie, czy istnieje aktywna rezerwacja
   const checkExistingReservation = async () => {
     if (!user || !productId) return null;
     
     try {
       setIsLoading(true);
       
-      // Najpierw sprawdź i zaktualizuj wygasłe rezerwacje
       await checkExpiredReservations();
       
       const { data, error } = await supabase
@@ -81,14 +76,12 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     }
   };
   
-  // Anulowanie poprzednich rezerwacji, które mogły wygasnąć
   const cancelPreviousReservations = async () => {
     if (!user || !productId) return;
     
     try {
       console.log('Anulowanie poprzednich rezerwacji dla produktu:', productId);
       
-      // Anuluj wszystkie poprzednie rezerwacje dla tego produktu
       const { error } = await supabase
         .from('product_orders')
         .update({ 
@@ -106,7 +99,6 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
         console.log('Poprzednie rezerwacje oznaczone jako wygasłe pomyślnie');
       }
       
-      // Resetujemy lokalne dane rezerwacji
       setReservationData(null);
       setReservationExpiresAt(null);
       setPaymentDeadline(null);
@@ -116,35 +108,49 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     }
   };
   
-  // Oznaczenie rezerwacji jako wygasłej
-  const markReservationAsExpired = async (orderId: string) => {
-    if (!user || !orderId) return false;
+  const markReservationAsExpired = async (reservationId: string) => {
+    if (!reservationId) return;
     
     try {
-      console.log('Oznaczanie rezerwacji jako wygasłej, ID:', orderId);
+      const { data: reservation, error: getReservationError } = await supabase
+        .from('order_reservations')
+        .select('product_id')
+        .eq('id', reservationId)
+        .single();
+        
+      if (getReservationError) {
+        console.error('Błąd podczas pobierania informacji o rezerwacji:', getReservationError);
+        return;
+      }
       
-      const { error } = await supabase
-        .from('product_orders')
-        .update({ 
-          status: 'reservation_expired',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId);
+      const { error: updateError } = await supabase
+        .from('order_reservations')
+        .update({ status: 'reservation_expired' })
+        .eq('id', reservationId);
+        
+      if (updateError) {
+        console.error('Błąd podczas aktualizacji statusu rezerwacji:', updateError);
+        return;
+      }
       
-      if (error) {
-        console.error('Błąd podczas oznaczania rezerwacji jako wygasłej:', error);
-        return false;
-      } else {
-        console.log('Rezerwacja oznaczona jako wygasła pomyślnie');
-        return true;
+      if (reservation && reservation.product_id) {
+        const { error: productUpdateError } = await supabase
+          .from('products')
+          .update({ status: 'available' })
+          .eq('id', reservation.product_id)
+          .eq('status', 'reserved');
+          
+        if (productUpdateError) {
+          console.error('Błąd podczas przywracania statusu produktu:', productUpdateError);
+        } else {
+          console.log('Status produktu przywrócony na "available"');
+        }
       }
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas oznaczania rezerwacji jako wygasłej:', err);
-      return false;
     }
   };
   
-  // Inicjowanie nowej rezerwacji
   const initiateOrder = async (product: any, testMode: boolean = false) => {
     if (!user || !productId || !product) {
       toast({
@@ -158,33 +164,26 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     try {
       setIsLoading(true);
       
-      // Najpierw sprawdź i zaktualizuj wygasłe rezerwacje
       await checkExpiredReservations();
       
-      // Sprawdź, czy istnieje aktywna rezerwacja
       const existingReservation = await checkExistingReservation();
       
-      // Jeśli istnieje rezerwacja, sprawdź czy wygasła
       if (existingReservation) {
         const now = new Date();
         const expiresAt = existingReservation.reservation_expires_at 
           ? new Date(existingReservation.reservation_expires_at) 
           : null;
         
-        // Jeśli rezerwacja jeszcze nie wygasła, zwróć ją
         if (expiresAt && expiresAt > now) {
           return existingReservation;
         }
         
-        // Jeśli rezerwacja wygasła, anuluj ją
         await cancelPreviousReservations();
       }
       
-      // Ustaw czas wygaśnięcia rezerwacji (10 minut)
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 10);
       
-      // Pobierz opcję dostawy (zakładamy, że istnieje domyślna opcja)
       const { data: deliveryOptions, error: deliveryError } = await supabase
         .from('delivery_options')
         .select('*')
@@ -201,12 +200,10 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
         return null;
       }
       
-      // Oblicz cenę produktu w zależności od trybu
       const productPrice = testMode && product.testing_price 
         ? parseFloat(product.testing_price) 
         : parseFloat(product.price);
       
-      // Oblicz łączną kwotę
       const totalAmount = productPrice + deliveryOptions[0].price;
       
       console.log("Tworzę zamówienie z parametrami:", {
@@ -220,7 +217,6 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
         order_type: testMode ? 'test' : 'purchase'
       });
       
-      // Utwórz nowe zamówienie ze statusem "reserved"
       const { data, error } = await supabase
         .from('product_orders')
         .insert([{
@@ -272,7 +268,6 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     }
   };
   
-  // Potwierdzenie zamówienia po wypełnieniu formularza
   const confirmOrder = async (formData: any) => {
     if (!reservationData || !reservationData.id) {
       toast({
@@ -283,7 +278,6 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       return false;
     }
     
-    // Sprawdź, czy rezerwacja nie wygasła
     const now = new Date();
     if (reservationExpiresAt && reservationExpiresAt < now) {
       toast({
@@ -297,11 +291,9 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     try {
       setIsLoading(true);
       
-      // Ustaw termin płatności (24 godziny)
       const paymentDeadlineDate = new Date();
       paymentDeadlineDate.setHours(paymentDeadlineDate.getHours() + 24);
       
-      // Aktualizuj zamówienie
       const { error } = await supabase
         .from('product_orders')
         .update({
@@ -324,7 +316,6 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
         return false;
       }
       
-      // Aktualizuj lokalne dane
       setPaymentDeadline(paymentDeadlineDate);
       setReservationData({
         ...reservationData,
@@ -351,7 +342,6 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     }
   };
   
-  // Inicjowanie płatności
   const initiatePayment = async () => {
     if (!reservationData || !reservationData.id) {
       toast({
@@ -362,7 +352,6 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       return null;
     }
     
-    // Sprawdź, czy termin płatności nie upłynął
     const now = new Date();
     if (paymentDeadline && paymentDeadline < now) {
       toast({
@@ -376,7 +365,6 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     try {
       setIsLoading(true);
       
-      // Aktualizacja statusu zamówienia
       const { error } = await supabase
         .from('product_orders')
         .update({
@@ -394,18 +382,13 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
         return null;
       }
       
-      // W rzeczywistym systemie, tutaj nastąpiłoby wywołanie API Stripe
-      // dla uproszczenia, symulujemy proces płatności
-      
-      // Symulacja PaymentIntent
       const paymentIntent = {
         id: `pi_${Math.random().toString(36).substring(2, 15)}`,
         client_secret: `cs_${Math.random().toString(36).substring(2, 15)}`,
-        amount: reservationData.total_amount * 100, // Stripe używa jednostek (grosze)
+        amount: reservationData.total_amount * 100,
         currency: 'pln'
       };
       
-      // Zapisz informację o płatności
       const { data: paymentData, error: paymentError } = await supabase
         .from('payments')
         .insert([{
@@ -422,7 +405,6 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
         console.error('Błąd podczas zapisywania informacji o płatności:', paymentError);
       }
       
-      // Aktualizuj lokalne dane
       setReservationData({
         ...reservationData,
         status: 'pending_payment',
@@ -443,7 +425,6 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     }
   };
   
-  // Obsługa wyniku płatności
   const handlePaymentResult = async (success: boolean) => {
     if (!reservationData || !reservationData.id) {
       return false;
@@ -454,7 +435,6 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       
       const newStatus = success ? 'payment_succeeded' : 'payment_failed';
       
-      // Aktualizacja statusu zamówienia
       const { error } = await supabase
         .from('product_orders')
         .update({
@@ -468,7 +448,6 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
         return false;
       }
       
-      // Aktualizacja statusu płatności
       if (reservationData.payment_intent_id) {
         await supabase
           .from('payments')
@@ -478,7 +457,6 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
           .eq('payment_intent_id', reservationData.payment_intent_id);
       }
       
-      // Aktualizuj lokalne dane
       setReservationData({
         ...reservationData,
         status: newStatus,
@@ -494,22 +472,65 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     }
   };
   
-  // Sprawdź istniejącą rezerwację przy inicjalizacji
+  const checkExpiredReservations = async () => {
+    try {
+      const { data: expiredReservations, error } = await supabase
+        .from('order_reservations')
+        .select('id, product_id')
+        .eq('status', 'reserved')
+        .lt('reservation_expires_at', new Date().toISOString());
+        
+      if (error) {
+        console.error('Błąd podczas sprawdzania wygasłych rezerwacji:', error);
+        return;
+      }
+      
+      if (expiredReservations && expiredReservations.length > 0) {
+        console.log('Znaleziono wygasłe rezerwacje:', expiredReservations.length);
+        
+        for (const reservation of expiredReservations) {
+          const { error: updateError } = await supabase
+            .from('order_reservations')
+            .update({ status: 'reservation_expired' })
+            .eq('id', reservation.id);
+            
+          if (updateError) {
+            console.error('Błąd podczas aktualizacji statusu rezerwacji:', updateError);
+            continue;
+          }
+          
+          if (reservation.product_id) {
+            const { error: productUpdateError } = await supabase
+              .from('products')
+              .update({ status: 'available' })
+              .eq('id', reservation.product_id)
+              .eq('status', 'reserved');
+              
+            if (productUpdateError) {
+              console.error('Błąd podczas przywracania statusu produktu:', productUpdateError);
+            } else {
+              console.log('Status produktu przywrócony na "available"');
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Nieoczekiwany błąd podczas sprawdzania wygasłych rezerwacji:', err);
+    }
+  };
+  
   useEffect(() => {
     if (user && productId) {
-      // Najpierw sprawdź wygasłe rezerwacje, a następnie pobierz aktualne rezerwacje
       checkExpiredReservations().then(() => {
         checkExistingReservation();
       });
       
-      // Ustawienie interwału sprawdzającego wygasłe rezerwacje co 30 sekund
       const intervalId = setInterval(() => {
         checkExpiredReservations().then(() => {
           checkExistingReservation();
         });
-      }, 30000); // 30 sekund
+      }, 30000);
       
-      // Czyszczenie interwału po odmontowaniu komponentu
       return () => clearInterval(intervalId);
     }
   }, [user, productId]);
