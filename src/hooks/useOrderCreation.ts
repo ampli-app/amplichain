@@ -2,6 +2,17 @@ import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
+type Product = {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  price: number;
+  testing_price?: number;
+  status: 'available' | 'reserved';
+  // ... inne pola produktu
+};
+
 export const useOrderCreation = (userId: string | undefined) => {
   const [orderCreated, setOrderCreated] = useState(false);
   const isCreatingOrder = useRef(false);
@@ -9,7 +20,7 @@ export const useOrderCreation = (userId: string | undefined) => {
   const testEndDate = new Date();
   testEndDate.setDate(testEndDate.getDate() + 7);
   
-  const createOrder = async (productData: any, isTestMode: boolean) => {
+  const createOrder = async (productData: Product, isTestMode: boolean) => {
     if (!userId || !productData) return;
     
     // Zabezpieczenie przed podwójnym wywołaniem
@@ -22,6 +33,28 @@ export const useOrderCreation = (userId: string | undefined) => {
       isCreatingOrder.current = true;
       console.log('Rozpoczynam tworzenie zamówienia dla produktu:', productData.id);
       console.log('ID użytkownika:', userId);
+      
+      // Sprawdź status produktu
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select('status')
+        .eq('id', productData.id)
+        .single();
+      
+      if (productError) {
+        console.error('Błąd podczas sprawdzania statusu produktu:', productError);
+        return;
+      }
+      
+      if (product.status === 'reserved') {
+        console.log('Produkt jest już zarezerwowany');
+        toast({
+          title: "Produkt niedostępny",
+          description: "Ten produkt jest obecnie zarezerwowany.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       // Sprawdź, czy produkt jest już zarezerwowany
       const { data: existingOrders, error: fetchError } = await supabase
@@ -78,6 +111,12 @@ export const useOrderCreation = (userId: string | undefined) => {
               .from('product_orders')
               .update({ status: 'reservation_expired' })
               .eq('id', order.id);
+              
+            // Aktualizuj status produktu na dostępny
+            await supabase
+              .from('products')
+              .update({ status: 'available' })
+              .eq('id', productData.id);
           }
         }
       } else {
@@ -112,6 +151,22 @@ export const useOrderCreation = (userId: string | undefined) => {
         isTestMode: isTestMode
       });
       
+      // Aktualizuj status produktu na zarezerwowany
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ status: 'reserved' })
+        .eq('id', productData.id);
+        
+      if (updateError) {
+        console.error('Błąd podczas aktualizacji statusu produktu:', updateError);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się zarezerwować produktu. Spróbuj ponownie.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('product_orders')
         .insert([{
@@ -130,6 +185,12 @@ export const useOrderCreation = (userId: string | undefined) => {
       
       if (error) {
         console.error('Błąd podczas tworzenia zamówienia:', error);
+        // W przypadku błędu, przywróć status produktu na dostępny
+        await supabase
+          .from('products')
+          .update({ status: 'available' })
+          .eq('id', productData.id);
+          
         toast({
           title: "Ostrzeżenie",
           description: "Zamówienie mogło nie zostać zapisane poprawnie. Sprawdź swoje zamówienia.",
@@ -148,6 +209,11 @@ export const useOrderCreation = (userId: string | undefined) => {
       }
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas tworzenia zamówienia:', err);
+      // W przypadku błędu, przywróć status produktu na dostępny
+      await supabase
+        .from('products')
+        .update({ status: 'available' })
+        .eq('id', productData.id);
     } finally {
       isCreatingOrder.current = false;
     }

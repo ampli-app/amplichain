@@ -1899,6 +1899,7 @@ export type Database = {
           review_count: number | null
           sale: boolean | null
           sale_percentage: number | null
+          status: 'available' | 'reserved' | 'sold'
           subcategory_id: string | null
           testing_price: number | null
           title: string
@@ -1920,6 +1921,7 @@ export type Database = {
           review_count?: number | null
           sale?: boolean | null
           sale_percentage?: number | null
+          status?: 'available' | 'reserved' | 'sold'
           subcategory_id?: string | null
           testing_price?: number | null
           title: string
@@ -1941,6 +1943,7 @@ export type Database = {
           review_count?: number | null
           sale?: boolean | null
           sale_percentage?: number | null
+          status?: 'available' | 'reserved' | 'sold'
           subcategory_id?: string | null
           testing_price?: number | null
           title?: string
