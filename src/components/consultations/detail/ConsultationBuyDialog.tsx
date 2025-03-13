@@ -19,7 +19,7 @@ interface ConsultationBuyDialogProps {
   title: string;
   ownerName: string;
   price: number;
-  consultationId?: string; // Zmiana na opcjonalne
+  consultationId?: string; // Opcjonalne pole consultationId
   onBuy: () => void;
 }
 

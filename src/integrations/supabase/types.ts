@@ -1969,6 +1969,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           connections: number | null
+          email: string | null
           followers: number | null
           following: number | null
           full_name: string | null
@@ -1985,6 +1986,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           connections?: number | null
+          email?: string | null
           followers?: number | null
           following?: number | null
           full_name?: string | null
@@ -2001,6 +2003,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           connections?: number | null
+          email?: string | null
           followers?: number | null
           following?: number | null
           full_name?: string | null

@@ -39,6 +39,10 @@ export const usePaymentInitiation = (reservationData: OrderData | null) => {
         console.error("Błąd pobierania profilu:", profileError);
       }
       
+      // Bezpieczne odczytanie danych profilu
+      const fullName = profileData?.full_name || '';
+      const userEmail = profileData?.email || user.email || '';
+      
       // Utwórz intencję płatności w Stripe poprzez RPC
       const { data, error } = await supabase.rpc(
         'create_stripe_payment_intent',
@@ -48,8 +52,8 @@ export const usePaymentInitiation = (reservationData: OrderData | null) => {
           p_currency: 'pln',
           p_payment_method: paymentMethod,
           p_description: `Zamówienie #${reservationData.id.substring(0, 8)}`,
-          p_customer_email: user.email,
-          p_customer_name: profileData?.full_name || ''
+          p_customer_email: userEmail,
+          p_customer_name: fullName
         }
       );
       
@@ -62,19 +66,27 @@ export const usePaymentInitiation = (reservationData: OrderData | null) => {
       console.log("Utworzono intencję płatności:", data);
       
       // Sprawdź czy data to obiekt i zawiera payment_intent_id
-      if (data && typeof data === 'object' && 'payment_intent_id' in data) {
+      if (data && typeof data === 'object') {
+        // Bezpieczne typowanie dla odpowiedzi z RPC
+        const paymentData = data as {
+          payment_intent_id: string;
+          client_secret: string;
+          amount: number;
+          currency: string;
+        };
+        
         // Aktualizuj zamówienie z danymi płatności
         await supabase
           .from('product_orders')
           .update({
             payment_method: paymentMethod,
-            payment_intent_id: data.payment_intent_id,
+            payment_intent_id: paymentData.payment_intent_id,
             updated_at: new Date().toISOString(),
             status: 'pending_payment'
           })
           .eq('id', reservationData.id);
           
-        return data;
+        return paymentData;
       } else {
         console.error("Nieprawidłowa odpowiedź z RPC:", data);
         setPaymentError("Otrzymano nieprawidłową odpowiedź z serwera płatności");

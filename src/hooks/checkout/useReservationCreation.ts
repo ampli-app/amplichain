@@ -89,7 +89,7 @@ export const useReservationCreation = ({ productId, isTestMode = false }: { prod
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 10);
       
-      // Utwórz nową rezerwację
+      // Utwórz nową rezerwację - ważna zmiana: przekazujemy price jako number, ale konwertujemy daty na ISO string
       const { data: orderData, error: orderError } = await supabase
         .from('product_orders')
         .insert({

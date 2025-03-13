@@ -99,7 +99,7 @@ export function CheckoutPaymentHandler({
         // W przypadku prawdziwej integracji ze Stripe
         if (typeof paymentIntent === 'object' && paymentIntent !== null && 'client_secret' in paymentIntent) {
           const { error } = await stripe.redirectToCheckout({
-            clientSecret: paymentIntent.client_secret as string,
+            clientSecret: paymentIntent.client_secret,
           });
           
           if (error) {
