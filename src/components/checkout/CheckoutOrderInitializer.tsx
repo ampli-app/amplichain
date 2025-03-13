@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
-import { isValidUUID } from '@/utils/orderUtils';
 
 interface CheckoutOrderInitializerProps {
   productId: string;
@@ -23,14 +22,12 @@ export function CheckoutOrderInitializer({
   setInitializing
 }: CheckoutOrderInitializerProps) {
   const { user } = useAuth();
-  const [initializationAttempt, setInitializationAttempt] = useState(0);
+  const [initAttempt, setInitAttempt] = useState(0);
   
   const {
-    reservationData,
-    checkExpiredReservations,
+    initiateOrder,
     checkExistingReservation,
-    cancelPreviousReservations,
-    initiateOrder
+    reservationData
   } = useOrderReservation({ productId, isTestMode });
 
   // Efekt do inicjalizacji rezerwacji
@@ -38,7 +35,7 @@ export function CheckoutOrderInitializer({
     let mounted = true;
     let timeoutId: NodeJS.Timeout;
     
-    const handleReservation = async () => {
+    const handleInitialization = async () => {
       if (!product || !user) {
         console.log("Brak produktu lub użytkownika, nie inicjuję rezerwacji");
         if (mounted) setInitializing(false);
@@ -65,11 +62,8 @@ export function CheckoutOrderInitializer({
       console.log("CheckoutOrderInitializer: Inicjalizacja rezerwacji", { orderInitialized, productId });
       
       try {
-        // Sprawdź wygasłe rezerwacje
-        await checkExpiredReservations();
-        
         // Sprawdź istniejącą rezerwację
-        const existingReservation = await checkExistingReservation(productId);
+        const existingReservation = await checkExistingReservation();
         
         if (existingReservation && mounted) {
           console.log("Znaleziono istniejącą rezerwację:", existingReservation);
@@ -81,44 +75,35 @@ export function CheckoutOrderInitializer({
         }
         
         if (mounted) {
-          // Anuluj wszystkie poprzednie rezerwacje dla tego produktu
-          await cancelPreviousReservations(productId);
-          
-          // Upewnijmy się, że przekazujemy owner_id jeśli nie ma user_id
-          const productWithSeller = {
-            ...product,
-            user_id: product.user_id || product.owner_id
-          };
-          
-          console.log("Inicjowanie zamówienia z produktem:", productWithSeller);
-          const reservation = await initiateOrder(productWithSeller, isTestMode);
+          console.log("Inicjowanie nowego zamówienia z produktem:", product);
+          const reservation = await initiateOrder(product);
           
           if (reservation && mounted) {
             console.log("Rezerwacja utworzona pomyślnie:", reservation);
             toast({
               title: "Rezerwacja produktu",
-              description: "Produkt został zarezerwowany na 15 minut. Dokończ zamówienie.",
+              description: "Produkt został zarezerwowany na 10 minut. Dokończ zamówienie.",
             });
             setOrderInitialized(true);
           } else {
             console.error("Nie udało się utworzyć rezerwacji");
-            if (initializationAttempt < 2) {
+            if (initAttempt < 2) {
               // Spróbuj jeszcze raz po krótkim opóźnieniu
               setTimeout(() => {
                 if (mounted) {
-                  setInitializationAttempt(prev => prev + 1);
+                  setInitAttempt(prev => prev + 1);
                 }
               }, 1000);
             } else {
               toast({
                 title: "Błąd rezerwacji",
-                description: "Nie udało się utworzyć rezerwacji po kilku próbach. Spróbuj ponownie później.",
+                description: "Nie udało się utworzyć rezerwacji. Spróbuj ponownie później.",
                 variant: "destructive",
               });
             }
           }
           
-          // Zawsze ustaw setInitializing(false) po próbie rezerwacji, niezależnie od wyniku
+          // Zawsze ustaw setInitializing(false) po próbie rezerwacji
           if (mounted) setInitializing(false);
         }
       } catch (error) {
@@ -134,34 +119,25 @@ export function CheckoutOrderInitializer({
       }
     };
     
-    // Uruchom inicjalizację z małym opóźnieniem, aby dać czas na załadowanie UI
+    // Uruchom inicjalizację z małym opóźnieniem
     timeoutId = setTimeout(() => {
-      handleReservation();
+      handleInitialization();
     }, 100);
     
-    // Dodajmy dodatkowy timeout, który zawsze zakończy stan ładowania 
-    // po 3 sekundach, aby nie dopuścić do zawieszenia interfejsu
+    // Dodaj timeout bezpieczeństwa, który zakończy stan ładowania po 5 sekundach
     const safetyTimeoutId = setTimeout(() => {
       if (mounted && !orderInitialized) {
         console.log("Timeout bezpieczeństwa - kończę inicjalizację");
         setInitializing(false);
       }
-    }, 3000);
-    
-    // Regularnie sprawdzaj wygasłe rezerwacje
-    const intervalId = setInterval(() => {
-      if (user && productId && isValidUUID(productId)) {
-        checkExpiredReservations();
-      }
-    }, 30000);
+    }, 5000);
     
     return () => {
       mounted = false;
       clearTimeout(timeoutId);
       clearTimeout(safetyTimeoutId);
-      clearInterval(intervalId);
     };
-  }, [product, user, productId, orderInitialized, checkExpiredReservations, checkExistingReservation, cancelPreviousReservations, initiateOrder, isTestMode, setOrderInitialized, setInitializing, initializationAttempt, reservationData]);
+  }, [product, user, productId, orderInitialized, checkExistingReservation, initiateOrder, isTestMode, setOrderInitialized, setInitializing, initAttempt, reservationData]);
 
   return null;
 }

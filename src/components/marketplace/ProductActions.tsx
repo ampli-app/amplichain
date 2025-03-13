@@ -52,6 +52,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       return;
     }
     
+    // Sprawdzenie, czy użytkownik jest zalogowany
     if (!isLoggedIn) {
       console.log("Użytkownik nie jest zalogowany, przekierowuję do logowania");
       toast({
@@ -63,6 +64,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       return;
     }
     
+    // Walidacja ID produktu
     if (!isValidUUID(id)) {
       console.error("Nieprawidłowy format ID produktu:", id);
       toast({
@@ -76,6 +78,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
     setIsReserving(true);
     
     try {
+      // Jeśli dostarczono funkcję onBuyNow, użyj jej
       if (onBuyNow) {
         console.log("Używam dostarczonej funkcji onBuyNow");
         onBuyNow();
@@ -86,48 +89,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       const isTestMode = location.search.includes('mode=test');
       console.log("Tryb testowy:", isTestMode);
       
-      // Sprawdź, czy produkt istnieje
-      const { data: productData, error: productError } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single();
-        
-      if (productError) {
-        console.error("Błąd podczas sprawdzania produktu:", productError);
-        toast({
-          title: "Błąd produktu",
-          description: "Nie udało się pobrać danych produktu. Spróbuj ponownie później.",
-          variant: "destructive",
-        });
-        setIsReserving(false);
-        return;
-      }
-      
-      if (!productData) {
-        console.error("Nie znaleziono produktu o ID:", id);
-        toast({
-          title: "Błąd produktu",
-          description: "Nie znaleziono produktu. Spróbuj ponownie później.",
-          variant: "destructive",
-        });
-        setIsReserving(false);
-        return;
-      }
-
-      // Sprawdź, czy produkt należy do bieżącego użytkownika
-      if (isUserProduct) {
-        console.log("Nie można kupić własnego produktu");
-        toast({
-          title: "Operacja niemożliwa",
-          description: "Nie możesz kupić własnego produktu.",
-          variant: "destructive",
-        });
-        setIsReserving(false);
-        return;
-      }
-      
-      // Przekieruj natychmiast do ekranu koszyka
+      // Przekieruj natychmiast do ekranu checkout
       const checkoutUrl = isTestMode 
         ? `/checkout/${id}?mode=test` 
         : `/checkout/${id}`;

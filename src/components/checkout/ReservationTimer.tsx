@@ -11,7 +11,7 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
   const [timeLeft, setTimeLeft] = useState<{ minutes: number; seconds: number }>({ minutes: 0, seconds: 0 });
   const [expired, setExpired] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const hasCalledOnExpire = useRef(false);
+  const expireHandled = useRef(false);
 
   useEffect(() => {
     if (!expiresAt) {
@@ -19,9 +19,9 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
       return;
     }
     
-    // Reset stanu expired przy zmianie expiresAt
+    // Reset stanu przy zmianie expiresAt
     setExpired(false);
-    hasCalledOnExpire.current = false;
+    expireHandled.current = false;
     
     console.log("Ustawiam timer rezerwacji do:", expiresAt);
     
@@ -39,16 +39,10 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
           setTimeLeft({ minutes: 0, seconds: 0 });
           
           // Wywołaj onExpire tylko raz
-          if (!hasCalledOnExpire.current) {
-            hasCalledOnExpire.current = true;
+          if (!expireHandled.current) {
+            expireHandled.current = true;
             console.log("Wywołuję onExpire - rezerwacja wygasła");
             onExpire();
-          }
-          
-          // Wyczyść interwał
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
           }
           
           return;
@@ -64,19 +58,18 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
       }
     };
 
-    // Wykonaj obliczenie od razu przy montowaniu komponentu
+    // Oblicz czas od razu przy montowaniu
     calculateTimeLeft();
     
-    // Upewnij się, że poprzedni interwał jest wyczyszczony
+    // Wyczyść interwał jeśli istnieje
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
-      intervalRef.current = null;
     }
     
     // Ustaw nowy interwał co sekundę
     intervalRef.current = setInterval(calculateTimeLeft, 1000);
     
-    // Wyczyść interwał przy odmontowaniu komponentu
+    // Wyczyść interwał przy odmontowaniu
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);

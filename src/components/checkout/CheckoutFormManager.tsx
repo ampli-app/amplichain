@@ -29,8 +29,7 @@ export function CheckoutFormManager({
       
       console.log("Wypełniam dane użytkownika:", { firstName, lastName, email, phone });
       
-      // Sprawdźmy, czy formularz jest już wypełniony, aby nie nadpisywać
-      // danych, które użytkownik mógł już wprowadzić
+      // Nie nadpisuj już wprowadzonych danych
       checkout.setFormData(prev => ({
         ...prev,
         firstName: prev.firstName || firstName,

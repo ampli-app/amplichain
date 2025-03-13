@@ -96,20 +96,32 @@ export function CheckoutPaymentHandler({
           return;
         }
         
-        const { error } = await stripe.redirectToCheckout({
-          clientSecret: paymentIntent.client_secret,
-        });
-        
-        if (error) {
-          console.error('Błąd przekierowania do Stripe:', error);
+        // W przypadku prawdziwej integracji ze Stripe
+        if (paymentIntent.client_secret) {
+          const { error } = await stripe.redirectToCheckout({
+            clientSecret: paymentIntent.client_secret,
+          });
+          
+          if (error) {
+            console.error('Błąd przekierowania do Stripe:', error);
+            toast({
+              title: "Błąd płatności",
+              description: error.message || "Wystąpił problem z przekierowaniem do płatności.",
+              variant: "destructive",
+            });
+            setIsProcessing(false);
+          }
+        } else {
+          console.error('Brak client_secret dla płatności Stripe');
           toast({
             title: "Błąd płatności",
-            description: error.message || "Wystąpił problem z przekierowaniem do płatności.",
+            description: "Nieprawidłowa konfiguracja płatności Stripe.",
             variant: "destructive",
           });
           setIsProcessing(false);
         }
       } else {
+        // Symulacja płatności dla innych metod
         simulatePaymentProcessing(async (success) => {
           const updated = await handlePaymentResult(success);
           

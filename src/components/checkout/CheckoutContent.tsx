@@ -17,7 +17,6 @@ import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
 import { CheckoutOrderInitializer } from './CheckoutOrderInitializer';
 import { CheckoutFormManager } from './CheckoutFormManager';
 import { CheckoutPaymentHandler } from './CheckoutPaymentHandler';
-import { Loader2 } from 'lucide-react';
 
 interface CheckoutContentProps {
   productId: string;
@@ -47,7 +46,6 @@ export function CheckoutContent({
   });
   
   const { 
-    isLoading,
     reservationData, 
     reservationExpiresAt,
     markReservationAsExpired
@@ -79,7 +77,7 @@ export function CheckoutContent({
     simulatePaymentProcessing: checkout.simulatePaymentProcessing
   });
   
-  // Dodatkowy efekt, który sprawdza czy rezerwacja została zainicjowana
+  // Efekt sprawdzający stan inicjalizacji
   useEffect(() => {
     if (orderInitialized && initializing) {
       console.log("Rezerwacja już zainicjowana, zatrzymuję ładowanie");
@@ -94,7 +92,7 @@ export function CheckoutContent({
     }
   }, [orderInitialized, initializing, reservationData, setOrderInitialized]);
   
-  // Dodajemy timer bezpieczeństwa, który zakończy inicjalizację po 5 sekundach
+  // Timer bezpieczeństwa, który zakończy inicjalizację po 5 sekundach
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     

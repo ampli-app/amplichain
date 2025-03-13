@@ -47,9 +47,8 @@ export default function Checkout() {
   });
   
   const { 
-    isLoading: isReservationLoading, 
-    reservationExpiresAt, 
     reservationData,
+    reservationExpiresAt,
     checkExistingReservation
   } = useOrderReservation({ 
     productId: id && isValidUUID(id) ? id : '', 
@@ -94,7 +93,7 @@ export default function Checkout() {
     // Sprawdź istniejące rezerwacje przy montowaniu komponentu
     if (user?.id && id && isValidUUID(id) && !orderInitialized && !reservationData) {
       console.log("Sprawdzamy istniejące rezerwacje przy montowaniu komponentu");
-      checkExistingReservation(id).then(data => {
+      checkExistingReservation().then(data => {
         if (data) {
           console.log("Znaleziono istniejącą rezerwację przy ładowaniu strony:", data);
           setOrderInitialized(true);
@@ -102,31 +101,6 @@ export default function Checkout() {
       });
     }
   }, [reservationData, orderInitialized, user?.id, id, checkExistingReservation]);
-  
-  // Dodatkowy efekt do debugowania
-  useEffect(() => {
-    console.log("Stan komponentu Checkout:", {
-      id,
-      isTestMode,
-      orderInitialized,
-      reservationExpired,
-      productLoading: checkout.isLoading,
-      reservationLoading: isReservationLoading,
-      product: checkout.product ? "załadowany" : "brak",
-      deliveryOptions: checkout.deliveryOptions.length,
-      reservationData: reservationData ? "dostępne" : "brak"
-    });
-  }, [
-    id, 
-    isTestMode, 
-    orderInitialized, 
-    reservationExpired, 
-    checkout.isLoading, 
-    isReservationLoading, 
-    checkout.product,
-    checkout.deliveryOptions.length,
-    reservationData
-  ]);
   
   const handleReservationExpire = () => {
     console.log("Rezerwacja wygasła, aktualizacja stanu");
@@ -141,7 +115,7 @@ export default function Checkout() {
     );
   }
   
-  if (checkout.isLoading || isReservationLoading) {
+  if (checkout.isLoading) {
     return (
       <CheckoutLayout productId={id || ''}>
         <CheckoutLoadingState />
