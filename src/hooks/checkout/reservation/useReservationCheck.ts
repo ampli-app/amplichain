@@ -19,12 +19,16 @@ export function useReservationCheck({
   setIsLoading: (loading: boolean) => void;
 }) {
   const { user } = useAuth();
+  const [isChecking, setIsChecking] = useState(false);
   
   const checkExistingReservation = async () => {
-    if (!user || !productId) return null;
+    if (!user || !productId || isChecking) return null;
     
     try {
+      setIsChecking(true);
       setIsLoading(true);
+      
+      console.log(`Sprawdzanie istniejących rezerwacji dla produktu: ${productId} i użytkownika: ${user.id}`);
       
       const { data, error } = await supabase
         .from('product_orders')
@@ -41,6 +45,7 @@ export function useReservationCheck({
       }
       
       if (data && data.length > 0) {
+        console.log('Znaleziono istniejącą rezerwację:', data[0]);
         setReservationData(data[0]);
         
         if (data[0].reservation_expires_at) {
@@ -54,16 +59,19 @@ export function useReservationCheck({
         return data[0];
       }
       
+      console.log('Nie znaleziono istniejących rezerwacji');
       return null;
     } catch (err) {
       console.error('Nieoczekiwany błąd:', err);
       return null;
     } finally {
+      setIsChecking(false);
       setIsLoading(false);
     }
   };
   
   return {
-    checkExistingReservation
+    checkExistingReservation,
+    isChecking
   };
 }

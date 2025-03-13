@@ -31,7 +31,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     markReservationAsExpired
   } = useReservationCleanup({ productId });
   
-  const { checkExistingReservation } = useReservationCheck({
+  const { checkExistingReservation, isChecking } = useReservationCheck({
     productId,
     setReservationData,
     setReservationExpiresAt,
@@ -39,7 +39,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     setIsLoading
   });
   
-  const { initiateOrder } = useCreateReservation({
+  const { initiateOrder, isInitiating } = useCreateReservation({
     productId,
     setReservationData,
     setReservationExpiresAt,
@@ -82,10 +82,12 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     reservationData,
     reservationExpiresAt,
     paymentDeadline,
+    isChecking,
+    isInitiating,
     initiateOrder: async (product: any, testMode: boolean = false) => {
       // Zabezpieczenie przed podwójnym wywołaniem
-      if (isOrderInitiated) {
-        console.log('Zamówienie jest już w trakcie inicjowania - zapobieganie duplikatom');
+      if (isOrderInitiated || isChecking || isInitiating) {
+        console.log('Zamówienie jest już w trakcie inicjowania lub sprawdzania - zapobieganie duplikatom');
         return reservationData;
       }
       

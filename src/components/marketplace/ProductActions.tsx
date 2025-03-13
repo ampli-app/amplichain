@@ -22,7 +22,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
   const isDiscoverPage = location.pathname === '/discover';
   const [isReserving, setIsReserving] = useState(false);
   
-  const { initiateOrder, cancelPreviousReservations } = useOrderReservation({ productId: id });
+  const { initiateOrder, cancelPreviousReservations, isInitiating, isChecking } = useOrderReservation({ productId: id });
   const { isAvailable, isLoading: isCheckingAvailability, productStatus } = useProductAvailability(id);
   
   const handleViewProduct = (e: React.MouseEvent) => {
@@ -72,7 +72,8 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       return;
     }
     
-    if (isReserving) {
+    if (isReserving || isInitiating || isChecking) {
+      console.log("Proces rezerwacji już trwa - ignorowanie kliknięcia");
       return;
     }
     
@@ -84,16 +85,21 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       const isTestMode = location.search.includes('mode=test');
       
       if (product) {
+        console.log("Inicjujemy rezerwację dla produktu", product.id);
         const reservation = await initiateOrder(product, isTestMode);
         if (reservation) {
+          console.log("Rezerwacja udana, przekierowujemy do checkout z orderId:", reservation.id);
           if (isTestMode) {
             navigate(`/checkout/${id}?mode=test&orderId=${reservation.id}`);
           } else {
             navigate(`/checkout/${id}?orderId=${reservation.id}`);
           }
           return;
+        } else {
+          console.log("Nie udało się utworzyć rezerwacji");
         }
       } else {
+        console.log("Brak danych produktu, przekierowujemy bez orderId");
         if (isTestMode) {
           navigate(`/checkout/${id}?mode=test`);
         } else {
@@ -110,7 +116,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
     } finally {
       setTimeout(() => {
         setIsReserving(false);
-      }, 1000);
+      }, 2000);
     }
   };
 

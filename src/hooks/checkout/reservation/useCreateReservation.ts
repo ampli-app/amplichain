@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,19 +17,22 @@ export function useCreateReservation({
   setIsLoading: (loading: boolean) => void;
 }) {
   const { user } = useAuth();
+  const [isInitiating, setIsInitiating] = useState(false);
 
   const initiateOrder = async (product: any, testMode: boolean = false) => {
-    if (!user || !productId || !product) {
-      toast({
-        title: "Błąd",
-        description: "Nie można utworzyć rezerwacji. Brak wymaganych danych.",
-        variant: "destructive",
-      });
+    if (!user || !productId || !product || isInitiating) {
+      console.log("Nie można utworzyć rezerwacji - brak wymaganych danych lub rezerwacja w toku.");
+      if (isInitiating) {
+        console.log("Zamówienie jest już w trakcie inicjowania - blokowanie duplikatu");
+      }
       return null;
     }
     
     try {
+      setIsInitiating(true);
       setIsLoading(true);
+      
+      console.log("Rozpoczynam tworzenie rezerwacji dla produktu:", productId);
       
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 10);
@@ -66,6 +70,42 @@ export function useCreateReservation({
         order_type: testMode ? 'test' : 'purchase'
       });
       
+      // Sprawdź, czy zamówienie nie zostało już utworzone
+      const { data: existingOrders, error: checkError } = await supabase
+        .from('product_orders')
+        .select('id')
+        .eq('product_id', productId)
+        .eq('buyer_id', user.id)
+        .eq('status', 'reserved')
+        .gte('reservation_expires_at', new Date().toISOString())
+        .limit(1);
+        
+      if (checkError) {
+        console.error('Błąd podczas sprawdzania istniejących zamówień:', checkError);
+      } else if (existingOrders && existingOrders.length > 0) {
+        console.log('Znaleziono istniejące aktywne zamówienie:', existingOrders[0].id);
+        
+        // Pobierz pełne dane zamówienia
+        const { data: fullOrder, error: fetchError } = await supabase
+          .from('product_orders')
+          .select('*')
+          .eq('id', existingOrders[0].id)
+          .single();
+          
+        if (!fetchError && fullOrder) {
+          setReservationData(fullOrder);
+          setReservationExpiresAt(new Date(fullOrder.reservation_expires_at));
+          
+          toast({
+            title: "Rezerwacja istnieje",
+            description: "Kontynuujesz istniejącą rezerwację.",
+          });
+          
+          return fullOrder;
+        }
+      }
+      
+      // Utwórz nowe zamówienie tylko jeśli nie ma istniejącego
       const { data, error } = await supabase
         .from('product_orders')
         .insert([{
@@ -92,6 +132,7 @@ export function useCreateReservation({
       
       if (data && data.length > 0) {
         const reservation = data[0];
+        console.log("Utworzono nową rezerwację:", reservation.id);
         setReservationData(reservation);
         setReservationExpiresAt(new Date(reservation.reservation_expires_at));
         
@@ -113,11 +154,13 @@ export function useCreateReservation({
       });
       return null;
     } finally {
+      setIsInitiating(false);
       setIsLoading(false);
     }
   };
   
   return {
-    initiateOrder
+    initiateOrder,
+    isInitiating
   };
 }
