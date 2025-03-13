@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -16,7 +17,7 @@ import { useCheckout } from '@/hooks/checkout/useCheckout';
 import { ReservationTimer } from '@/components/checkout/ReservationTimer';
 import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { loadStripe } from '@stripe/stripe-js';
+import { loadStripe } from '@/components/checkout/LoadStripeScript';
 
 export default function Checkout() {
   const { id } = useParams<{ id: string }>();

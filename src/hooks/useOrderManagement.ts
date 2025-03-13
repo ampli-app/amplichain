@@ -94,9 +94,10 @@ export const useOrderManagement = () => {
       if (data) {
         const formattedOrders = data.map(order => {
           const productData = order.products as any;
+          // Add type checking to avoid TypeScript errors
           const paymentData = order.stripe_payments && order.stripe_payments.length > 0 
             ? order.stripe_payments[0] 
-            : {};
+            : { payment_intent_id: undefined, status: undefined };
           
           let imageUrl = '/placeholder.svg';
           if (productData?.image_url) {
@@ -119,8 +120,8 @@ export const useOrderManagement = () => {
             product_title: productData?.title || 'Produkt',
             product_image: imageUrl,
             order_type: productData?.for_testing ? 'test' : 'purchase',
-            payment_intent_id: paymentData?.payment_intent_id || undefined,
-            payment_status: paymentData?.status || undefined
+            payment_intent_id: paymentData.payment_intent_id || undefined,
+            payment_status: paymentData.status || undefined
           };
         });
         

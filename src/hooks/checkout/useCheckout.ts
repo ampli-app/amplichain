@@ -503,6 +503,7 @@ export function useCheckout({ productId, isTestMode = false }: UseCheckoutProps)
   return {
     isLoading,
     isProcessing,
+    setIsProcessing,  // Export this function to fix the errors in Checkout.tsx
     product,
     paymentMethod,
     setPaymentMethod,
