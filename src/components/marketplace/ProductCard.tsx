@@ -14,33 +14,45 @@ interface ProductCardProps {
 export function ProductCard({ product, isOwner }: ProductCardProps) {
   const navigate = useNavigate();
   
-  // Usuwamy handleBuyNow, ponieważ przekierowanie będzie obsługiwane w komponencie ProductActions
+  // Ensure product has all required properties with fallback values
+  const safeProduct = {
+    ...product,
+    id: product.id || "",
+    title: product.title || "Produkt bez nazwy",
+    price: product.price || 0,
+    image_url: product.image_url || "/placeholder.svg",
+    for_testing: product.for_testing || false,
+    sale: product.sale || false,
+    sale_percentage: product.sale_percentage,
+    testing_price: product.testing_price
+  };
   
   return (
     <div className="group relative bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow overflow-hidden">
       <ProductImage 
-        image={product.image_url} 
-        title={product.title} 
+        image={safeProduct.image_url} 
+        title={safeProduct.title} 
       />
       <ProductBadges 
-        forTesting={product.for_testing || false}
+        forTesting={safeProduct.for_testing}
         isUserProduct={isOwner}
-        sale={product.sale || false}
-        salePercentage={product.sale_percentage}
+        sale={safeProduct.sale}
+        salePercentage={safeProduct.sale_percentage}
       />
       
       <div className="p-4">
-        <h3 className="font-medium mb-1 line-clamp-2">{product.title}</h3>
+        <h3 className="font-medium mb-1 line-clamp-2">{safeProduct.title}</h3>
         <ProductPrice 
-          price={product.price} 
-          sale={product.sale || false}
-          salePercentage={product.sale_percentage}
-          forTesting={product.for_testing || false}
-          testingPrice={product.testing_price}
+          price={safeProduct.price} 
+          sale={safeProduct.sale}
+          salePercentage={safeProduct.sale_percentage}
+          forTesting={safeProduct.for_testing}
+          testingPrice={safeProduct.testing_price}
         />
         <ProductActions 
-          id={product.id}
+          id={safeProduct.id}
           isUserProduct={isOwner}
+          product={safeProduct}
         />
       </div>
     </div>

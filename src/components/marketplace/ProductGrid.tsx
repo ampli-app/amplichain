@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { MarketplaceItem } from '@/components/MarketplaceItem';
+import { SafeMarketplaceItem } from './SafeMarketplaceItem';
 import { Button } from '@/components/ui/button';
 import { PaginationControls } from './PaginationControls';
 
@@ -89,7 +88,7 @@ export function ProductGrid({
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {displayedProducts.map((item, index) => (
-          <MarketplaceItem
+          <SafeMarketplaceItem
             key={item.id}
             id={item.id}
             title={item.title}
