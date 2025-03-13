@@ -35,6 +35,15 @@ export function CheckoutPaymentHandler({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!reservationData) {
+      toast({
+        title: "Błąd rezerwacji",
+        description: "Nie znaleziono rezerwacji. Odśwież stronę i spróbuj ponownie.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const orderDetails: OrderDetails = {
       address: formData.address,
       city: formData.city,
@@ -43,12 +52,19 @@ export function CheckoutPaymentHandler({
       paymentMethod: paymentMethod
     };
     
+    console.log("Potwierdzam zamówienie z danymi:", orderDetails);
     const confirmed = await confirmOrder(orderDetails);
     
     if (!confirmed) {
+      toast({
+        title: "Błąd zamówienia",
+        description: "Nie udało się potwierdzić zamówienia. Spróbuj ponownie.",
+        variant: "destructive",
+      });
       return;
     }
     
+    console.log("Zamówienie potwierdzone, inicjuję płatność");
     const paymentIntent = await initiatePayment();
     
     if (!paymentIntent) {
@@ -109,6 +125,7 @@ export function CheckoutPaymentHandler({
             description: "Wystąpił problem z płatnością. Spróbuj ponownie.",
             variant: "destructive",
           });
+          setIsProcessing(false);
         }
       });
     }

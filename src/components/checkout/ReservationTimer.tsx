@@ -35,6 +35,11 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
             setTimeLeft({ minutes: 0, seconds: 0 });
             onExpire();
           }
+          
+          if (interval) {
+            clearInterval(interval);
+          }
+          
           return;
         }
         
@@ -54,6 +59,7 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
 
     // Reset stanu expired przy zmianie expiresAt
     if (expiresAt) {
+      console.log("Ustawiam timer rezerwacji do:", expiresAt);
       setExpired(false);
       
       // Wykonaj obliczenie od razu przy montowaniu komponentu

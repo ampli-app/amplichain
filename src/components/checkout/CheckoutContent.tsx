@@ -77,8 +77,16 @@ export function CheckoutContent({
     simulatePaymentProcessing: checkout.simulatePaymentProcessing
   });
   
+  // Dodatkowy efekt, który sprawdza czy rezerwacja została zainicjowana
+  useEffect(() => {
+    if (orderInitialized && initializing) {
+      console.log("Rezerwacja już zainicjowana, zatrzymuję ładowanie");
+      setInitializing(false);
+    }
+  }, [orderInitialized, initializing]);
+  
   // Pokaż indykator ładowania podczas inicjalizacji
-  if (initializing || isLoading) {
+  if (initializing) {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="space-y-4 text-center">

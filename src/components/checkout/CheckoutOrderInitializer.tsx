@@ -49,7 +49,7 @@ export function CheckoutOrderInitializer({
         return;
       }
       
-      console.log("CheckoutContent: Inicjalizacja rezerwacji", { orderInitialized, productId });
+      console.log("CheckoutOrderInitializer: Inicjalizacja rezerwacji", { orderInitialized, productId });
       
       try {
         // Sprawdź wygasłe rezerwacje
@@ -82,14 +82,10 @@ export function CheckoutOrderInitializer({
           if (reservation && mounted) {
             console.log("Rezerwacja utworzona pomyślnie:", reservation);
             if (mounted) setOrderInitialized(true);
-          } else if (mounted) {
-            console.error("Nie udało się utworzyć rezerwacji");
-            toast({
-              title: "Błąd rezerwacji",
-              description: "Nie udało się utworzyć rezerwacji produktu.",
-              variant: "destructive",
-            });
           }
+          
+          // Zawsze ustaw setInitializing(false) po próbie rezerwacji, niezależnie od wyniku
+          if (mounted) setInitializing(false);
         }
       } catch (error) {
         console.error("Błąd podczas inicjalizacji rezerwacji:", error);
@@ -99,19 +95,17 @@ export function CheckoutOrderInitializer({
             description: "Wystąpił problem podczas inicjalizacji rezerwacji produktu.",
             variant: "destructive",
           });
-        }
-      } finally {
-        if (mounted) {
           setInitializing(false);
         }
       }
     };
     
+    // Uruchom inicjalizację tylko raz po załadowaniu komponentu
     handleReservation();
     
     // Regularnie sprawdzaj wygasłe rezerwacje
     const intervalId = setInterval(() => {
-      if (user && productId) {
+      if (user && productId && isValidUUID(productId)) {
         checkExpiredReservations();
       }
     }, 30000);

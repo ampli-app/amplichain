@@ -17,15 +17,22 @@ export function CheckoutFormManager({
   reservationExpiresAt,
   handleReservationExpire
 }: CheckoutFormManagerProps) {
-  // Wypełnij email użytkownika automatycznie
+  // Wypełnij dane użytkownika automatycznie
   useEffect(() => {
-    if (user?.email) {
+    if (user) {
+      const fullName = user.user_metadata?.full_name || '';
+      const nameParts = fullName.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
       checkout.setFormData(prev => ({
         ...prev,
+        firstName: firstName,
+        lastName: lastName,
         email: user.email || ''
       }));
     }
-  }, [user?.email, checkout]);
+  }, [user, checkout]);
 
   return (
     <>
