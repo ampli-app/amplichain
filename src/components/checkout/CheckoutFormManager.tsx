@@ -27,7 +27,7 @@ export function CheckoutFormManager({
       const email = user.email || '';
       const phone = user.user_metadata?.phone || '';
       
-      console.log("Wypełniam dane użytkownika:", { firstName, lastName, email, phone });
+      console.log("CheckoutFormManager: Wypełniam dane użytkownika:", { firstName, lastName, email, phone });
       
       // Nie nadpisuj już wprowadzonych danych
       checkout.setFormData(prev => ({
@@ -39,6 +39,8 @@ export function CheckoutFormManager({
       }));
     }
   }, [user, checkout]);
+
+  console.log("CheckoutFormManager: Stan rezerwacji:", { reservationExpiresAt });
 
   return (
     <>

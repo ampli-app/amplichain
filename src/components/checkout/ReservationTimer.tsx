@@ -14,16 +14,16 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
   const expireHandled = useRef(false);
 
   useEffect(() => {
+    console.log("ReservationTimer: Inicjalizacja timera z datą:", expiresAt);
+    
     if (!expiresAt) {
-      console.log("Brak daty wygaśnięcia rezerwacji");
+      console.log("ReservationTimer: Brak daty wygaśnięcia rezerwacji");
       return;
     }
     
     // Reset stanu przy zmianie expiresAt
     setExpired(false);
     expireHandled.current = false;
-    
-    console.log("Ustawiam timer rezerwacji do:", expiresAt);
     
     // Funkcja do kalkulacji pozostałego czasu
     const calculateTimeLeft = () => {
@@ -32,8 +32,10 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
         const now = new Date().getTime();
         const difference = expiryTime - now;
         
+        console.log("ReservationTimer: Pozostały czas (ms):", difference);
+        
         if (difference <= 0) {
-          console.log("Rezerwacja wygasła! Czas wygaśnięcia:", expiresAt);
+          console.log("ReservationTimer: Rezerwacja wygasła! Czas wygaśnięcia:", expiresAt);
           
           setExpired(true);
           setTimeLeft({ minutes: 0, seconds: 0 });
@@ -41,7 +43,7 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
           // Wywołaj onExpire tylko raz
           if (!expireHandled.current) {
             expireHandled.current = true;
-            console.log("Wywołuję onExpire - rezerwacja wygasła");
+            console.log("ReservationTimer: Wywołuję onExpire - rezerwacja wygasła");
             onExpire();
           }
           
@@ -53,7 +55,7 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
         
         setTimeLeft({ minutes, seconds });
       } catch (error) {
-        console.error("Błąd podczas kalkulacji czasu:", error);
+        console.error("ReservationTimer: Błąd podczas kalkulacji czasu:", error);
         setTimeLeft({ minutes: 0, seconds: 0 });
       }
     };
