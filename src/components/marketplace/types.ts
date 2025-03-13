@@ -15,7 +15,17 @@ export interface Product {
   created_at?: string;
   user_id?: string;
   condition?: string;
-  status?: 'available' | 'reserved' | 'sold';
+  status?: 'available' | 'reserved' | 'sold' | string;
+  description?: string;
+  location?: string;
+  updated_at?: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
 }
 
 export const productConditions = [

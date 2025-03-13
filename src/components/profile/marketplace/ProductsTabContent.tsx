@@ -39,9 +39,11 @@ export function ProductsTabContent({ userId, isOwnProfile }: ProductsTabContentP
           return;
         }
         
+        // Map database results to Product type
         setProducts((data || []).map(product => ({
           ...product,
-          user_id: product.user_id || userId // Ensure user_id is always set
+          user_id: product.user_id || userId,
+          status: product.status as 'available' | 'reserved' | 'sold' | string
         })));
       } catch (err) {
         console.error('Unexpected error:', err);

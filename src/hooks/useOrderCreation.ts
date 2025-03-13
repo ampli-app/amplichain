@@ -2,17 +2,7 @@
 import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-
-type Product = {
-  id: string;
-  user_id: string;
-  title: string;
-  description: string;
-  price: number;
-  testing_price?: number;
-  status: 'available' | 'reserved' | 'sold';
-  // ... inne pola produktu
-};
+import { Product } from '@/components/marketplace/types';
 
 export const useOrderCreation = (userId: string | undefined) => {
   const [orderCreated, setOrderCreated] = useState(false);
@@ -125,12 +115,12 @@ export const useOrderCreation = (userId: string | undefined) => {
       
       const totalAmount = productPrice + deliveryOption.price;
       
-      // Utwórz zamówienie - naprawiamy błąd
+      // Utwórz zamówienie
       const orderData = {
         product_id: productData.id,
         buyer_id: userId,
         seller_id: productData.user_id,
-        total_amount: totalAmount.toString(), // Konwersja number na string
+        total_amount: totalAmount.toString(), // Convert to string
         delivery_option_id: deliveryOption.id,
         status: 'reserved',
         payment_method: 'Karta płatnicza',
@@ -141,7 +131,7 @@ export const useOrderCreation = (userId: string | undefined) => {
       
       const { data, error } = await supabase
         .from('product_orders')
-        .insert(orderData) // Naprawiony wywołanie - przekazujemy obiekt zamiast tablicy
+        .insert(orderData) // Pass the object directly
         .select();
       
       if (error) {

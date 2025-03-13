@@ -87,7 +87,11 @@ export default function Marketplace() {
           variant: "destructive",
         });
       } else {
-        setProducts(data || []);
+        // Map database results to Product type
+        setProducts((data || []).map(product => ({
+          ...product,
+          status: product.status as 'available' | 'reserved' | 'sold' | string
+        })));
       }
     } catch (err) {
       console.error('Unexpected error:', err);

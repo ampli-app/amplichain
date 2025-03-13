@@ -54,10 +54,10 @@ export default function CheckoutSuccess() {
         }
         
         if (data) {
-          // Zapewnienie, że status produktu jest dostosowany do wymagań typu Product
+          // Mapping received data to Product type
           const productWithStatus: Product = {
             ...data,
-            status: data.status as 'available' | 'reserved' | 'sold'
+            status: data.status as 'available' | 'reserved' | 'sold' | string
           };
           
           setProduct(productWithStatus);
