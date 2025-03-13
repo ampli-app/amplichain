@@ -18,6 +18,29 @@ export function useReservationCleanup({ productId }: { productId: string }) {
       } else {
         console.log('Sprawdzenie wygasłych rezerwacji zakończone pomyślnie');
       }
+
+      // Dodatkowo sprawdzamy i aktualizujemy status produktów, których rezerwacje wygasły
+      const { data: expiredOrders, error: expiredError } = await supabase
+        .from('product_orders')
+        .select('product_id')
+        .eq('status', 'reservation_expired');
+        
+      if (!expiredError && expiredOrders && expiredOrders.length > 0) {
+        const productIds = expiredOrders.map(order => order.product_id);
+        
+        // Aktualizuj produkty związane z wygasłymi rezerwacjami
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ status: 'available' })
+          .in('id', productIds)
+          .eq('status', 'reserved');
+          
+        if (updateError) {
+          console.error('Błąd podczas aktualizacji statusów produktów:', updateError);
+        } else {
+          console.log(`Zaktualizowano statusy ${productIds.length} produktów na "available"`);
+        }
+      }
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas sprawdzania wygasłych rezerwacji:', err);
     }
@@ -44,6 +67,19 @@ export function useReservationCleanup({ productId }: { productId: string }) {
         console.error('Błąd podczas anulowania poprzednich rezerwacji:', error);
       } else {
         console.log('Poprzednie rezerwacje oznaczone jako wygasłe pomyślnie');
+        
+        // Przywróć status produktu na "available"
+        const { error: productUpdateError } = await supabase
+          .from('products')
+          .update({ status: 'available' })
+          .eq('id', productId)
+          .eq('status', 'reserved');
+          
+        if (productUpdateError) {
+          console.error('Błąd podczas przywracania statusu produktu:', productUpdateError);
+        } else {
+          console.log('Status produktu przywrócony na "available"');
+        }
       }
       
     } catch (err) {
@@ -56,7 +92,7 @@ export function useReservationCleanup({ productId }: { productId: string }) {
     
     try {
       const { data: reservation, error: getReservationError } = await supabase
-        .from('order_reservations')
+        .from('product_orders')
         .select('product_id')
         .eq('id', reservationId)
         .single();
@@ -67,7 +103,7 @@ export function useReservationCleanup({ productId }: { productId: string }) {
       }
       
       const { error: updateError } = await supabase
-        .from('order_reservations')
+        .from('product_orders')
         .update({ status: 'reservation_expired' })
         .eq('id', reservationId);
         

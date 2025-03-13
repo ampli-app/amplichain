@@ -133,6 +133,19 @@ export function useCreateReservation({
       if (data && data.length > 0) {
         const reservation = data[0];
         console.log("Utworzono nową rezerwację:", reservation.id);
+        
+        // Aktualizuj status produktu na "reserved"
+        const { error: productUpdateError } = await supabase
+          .from('products')
+          .update({ status: 'reserved' })
+          .eq('id', productId);
+          
+        if (productUpdateError) {
+          console.error('Błąd podczas aktualizacji statusu produktu:', productUpdateError);
+        } else {
+          console.log('Status produktu zaktualizowany na "reserved"');
+        }
+        
         setReservationData(reservation);
         setReservationExpiresAt(new Date(reservation.reservation_expires_at));
         
