@@ -64,15 +64,26 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
     setIsReserving(true);
     
     try {
+      // Sprawdź, czy URL zawiera parametr trybu testowego
+      const isTestMode = location.search.includes('mode=test');
+      
       // Jeśli mamy dane produktu, użyj ich do utworzenia rezerwacji
       if (product) {
-        const reservation = await initiateOrder(product);
+        const reservation = await initiateOrder(product, isTestMode);
         if (reservation) {
-          navigate(`/checkout/${id}`);
+          if (isTestMode) {
+            navigate(`/checkout/${id}?mode=test`);
+          } else {
+            navigate(`/checkout/${id}`);
+          }
         }
       } else {
         // Jeśli nie mamy danych produktu, po prostu przekieruj do checkoutu
-        navigate(`/checkout/${id}`);
+        if (isTestMode) {
+          navigate(`/checkout/${id}?mode=test`);
+        } else {
+          navigate(`/checkout/${id}`);
+        }
       }
     } catch (error) {
       console.error('Błąd podczas tworzenia rezerwacji:', error);

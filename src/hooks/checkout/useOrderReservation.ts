@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -61,7 +60,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
   };
   
   // Inicjowanie nowej rezerwacji
-  const initiateOrder = async (product: any) => {
+  const initiateOrder = async (product: any, testMode: boolean = false) => {
     if (!user || !productId || !product) {
       toast({
         title: "Błąd",
@@ -102,12 +101,23 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       }
       
       // Oblicz cenę produktu w zależności od trybu
-      const productPrice = isTestMode && product.testing_price 
+      const productPrice = testMode && product.testing_price 
         ? parseFloat(product.testing_price) 
         : parseFloat(product.price);
       
       // Oblicz łączną kwotę
       const totalAmount = productPrice + deliveryOptions[0].price;
+      
+      console.log("Tworzę zamówienie z parametrami:", {
+        product_id: productId,
+        buyer_id: user.id,
+        seller_id: product.user_id,
+        total_amount: totalAmount,
+        delivery_option_id: deliveryOptions[0].id,
+        status: 'reserved',
+        reservation_expires_at: expiresAt.toISOString(),
+        order_type: testMode ? 'test' : 'purchase'
+      });
       
       // Utwórz nowe zamówienie ze statusem "reserved"
       const { data, error } = await supabase
@@ -120,7 +130,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
           delivery_option_id: deliveryOptions[0].id,
           status: 'reserved',
           reservation_expires_at: expiresAt.toISOString(),
-          order_type: isTestMode ? 'test' : 'purchase'
+          order_type: testMode ? 'test' : 'purchase'
         }])
         .select();
       

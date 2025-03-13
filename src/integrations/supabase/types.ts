@@ -1771,6 +1771,7 @@ export type Database = {
           delivery_option_id: string | null
           id: string
           notes: string | null
+          order_type: string | null
           payment_deadline: string | null
           payment_intent_id: string | null
           payment_method: string | null
@@ -1791,6 +1792,7 @@ export type Database = {
           delivery_option_id?: string | null
           id?: string
           notes?: string | null
+          order_type?: string | null
           payment_deadline?: string | null
           payment_intent_id?: string | null
           payment_method?: string | null
@@ -1811,6 +1813,7 @@ export type Database = {
           delivery_option_id?: string | null
           id?: string
           notes?: string | null
+          order_type?: string | null
           payment_deadline?: string | null
           payment_intent_id?: string | null
           payment_method?: string | null
