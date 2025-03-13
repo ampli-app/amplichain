@@ -3,6 +3,12 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
+// Helper function to validate UUID format
+const isValidUUID = (uuid: string) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
+
 export const useOrderCreation = (userId: string | undefined) => {
   const [orderCreated, setOrderCreated] = useState(false);
   
@@ -10,7 +16,20 @@ export const useOrderCreation = (userId: string | undefined) => {
   testEndDate.setDate(testEndDate.getDate() + 7);
   
   const createOrder = async (productData: any, isTestMode: boolean) => {
-    if (!userId || !productData) return;
+    if (!userId || !productData) {
+      console.error("Brak userId lub productData");
+      return;
+    }
+    
+    if (!isValidUUID(productData.id)) {
+      console.error("Nieprawidłowy format ID produktu:", productData.id);
+      toast({
+        title: "Błąd produktu",
+        description: "Nieprawidłowy format ID produktu. Prosimy o kontakt z administracją.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
       console.log('Rozpoczynam tworzenie zamówienia dla produktu:', productData.id);

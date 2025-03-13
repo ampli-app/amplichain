@@ -9,6 +9,13 @@ import { CheckoutErrorState } from '@/components/checkout/CheckoutErrorState';
 import { ReservationExpiredState } from '@/components/checkout/ReservationExpiredState';
 import { useCheckout } from '@/hooks/checkout/useCheckout';
 import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
+import { toast } from '@/components/ui/use-toast';
+
+// Helper function to validate UUID format
+const isValidUUID = (uuid: string) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
 
 export default function Checkout() {
   const { id } = useParams<{ id: string }>();
@@ -23,13 +30,26 @@ export default function Checkout() {
   const [orderInitialized, setOrderInitialized] = useState(false);
   const [reservationExpired, setReservationExpired] = useState(false);
   
+  // Sprawdź poprawność ID produktu
+  useEffect(() => {
+    if (id && !isValidUUID(id)) {
+      console.error("Nieprawidłowy format ID produktu:", id);
+      toast({
+        title: "Błąd produktu",
+        description: "Nieprawidłowy format ID produktu. Prosimy o kontakt z administracją.",
+        variant: "destructive",
+      });
+      navigate('/marketplace');
+    }
+  }, [id, navigate]);
+  
   const checkout = useCheckout({ 
-    productId: id || '', 
+    productId: id && isValidUUID(id) ? id : '', 
     isTestMode 
   });
   
   const { isLoading: isReservationLoading, reservationExpiresAt } = useOrderReservation({ 
-    productId: id || '', 
+    productId: id && isValidUUID(id) ? id : '', 
     isTestMode 
   });
   
@@ -37,6 +57,11 @@ export default function Checkout() {
   useEffect(() => {
     if (!isLoggedIn) {
       console.log("Użytkownik nie jest zalogowany, przekierowuję do logowania");
+      toast({
+        title: "Wymagane logowanie",
+        description: "Aby dokonać zakupu, musisz być zalogowany.",
+        variant: "destructive",
+      });
       navigate('/login');
       return;
     }
@@ -44,6 +69,11 @@ export default function Checkout() {
     if (!id) {
       console.log("Brak ID produktu, przekierowuję do marketplace");
       navigate('/marketplace');
+      return;
+    }
+    
+    if (!isValidUUID(id)) {
+      console.error("Nieprawidłowy format ID produktu:", id);
       return;
     }
     

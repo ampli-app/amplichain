@@ -30,6 +30,15 @@ export const ConsultationBuyDialog = ({
   const serviceFee = price * 0.015;
   const totalPrice = price * 1.015;
   
+  const handleBuy = () => {
+    console.log("Kliknięto przycisk Kup w dialogu dla konsultacji", {
+      title,
+      ownerName,
+      price
+    });
+    onBuy();
+  };
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -64,7 +73,7 @@ export const ConsultationBuyDialog = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Anuluj
           </Button>
-          <Button onClick={onBuy}>
+          <Button onClick={handleBuy}>
             Kup teraz
           </Button>
         </DialogFooter>

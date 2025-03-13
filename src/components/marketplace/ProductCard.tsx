@@ -27,8 +27,30 @@ export function ProductCard({ product, isOwner }: ProductCardProps) {
     testing_price: product.testing_price
   };
   
+  // Validate that ID is a proper UUID
+  const isValidUUID = (uuid: string) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  };
+  
+  const handleCardClick = () => {
+    if (isValidUUID(safeProduct.id)) {
+      navigate(`/marketplace/${safeProduct.id}`);
+    } else {
+      console.error("Invalid product ID format:", safeProduct.id);
+      toast({
+        title: "Błąd",
+        description: "Nieprawidłowy format ID produktu. Prosimy o kontakt z administracją.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   return (
-    <div className="group relative bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+    <div 
+      className="group relative bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+      onClick={handleCardClick}
+    >
       <ProductImage 
         image={safeProduct.image_url} 
         title={safeProduct.title} 

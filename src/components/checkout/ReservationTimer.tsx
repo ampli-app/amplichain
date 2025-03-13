@@ -13,26 +13,31 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
 
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const expiryTime = new Date(expiresAt).getTime();
-      const now = new Date().getTime();
-      const difference = expiryTime - now;
-      
-      if (difference <= 0) {
-        console.log("Rezerwacja wygasła!");
-        setExpired(true);
-        setTimeLeft({ minutes: 0, seconds: 0 });
+      try {
+        const expiryTime = new Date(expiresAt).getTime();
+        const now = new Date().getTime();
+        const difference = expiryTime - now;
         
-        // Wywołaj funkcję callback tylko jeśli wcześniej nie wygasło
-        if (!expired) {
-          onExpire();
+        if (difference <= 0) {
+          console.log("Rezerwacja wygasła! Czas wygaśnięcia:", expiresAt);
+          setExpired(true);
+          setTimeLeft({ minutes: 0, seconds: 0 });
+          
+          // Wywołaj funkcję callback tylko jeśli wcześniej nie wygasło
+          if (!expired) {
+            onExpire();
+          }
+          return;
         }
-        return;
+        
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+        
+        setTimeLeft({ minutes, seconds });
+      } catch (error) {
+        console.error("Błąd podczas kalkulacji czasu:", error);
+        setTimeLeft({ minutes: 0, seconds: 0 });
       }
-      
-      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-      
-      setTimeLeft({ minutes, seconds });
     };
     
     // Wykonaj obliczenie od razu przy montowaniu komponentu

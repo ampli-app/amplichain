@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
-import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ProductActionsProps {
@@ -21,8 +20,6 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
   const { isLoggedIn } = useAuth();
   const isDiscoverPage = location.pathname === '/discover';
   const [isReserving, setIsReserving] = useState(false);
-  
-  const { initiateOrder, cancelPreviousReservations } = useOrderReservation({ productId: id });
   
   const handleViewProduct = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -74,59 +71,19 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
     setIsReserving(true);
     
     try {
-      // Anuluj wszystkie poprzednie rezerwacje (w tym wygasłe)
-      console.log("Anulowanie poprzednich rezerwacji");
-      await cancelPreviousReservations();
-      
       // Sprawdź, czy URL zawiera parametr trybu testowego
       const isTestMode = location.search.includes('mode=test');
       console.log("Tryb testowy:", isTestMode);
       
       console.log("Inicjowanie zakupu produktu:", id);
       
-      let productData = product;
+      // Przekieruj natychmiast do ekranu koszyka
+      const checkoutUrl = isTestMode 
+        ? `/checkout/${id}?mode=test` 
+        : `/checkout/${id}`;
       
-      // Jeśli nie mamy danych produktu, pobierz je
-      if (!productData) {
-        console.log("Pobieranie danych produktu dla rezerwacji:", id);
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('id', id)
-          .single();
-        
-        if (error) {
-          console.error('Błąd pobierania danych produktu:', error);
-          toast({
-            title: "Błąd",
-            description: "Nie udało się pobrać danych produktu. Spróbuj ponownie.",
-            variant: "destructive",
-          });
-          setIsReserving(false);
-          return;
-        }
-        
-        productData = data;
-      }
-      
-      if (productData) {
-        console.log("Tworzenie rezerwacji dla produktu:", productData);
-        
-        // Przekieruj natychmiast do ekranu koszyka, rezerwacja będzie utworzona tam
-        const checkoutUrl = isTestMode 
-          ? `/checkout/${id}?mode=test` 
-          : `/checkout/${id}`;
-        
-        console.log("Przekierowanie do:", checkoutUrl);
-        navigate(checkoutUrl);
-      } else {
-        console.error("Brak danych produktu, nie można utworzyć rezerwacji");
-        toast({
-          title: "Błąd",
-          description: "Nie udało się uzyskać danych produktu. Spróbuj ponownie.",
-          variant: "destructive",
-        });
-      }
+      console.log("Przekierowanie do:", checkoutUrl);
+      navigate(checkoutUrl);
     } catch (error) {
       console.error('Błąd podczas tworzenia rezerwacji:', error);
       toast({

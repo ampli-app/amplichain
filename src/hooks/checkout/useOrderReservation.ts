@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -25,6 +24,12 @@ export interface PaymentIntentResponse {
   status?: string;
 }
 
+// Helper function to validate UUID format
+const isValidUUID = (uuid: string) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
+
 export const useOrderReservation = ({ productId, isTestMode = false }: OrderReservationProps) => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -34,17 +39,33 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
   
   // Sprawdź istniejącą rezerwację przy montowaniu komponentu
   useEffect(() => {
-    if (user && productId) {
+    if (user && productId && isValidUUID(productId)) {
+      console.log("Sprawdzam istniejącą rezerwację dla:", productId);
       checkExistingReservation().then(data => {
         if (data) {
           console.log("Znaleziono istniejącą rezerwację po załadowaniu:", data);
         }
       });
+    } else if (productId && !isValidUUID(productId)) {
+      console.error("Nieprawidłowy format ID produktu:", productId);
     }
   }, [user?.id, productId]);
   
   const initiateOrder = async (product: any, isTestMode: boolean) => {
-    if (!user || !product) return null;
+    if (!user || !product) {
+      console.error("Brak użytkownika lub produktu!");
+      return null;
+    }
+    
+    if (!isValidUUID(product.id)) {
+      console.error("Nieprawidłowy format ID produktu:", product.id);
+      toast({
+        title: "Błąd produktu",
+        description: "Nieprawidłowy format ID produktu. Prosimy o kontakt z administracją.",
+        variant: "destructive",
+      });
+      return null;
+    }
     
     setIsLoading(true);
     
@@ -138,7 +159,7 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
   };
   
   const checkExistingReservation = async () => {
-    if (!user || !productId) return null;
+    if (!user || !productId || !isValidUUID(productId)) return null;
     
     try {
       const { data, error } = await supabase
@@ -188,7 +209,7 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
   };
   
   const cancelPreviousReservations = async () => {
-    if (!user || !productId) return;
+    if (!user || !productId || !isValidUUID(productId)) return;
     
     try {
       const { error } = await supabase
@@ -203,6 +224,8 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
       
       if (error) {
         console.error('Błąd anulowania poprzednich rezerwacji:', error);
+      } else {
+        console.log("Anulowano poprzednie rezerwacje");
       }
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas anulowania rezerwacji:', err);
