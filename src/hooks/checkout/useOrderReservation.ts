@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -13,6 +14,7 @@ interface PaymentIntentResponse {
   client_secret: string;
   amount: number;
   currency: string;
+  status: string;
 }
 
 export function useOrderReservation({ productId, isTestMode = false }: OrderReservationProps) {
@@ -394,21 +396,23 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       const customerEmail = user?.email || '';
       const customerName = profileData?.full_name || '';
       
-      const { data: paymentIntent, error: stripeError } = await supabase.rpc<PaymentIntentResponse>(
-        'create_stripe_payment_intent',
-        {
-          p_order_id: reservationData.id,
-          p_amount: Math.round(reservationData.total_amount * 100),
-          p_currency: 'pln',
-          p_payment_method: reservationData.payment_method || 'card',
-          p_description: `Zamówienie #${reservationData.id.substring(0, 8)}`,
-          p_customer_email: customerEmail,
-          p_customer_name: customerName
+      // Użyj edge function zamiast RPC
+      const response = await supabase.functions.invoke<PaymentIntentResponse>('stripe-payment', {
+        body: {
+          action: 'create_payment',
+          data: {
+            orderId: reservationData.id,
+            amount: Math.round(reservationData.total_amount * 100),
+            currency: 'pln',
+            description: `Zamówienie #${reservationData.id.substring(0, 8)}`,
+            email: customerEmail,
+            name: customerName
+          }
         }
-      );
+      });
       
-      if (stripeError) {
-        console.error('Błąd podczas tworzenia intencji płatności Stripe:', stripeError);
+      if (response.error) {
+        console.error('Błąd podczas tworzenia intencji płatności Stripe:', response.error);
         toast({
           title: "Błąd płatności",
           description: "Nie udało się zainicjować płatności przez Stripe.",
@@ -417,6 +421,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
         return null;
       }
       
+      const paymentIntent = response.data;
       console.log('Utworzono intencję płatności Stripe:', paymentIntent);
       
       if (paymentIntent) {
@@ -475,16 +480,18 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       }
       
       if (paymentIntentData && paymentIntentData.payment_intent_id) {
-        const { error: paymentError } = await supabase.rpc(
-          'update_payment_status',
-          {
-            p_payment_intent_id: paymentIntentData.payment_intent_id,
-            p_status: success ? 'succeeded' : 'failed'
+        // Użyj edge function zamiast RPC do aktualizacji statusu płatności
+        const response = await supabase.functions.invoke('stripe-payment', {
+          body: {
+            action: success ? 'check_payment_status' : 'cancel_payment',
+            data: {
+              paymentIntentId: paymentIntentData.payment_intent_id
+            }
           }
-        );
+        });
         
-        if (paymentError) {
-          console.error('Błąd podczas aktualizacji statusu płatności w Stripe:', paymentError);
+        if (response.error) {
+          console.error('Błąd podczas aktualizacji statusu płatności w Stripe:', response.error);
         } else {
           console.log('Status płatności Stripe zaktualizowany pomyślnie');
         }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -17,6 +16,7 @@ import { useCheckout } from '@/hooks/checkout/useCheckout';
 import { ReservationTimer } from '@/components/checkout/ReservationTimer';
 import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { loadStripe } from '@stripe/stripe-js';
 
 export default function Checkout() {
   const { id } = useParams<{ id: string }>();
@@ -148,31 +148,57 @@ export default function Checkout() {
     }
     
     console.log("Zainicjowano płatność:", paymentIntent);
+    checkout.setIsProcessing(true);
     
-    // W prawdziwej integracji tutaj przekierowalibyśmy użytkownika do Stripe
-    // Dla celów demonstracyjnych, symulujemy płatność
-    checkout.simulatePaymentProcessing(async (success) => {
-      const updated = await handlePaymentResult(success);
-      
-      if (success && updated) {
+    if (checkout.paymentMethod === 'stripe') {
+      const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+      if (!stripe) {
         toast({
-          title: "Płatność zaakceptowana",
-          description: "Twoje zamówienie zostało złożone pomyślnie!",
-        });
-        
-        const url = isTestMode 
-          ? `/checkout/success/${id}?mode=test` 
-          : `/checkout/success/${id}?mode=buy`;
-        
-        navigate(url);
-      } else {
-        toast({
-          title: "Błąd płatności",
-          description: "Wystąpił problem z płatnością. Spróbuj ponownie.",
+          title: "Błąd",
+          description: "Nie udało się załadować modułu płatności Stripe.",
           variant: "destructive",
         });
+        checkout.setIsProcessing(false);
+        return;
       }
-    });
+      
+      const { error } = await stripe.redirectToCheckout({
+        clientSecret: paymentIntent.client_secret,
+      });
+      
+      if (error) {
+        console.error('Błąd przekierowania do Stripe:', error);
+        toast({
+          title: "Błąd płatności",
+          description: error.message || "Wystąpił problem z przekierowaniem do płatności.",
+          variant: "destructive",
+        });
+        checkout.setIsProcessing(false);
+      }
+    } else {
+      checkout.simulatePaymentProcessing(async (success) => {
+        const updated = await handlePaymentResult(success);
+        
+        if (success && updated) {
+          toast({
+            title: "Płatność zaakceptowana",
+            description: "Twoje zamówienie zostało złożone pomyślnie!",
+          });
+          
+          const url = isTestMode 
+            ? `/checkout/success/${id}?mode=test` 
+            : `/checkout/success/${id}?mode=buy`;
+          
+          navigate(url);
+        } else {
+          toast({
+            title: "Błąd płatności",
+            description: "Wystąpił problem z płatnością. Spróbuj ponownie.",
+            variant: "destructive",
+          });
+        }
+      });
+    }
   };
   
   useEffect(() => {

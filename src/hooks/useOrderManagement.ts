@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -71,7 +72,7 @@ export const useOrderManagement = () => {
             image_url,
             for_testing
           ),
-          stripe_payments!inner (
+          stripe_payments (
             payment_intent_id,
             payment_intent_client_secret,
             status
