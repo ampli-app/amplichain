@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,7 +52,7 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
     }
   }, [user?.id, productId]);
   
-  const initiateOrder = async (product: any, isTestMode: boolean) => {
+  const initiateOrder = useCallback(async (product: any, isTestMode: boolean) => {
     if (!user || !product) {
       console.error("Brak użytkownika lub produktu!");
       return null;
@@ -81,7 +82,7 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
       }
       
       // Najpierw upewnijmy się, że mamy ID właściciela produktu
-      if (!product.user_id && !product.owner_id) {
+      if (!product.user_id) {
         console.error('Brak ID właściciela produktu!');
         toast({
           title: "Błąd",
@@ -92,7 +93,7 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
         return null;
       }
       
-      const sellerId = product.owner_id || product.user_id;
+      const sellerId = product.user_id;
       const price = isTestMode && product.testing_price 
         ? parseFloat(product.testing_price) 
         : parseFloat(product.price);
@@ -156,9 +157,9 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, checkExistingReservation]);
   
-  const checkExistingReservation = async () => {
+  const checkExistingReservation = useCallback(async () => {
     if (!user || !productId || !isValidUUID(productId)) return null;
     
     try {
@@ -206,9 +207,9 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
       console.error('Nieoczekiwany błąd podczas sprawdzania rezerwacji:', err);
       return null;
     }
-  };
+  }, [user, productId, markReservationAsExpired]);
   
-  const cancelPreviousReservations = async () => {
+  const cancelPreviousReservations = useCallback(async () => {
     if (!user || !productId || !isValidUUID(productId)) return;
     
     try {
@@ -230,9 +231,9 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas anulowania rezerwacji:', err);
     }
-  };
+  }, [user, productId]);
   
-  const checkExpiredReservations = async () => {
+  const checkExpiredReservations = useCallback(async () => {
     try {
       console.log('Wywołuję procedurę cleanup_expired_orders...');
       const { data, error } = await supabase.rpc('cleanup_expired_orders');
@@ -245,9 +246,9 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas sprawdzania wygasłych rezerwacji:', err);
     }
-  };
+  }, []);
   
-  const markReservationAsExpired = async (orderId: string) => {
+  const markReservationAsExpired = useCallback(async (orderId: string) => {
     try {
       const { error } = await supabase
         .from('product_orders')
@@ -269,7 +270,7 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
       console.error('Nieoczekiwany błąd podczas oznaczania rezerwacji jako wygasłej:', err);
       return false;
     }
-  };
+  }, []);
   
   const confirmOrder = async (orderDetails: {
     address: string;

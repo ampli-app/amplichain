@@ -73,39 +73,48 @@ export function CheckoutContent({
       
       console.log("CheckoutContent: Inicjalizacja rezerwacji", { orderInitialized });
       
-      // Sprawdź wygasłe rezerwacje
-      await checkExpiredReservations();
-      
-      // Sprawdź istniejącą rezerwację
-      const existingReservation = await checkExistingReservation();
-      
-      if (existingReservation) {
-        console.log("Znaleziono istniejącą rezerwację:", existingReservation);
-        setOrderInitialized(true);
-        return;
-      }
-      
-      // Jeśli nie ma istniejącej rezerwacji, utwórz nową
-      console.log("Brak rezerwacji, tworzymy nową");
-      await cancelPreviousReservations();
-      
-      // Upewnijmy się, że przekazujemy owner_id jeśli nie ma user_id
-      const productWithSeller = {
-        ...checkout.product,
-        owner_id: checkout.product.owner_id || checkout.product.user_id
-      };
-      
-      console.log("Inicjowanie zamówienia z produktem:", productWithSeller);
-      const reservation = await initiateOrder(productWithSeller, isTestMode);
-      
-      if (reservation) {
-        console.log("Rezerwacja utworzona pomyślnie:", reservation);
-        setOrderInitialized(true);
-      } else {
-        console.error("Nie udało się utworzyć rezerwacji");
+      try {
+        // Sprawdź wygasłe rezerwacje
+        await checkExpiredReservations();
+        
+        // Sprawdź istniejącą rezerwację
+        const existingReservation = await checkExistingReservation();
+        
+        if (existingReservation) {
+          console.log("Znaleziono istniejącą rezerwację:", existingReservation);
+          setOrderInitialized(true);
+          return;
+        }
+        
+        // Jeśli nie ma istniejącej rezerwacji, utwórz nową
+        console.log("Brak rezerwacji, tworzymy nową");
+        await cancelPreviousReservations();
+        
+        // Upewnijmy się, że przekazujemy owner_id jeśli nie ma user_id
+        const productWithSeller = {
+          ...checkout.product,
+          user_id: checkout.product.user_id || checkout.product.owner_id
+        };
+        
+        console.log("Inicjowanie zamówienia z produktem:", productWithSeller);
+        const reservation = await initiateOrder(productWithSeller, isTestMode);
+        
+        if (reservation) {
+          console.log("Rezerwacja utworzona pomyślnie:", reservation);
+          setOrderInitialized(true);
+        } else {
+          console.error("Nie udało się utworzyć rezerwacji");
+          toast({
+            title: "Błąd rezerwacji",
+            description: "Nie udało się utworzyć rezerwacji produktu.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error("Błąd podczas inicjalizacji rezerwacji:", error);
         toast({
           title: "Błąd rezerwacji",
-          description: "Nie udało się utworzyć rezerwacji produktu.",
+          description: "Wystąpił problem podczas inicjalizacji rezerwacji produktu.",
           variant: "destructive",
         });
       }
@@ -121,7 +130,7 @@ export function CheckoutContent({
     }, 30000);
     
     return () => clearInterval(intervalId);
-  }, [checkout.product, user, productId]);
+  }, [checkout.product, user, productId, orderInitialized, checkExpiredReservations, checkExistingReservation, cancelPreviousReservations, initiateOrder, isTestMode, setOrderInitialized]);
   
   // Wypełnij email użytkownika automatycznie
   useEffect(() => {
@@ -131,7 +140,7 @@ export function CheckoutContent({
         email: user.email || ''
       }));
     }
-  }, [user?.email]);
+  }, [user?.email, checkout]);
   
   const handleReservationExpire = async () => {
     console.log("Obsługa wygaśnięcia rezerwacji");

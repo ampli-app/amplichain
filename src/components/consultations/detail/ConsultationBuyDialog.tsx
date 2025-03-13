@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useState } from "react";
 
 interface ConsultationBuyDialogProps {
   open: boolean;
@@ -27,20 +28,35 @@ export const ConsultationBuyDialog = ({
   price,
   onBuy
 }: ConsultationBuyDialogProps) => {
+  const [isProcessing, setIsProcessing] = useState(false);
   const serviceFee = price * 0.015;
   const totalPrice = price * 1.015;
   
   const handleBuy = () => {
+    if (isProcessing) return;
+    
+    setIsProcessing(true);
     console.log("Kliknięto przycisk Kup w dialogu dla konsultacji", {
       title,
       ownerName,
       price
     });
+    
+    // Wywołaj funkcję onBuy
     onBuy();
+    
+    // Resetuj stan przetwarzania po krótkim opóźnieniu
+    setTimeout(() => {
+      setIsProcessing(false);
+    }, 1000);
   };
   
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(open) => {
+      if (!isProcessing) {
+        onOpenChange(open);
+      }
+    }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Potwierdzenie zakupu</DialogTitle>
@@ -70,11 +86,18 @@ export const ConsultationBuyDialog = ({
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)} 
+            disabled={isProcessing}
+          >
             Anuluj
           </Button>
-          <Button onClick={handleBuy}>
-            Kup teraz
+          <Button 
+            onClick={handleBuy} 
+            disabled={isProcessing}
+          >
+            {isProcessing ? "Przetwarzanie..." : "Kup teraz"}
           </Button>
         </DialogFooter>
       </DialogContent>
