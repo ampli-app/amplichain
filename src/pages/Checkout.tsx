@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
-import { Loader2, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowLeft, AlertTriangle, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
