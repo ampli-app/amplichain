@@ -1,3 +1,4 @@
+
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, Pencil, Share2, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -5,6 +6,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProductActionsProps {
   id: string;
