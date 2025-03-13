@@ -21,7 +21,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
   const isDiscoverPage = location.pathname === '/discover';
   const [isReserving, setIsReserving] = useState(false);
   
-  const { initiateOrder } = useOrderReservation({ productId: id });
+  const { initiateOrder, cancelPreviousReservations } = useOrderReservation({ productId: id });
   
   const handleViewProduct = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -64,6 +64,9 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
     setIsReserving(true);
     
     try {
+      // Anuluj wszystkie poprzednie rezerwacje (w tym wygasłe)
+      await cancelPreviousReservations();
+      
       // Sprawdź, czy URL zawiera parametr trybu testowego
       const isTestMode = location.search.includes('mode=test');
       

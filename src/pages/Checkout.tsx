@@ -21,7 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 export default function Checkout() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
-  const isTestMode = location.pathname.includes('/test');
+  const isTestMode = location.search.includes('mode=test');
   const navigate = useNavigate();
   const { isLoggedIn, user } = useAuth();
   
@@ -37,7 +37,8 @@ export default function Checkout() {
     reservationData, 
     reservationExpiresAt,
     initiateOrder,
-    confirmOrder
+    confirmOrder,
+    cancelPreviousReservations
   } = useOrderReservation({ 
     productId: id || '', 
     isTestMode 
@@ -47,7 +48,10 @@ export default function Checkout() {
   useEffect(() => {
     const createInitialReservation = async () => {
       if (checkout.product && !reservationData && !reservationExpired) {
-        const reservation = await initiateOrder(checkout.product);
+        // Anuluj wszystkie poprzednie rezerwacje przed utworzeniem nowej
+        await cancelPreviousReservations();
+        
+        const reservation = await initiateOrder(checkout.product, isTestMode);
         if (!reservation) {
           toast({
             title: "Błąd rezerwacji",

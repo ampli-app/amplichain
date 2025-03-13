@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -59,6 +60,41 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     }
   };
   
+  // Anulowanie poprzednich rezerwacji, które mogły wygasnąć
+  const cancelPreviousReservations = async () => {
+    if (!user || !productId) return;
+    
+    try {
+      console.log('Anulowanie poprzednich rezerwacji dla produktu:', productId);
+      
+      // Anuluj wszystkie poprzednie rezerwacje dla tego produktu
+      const { error } = await supabase
+        .from('product_orders')
+        .update({ 
+          status: 'anulowane',
+          updated_at: new Date().toISOString()
+        })
+        .eq('product_id', productId)
+        .eq('buyer_id', user.id)
+        .in('status', ['reserved', 'confirmed'])
+        .is('payment_status', null);
+      
+      if (error) {
+        console.error('Błąd podczas anulowania poprzednich rezerwacji:', error);
+      } else {
+        console.log('Poprzednie rezerwacje anulowane pomyślnie');
+      }
+      
+      // Resetujemy lokalne dane rezerwacji
+      setReservationData(null);
+      setReservationExpiresAt(null);
+      setPaymentDeadline(null);
+      
+    } catch (err) {
+      console.error('Nieoczekiwany błąd podczas anulowania rezerwacji:', err);
+    }
+  };
+  
   // Inicjowanie nowej rezerwacji
   const initiateOrder = async (product: any, testMode: boolean = false) => {
     if (!user || !productId || !product) {
@@ -75,8 +111,21 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       
       // Sprawdź, czy istnieje aktywna rezerwacja
       const existingReservation = await checkExistingReservation();
+      
+      // Jeśli istnieje rezerwacja, sprawdź czy wygasła
       if (existingReservation) {
-        return existingReservation;
+        const now = new Date();
+        const expiresAt = existingReservation.reservation_expires_at 
+          ? new Date(existingReservation.reservation_expires_at) 
+          : null;
+        
+        // Jeśli rezerwacja jeszcze nie wygasła, zwróć ją
+        if (expiresAt && expiresAt > now) {
+          return existingReservation;
+        }
+        
+        // Jeśli rezerwacja wygasła, anuluj ją
+        await cancelPreviousReservations();
       }
       
       // Ustaw czas wygaśnięcia rezerwacji (10 minut)
@@ -409,6 +458,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     confirmOrder,
     initiatePayment,
     handlePaymentResult,
-    checkExistingReservation
+    checkExistingReservation,
+    cancelPreviousReservations
   };
 }
