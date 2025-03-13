@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -37,6 +38,7 @@ export default function Checkout() {
     isLoading: isReservationLoading, 
     reservationData, 
     reservationExpiresAt,
+    paymentIntentData,
     initiateOrder,
     confirmOrder,
     cancelPreviousReservations,
@@ -147,6 +149,8 @@ export default function Checkout() {
     
     console.log("Zainicjowano płatność:", paymentIntent);
     
+    // W prawdziwej integracji tutaj przekierowalibyśmy użytkownika do Stripe
+    // Dla celów demonstracyjnych, symulujemy płatność
     checkout.simulatePaymentProcessing(async (success) => {
       const updated = await handlePaymentResult(success);
       

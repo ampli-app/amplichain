@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -14,6 +15,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
   const [reservationData, setReservationData] = useState<any>(null);
   const [reservationExpiresAt, setReservationExpiresAt] = useState<Date | null>(null);
   const [paymentDeadline, setPaymentDeadline] = useState<Date | null>(null);
+  const [paymentIntentData, setPaymentIntentData] = useState<any>(null);
   
   // Funkcja do sprawdzania i aktualizacji wygasłych rezerwacji
   const checkExpiredReservations = async () => {
@@ -45,10 +47,13 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       
       const { data, error } = await supabase
         .from('product_orders')
-        .select('*')
+        .select(`
+          *,
+          stripe_payments(*)
+        `)
         .eq('product_id', productId)
         .eq('buyer_id', user.id)
-        .in('status', ['reserved', 'confirmed', 'oczekujące'])
+        .in('status', ['reserved', 'confirmed', 'oczekujące', 'pending_payment'])
         .order('created_at', { ascending: false })
         .limit(1);
       
@@ -58,17 +63,23 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       }
       
       if (data && data.length > 0) {
-        setReservationData(data[0]);
+        const order = data[0];
+        setReservationData(order);
         
-        if (data[0].reservation_expires_at) {
-          setReservationExpiresAt(new Date(data[0].reservation_expires_at));
+        if (order.reservation_expires_at) {
+          setReservationExpiresAt(new Date(order.reservation_expires_at));
         }
         
-        if (data[0].payment_deadline) {
-          setPaymentDeadline(new Date(data[0].payment_deadline));
+        if (order.payment_deadline) {
+          setPaymentDeadline(new Date(order.payment_deadline));
         }
         
-        return data[0];
+        // Jeśli istnieją dane płatności Stripe
+        if (order.stripe_payments && order.stripe_payments.length > 0) {
+          setPaymentIntentData(order.stripe_payments[0]);
+        }
+        
+        return order;
       }
       
       return null;
@@ -109,6 +120,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       setReservationData(null);
       setReservationExpiresAt(null);
       setPaymentDeadline(null);
+      setPaymentIntentData(null);
       
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas anulowania rezerwacji:', err);
@@ -350,7 +362,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     }
   };
   
-  // Inicjowanie płatności
+  // Inicjowanie płatności - teraz używamy funkcji Stripe
   const initiatePayment = async () => {
     if (!reservationData || !reservationData.id) {
       toast({
@@ -376,62 +388,69 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       setIsLoading(true);
       
       // Aktualizacja statusu zamówienia na pending_payment
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('product_orders')
         .update({
           status: 'pending_payment'
         })
         .eq('id', reservationData.id);
       
-      if (error) {
-        console.error('Błąd podczas aktualizacji statusu płatności:', error);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się zaktualizować statusu płatności.",
-          variant: "destructive",
-        });
+      if (updateError) {
+        console.error('Błąd podczas aktualizacji statusu płatności:', updateError);
         return null;
       }
       
       console.log('Status zamówienia zaktualizowany na pending_payment');
       
-      // W rzeczywistym systemie, tutaj nastąpiłoby wywołanie API Stripe
-      // dla uproszczenia, symulujemy proces płatności
+      // Pobranie profilu użytkownika dla email
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', user?.id)
+        .single();
+        
+      const customerEmail = user?.email || '';
+      const customerName = profileData?.full_name || '';
       
-      // Symulacja PaymentIntent
-      const paymentIntent = {
-        id: `pi_${Math.random().toString(36).substring(2, 15)}`,
-        client_secret: `cs_${Math.random().toString(36).substring(2, 15)}`,
-        amount: reservationData.total_amount * 100, // Stripe używa jednostek (grosze)
-        currency: 'pln'
-      };
+      // Wywołanie funkcji do utworzenia intencji płatności Stripe
+      const { data: paymentIntent, error: stripeError } = await supabase.rpc(
+        'create_stripe_payment_intent',
+        {
+          p_order_id: reservationData.id,
+          p_amount: Math.round(reservationData.total_amount * 100), // W groszach dla Stripe
+          p_currency: 'pln',
+          p_payment_method: reservationData.payment_method || 'card',
+          p_description: `Zamówienie #${reservationData.id.substring(0, 8)}`,
+          p_customer_email: customerEmail,
+          p_customer_name: customerName
+        }
+      );
       
-      console.log('Utworzono symulowany PaymentIntent:', paymentIntent);
-      
-      // Zapisz informację o płatności
-      const { data: paymentData, error: paymentError } = await supabase
-        .from('payments')
-        .insert([{
-          order_id: reservationData.id,
-          payment_intent_id: paymentIntent.id,
-          client_secret: paymentIntent.client_secret,
-          amount: reservationData.total_amount,
-          status: 'pending',
-          payment_method: reservationData.payment_method
-        }])
-        .select();
-      
-      if (paymentError) {
-        console.error('Błąd podczas zapisywania informacji o płatności:', paymentError);
-      } else {
-        console.log('Zapisano informacje o płatności:', paymentData);
+      if (stripeError) {
+        console.error('Błąd podczas tworzenia intencji płatności Stripe:', stripeError);
+        toast({
+          title: "Błąd płatności",
+          description: "Nie udało się zainicjować płatności przez Stripe.",
+          variant: "destructive",
+        });
+        return null;
       }
       
-      // Aktualizuj lokalne dane
+      console.log('Utworzono intencję płatności Stripe:', paymentIntent);
+      
+      // Zapisz dane płatności lokalnie
+      setPaymentIntentData({
+        payment_intent_id: paymentIntent.payment_intent_id,
+        client_secret: paymentIntent.client_secret,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency
+      });
+      
+      // Aktualizuj lokalne dane rezerwacji
       setReservationData({
         ...reservationData,
         status: 'pending_payment',
-        payment_intent_id: paymentIntent.id
+        payment_intent_id: paymentIntent.payment_intent_id
       });
       
       return paymentIntent;
@@ -474,35 +493,20 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
         return false;
       }
       
-      // Aktualizacja statusu płatności
-      if (reservationData.payment_intent_id) {
-        const { error: paymentError } = await supabase
-          .from('payments')
-          .update({
-            status: success ? 'succeeded' : 'failed'
-          })
-          .eq('payment_intent_id', reservationData.payment_intent_id);
-          
+      // Jeśli istnieją dane płatności, aktualizuj status w tabeli stripe_payments
+      if (paymentIntentData && paymentIntentData.payment_intent_id) {
+        const { error: paymentError } = await supabase.rpc(
+          'update_payment_status',
+          {
+            p_payment_intent_id: paymentIntentData.payment_intent_id,
+            p_status: success ? 'succeeded' : 'failed'
+          }
+        );
+        
         if (paymentError) {
-          console.error('Błąd podczas aktualizacji statusu płatności w tabeli payments:', paymentError);
+          console.error('Błąd podczas aktualizacji statusu płatności w Stripe:', paymentError);
         } else {
-          console.log('Status płatności zaktualizowany w tabeli payments');
-        }
-      }
-      
-      // Po udanej płatności, zmień status zamówienia na 'zaakceptowane' (tylko jeśli sukces)
-      if (success) {
-        const { error: orderError } = await supabase
-          .from('product_orders')
-          .update({
-            status: 'zaakceptowane'
-          })
-          .eq('id', reservationData.id);
-          
-        if (orderError) {
-          console.error('Błąd podczas aktualizacji statusu zamówienia na zaakceptowane:', orderError);
-        } else {
-          console.log('Status zamówienia zaktualizowany na zaakceptowane po udanej płatności');
+          console.log('Status płatności Stripe zaktualizowany pomyślnie');
         }
       }
       
@@ -547,6 +551,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     reservationData,
     reservationExpiresAt,
     paymentDeadline,
+    paymentIntentData,
     initiateOrder,
     confirmOrder,
     initiatePayment,

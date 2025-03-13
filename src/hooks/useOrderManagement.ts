@@ -20,6 +20,8 @@ export interface Order {
   notes?: string;
   order_type?: string;
   reservation_expires_at?: string;
+  payment_intent_id?: string;
+  payment_status?: string;
 }
 
 export interface OrderStatusUpdate {
@@ -69,6 +71,11 @@ export const useOrderManagement = () => {
             title,
             image_url,
             for_testing
+          ),
+          stripe_payments!inner (
+            payment_intent_id,
+            payment_intent_client_secret,
+            status
           )
         `)
         .eq(filterColumn, user.id)
@@ -87,6 +94,7 @@ export const useOrderManagement = () => {
       if (data) {
         const formattedOrders = data.map(order => {
           const productData = order.products as any;
+          const paymentData = order.stripe_payments?.[0] || {};
           
           let imageUrl = '/placeholder.svg';
           if (productData?.image_url) {
@@ -108,7 +116,9 @@ export const useOrderManagement = () => {
             ...order,
             product_title: productData?.title || 'Produkt',
             product_image: imageUrl,
-            order_type: productData?.for_testing ? 'test' : 'purchase'
+            order_type: productData?.for_testing ? 'test' : 'purchase',
+            payment_intent_id: paymentData.payment_intent_id,
+            payment_status: paymentData.status
           };
         });
         

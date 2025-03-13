@@ -1,1 +1,40 @@
+
 project_id = "csaxvhtbaksjaecogeii"
+
+[api]
+enabled = true
+port = 8000
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 5432
+shadow_port = 5431
+major_version = 15
+
+[studio]
+enabled = true
+port = 8001
+api_url = "http://localhost:8000"
+inmemory = false
+
+[inbucket]
+enabled = true
+port = 9000
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["https://localhost:5173"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+
+[realtime]
+enabled = true
+
+[functions]
+[functions.stripe-webhook]
+verify_jwt = false

@@ -2192,6 +2192,93 @@ export type Database = {
           },
         ]
       }
+      stripe_payments: {
+        Row: {
+          amount_total: number
+          created_at: string | null
+          currency: string | null
+          customer_email: string | null
+          customer_name: string | null
+          id: string
+          order_id: string
+          payment_intent_client_secret: string | null
+          payment_intent_id: string | null
+          payment_method: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_total: number
+          created_at?: string | null
+          currency?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          id?: string
+          order_id: string
+          payment_intent_client_secret?: string | null
+          payment_intent_id?: string | null
+          payment_method?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_total?: number
+          created_at?: string | null
+          currency?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          id?: string
+          order_id?: string
+          payment_intent_client_secret?: string | null
+          payment_intent_id?: string | null
+          payment_method?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_details"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "stripe_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "product_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_webhook_events: {
+        Row: {
+          api_version: string | null
+          created: string | null
+          data: Json | null
+          id: string
+          processed: boolean | null
+          processing_errors: string[] | null
+        }
+        Insert: {
+          api_version?: string | null
+          created?: string | null
+          data?: Json | null
+          id: string
+          processed?: boolean | null
+          processing_errors?: string[] | null
+        }
+        Update: {
+          api_version?: string | null
+          created?: string | null
+          data?: Json | null
+          id?: string
+          processed?: boolean | null
+          processing_errors?: string[] | null
+        }
+        Relationships: []
+      }
       subcategories: {
         Row: {
           category_id: string
@@ -2287,6 +2374,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_stripe_payment_intent: {
+        Args: {
+          p_order_id: string
+          p_amount: number
+          p_currency?: string
+          p_payment_method?: string
+          p_description?: string
+          p_customer_email?: string
+          p_customer_name?: string
+        }
+        Returns: Json
+      }
       find_or_create_conversation: {
         Args: {
           p_user_id1: string
@@ -2348,6 +2447,13 @@ export type Database = {
           p_discount_value: number
         }
         Returns: boolean
+      }
+      update_payment_status: {
+        Args: {
+          p_payment_intent_id: string
+          p_status: string
+        }
+        Returns: undefined
       }
       validate_discount_code: {
         Args: {

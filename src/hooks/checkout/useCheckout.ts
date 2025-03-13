@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -337,6 +338,8 @@ export function useCheckout({ productId, isTestMode = false }: UseCheckoutProps)
     setTimeout(() => {
       setIsProcessing(false);
       
+      // W prawdziwym systemie, tutaj byśmy użyli Stripe do przetworzenia płatności
+      // Dla celów demonstracyjnych zawsze zwracamy sukces
       const success = true;
       
       callback(success);
@@ -368,6 +371,8 @@ export function useCheckout({ productId, isTestMode = false }: UseCheckoutProps)
       
       const subtotal = getPrice() + getDeliveryCost();
       
+      // Normalnie byśmy sprawdzili kod rabatowy w bazie danych
+      // Dla demonstracji używamy kilku predefiniowanych kodów
       if (discountCode === "RABAT10") {
         setDiscountApplied(true);
         const productPrice = getPrice();
