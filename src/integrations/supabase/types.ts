@@ -2455,6 +2455,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      url_encode: {
+        Args: {
+          data: string
+        }
+        Returns: string
+      }
       validate_discount_code: {
         Args: {
           p_code: string
