@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrderCard } from '@/components/orders/OrderCard';
@@ -19,16 +20,19 @@ export function OrdersManagement() {
   useEffect(() => {
     fetchOrders(activeTab === 'buyer');
     
+    // Częstsze sprawdzanie wygasłych zamówień - co 10 sekund
     const intervalId = setInterval(() => {
+      console.log('Automatyczne sprawdzanie wygasłych rezerwacji...');
       checkExpiredReservations().then(() => {
         fetchOrders(activeTab === 'buyer');
       });
-    }, 30000);
+    }, 10000); // 10 sekund
     
     return () => clearInterval(intervalId);
   }, [activeTab]);
 
   const handleRefresh = () => {
+    console.log('Ręczne odświeżenie i sprawdzenie wygasłych rezerwacji...');
     checkExpiredReservations().then(() => {
       fetchOrders(activeTab === 'buyer');
     });

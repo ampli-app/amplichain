@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -37,12 +38,13 @@ export const useOrderManagement = () => {
     if (!user) return;
     
     try {
-      const { error } = await supabase.rpc('cleanup_expired_orders');
+      console.log('Wywołuję procedurę cleanup_expired_orders...');
+      const { data, error } = await supabase.rpc('cleanup_expired_orders');
       
       if (error) {
         console.error('Błąd podczas sprawdzania wygasłych rezerwacji:', error);
       } else {
-        console.log('Sprawdzenie wygasłych rezerwacji zakończone pomyślnie');
+        console.log('Sprawdzenie wygasłych rezerwacji zakończone pomyślnie', data);
       }
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas sprawdzania wygasłych rezerwacji:', err);
