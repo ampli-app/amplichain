@@ -5,7 +5,6 @@ import { ProductPrice } from './ProductPrice';
 import { ProductBadges } from './ProductBadges';
 import { ProductActions } from './ProductActions';
 import { Product } from './types';
-import { toast } from '@/components/ui/use-toast';
 
 interface ProductCardProps {
   product: Product;
@@ -15,67 +14,33 @@ interface ProductCardProps {
 export function ProductCard({ product, isOwner }: ProductCardProps) {
   const navigate = useNavigate();
   
-  // Ensure product has all required properties with fallback values
-  const safeProduct = {
-    ...product,
-    id: product.id || "",
-    title: product.title || "Produkt bez nazwy",
-    price: product.price || 0,
-    image_url: product.image_url || "/placeholder.svg",
-    for_testing: product.for_testing || false,
-    sale: product.sale || false,
-    sale_percentage: product.sale_percentage,
-    testing_price: product.testing_price
-  };
-  
-  // Validate that ID is a proper UUID
-  const isValidUUID = (uuid: string) => {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(uuid);
-  };
-  
-  const handleCardClick = () => {
-    if (isValidUUID(safeProduct.id)) {
-      navigate(`/marketplace/${safeProduct.id}`);
-    } else {
-      console.error("Invalid product ID format:", safeProduct.id);
-      toast({
-        title: "Błąd",
-        description: "Nieprawidłowy format ID produktu. Prosimy o kontakt z administracją.",
-        variant: "destructive",
-      });
-    }
-  };
+  // Usuwamy handleBuyNow, ponieważ przekierowanie będzie obsługiwane w komponencie ProductActions
   
   return (
-    <div 
-      className="group relative bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow overflow-hidden"
-      onClick={handleCardClick}
-    >
+    <div className="group relative bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow overflow-hidden">
       <ProductImage 
-        image={safeProduct.image_url} 
-        title={safeProduct.title} 
+        image={product.image_url} 
+        title={product.title} 
       />
       <ProductBadges 
-        forTesting={safeProduct.for_testing}
+        forTesting={product.for_testing || false}
         isUserProduct={isOwner}
-        sale={safeProduct.sale}
-        salePercentage={safeProduct.sale_percentage}
+        sale={product.sale || false}
+        salePercentage={product.sale_percentage}
       />
       
       <div className="p-4">
-        <h3 className="font-medium mb-1 line-clamp-2">{safeProduct.title}</h3>
+        <h3 className="font-medium mb-1 line-clamp-2">{product.title}</h3>
         <ProductPrice 
-          price={safeProduct.price} 
-          sale={safeProduct.sale}
-          salePercentage={safeProduct.sale_percentage}
-          forTesting={safeProduct.for_testing}
-          testingPrice={safeProduct.testing_price}
+          price={product.price} 
+          sale={product.sale || false}
+          salePercentage={product.sale_percentage}
+          forTesting={product.for_testing || false}
+          testingPrice={product.testing_price}
         />
         <ProductActions 
-          id={safeProduct.id}
+          id={product.id}
           isUserProduct={isOwner}
-          product={safeProduct}
         />
       </div>
     </div>

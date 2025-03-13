@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrderCard } from '@/components/orders/OrderCard';
@@ -20,19 +19,16 @@ export function OrdersManagement() {
   useEffect(() => {
     fetchOrders(activeTab === 'buyer');
     
-    // Częstsze sprawdzanie wygasłych zamówień - co 10 sekund
     const intervalId = setInterval(() => {
-      console.log('Automatyczne sprawdzanie wygasłych rezerwacji...');
       checkExpiredReservations().then(() => {
         fetchOrders(activeTab === 'buyer');
       });
-    }, 10000); // 10 sekund
+    }, 30000);
     
     return () => clearInterval(intervalId);
   }, [activeTab]);
 
   const handleRefresh = () => {
-    console.log('Ręczne odświeżenie i sprawdzenie wygasłych rezerwacji...');
     checkExpiredReservations().then(() => {
       fetchOrders(activeTab === 'buyer');
     });
@@ -41,24 +37,6 @@ export function OrdersManagement() {
   const groupOrdersByStatus = () => {
     const grouped: Record<string, any[]> = {};
     
-    // Sortowanie kolejności statusów
-    const statusOrder = [
-      'reserved', // Zarezerwowane (pierwsze)
-      'oczekujące', // Oczekujące
-      'zaakceptowane', // Zaakceptowane
-      'przygotowane_do_wysyłki', // Przygotowane do wysyłki
-      'wysłane', // Wysłane
-      'dostarczone', // Dostarczone
-      'anulowane', // Anulowane
-      'reservation_expired' // Wygasłe rezerwacje (ostatnie)
-    ];
-    
-    // Najpierw utwórz pustą tablicę dla każdego statusu w określonej kolejności
-    statusOrder.forEach(status => {
-      grouped[status] = [];
-    });
-    
-    // Dodaj zamówienia do odpowiednich grup
     orders.forEach(order => {
       if (!grouped[order.status]) {
         grouped[order.status] = [];
@@ -66,15 +44,7 @@ export function OrdersManagement() {
       grouped[order.status].push(order);
     });
     
-    // Zwróć tylko statusy, które mają zamówienia
-    const result: Record<string, any[]> = {};
-    for (const status of statusOrder) {
-      if (grouped[status] && grouped[status].length > 0) {
-        result[status] = grouped[status];
-      }
-    }
-    
-    return result;
+    return grouped;
   };
 
   return (

@@ -55,7 +55,6 @@ const mentorshipCommunities = [
   }
 ];
 
-// Dodane wartości domyślne do elementów rynku, aby uniknąć błędów null
 const marketplaceItems = [
   {
     id: "1",
@@ -210,14 +209,14 @@ export default function Index() {
           {marketplaceItems.map((item, index) => (
             <MarketplaceItem
               key={item.id}
-              id={item.id || ""}
-              title={item.title || "Produkt bez nazwy"}
-              price={item.price || 0}
-              image={item.image || "/placeholder.svg"}
-              category={item.category || "Inne"}
-              rating={item.rating || 0}
-              reviewCount={item.reviewCount || 0}
-              sale={item.sale || false}
+              id={item.id}
+              title={item.title}
+              price={item.price}
+              image={item.image}
+              category={item.category}
+              rating={item.rating}
+              reviewCount={item.reviewCount}
+              sale={item.sale}
               salePercentage={item.salePercentage}
               delay={index * 0.1}
             />

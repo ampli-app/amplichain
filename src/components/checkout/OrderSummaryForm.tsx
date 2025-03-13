@@ -126,10 +126,17 @@ export function OrderSummaryForm({
               <span className="text-muted-foreground">Metoda płatności:</span>
             </div>
             <div>
-              {paymentMethod === 'blik' ? 'BLIK' : 
-               paymentMethod === 'p24' ? 'Przelewy24' : 
-               paymentMethod === 'card' ? 'Karta płatnicza' : 'Stripe (online)'}
+              {paymentMethod === 'blik' ? 'BLIK' : 'Przelewy24'}
             </div>
+            
+            {paymentMethod === 'blik' && formData.blikCode && (
+              <>
+                <div>
+                  <span className="text-muted-foreground">Kod BLIK:</span>
+                </div>
+                <div>{formData.blikCode}</div>
+              </>
+            )}
           </div>
         </div>
         
@@ -188,7 +195,7 @@ export function OrderSummaryForm({
         </Button>
         <Button 
           type="submit" 
-          disabled={isProcessing || !agreeToTerms} 
+          disabled={isProcessing} 
           onClick={(e) => onSubmit(e)}
         >
           {isProcessing ? (

@@ -9,9 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useState } from "react";
-import { toast } from "@/components/ui/use-toast";
-import { useNavigate } from "react-router-dom";
 
 interface ConsultationBuyDialogProps {
   open: boolean;
@@ -19,7 +16,6 @@ interface ConsultationBuyDialogProps {
   title: string;
   ownerName: string;
   price: number;
-  consultationId?: string; // Opcjonalne pole consultationId
   onBuy: () => void;
 }
 
@@ -29,60 +25,13 @@ export const ConsultationBuyDialog = ({
   title,
   ownerName,
   price,
-  consultationId,
   onBuy
 }: ConsultationBuyDialogProps) => {
-  const navigate = useNavigate();
-  const [isProcessing, setIsProcessing] = useState(false);
   const serviceFee = price * 0.015;
   const totalPrice = price * 1.015;
   
-  const handleBuy = async () => {
-    if (isProcessing) return;
-    
-    setIsProcessing(true);
-    console.log("Kliknięto przycisk Kup dla konsultacji", {
-      title,
-      ownerName,
-      price,
-      consultationId
-    });
-    
-    try {
-      // Wywołaj funkcję onBuy lub przejdź do checkout
-      if (onBuy) {
-        await onBuy();
-      } else if (consultationId) {
-        // Przekieruj do strony finalizacji konsultacji tylko jeśli mamy ID
-        navigate(`/checkout/consultation/${consultationId}`);
-      }
-      
-      toast({
-        title: "Sukces",
-        description: "Zamówienie zostało zainicjowane pomyślnie.",
-      });
-      
-      // Zamknij dialog
-      onOpenChange(false);
-      
-    } catch (error) {
-      console.error("Błąd podczas przetwarzania zakupu:", error);
-      toast({
-        title: "Błąd zakupu",
-        description: "Wystąpił problem podczas przetwarzania zakupu. Spróbuj ponownie.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-  
   return (
-    <Dialog open={open} onOpenChange={(open) => {
-      if (!isProcessing) {
-        onOpenChange(open);
-      }
-    }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Potwierdzenie zakupu</DialogTitle>
@@ -112,18 +61,11 @@ export const ConsultationBuyDialog = ({
         </div>
         
         <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={() => onOpenChange(false)} 
-            disabled={isProcessing}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Anuluj
           </Button>
-          <Button 
-            onClick={handleBuy} 
-            disabled={isProcessing}
-          >
-            {isProcessing ? "Przetwarzanie..." : "Kup teraz"}
+          <Button onClick={onBuy}>
+            Kup teraz
           </Button>
         </DialogFooter>
       </DialogContent>

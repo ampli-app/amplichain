@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormData } from '@/hooks/checkout/useCheckout';
 import { ArrowLeft, ArrowRight, Clock, CreditCard, LockIcon, Smartphone } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface PaymentFormProps {
   formData: FormData;
@@ -35,12 +34,6 @@ export function PaymentForm({
       </CardHeader>
       
       <CardContent className="p-6">
-        <Alert className="mb-4">
-          <AlertDescription className="text-sm">
-            W celach demonstracyjnych, wszystkie płatności są symulowane. W rzeczywistym środowisku, interfejs Stripe zostałby tutaj zintegrowany.
-          </AlertDescription>
-        </Alert>
-        
         <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
           <div 
             className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-muted/20 transition-colors ${
@@ -76,25 +69,6 @@ export function PaymentForm({
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 Szybki przelew online przez Przelewy24
-              </p>
-            </Label>
-          </div>
-          
-          <div 
-            className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-muted/20 transition-colors ${
-              paymentMethod === 'card' ? 'border-primary bg-primary/5' : ''
-            }`}
-          >
-            <RadioGroupItem value="card" id="card" />
-            <Label htmlFor="card" className="flex-1 cursor-pointer">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                  <span>Karta płatnicza</span>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Płatność kartą kredytową lub debetową
               </p>
             </Label>
           </div>
@@ -151,48 +125,6 @@ export function PaymentForm({
               </ol>
               
               <div className="flex items-center gap-2 mt-4 text-muted-foreground">
-                <LockIcon className="h-4 w-4" />
-                <span>Bezpieczna płatność szyfrowana SSL</span>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {paymentMethod === 'card' && (
-          <div className="mt-6 p-4 border border-dashed rounded-lg">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="cardNumber" className="font-medium">Numer karty</Label>
-                <Input 
-                  id="cardNumber"
-                  name="cardNumber"
-                  placeholder="1234 5678 9012 3456"
-                  className="mt-1"
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="cardExpiry" className="font-medium">Data ważności</Label>
-                  <Input 
-                    id="cardExpiry"
-                    name="cardExpiry"
-                    placeholder="MM/RR"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cardCvc" className="font-medium">Kod CVC</Label>
-                  <Input 
-                    id="cardCvc"
-                    name="cardCvc"
-                    placeholder="123"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                 <LockIcon className="h-4 w-4" />
                 <span>Bezpieczna płatność szyfrowana SSL</span>
               </div>

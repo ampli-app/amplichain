@@ -1,98 +1,54 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 
 interface ReservationTimerProps {
-  expiresAt: string;
-  onExpire: () => void;
+  expiresAt: Date | string;
+  onExpire?: () => void;
 }
 
 export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps) {
-  const [timeLeft, setTimeLeft] = useState<{ minutes: number; seconds: number }>({ minutes: 0, seconds: 0 });
-  const [expired, setExpired] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const expireHandled = useRef(false);
-
+  const [timeLeft, setTimeLeft] = useState<string>('');
+  const [isExpired, setIsExpired] = useState(false);
+  
   useEffect(() => {
-    console.log("ReservationTimer: Inicjalizacja timera z datą:", expiresAt);
+    const expirationDate = typeof expiresAt === 'string' ? new Date(expiresAt) : expiresAt;
     
-    if (!expiresAt) {
-      console.log("ReservationTimer: Brak daty wygaśnięcia rezerwacji");
-      return;
-    }
-    
-    // Reset stanu przy zmianie expiresAt
-    setExpired(false);
-    expireHandled.current = false;
-    
-    // Funkcja do kalkulacji pozostałego czasu
     const calculateTimeLeft = () => {
-      try {
-        const expiryTime = new Date(expiresAt).getTime();
-        const now = new Date().getTime();
-        const difference = expiryTime - now;
-        
-        console.log("ReservationTimer: Pozostały czas (ms):", difference);
-        
-        if (difference <= 0) {
-          console.log("ReservationTimer: Rezerwacja wygasła! Czas wygaśnięcia:", expiresAt);
-          
-          setExpired(true);
-          setTimeLeft({ minutes: 0, seconds: 0 });
-          
-          // Wywołaj onExpire tylko raz
-          if (!expireHandled.current) {
-            expireHandled.current = true;
-            console.log("ReservationTimer: Wywołuję onExpire - rezerwacja wygasła");
-            onExpire();
-          }
-          
-          return;
-        }
-        
-        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-        
-        setTimeLeft({ minutes, seconds });
-      } catch (error) {
-        console.error("ReservationTimer: Błąd podczas kalkulacji czasu:", error);
-        setTimeLeft({ minutes: 0, seconds: 0 });
+      const now = new Date();
+      const difference = expirationDate.getTime() - now.getTime();
+      
+      if (difference <= 0) {
+        setTimeLeft('00:00');
+        setIsExpired(true);
+        if (onExpire) onExpire();
+        return;
       }
+      
+      // Konwersja na minuty i sekundy
+      const minutes = Math.floor(difference / 1000 / 60);
+      const seconds = Math.floor((difference / 1000) % 60);
+      
+      // Formatowanie do MM:SS
+      setTimeLeft(
+        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+      );
     };
-
-    // Oblicz czas od razu przy montowaniu
+    
+    // Obliczenie początkowego czasu
     calculateTimeLeft();
     
-    // Wyczyść interwał jeśli istnieje
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
+    // Aktualizacja co sekundę
+    const interval = setInterval(calculateTimeLeft, 1000);
     
-    // Ustaw nowy interwał co sekundę
-    intervalRef.current = setInterval(calculateTimeLeft, 1000);
-    
-    // Wyczyść interwał przy odmontowaniu
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
+    return () => clearInterval(interval);
   }, [expiresAt, onExpire]);
-
-  // Jeśli nie ma daty wygaśnięcia, nie renderuj timera
-  if (!expiresAt) {
-    return null;
-  }
-
+  
   return (
-    <div className="flex items-center justify-center text-sm font-medium">
-      <Clock className="mr-2 h-4 w-4" />
+    <div className={`flex items-center gap-2 font-medium ${isExpired ? 'text-red-500' : 'text-amber-600'}`}>
+      <Clock className="h-4 w-4" />
       <span>
-        Rezerwacja wygasa za: 
-        <span className="font-bold ml-1">
-          {String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
-        </span>
+        {isExpired ? 'Czas rezerwacji wygasł' : `Rezerwacja wygasa za: ${timeLeft}`}
       </span>
     </div>
   );

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
+import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
 
 interface ProductActionsProps {
   id: string;
@@ -18,7 +19,9 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
   const location = useLocation();
   const { isLoggedIn } = useAuth();
   const isDiscoverPage = location.pathname === '/discover';
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isReserving, setIsReserving] = useState(false);
+  
+  const { initiateOrder, cancelPreviousReservations } = useOrderReservation({ productId: id });
   
   const handleViewProduct = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -43,56 +46,63 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
   const handleBuyNow = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // Blokowanie wielokrotnych kliknięć
-    if (isProcessing) return;
-    
-    // Sprawdzenie, czy użytkownik jest zalogowany
     if (!isLoggedIn) {
       toast({
         title: "Wymagane logowanie",
         description: "Aby dokonać zakupu, musisz być zalogowany.",
         variant: "destructive",
       });
-      navigate('/login', { state: { returnUrl: `/checkout/${id}` }});
+      navigate('/login');
       return;
     }
     
-    setIsProcessing(true);
+    if (onBuyNow) {
+      onBuyNow();
+      return;
+    }
+    
+    setIsReserving(true);
     
     try {
-      // Jeśli dostarczono funkcję onBuyNow, użyj jej
-      if (onBuyNow) {
-        onBuyNow();
-        return;
-      }
+      // Anuluj wszystkie poprzednie rezerwacje (w tym wygasłe)
+      await cancelPreviousReservations();
       
       // Sprawdź, czy URL zawiera parametr trybu testowego
       const isTestMode = location.search.includes('mode=test');
       
-      // Bezpośrednie przekierowanie do checkout
-      const checkoutUrl = isTestMode 
-        ? `/checkout/${id}?mode=test` 
-        : `/checkout/${id}`;
-      
-      toast({
-        title: "Przechodzę do finalizacji",
-        description: "Przygotowuję zamówienie...",
-      });
-      navigate(checkoutUrl);
+      // Jeśli mamy dane produktu, użyj ich do utworzenia rezerwacji
+      if (product) {
+        const reservation = await initiateOrder(product, isTestMode);
+        if (reservation) {
+          if (isTestMode) {
+            navigate(`/checkout/${id}?mode=test`);
+          } else {
+            navigate(`/checkout/${id}`);
+          }
+        }
+      } else {
+        // Jeśli nie mamy danych produktu, po prostu przekieruj do checkoutu
+        if (isTestMode) {
+          navigate(`/checkout/${id}?mode=test`);
+        } else {
+          navigate(`/checkout/${id}`);
+        }
+      }
     } catch (error) {
-      console.error('Błąd podczas inicjowania zakupu:', error);
+      console.error('Błąd podczas tworzenia rezerwacji:', error);
       toast({
         title: "Błąd",
         description: "Wystąpił problem podczas inicjowania zamówienia.",
         variant: "destructive",
       });
     } finally {
-      setIsProcessing(false);
+      setIsReserving(false);
     }
   };
 
   return (
     <div className="flex justify-between mt-4">
+      {/* Button container to ensure proper alignment */}
       <div>
         <Button 
           variant="outline" 
@@ -107,22 +117,24 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       </div>
       
       <div className="flex gap-2">
+        {/* Buy button only for non-user products */}
         {!isUserProduct && (
           <Button 
             variant="default" 
             size="sm"
             className="flex items-center gap-1 h-9"
             onClick={handleBuyNow}
-            disabled={isProcessing}
+            disabled={isReserving}
             title="Kup teraz"
           >
             <ShoppingCart className="h-4 w-4" />
             <span className={isDiscoverPage ? "hidden" : "hidden sm:inline"}>
-              {isProcessing ? "Przetwarzanie..." : "Kup teraz"}
+              {isReserving ? "Rezerwowanie..." : "Kup teraz"}
             </span>
           </Button>
         )}
         
+        {/* Edit button only for user's products */}
         {isUserProduct && (
           <Button 
             variant="default" 
@@ -136,6 +148,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
           </Button>
         )}
         
+        {/* Share button */}
         <Button 
           variant="secondary" 
           size="icon"
