@@ -76,18 +76,29 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       // Sprawdź, czy URL zawiera parametr trybu testowego
       const isTestMode = location.search.includes('mode=test');
       
+      console.log("Inicjowanie zakupu produktu:", id);
+      
       // Jeśli mamy dane produktu, użyj ich do utworzenia rezerwacji
       if (product) {
+        console.log("Używanie istniejących danych produktu dla rezerwacji");
         const reservation = await initiateOrder(product, isTestMode);
         if (reservation) {
-          if (isTestMode) {
-            navigate(`/checkout/${id}?mode=test`);
-          } else {
-            navigate(`/checkout/${id}`);
-          }
+          const checkoutUrl = isTestMode 
+            ? `/checkout/${id}?mode=test` 
+            : `/checkout/${id}`;
+          
+          console.log("Przekierowanie do:", checkoutUrl);
+          navigate(checkoutUrl);
+        } else {
+          toast({
+            title: "Błąd",
+            description: "Nie udało się zainicjować zamówienia. Spróbuj ponownie.",
+            variant: "destructive",
+          });
         }
       } else {
         // Jeśli nie mamy danych produktu, pobierzmy je najpierw
+        console.log("Pobieranie danych produktu dla rezerwacji:", id);
         const { data: productData, error } = await supabase
           .from('products')
           .select('*')
@@ -106,13 +117,21 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         }
         
         if (productData) {
+          console.log("Pobrano dane produktu, tworzenie rezerwacji:", productData);
           const reservation = await initiateOrder(productData, isTestMode);
           if (reservation) {
-            if (isTestMode) {
-              navigate(`/checkout/${id}?mode=test`);
-            } else {
-              navigate(`/checkout/${id}`);
-            }
+            const checkoutUrl = isTestMode 
+              ? `/checkout/${id}?mode=test` 
+              : `/checkout/${id}`;
+            
+            console.log("Przekierowanie do:", checkoutUrl);
+            navigate(checkoutUrl);
+          } else {
+            toast({
+              title: "Błąd",
+              description: "Nie udało się zainicjować zamówienia. Spróbuj ponownie.",
+              variant: "destructive",
+            });
           }
         }
       }

@@ -21,18 +21,20 @@ interface CheckoutContentProps {
   isTestMode: boolean;
   orderId: string | null;
   onReservationExpire: () => void;
+  orderInitialized: boolean;
+  setOrderInitialized: (value: boolean) => void;
 }
 
 export function CheckoutContent({ 
   productId, 
   isTestMode,
   orderId,
-  onReservationExpire
+  onReservationExpire,
+  orderInitialized,
+  setOrderInitialized
 }: CheckoutContentProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
-  const [orderInitialized, setOrderInitialized] = useState(false);
   
   const checkout = useCheckout({ 
     productId: productId, 
@@ -59,6 +61,7 @@ export function CheckoutContent({
     const handleReservation = async () => {
       if (!checkout.product || !user || orderInitialized) return;
       
+      console.log("CheckoutContent: Inicjalizacja rezerwacji", { orderInitialized });
       await checkExpiredReservations();
       
       if (orderId) {
@@ -73,6 +76,7 @@ export function CheckoutContent({
       }
       
       if (!reservationData) {
+        console.log("Brak rezerwacji, tworzymy nową");
         await cancelPreviousReservations();
         
         // Upewnijmy się, że przekazujemy owner_id jeśli nie ma user_id
@@ -81,16 +85,22 @@ export function CheckoutContent({
           owner_id: checkout.product.owner_id || checkout.product.user_id
         };
         
+        console.log("Inicjowanie zamówienia z produktem:", productWithSeller);
         const reservation = await initiateOrder(productWithSeller, isTestMode);
         if (!reservation) {
+          console.error("Nie udało się utworzyć rezerwacji");
           toast({
             title: "Błąd rezerwacji",
             description: "Nie udało się utworzyć rezerwacji produktu.",
             variant: "destructive",
           });
         } else {
+          console.log("Rezerwacja utworzona pomyślnie:", reservation);
           setOrderInitialized(true);
         }
+      } else {
+        console.log("Rezerwacja już istnieje:", reservationData);
+        setOrderInitialized(true);
       }
     };
     
@@ -105,7 +115,7 @@ export function CheckoutContent({
     }, 30000);
     
     return () => clearInterval(intervalId);
-  }, [checkout.product, user, reservationData, orderInitialized]);
+  }, [checkout.product, user, reservationData, orderInitialized, productId]);
   
   useEffect(() => {
     if (user?.email) {
@@ -117,6 +127,7 @@ export function CheckoutContent({
   }, [user?.email]);
   
   const handleReservationExpire = async () => {
+    console.log("Obsługa wygaśnięcia rezerwacji");
     if (reservationData?.id) {
       await markReservationAsExpired(reservationData.id);
     }

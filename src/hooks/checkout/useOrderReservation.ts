@@ -61,6 +61,16 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 15);
       
+      console.log("Tworzenie rezerwacji z parametrami:", {
+        product_id: product.id,
+        buyer_id: user.id,
+        seller_id: sellerId,
+        total_amount: price,
+        status: 'reserved',
+        order_type: isTestMode ? 'test' : 'purchase',
+        reservation_expires_at: expiresAt.toISOString()
+      });
+      
       // Utwórz rezerwację zamówienia
       const { data, error } = await supabase
         .from('product_orders')

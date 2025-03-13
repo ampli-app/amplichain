@@ -19,6 +19,8 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { isLoggedIn } = useAuth();
   
+  // Dodanie stanu do śledzenia, czy zamówienie zostało już zainicjowane
+  const [orderInitialized, setOrderInitialized] = useState(false);
   const [reservationExpired, setReservationExpired] = useState(false);
   
   const checkout = useCheckout({ 
@@ -26,11 +28,12 @@ export default function Checkout() {
     isTestMode 
   });
   
-  const { isLoading: isReservationLoading } = useOrderReservation({ 
+  const { isLoading: isReservationLoading, reservationExpiresAt } = useOrderReservation({ 
     productId: id || '', 
     isTestMode 
   });
   
+  // Sprawdzanie, czy użytkownik jest zalogowany i czy ID produktu jest dostępne
   useEffect(() => {
     if (!isLoggedIn) {
       navigate('/login');
@@ -41,9 +44,12 @@ export default function Checkout() {
       navigate('/marketplace');
       return;
     }
-  }, [id, isLoggedIn, navigate]);
+    
+    console.log("Checkout zainicjowany dla produktu:", id, "Mode:", isTestMode ? "test" : "purchase");
+  }, [id, isLoggedIn, navigate, isTestMode]);
   
   const handleReservationExpire = () => {
+    console.log("Rezerwacja wygasła, aktualizacja stanu");
     setReservationExpired(true);
   };
   
@@ -86,6 +92,8 @@ export default function Checkout() {
         isTestMode={isTestMode}
         orderId={orderId}
         onReservationExpire={handleReservationExpire}
+        orderInitialized={orderInitialized}
+        setOrderInitialized={setOrderInitialized}
       />
     </CheckoutLayout>
   );

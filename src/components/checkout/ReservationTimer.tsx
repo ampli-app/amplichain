@@ -3,61 +3,63 @@ import { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 
 interface ReservationTimerProps {
-  expiresAt: Date | string;
-  onExpire?: () => void;
+  expiresAt: string;
+  onExpire: () => void;
 }
 
 export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps) {
-  const [timeLeft, setTimeLeft] = useState<string>('');
-  const [isExpired, setIsExpired] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<{ minutes: number; seconds: number }>({ minutes: 0, seconds: 0 });
+  const [isWarning, setIsWarning] = useState(false);
   
   useEffect(() => {
-    if (!expiresAt) {
-      setTimeLeft('--:--');
-      return;
-    }
+    if (!expiresAt) return;
     
-    const expirationDate = typeof expiresAt === 'string' ? new Date(expiresAt) : expiresAt;
+    const expiresAtDate = new Date(expiresAt);
     
     const calculateTimeLeft = () => {
       const now = new Date();
-      const difference = expirationDate.getTime() - now.getTime();
+      const difference = expiresAtDate.getTime() - now.getTime();
       
       if (difference <= 0) {
-        setTimeLeft('00:00');
-        setIsExpired(true);
-        if (onExpire && !isExpired) onExpire();
-        return;
+        console.log("Timer wygasł o:", expiresAtDate);
+        setTimeLeft({ minutes: 0, seconds: 0 });
+        onExpire();
+        return false;
       }
       
-      // Konwersja na minuty i sekundy
       const minutes = Math.floor(difference / 1000 / 60);
       const seconds = Math.floor((difference / 1000) % 60);
       
-      // Formatowanie do MM:SS
-      setTimeLeft(
-        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-      );
+      setTimeLeft({ minutes, seconds });
+      
+      // Ustaw stan ostrzeżenia jeśli zostało mniej niż 3 minuty
+      setIsWarning(minutes < 3);
+      
+      return true;
     };
     
-    // Obliczenie początkowego czasu
-    calculateTimeLeft();
+    // Wywołaj od razu, aby wyświetlić początkowy czas
+    const hasTimeLeft = calculateTimeLeft();
+    if (!hasTimeLeft) return;
     
-    // Aktualizacja co sekundę
-    const interval = setInterval(calculateTimeLeft, 1000);
+    // Ustaw interval co 1 sekundę
+    const timerId = setInterval(() => {
+      const hasTimeLeft = calculateTimeLeft();
+      if (!hasTimeLeft) {
+        clearInterval(timerId);
+      }
+    }, 1000);
     
-    return () => clearInterval(interval);
-  }, [expiresAt, onExpire, isExpired]);
+    return () => clearInterval(timerId);
+  }, [expiresAt, onExpire]);
   
-  if (!expiresAt) {
-    return null;
-  }
+  const formatTime = (value: number) => value.toString().padStart(2, '0');
   
   return (
-    <div className={`flex items-center gap-2 font-medium ${isExpired ? 'text-red-500' : 'text-amber-600'}`}>
-      <Clock className="h-4 w-4" />
+    <div className={`flex items-center gap-2 font-medium ${isWarning ? 'text-red-600 dark:text-red-400' : ''}`}>
+      <Clock className={`h-5 w-5 ${isWarning ? 'animate-pulse' : ''}`} />
       <span>
-        {isExpired ? 'Czas rezerwacji wygasł' : `Rezerwacja wygasa za: ${timeLeft}`}
+        Rezerwacja wygasa za: {formatTime(timeLeft.minutes)}:{formatTime(timeLeft.seconds)}
       </span>
     </div>
   );
