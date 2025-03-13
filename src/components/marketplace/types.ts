@@ -25,7 +25,7 @@ export interface Category {
   id: string;
   name: string;
   slug: string;
-  description?: string;
+  description: string; // Changed from optional to required
 }
 
 export const productConditions = [

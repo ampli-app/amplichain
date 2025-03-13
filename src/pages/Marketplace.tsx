@@ -64,12 +64,12 @@ export default function Marketplace() {
           // Nie dodajemy specjalnej kategorii "all", gdyż teraz pokazujemy wszystkie domyślnie
         }
         
-        // Upewniamy się, że kategorie mają poprawny format
+        // Upewniamy się, że kategorie mają poprawny format i description jest zawsze stringiem (nie null)
         const categoriesWithCorrectFormat: Category[] = filteredCategories.map(cat => ({
           id: cat.id,
           name: cat.name,
           slug: cat.slug,
-          description: cat.description || '' // Przekształcamy null na pusty string, jeśli potrzeba
+          description: cat.description || '' // Zawsze przekształcamy null na pusty string
         }));
         
         setCategories(categoriesWithCorrectFormat);
