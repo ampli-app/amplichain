@@ -14,7 +14,7 @@ export const useOrderCreation = (userId: string | undefined) => {
     try {
       console.log('Rozpoczynam tworzenie zamówienia dla produktu:', productData.id);
       
-      // Sprawdź, czy produkt jest już zarezerwowany przez kogoś innego
+      // Sprawdź, czy produkt jest już zarezerwowany
       const { data: existingOrders, error: fetchError } = await supabase
         .from('product_orders')
         .select('id, status, buyer_id')
@@ -30,12 +30,21 @@ export const useOrderCreation = (userId: string | undefined) => {
       
       if (existingOrders && existingOrders.length > 0) {
         const order = existingOrders[0];
-        if (order.status === 'reserved' && order.buyer_id !== userId) {
-          toast({
-            title: "Produkt niedostępny",
-            description: "Ten produkt jest obecnie zarezerwowany przez innego kupującego.",
-            variant: "destructive",
-          });
+        if (order.status === 'reserved') {
+          if (order.buyer_id === userId) {
+            toast({
+              title: "Produkt już zarezerwowany",
+              description: "Ten produkt jest już w Twoim koszyku.",
+              variant: "default",
+            });
+            setOrderCreated(true);
+          } else {
+            toast({
+              title: "Produkt niedostępny",
+              description: "Ten produkt jest obecnie zarezerwowany przez innego kupującego.",
+              variant: "destructive",
+            });
+          }
           return;
         }
       }
