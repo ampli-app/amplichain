@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderData, OrderDetails } from './useOrderReservationType';
@@ -311,8 +310,8 @@ export const useOrderReservation = ({ productId, isTestMode = false }: { product
           amount: reservationData.total_amount,
           payment_method: 'stripe',
           status: 'created',
-          client_secret: 'mock_secret_' + Date.now().toString(),
-          payment_intent_id: 'mock_intent_' + Date.now().toString()
+          client_secret: 'mock_secret_' + Date.now().toString(), // Konwersja na string
+          payment_intent_id: 'mock_intent_' + Date.now().toString() // Konwersja na string
         })
         .select()
         .single();
