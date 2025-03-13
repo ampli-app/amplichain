@@ -95,8 +95,17 @@ export function OrderCard({
     navigate(`/checkout/${order.product_id}?mode=${mode}`);
   };
 
+  // Sprawdzamy, czy rezerwacja wygasła lub oczekuje na płatność
   const isReservationExpired = order.status === 'reservation_expired';
-  const isWaitingForPayment = order.status === 'oczekujące';
+  
+  // Zmodyfikowany warunek - sprawdzamy czy zamówienie ma expires_at (czyli jest rezerwacją)
+  // i czy jest to aktywna rezerwacja (nie wygasła)
+  const isActiveReservation = order.reservation_expires_at && 
+                             !isReservationExpired && 
+                             (new Date(order.reservation_expires_at) > new Date());
+
+  // Sprawdzenie, czy to zamówienie czeka na płatność
+  const isPendingPayment = order.status === 'oczekujące';
 
   const renderSellerActions = () => {
     if (order.status === 'oczekujące') {
@@ -179,8 +188,8 @@ export function OrderCard({
   };
 
   const renderBuyerActions = () => {
-    if (isWaitingForPayment && !isReservationExpired) {
-      // Jeśli zamówienie czeka na płatność i nie wygasło
+    // Jeśli jest to aktywna rezerwacja i nie wygasła, pokazujemy przycisk do dokończenia zakupu
+    if (isActiveReservation || isPendingPayment) {
       return (
         <div className="space-y-4">
           <Button
@@ -214,7 +223,7 @@ export function OrderCard({
   };
 
   const renderReservationExpiryInfo = () => {
-    if (order.reservation_expires_at && order.status === 'oczekujące') {
+    if (order.reservation_expires_at) {
       const expiryDate = new Date(order.reservation_expires_at);
       const now = new Date();
       const isExpired = expiryDate < now;
