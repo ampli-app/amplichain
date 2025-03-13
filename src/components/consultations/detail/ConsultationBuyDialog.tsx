@@ -19,7 +19,7 @@ interface ConsultationBuyDialogProps {
   title: string;
   ownerName: string;
   price: number;
-  consultationId: string;
+  consultationId?: string; // Zmiana na opcjonalne
   onBuy: () => void;
 }
 
@@ -52,8 +52,8 @@ export const ConsultationBuyDialog = ({
       // Wywołaj funkcję onBuy lub przejdź do checkout
       if (onBuy) {
         await onBuy();
-      } else {
-        // Przekieruj do strony finalizacji konsultacji
+      } else if (consultationId) {
+        // Przekieruj do strony finalizacji konsultacji tylko jeśli mamy ID
         navigate(`/checkout/consultation/${consultationId}`);
       }
       

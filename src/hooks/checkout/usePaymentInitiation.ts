@@ -9,7 +9,7 @@ export const usePaymentInitiation = (reservationData: OrderData | null) => {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   
-  const initiatePayment = useCallback(async (paymentMethod: string) => {
+  const initiatePayment = useCallback(async (paymentMethod: string = 'card') => {
     if (!reservationData) {
       console.error("Brak danych rezerwacji do zainicjowania płatności");
       setPaymentError("Brak danych rezerwacji");
@@ -29,18 +29,22 @@ export const usePaymentInitiation = (reservationData: OrderData | null) => {
       }
       
       // Pobranie profilu użytkownika dla danych kontaktowych
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('full_name, email')
         .eq('id', user.id)
         .single();
+      
+      if (profileError) {
+        console.error("Błąd pobierania profilu:", profileError);
+      }
       
       // Utwórz intencję płatności w Stripe poprzez RPC
       const { data, error } = await supabase.rpc(
         'create_stripe_payment_intent',
         {
           p_order_id: reservationData.id,
-          p_amount: Math.round(reservationData.total_amount * 100), // Konwersja na najmniejsze jednostki (grosze)
+          p_amount: Math.round(reservationData.total_amount ? reservationData.total_amount * 100 : 0), // Konwersja na najmniejsze jednostki (grosze)
           p_currency: 'pln',
           p_payment_method: paymentMethod,
           p_description: `Zamówienie #${reservationData.id.substring(0, 8)}`,
@@ -57,18 +61,25 @@ export const usePaymentInitiation = (reservationData: OrderData | null) => {
       
       console.log("Utworzono intencję płatności:", data);
       
-      // Aktualizuj zamówienie z danymi płatności
-      await supabase
-        .from('product_orders')
-        .update({
-          payment_method: paymentMethod,
-          payment_intent_id: data.payment_intent_id,
-          updated_at: new Date().toISOString(),
-          status: 'pending_payment'
-        })
-        .eq('id', reservationData.id);
-      
-      return data;
+      // Sprawdź czy data to obiekt i zawiera payment_intent_id
+      if (data && typeof data === 'object' && 'payment_intent_id' in data) {
+        // Aktualizuj zamówienie z danymi płatności
+        await supabase
+          .from('product_orders')
+          .update({
+            payment_method: paymentMethod,
+            payment_intent_id: data.payment_intent_id,
+            updated_at: new Date().toISOString(),
+            status: 'pending_payment'
+          })
+          .eq('id', reservationData.id);
+          
+        return data;
+      } else {
+        console.error("Nieprawidłowa odpowiedź z RPC:", data);
+        setPaymentError("Otrzymano nieprawidłową odpowiedź z serwera płatności");
+        return null;
+      }
       
     } catch (err) {
       console.error("Nieoczekiwany błąd podczas inicjowania płatności:", err);
@@ -80,7 +91,7 @@ export const usePaymentInitiation = (reservationData: OrderData | null) => {
   }, [reservationData]);
   
   const handlePaymentResult = useCallback(async (result: any) => {
-    if (!reservationData) return;
+    if (!reservationData) return false;
     
     if (result.error) {
       console.error("Błąd płatności:", result.error);

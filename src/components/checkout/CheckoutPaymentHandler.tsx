@@ -70,7 +70,7 @@ export function CheckoutPaymentHandler({
       }
       
       console.log("Zamówienie potwierdzone, inicjuję płatność");
-      const paymentIntent = await initiatePayment();
+      const paymentIntent = await initiatePayment(paymentMethod);
       
       if (!paymentIntent) {
         toast({
@@ -97,9 +97,9 @@ export function CheckoutPaymentHandler({
         }
         
         // W przypadku prawdziwej integracji ze Stripe
-        if (paymentIntent.client_secret) {
+        if (typeof paymentIntent === 'object' && paymentIntent !== null && 'client_secret' in paymentIntent) {
           const { error } = await stripe.redirectToCheckout({
-            clientSecret: paymentIntent.client_secret,
+            clientSecret: paymentIntent.client_secret as string,
           });
           
           if (error) {
@@ -123,7 +123,7 @@ export function CheckoutPaymentHandler({
       } else {
         // Symulacja płatności dla innych metod
         simulatePaymentProcessing(async (success) => {
-          const updated = await handlePaymentResult(success);
+          const updated = await handlePaymentResult(success ? { success: true } : { error: { message: "Płatność odrzucona" } });
           
           if (success && updated) {
             toast({

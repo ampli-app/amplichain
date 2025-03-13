@@ -99,7 +99,7 @@ export const useReservationCreation = ({ productId, isTestMode = false }: { prod
           total_amount: price,
           status: 'reserved',
           order_type: isTestMode ? 'test' : 'purchase',
-          reservation_expires_at: expiresAt.toISOString()
+          reservation_expires_at: expiresAt.toISOString() // Już jako string, nie wymaga konwersji
         })
         .select()
         .single();
