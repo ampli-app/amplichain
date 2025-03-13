@@ -5,6 +5,7 @@ import { ProductPrice } from './ProductPrice';
 import { ProductBadges } from './ProductBadges';
 import { ProductActions } from './ProductActions';
 import { Product } from './types';
+import { toast } from '@/components/ui/use-toast';
 
 interface ProductCardProps {
   product: Product;
