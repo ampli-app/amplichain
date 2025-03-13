@@ -23,7 +23,16 @@ export const useProductImage = (product: any) => {
     return '/placeholder.svg';
   };
   
+  const getThumbnailUrl = (imageUrl: string) => {
+    if (!imageUrl || imageUrl === '/placeholder.svg') return '/placeholder.svg';
+    
+    // Jeśli URL zawiera parametry, dodaj &thumbnail=true, w przeciwnym razie ?thumbnail=true
+    const separator = imageUrl.includes('?') ? '&' : '?';
+    return `${imageUrl}${separator}thumbnail=true`;
+  };
+  
   return {
-    getProductImageUrl
+    getProductImageUrl,
+    getThumbnailUrl
   };
 };

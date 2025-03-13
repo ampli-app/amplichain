@@ -1575,6 +1575,53 @@ export type Database = {
           },
         ]
       }
+      order_reservations: {
+        Row: {
+          created_at: string | null
+          id: string
+          payment_deadline: string | null
+          product_id: string
+          quantity: number
+          reservation_expires_at: string
+          status: string
+          total_amount: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payment_deadline?: string | null
+          product_id: string
+          quantity?: number
+          reservation_expires_at: string
+          status?: string
+          total_amount: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payment_deadline?: string | null
+          product_id?: string
+          quantity?: number
+          reservation_expires_at?: string
+          status?: string
+          total_amount?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_status_history: {
         Row: {
           created_at: string
@@ -1613,6 +1660,70 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "product_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          client_secret: string | null
+          created_at: string | null
+          currency: string
+          id: string
+          order_id: string | null
+          payment_intent_id: string | null
+          payment_method: string | null
+          reservation_id: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          client_secret?: string | null
+          created_at?: string | null
+          currency?: string
+          id?: string
+          order_id?: string | null
+          payment_intent_id?: string | null
+          payment_method?: string | null
+          reservation_id?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          client_secret?: string | null
+          created_at?: string | null
+          currency?: string
+          id?: string
+          order_id?: string | null
+          payment_intent_id?: string | null
+          payment_method?: string | null
+          reservation_id?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_details"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "product_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "order_reservations"
             referencedColumns: ["id"]
           },
         ]
@@ -1660,8 +1771,12 @@ export type Database = {
           delivery_option_id: string | null
           id: string
           notes: string | null
+          payment_deadline: string | null
+          payment_intent_id: string | null
           payment_method: string | null
+          payment_status: string | null
           product_id: string
+          reservation_expires_at: string | null
           seller_id: string
           shipping_address: string | null
           shipping_method: string | null
@@ -1676,8 +1791,12 @@ export type Database = {
           delivery_option_id?: string | null
           id?: string
           notes?: string | null
+          payment_deadline?: string | null
+          payment_intent_id?: string | null
           payment_method?: string | null
+          payment_status?: string | null
           product_id: string
+          reservation_expires_at?: string | null
           seller_id: string
           shipping_address?: string | null
           shipping_method?: string | null
@@ -1692,8 +1811,12 @@ export type Database = {
           delivery_option_id?: string | null
           id?: string
           notes?: string | null
+          payment_deadline?: string | null
+          payment_intent_id?: string | null
           payment_method?: string | null
+          payment_status?: string | null
           product_id?: string
+          reservation_expires_at?: string | null
           seller_id?: string
           shipping_address?: string | null
           shipping_method?: string | null
@@ -2156,6 +2279,10 @@ export type Database = {
           user_id: string
         }
         Returns: boolean
+      }
+      cleanup_expired_orders: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       find_or_create_conversation: {
         Args: {

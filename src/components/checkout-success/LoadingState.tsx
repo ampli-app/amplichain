@@ -13,6 +13,7 @@ export const LoadingState = () => {
             <Loader2 className="animate-spin h-10 w-10 text-primary mx-auto" />
           </div>
           <p className="text-rhythm-600 dark:text-rhythm-400">Ładowanie potwierdzenia zamówienia...</p>
+          <p className="text-sm text-rhythm-500 dark:text-rhythm-400 mt-2">Przetwarzanie danych płatności</p>
         </div>
       </main>
       <Footer />
