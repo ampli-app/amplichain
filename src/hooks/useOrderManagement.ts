@@ -119,8 +119,8 @@ export const useOrderManagement = () => {
             product_title: productData?.title || 'Produkt',
             product_image: imageUrl,
             order_type: productData?.for_testing ? 'test' : 'purchase',
-            payment_intent_id: paymentData?.payment_intent_id,
-            payment_status: paymentData?.status
+            payment_intent_id: paymentData?.payment_intent_id || undefined,
+            payment_status: paymentData?.status || undefined
           };
         });
         
