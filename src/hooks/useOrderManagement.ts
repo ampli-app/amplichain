@@ -170,6 +170,9 @@ export const useOrderManagement = () => {
   const getStatusTranslation = (status: string): string => {
     const statusMap: Record<string, string> = {
       'oczekujące': 'Oczekujące',
+      'pending_payment': 'Oczekiwanie na płatność',
+      'payment_succeeded': 'Płatność zrealizowana',
+      'payment_failed': 'Płatność odrzucona',
       'zaakceptowane': 'Zaakceptowane',
       'przygotowane_do_wysyłki': 'Przygotowane do wysyłki',
       'wysłane': 'Wysłane',

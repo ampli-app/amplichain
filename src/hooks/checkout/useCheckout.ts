@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -31,7 +30,7 @@ export interface UseCheckoutProps {
 
 export const SERVICE_FEE_PERCENTAGE = 0.015;
 
-export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
+export function useCheckout({ productId, isTestMode = false }: UseCheckoutProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -337,8 +336,11 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     
     setTimeout(() => {
       setIsProcessing(false);
-      callback(true);
-    }, 1500);
+      
+      const success = true;
+      
+      callback(success);
+    }, 2000);
   };
   
   const handleApplyDiscount = async () => {
@@ -364,10 +366,8 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
         return;
       }
       
-      // Sprawdzamy walidność kodu rabatowego
       const subtotal = getPrice() + getDeliveryCost();
       
-      // Przykładowe proste sprawdzenie - w rzeczywistej aplikacji użylibyśmy funkcji supabase
       if (discountCode === "RABAT10") {
         setDiscountApplied(true);
         const productPrice = getPrice();

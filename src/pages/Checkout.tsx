@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -43,35 +42,31 @@ export default function Checkout() {
     cancelPreviousReservations,
     markReservationAsExpired,
     checkExpiredReservations,
-    checkExistingReservation
+    checkExistingReservation,
+    initiatePayment,
+    handlePaymentResult
   } = useOrderReservation({ 
     productId: id || '', 
     isTestMode 
   });
   
-  // Inicjalizacja rezerwacji
   useEffect(() => {
     const handleReservation = async () => {
       if (!checkout.product || !user) return;
       
-      // Sprawdź i zaktualizuj wygasłe rezerwacje
       await checkExpiredReservations();
       
-      // Jeśli mamy orderId, próbujemy użyć istniejącej rezerwacji
       if (orderId) {
         console.log("Kontynuowanie istniejącego zamówienia z ID:", orderId);
-        // Pobieramy istniejącą rezerwację - nie tworzymy nowej
         const existingReservation = await checkExistingReservation();
         
         if (existingReservation) {
           console.log("Znaleziono istniejącą rezerwację:", existingReservation);
-          return; // Używamy istniejącej rezerwacji, nie tworzymy nowej
+          return;
         }
       }
       
-      // Jeśli nie mamy orderId lub nie znaleziono aktywnej rezerwacji, tworzymy nową
       if (!reservationData && !reservationExpired) {
-        // Anuluj wszystkie poprzednie rezerwacje przed utworzeniem nowej
         await cancelPreviousReservations();
         
         const reservation = await initiateOrder(checkout.product, isTestMode);
@@ -89,14 +84,12 @@ export default function Checkout() {
       handleReservation();
     }
     
-    // Ustawienie interwału sprawdzającego wygasłe rezerwacje co 30 sekund
     const intervalId = setInterval(() => {
       if (user && id) {
         checkExpiredReservations();
       }
-    }, 30000); // 30 sekund
+    }, 30000);
     
-    // Czyszczenie interwału po odmontowaniu komponentu
     return () => clearInterval(intervalId);
   }, [checkout.product, user, reservationData, reservationExpired]);
   
@@ -110,7 +103,6 @@ export default function Checkout() {
   }, [user?.email]);
   
   const handleReservationExpire = async () => {
-    // Jeśli mamy dane rezerwacji, oznacz ją jako wygasłą
     if (reservationData?.id) {
       await markReservationAsExpired(reservationData.id);
     }
@@ -130,7 +122,6 @@ export default function Checkout() {
       return;
     }
     
-    // Potwierdź zamówienie, aktualizując jego status i dodając dane dostawy
     const confirmed = await confirmOrder({
       address: checkout.formData.address,
       city: checkout.formData.city,
@@ -143,9 +134,23 @@ export default function Checkout() {
       return;
     }
     
-    // Symuluj proces płatności
-    checkout.simulatePaymentProcessing((success) => {
-      if (success) {
+    const paymentIntent = await initiatePayment();
+    
+    if (!paymentIntent) {
+      toast({
+        title: "Błąd płatności",
+        description: "Nie udało się zainicjować płatności. Spróbuj ponownie.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    console.log("Zainicjowano płatność:", paymentIntent);
+    
+    checkout.simulatePaymentProcessing(async (success) => {
+      const updated = await handlePaymentResult(success);
+      
+      if (success && updated) {
         toast({
           title: "Płatność zaakceptowana",
           description: "Twoje zamówienie zostało złożone pomyślnie!",
@@ -156,6 +161,12 @@ export default function Checkout() {
           : `/checkout/success/${id}?mode=buy`;
         
         navigate(url);
+      } else {
+        toast({
+          title: "Błąd płatności",
+          description: "Wystąpił problem z płatnością. Spróbuj ponownie.",
+          variant: "destructive",
+        });
       }
     });
   };
