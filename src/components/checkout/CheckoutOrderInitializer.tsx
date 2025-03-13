@@ -26,11 +26,11 @@ export function CheckoutOrderInitializer({
   const [initializationAttempt, setInitializationAttempt] = useState(0);
   
   const {
+    reservationData,
     checkExpiredReservations,
     checkExistingReservation,
     cancelPreviousReservations,
-    initiateOrder,
-    reservationData
+    initiateOrder
   } = useOrderReservation({ productId, isTestMode });
 
   // Efekt do inicjalizacji rezerwacji
@@ -95,6 +95,10 @@ export function CheckoutOrderInitializer({
           
           if (reservation && mounted) {
             console.log("Rezerwacja utworzona pomyślnie:", reservation);
+            toast({
+              title: "Rezerwacja produktu",
+              description: "Produkt został zarezerwowany na 15 minut. Dokończ zamówienie.",
+            });
             setOrderInitialized(true);
           } else {
             console.error("Nie udało się utworzyć rezerwacji");

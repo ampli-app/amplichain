@@ -54,81 +54,94 @@ export function CheckoutPaymentHandler({
     };
     
     console.log("Potwierdzam zamówienie z danymi:", orderDetails);
-    const confirmed = await confirmOrder(orderDetails);
-    
-    if (!confirmed) {
-      toast({
-        title: "Błąd zamówienia",
-        description: "Nie udało się potwierdzić zamówienia. Spróbuj ponownie.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    console.log("Zamówienie potwierdzone, inicjuję płatność");
-    const paymentIntent = await initiatePayment();
-    
-    if (!paymentIntent) {
-      toast({
-        title: "Błąd płatności",
-        description: "Nie udało się zainicjować płatności. Spróbuj ponownie.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    console.log("Zainicjowano płatność:", paymentIntent);
     setIsProcessing(true);
     
-    if (paymentMethod === 'stripe') {
-      const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-      if (!stripe) {
+    try {
+      const confirmed = await confirmOrder(orderDetails);
+      
+      if (!confirmed) {
         toast({
-          title: "Błąd",
-          description: "Nie udało się załadować modułu płatności Stripe.",
+          title: "Błąd zamówienia",
+          description: "Nie udało się potwierdzić zamówienia. Spróbuj ponownie.",
           variant: "destructive",
         });
         setIsProcessing(false);
         return;
       }
       
-      const { error } = await stripe.redirectToCheckout({
-        clientSecret: paymentIntent.client_secret,
-      });
+      console.log("Zamówienie potwierdzone, inicjuję płatność");
+      const paymentIntent = await initiatePayment();
       
-      if (error) {
-        console.error('Błąd przekierowania do Stripe:', error);
+      if (!paymentIntent) {
         toast({
           title: "Błąd płatności",
-          description: error.message || "Wystąpił problem z przekierowaniem do płatności.",
+          description: "Nie udało się zainicjować płatności. Spróbuj ponownie.",
           variant: "destructive",
         });
         setIsProcessing(false);
+        return;
       }
-    } else {
-      simulatePaymentProcessing(async (success) => {
-        const updated = await handlePaymentResult(success);
-        
-        if (success && updated) {
+      
+      console.log("Zainicjowano płatność:", paymentIntent);
+      
+      if (paymentMethod === 'stripe') {
+        const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+        if (!stripe) {
           toast({
-            title: "Płatność zaakceptowana",
-            description: "Twoje zamówienie zostało złożone pomyślnie!",
+            title: "Błąd",
+            description: "Nie udało się załadować modułu płatności Stripe.",
+            variant: "destructive",
           });
-          
-          const url = isTestMode 
-            ? `/checkout/success/${productId}?mode=test` 
-            : `/checkout/success/${productId}?mode=buy`;
-          
-          navigate(url);
-        } else {
+          setIsProcessing(false);
+          return;
+        }
+        
+        const { error } = await stripe.redirectToCheckout({
+          clientSecret: paymentIntent.client_secret,
+        });
+        
+        if (error) {
+          console.error('Błąd przekierowania do Stripe:', error);
           toast({
             title: "Błąd płatności",
-            description: "Wystąpił problem z płatnością. Spróbuj ponownie.",
+            description: error.message || "Wystąpił problem z przekierowaniem do płatności.",
             variant: "destructive",
           });
           setIsProcessing(false);
         }
+      } else {
+        simulatePaymentProcessing(async (success) => {
+          const updated = await handlePaymentResult(success);
+          
+          if (success && updated) {
+            toast({
+              title: "Płatność zaakceptowana",
+              description: "Twoje zamówienie zostało złożone pomyślnie!",
+            });
+            
+            const url = isTestMode 
+              ? `/checkout/success/${productId}?mode=test` 
+              : `/checkout/success/${productId}?mode=buy`;
+            
+            navigate(url);
+          } else {
+            toast({
+              title: "Błąd płatności",
+              description: "Wystąpił problem z płatnością. Spróbuj ponownie.",
+              variant: "destructive",
+            });
+            setIsProcessing(false);
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Błąd podczas przetwarzania płatności:", error);
+      toast({
+        title: "Błąd systemu",
+        description: "Wystąpił nieoczekiwany błąd. Spróbuj ponownie później.",
+        variant: "destructive",
       });
+      setIsProcessing(false);
     }
   };
 

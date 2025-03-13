@@ -37,6 +37,11 @@ export const useReservationManagement = (userId: string | undefined) => {
   
   // Funkcja sprawdzająca wygasłe rezerwacje
   const checkExpiredReservations = useCallback(async () => {
+    if (!userId) {
+      console.log("Brak ID użytkownika, pomijam sprawdzanie wygasłych rezerwacji");
+      return;
+    }
+    
     try {
       console.log('Wywołuję procedurę cleanup_expired_orders...');
       const { data, error } = await supabase.rpc('cleanup_expired_orders');
@@ -49,7 +54,7 @@ export const useReservationManagement = (userId: string | undefined) => {
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas sprawdzania wygasłych rezerwacji:', err);
     }
-  }, []);
+  }, [userId]);
   
   // Funkcja sprawdzająca istniejące rezerwacje
   const checkExistingReservation = useCallback(async (productId: string) => {
@@ -60,6 +65,8 @@ export const useReservationManagement = (userId: string | undefined) => {
     
     try {
       console.log(`Sprawdzam istniejące rezerwacje dla produktu ${productId} i użytkownika ${userId}`);
+      
+      // Używam maybeSingle() zamiast single() - nie zwraca błędu gdy nie ma danych
       const { data, error } = await supabase
         .from('product_orders')
         .select('*')
@@ -68,14 +75,9 @@ export const useReservationManagement = (userId: string | undefined) => {
         .eq('status', 'reserved')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
       
       if (error) {
-        if (error.code === 'PGRST116') {
-          console.log("Brak istniejących rezerwacji dla tego produktu");
-          return null;
-        }
-        
         console.error('Błąd sprawdzania rezerwacji:', error);
         return null;
       }
@@ -97,6 +99,8 @@ export const useReservationManagement = (userId: string | undefined) => {
           await markReservationAsExpired(data.id);
           return null;
         }
+      } else {
+        console.log("Brak istniejących rezerwacji dla tego produktu");
       }
       
       return null;
@@ -157,11 +161,40 @@ export const useReservationManagement = (userId: string | undefined) => {
       const existingReservation = await checkExistingReservation(product.id);
       if (existingReservation) {
         console.log("Używam istniejącej rezerwacji:", existingReservation);
+        setReservationData(existingReservation);
+        setReservationExpiresAt(existingReservation.reservation_expires_at);
         return existingReservation;
       }
       
       // Upewnijmy się, że mamy ID właściciela produktu
-      const sellerId = product.user_id || product.owner_id;
+      let sellerId = null;
+      if (product.user_id) {
+        sellerId = product.user_id;
+      } else if (product.owner_id) {
+        sellerId = product.owner_id;
+      } else {
+        // Jeśli nie mamy ID właściciela, spróbujmy pobrać produkt z bazy danych
+        const { data: productData, error: productError } = await supabase
+          .from('products')
+          .select('user_id')
+          .eq('id', product.id)
+          .single();
+          
+        if (productError) {
+          console.error('Błąd pobierania informacji o produkcie:', productError);
+          toast({
+            title: "Błąd",
+            description: "Nie można określić sprzedawcy dla tego produktu. Prosimy o kontakt z administracją.",
+            variant: "destructive",
+          });
+          return null;
+        }
+        
+        if (productData) {
+          sellerId = productData.user_id;
+        }
+      }
+      
       if (!sellerId) {
         console.error('Brak ID właściciela produktu!', product);
         toast({
@@ -224,7 +257,7 @@ export const useReservationManagement = (userId: string | undefined) => {
       
       return data;
     } catch (err) {
-      console.error('Nieoczekiwany błąd:', err);
+      console.error('Nieoczekiwany błąd podczas tworzenia zamówienia:', err);
       toast({
         title: "Błąd",
         description: "Wystąpił nieoczekiwany błąd podczas tworzenia zamówienia.",

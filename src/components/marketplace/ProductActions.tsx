@@ -114,6 +114,18 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         setIsReserving(false);
         return;
       }
+
+      // Sprawdź, czy produkt należy do bieżącego użytkownika
+      if (isUserProduct) {
+        console.log("Nie można kupić własnego produktu");
+        toast({
+          title: "Operacja niemożliwa",
+          description: "Nie możesz kupić własnego produktu.",
+          variant: "destructive",
+        });
+        setIsReserving(false);
+        return;
+      }
       
       // Przekieruj natychmiast do ekranu koszyka
       const checkoutUrl = isTestMode 
@@ -121,6 +133,10 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         : `/checkout/${id}`;
       
       console.log("Przekierowanie do:", checkoutUrl);
+      toast({
+        title: "Przechodzę do finalizacji",
+        description: "Trwa inicjowanie zamówienia...",
+      });
       navigate(checkoutUrl);
     } catch (error) {
       console.error('Błąd podczas inicjowania zakupu:', error);

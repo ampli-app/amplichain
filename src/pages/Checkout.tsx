@@ -24,6 +24,7 @@ export default function Checkout() {
   // Stan do śledzenia inicjalizacji zamówienia
   const [orderInitialized, setOrderInitialized] = useState(false);
   const [reservationExpired, setReservationExpired] = useState(false);
+  const [pageIsReady, setPageIsReady] = useState(false);
   
   // Sprawdź poprawność ID produktu
   useEffect(() => {
@@ -35,6 +36,8 @@ export default function Checkout() {
         variant: "destructive",
       });
       navigate('/marketplace');
+    } else {
+      setPageIsReady(true);
     }
   }, [id, navigate]);
   
@@ -43,7 +46,12 @@ export default function Checkout() {
     isTestMode 
   });
   
-  const { isLoading: isReservationLoading, reservationExpiresAt, reservationData } = useOrderReservation({ 
+  const { 
+    isLoading: isReservationLoading, 
+    reservationExpiresAt, 
+    reservationData,
+    checkExistingReservation
+  } = useOrderReservation({ 
     productId: id && isValidUUID(id) ? id : '', 
     isTestMode 
   });
@@ -75,13 +83,25 @@ export default function Checkout() {
     console.log("Checkout zainicjowany dla produktu:", id, "Mode:", isTestMode ? "test" : "purchase", "User:", user?.id);
   }, [id, isLoggedIn, navigate, isTestMode, user?.id, location.pathname, location.search]);
   
-  // Dodatkowy efekt - jeśli mamy dane rezerwacji, ustaw orderInitialized na true
+  // Sprawdź czy mamy dane rezerwacji i ustaw orderInitialized
   useEffect(() => {
+    // Jeśli mamy dane rezerwacji, ale orderInitialized jest false
     if (reservationData && !orderInitialized) {
       console.log("Mamy dane rezerwacji, ustawiamy orderInitialized na true");
       setOrderInitialized(true);
     }
-  }, [reservationData, orderInitialized]);
+    
+    // Sprawdź istniejące rezerwacje przy montowaniu komponentu
+    if (user?.id && id && isValidUUID(id) && !orderInitialized && !reservationData) {
+      console.log("Sprawdzamy istniejące rezerwacje przy montowaniu komponentu");
+      checkExistingReservation(id).then(data => {
+        if (data) {
+          console.log("Znaleziono istniejącą rezerwację przy ładowaniu strony:", data);
+          setOrderInitialized(true);
+        }
+      });
+    }
+  }, [reservationData, orderInitialized, user?.id, id, checkExistingReservation]);
   
   // Dodatkowy efekt do debugowania
   useEffect(() => {
@@ -112,6 +132,14 @@ export default function Checkout() {
     console.log("Rezerwacja wygasła, aktualizacja stanu");
     setReservationExpired(true);
   };
+  
+  if (!pageIsReady) {
+    return (
+      <CheckoutLayout productId={id || ''}>
+        <CheckoutLoadingState />
+      </CheckoutLayout>
+    );
+  }
   
   if (checkout.isLoading || isReservationLoading) {
     return (
