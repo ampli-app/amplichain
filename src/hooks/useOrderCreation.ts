@@ -125,21 +125,23 @@ export const useOrderCreation = (userId: string | undefined) => {
       
       const totalAmount = productPrice + deliveryOption.price;
       
-      // Utwórz zamówienie
+      // Utwórz zamówienie - naprawiamy błąd
+      const orderData = {
+        product_id: productData.id,
+        buyer_id: userId,
+        seller_id: productData.user_id,
+        total_amount: totalAmount.toString(), // Konwersja number na string
+        delivery_option_id: deliveryOption.id,
+        status: 'reserved',
+        payment_method: 'Karta płatnicza',
+        order_type: isTestMode ? 'test' : 'purchase',
+        test_end_date: isTestMode ? testEndDate.toISOString() : null,
+        reservation_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minut
+      };
+      
       const { data, error } = await supabase
         .from('product_orders')
-        .insert([{
-          product_id: productData.id,
-          buyer_id: userId,
-          seller_id: productData.user_id,
-          total_amount: totalAmount.toString(), // Konwersja number na string
-          delivery_option_id: deliveryOption.id,
-          status: 'reserved',
-          payment_method: 'Karta płatnicza',
-          order_type: isTestMode ? 'test' : 'purchase',
-          test_end_date: isTestMode ? testEndDate.toISOString() : null,
-          reservation_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minut
-        }])
+        .insert(orderData) // Naprawiony wywołanie - przekazujemy obiekt zamiast tablicy
         .select();
       
       if (error) {

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -472,52 +473,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     }
   };
   
-  const checkExpiredReservations = async () => {
-    try {
-      const { data: expiredReservations, error } = await supabase
-        .from('order_reservations')
-        .select('id, product_id')
-        .eq('status', 'reserved')
-        .lt('reservation_expires_at', new Date().toISOString());
-        
-      if (error) {
-        console.error('Błąd podczas sprawdzania wygasłych rezerwacji:', error);
-        return;
-      }
-      
-      if (expiredReservations && expiredReservations.length > 0) {
-        console.log('Znaleziono wygasłe rezerwacje:', expiredReservations.length);
-        
-        for (const reservation of expiredReservations) {
-          const { error: updateError } = await supabase
-            .from('order_reservations')
-            .update({ status: 'reservation_expired' })
-            .eq('id', reservation.id);
-            
-          if (updateError) {
-            console.error('Błąd podczas aktualizacji statusu rezerwacji:', updateError);
-            continue;
-          }
-          
-          if (reservation.product_id) {
-            const { error: productUpdateError } = await supabase
-              .from('products')
-              .update({ status: 'available' })
-              .eq('id', reservation.product_id)
-              .eq('status', 'reserved');
-              
-            if (productUpdateError) {
-              console.error('Błąd podczas przywracania statusu produktu:', productUpdateError);
-            } else {
-              console.log('Status produktu przywrócony na "available"');
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Nieoczekiwany błąd podczas sprawdzania wygasłych rezerwacji:', err);
-    }
-  };
+  // Usunięta druga definicja checkExpiredReservations
   
   useEffect(() => {
     if (user && productId) {

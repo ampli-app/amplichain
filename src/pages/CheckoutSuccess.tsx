@@ -14,6 +14,7 @@ import { useOrderCreation } from '@/hooks/useOrderCreation';
 import { useProductImage } from '@/hooks/useProductImage';
 import { useSellerInfo } from '@/hooks/useSellerInfo';
 import { formatCurrency, formatDate } from '@/utils/formatters';
+import { Product } from '@/components/marketplace/types';
 
 export default function CheckoutSuccess() {
   const { id } = useParams<{ id: string }>();
@@ -23,7 +24,7 @@ export default function CheckoutSuccess() {
   const isTestMode = location.search.includes('mode=test');
   
   const [isLoading, setIsLoading] = useState(true);
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   
   const { sellerInfo, fetchSellerInfo } = useSellerInfo();
   const { orderCreated, setOrderCreated, createOrder, testEndDate } = useOrderCreation(user?.id);
@@ -53,14 +54,20 @@ export default function CheckoutSuccess() {
         }
         
         if (data) {
-          setProduct(data);
+          // Zapewnienie, że status produktu jest dostosowany do wymagań typu Product
+          const productWithStatus: Product = {
+            ...data,
+            status: data.status as 'available' | 'reserved' | 'sold'
+          };
+          
+          setProduct(productWithStatus);
           
           if (data.user_id) {
             fetchSellerInfo(data.user_id, data.location);
           }
           
           if (!orderCreated) {
-            createOrder(data, isTestMode);
+            createOrder(productWithStatus, isTestMode);
           }
         }
       } catch (err) {
@@ -84,8 +91,8 @@ export default function CheckoutSuccess() {
   const { getProductImageUrl } = useProductImage(product);
   
   const productPrice = isTestMode && product.testing_price 
-    ? parseFloat(product.testing_price) 
-    : parseFloat(product.price);
+    ? parseFloat(product.testing_price.toString()) 
+    : parseFloat(product.price.toString());
   
   const deliveryCost = 15.99;
   const totalCost = productPrice + deliveryCost;
