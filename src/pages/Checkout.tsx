@@ -72,7 +72,13 @@ export default function Checkout() {
       if (!reservationData && !reservationExpired) {
         await cancelPreviousReservations();
         
-        const reservation = await initiateOrder(checkout.product, isTestMode);
+        // Upewnijmy się, że przekazujemy owner_id jeśli nie ma user_id
+        const productWithSeller = {
+          ...checkout.product,
+          owner_id: checkout.product.owner_id || checkout.product.user_id
+        };
+        
+        const reservation = await initiateOrder(productWithSeller, isTestMode);
         if (!reservation) {
           toast({
             title: "Błąd rezerwacji",

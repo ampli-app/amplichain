@@ -1,4 +1,3 @@
-
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, Pencil, Share2, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -81,11 +80,33 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
           }
         }
       } else {
-        // Jeśli nie mamy danych produktu, po prostu przekieruj do checkoutu
-        if (isTestMode) {
-          navigate(`/checkout/${id}?mode=test`);
-        } else {
-          navigate(`/checkout/${id}`);
+        // Jeśli nie mamy danych produktu, pobierzmy je najpierw
+        const { data: productData, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (error) {
+          console.error('Błąd pobierania danych produktu:', error);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się pobrać danych produktu. Spróbuj ponownie.",
+            variant: "destructive",
+          });
+          setIsReserving(false);
+          return;
+        }
+        
+        if (productData) {
+          const reservation = await initiateOrder(productData, isTestMode);
+          if (reservation) {
+            if (isTestMode) {
+              navigate(`/checkout/${id}?mode=test`);
+            } else {
+              navigate(`/checkout/${id}`);
+            }
+          }
         }
       }
     } catch (error) {
@@ -102,7 +123,6 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
 
   return (
     <div className="flex justify-between mt-4">
-      {/* Button container to ensure proper alignment */}
       <div>
         <Button 
           variant="outline" 
@@ -117,7 +137,6 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       </div>
       
       <div className="flex gap-2">
-        {/* Buy button only for non-user products */}
         {!isUserProduct && (
           <Button 
             variant="default" 
@@ -134,7 +153,6 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
           </Button>
         )}
         
-        {/* Edit button only for user's products */}
         {isUserProduct && (
           <Button 
             variant="default" 
@@ -148,7 +166,6 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
           </Button>
         )}
         
-        {/* Share button */}
         <Button 
           variant="secondary" 
           size="icon"

@@ -40,6 +40,19 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
     try {
       console.log("Inicjowanie zamówienia dla produktu:", product.id);
       
+      // Najpierw upewnijmy się, że mamy ID właściciela produktu
+      if (!product.user_id && !product.owner_id) {
+        console.error('Brak ID właściciela produktu!');
+        toast({
+          title: "Błąd",
+          description: "Nie można określić sprzedawcy dla tego produktu. Prosimy o kontakt z administracją.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return null;
+      }
+      
+      const sellerId = product.owner_id || product.user_id;
       const price = isTestMode && product.testing_price 
         ? parseFloat(product.testing_price) 
         : parseFloat(product.price);
@@ -50,7 +63,7 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
         .insert({
           product_id: product.id,
           buyer_id: user.id,
-          seller_id: product.owner_id,
+          seller_id: sellerId,
           total_amount: price,
           status: 'reserved',
           order_type: isTestMode ? 'test' : 'purchase'
