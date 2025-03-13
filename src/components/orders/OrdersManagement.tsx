@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrderCard } from '@/components/orders/OrderCard';
@@ -13,15 +12,26 @@ export function OrdersManagement() {
     orders, 
     fetchOrders, 
     updateOrderStatus, 
-    getStatusTranslation 
+    getStatusTranslation,
+    checkExpiredReservations
   } = useOrderManagement();
 
   useEffect(() => {
     fetchOrders(activeTab === 'buyer');
+    
+    const intervalId = setInterval(() => {
+      checkExpiredReservations().then(() => {
+        fetchOrders(activeTab === 'buyer');
+      });
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
   }, [activeTab]);
 
   const handleRefresh = () => {
-    fetchOrders(activeTab === 'buyer');
+    checkExpiredReservations().then(() => {
+      fetchOrders(activeTab === 'buyer');
+    });
   };
 
   const groupOrdersByStatus = () => {

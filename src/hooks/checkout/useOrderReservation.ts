@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -15,12 +16,33 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
   const [reservationExpiresAt, setReservationExpiresAt] = useState<Date | null>(null);
   const [paymentDeadline, setPaymentDeadline] = useState<Date | null>(null);
   
+  // Funkcja do sprawdzania i aktualizacji wygasłych rezerwacji
+  const checkExpiredReservations = async () => {
+    if (!user) return;
+    
+    try {
+      // Wywołaj funkcję bezpośrednio z poziomu klienta
+      const { error } = await supabase.rpc('cleanup_expired_orders');
+      
+      if (error) {
+        console.error('Błąd podczas sprawdzania wygasłych rezerwacji:', error);
+      } else {
+        console.log('Sprawdzenie wygasłych rezerwacji zakończone pomyślnie');
+      }
+    } catch (err) {
+      console.error('Nieoczekiwany błąd podczas sprawdzania wygasłych rezerwacji:', err);
+    }
+  };
+  
   // Sprawdzenie, czy istnieje aktywna rezerwacja
   const checkExistingReservation = async () => {
     if (!user || !productId) return null;
     
     try {
       setIsLoading(true);
+      
+      // Najpierw sprawdź i zaktualizuj wygasłe rezerwacje
+      await checkExpiredReservations();
       
       const { data, error } = await supabase
         .from('product_orders')
@@ -135,6 +157,9 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     
     try {
       setIsLoading(true);
+      
+      // Najpierw sprawdź i zaktualizuj wygasłe rezerwacje
+      await checkExpiredReservations();
       
       // Sprawdź, czy istnieje aktywna rezerwacja
       const existingReservation = await checkExistingReservation();
@@ -472,7 +497,20 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
   // Sprawdź istniejącą rezerwację przy inicjalizacji
   useEffect(() => {
     if (user && productId) {
-      checkExistingReservation();
+      // Najpierw sprawdź wygasłe rezerwacje, a następnie pobierz aktualne rezerwacje
+      checkExpiredReservations().then(() => {
+        checkExistingReservation();
+      });
+      
+      // Ustawienie interwału sprawdzającego wygasłe rezerwacje co 30 sekund
+      const intervalId = setInterval(() => {
+        checkExpiredReservations().then(() => {
+          checkExistingReservation();
+        });
+      }, 30000); // 30 sekund
+      
+      // Czyszczenie interwału po odmontowaniu komponentu
+      return () => clearInterval(intervalId);
     }
   }, [user, productId]);
   
@@ -487,6 +525,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     handlePaymentResult,
     checkExistingReservation,
     cancelPreviousReservations,
-    markReservationAsExpired
+    markReservationAsExpired,
+    checkExpiredReservations
   };
 }

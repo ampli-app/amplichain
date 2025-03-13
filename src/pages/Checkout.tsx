@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -39,7 +38,8 @@ export default function Checkout() {
     initiateOrder,
     confirmOrder,
     cancelPreviousReservations,
-    markReservationAsExpired
+    markReservationAsExpired,
+    checkExpiredReservations
   } = useOrderReservation({ 
     productId: id || '', 
     isTestMode 
@@ -49,6 +49,9 @@ export default function Checkout() {
   useEffect(() => {
     const createInitialReservation = async () => {
       if (checkout.product && !reservationData && !reservationExpired) {
+        // Sprawdź i zaktualizuj wygasłe rezerwacje przed utworzeniem nowej
+        await checkExpiredReservations();
+        
         // Anuluj wszystkie poprzednie rezerwacje przed utworzeniem nowej
         await cancelPreviousReservations();
         
@@ -66,6 +69,16 @@ export default function Checkout() {
     if (checkout.product && user) {
       createInitialReservation();
     }
+    
+    // Ustawienie interwału sprawdzającego wygasłe rezerwacje co 30 sekund
+    const intervalId = setInterval(() => {
+      if (user && id) {
+        checkExpiredReservations();
+      }
+    }, 30000); // 30 sekund
+    
+    // Czyszczenie interwału po odmontowaniu komponentu
+    return () => clearInterval(intervalId);
   }, [checkout.product, user, reservationData, reservationExpired]);
   
   useEffect(() => {

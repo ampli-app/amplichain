@@ -32,12 +32,33 @@ export const useOrderManagement = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const { user } = useAuth();
 
+  // Funkcja do sprawdzania i aktualizacji wygasłych rezerwacji
+  const checkExpiredReservations = async () => {
+    if (!user) return;
+    
+    try {
+      // Wywołaj funkcję bezpośrednio z poziomu klienta
+      const { error } = await supabase.rpc('cleanup_expired_orders');
+      
+      if (error) {
+        console.error('Błąd podczas sprawdzania wygasłych rezerwacji:', error);
+      } else {
+        console.log('Sprawdzenie wygasłych rezerwacji zakończone pomyślnie');
+      }
+    } catch (err) {
+      console.error('Nieoczekiwany błąd podczas sprawdzania wygasłych rezerwacji:', err);
+    }
+  };
+
   const fetchOrders = async (isBuyer: boolean = false) => {
     if (!user) return;
     
     setIsLoading(true);
     
     try {
+      // Najpierw sprawdź i zaktualizuj wygasłe rezerwacje
+      await checkExpiredReservations();
+      
       // Określenie kolumny, po której filtrujemy (kupujący lub sprzedawca)
       const filterColumn = isBuyer ? 'buyer_id' : 'seller_id';
       
@@ -157,7 +178,7 @@ export const useOrderManagement = () => {
       'wysłane': 'Wysłane',
       'dostarczone': 'Dostarczone',
       'anulowane': 'Anulowane',
-      'reservation_expired': 'Rezerwacja wygasła'  // Dodany nowy status
+      'reservation_expired': 'Rezerwacja wygasła'
     };
     
     return statusMap[status] || status;
@@ -208,6 +229,7 @@ export const useOrderManagement = () => {
     updateOrderStatus,
     getStatusTranslation,
     getOrderNotifications,
-    markNotificationAsRead
+    markNotificationAsRead,
+    checkExpiredReservations
   };
 };
