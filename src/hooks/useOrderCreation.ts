@@ -9,7 +9,7 @@ type Product = {
   description: string;
   price: number;
   testing_price?: number;
-  status: 'available' | 'reserved';
+  status: 'available' | 'reserved' | 'sold';
   // ... inne pola produktu
 };
 
@@ -34,7 +34,7 @@ export const useOrderCreation = (userId: string | undefined) => {
       console.log('Rozpoczynam tworzenie zamówienia dla produktu:', productData.id);
       console.log('ID użytkownika:', userId);
       
-      // Sprawdź status produktu
+      // Sprawdź aktualny status produktu z blokadą
       const { data: product, error: productError } = await supabase
         .from('products')
         .select('status')
@@ -46,82 +46,54 @@ export const useOrderCreation = (userId: string | undefined) => {
         return;
       }
       
-      if (product.status === 'reserved') {
-        console.log('Produkt jest już zarezerwowany');
+      console.log('Aktualny status produktu:', product.status);
+      
+      if (product.status !== 'available') {
+        console.log('Produkt nie jest dostępny, status:', product.status);
         toast({
           title: "Produkt niedostępny",
-          description: "Ten produkt jest obecnie zarezerwowany.",
+          description: "Ten produkt jest obecnie zarezerwowany lub sprzedany.",
           variant: "destructive",
         });
         return;
       }
       
-      // Sprawdź, czy produkt jest już zarezerwowany
-      const { data: existingOrders, error: fetchError } = await supabase
-        .from('product_orders')
-        .select('id, status, buyer_id, reservation_expires_at')
-        .eq('product_id', productData.id)
-        .in('status', ['reserved', 'confirmed'])
-        .order('created_at', { ascending: false })
-        .limit(1);
+      // Najpierw spróbuj zarezerwować produkt
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ status: 'reserved' })
+        .eq('id', productData.id)
+        .eq('status', 'available') // Dodatkowe zabezpieczenie - aktualizuj tylko jeśli status to 'available'
+        .select();
       
-      if (fetchError) {
-        console.error('Błąd podczas sprawdzania istniejących zamówień:', fetchError);
+      if (updateError) {
+        console.error('Błąd podczas aktualizacji statusu produktu:', updateError);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się zarezerwować produktu. Spróbuj ponownie.",
+          variant: "destructive",
+        });
         return;
       }
       
-      console.log('Znalezione istniejące zamówienia:', existingOrders);
-      
-      if (existingOrders && existingOrders.length > 0) {
-        const order = existingOrders[0];
-        console.log('Sprawdzam zamówienie:', {
-          orderId: order.id,
-          status: order.status,
-          buyerId: order.buyer_id,
-          currentUserId: userId,
-          reservationExpiresAt: order.reservation_expires_at
-        });
+      // Sprawdź ponownie status po aktualizacji
+      const { data: updatedProduct, error: checkError } = await supabase
+        .from('products')
+        .select('status')
+        .eq('id', productData.id)
+        .single();
         
-        if (order.status === 'reserved') {
-          // Sprawdź, czy rezerwacja nie wygasła
-          const now = new Date();
-          const expiresAt = order.reservation_expires_at ? new Date(order.reservation_expires_at) : null;
-          
-          if (expiresAt && expiresAt > now) {
-            if (order.buyer_id === userId) {
-              console.log('Produkt już zarezerwowany przez tego samego użytkownika');
-              toast({
-                title: "Produkt już zarezerwowany",
-                description: "Ten produkt jest już w Twoim koszyku.",
-                variant: "default",
-              });
-              setOrderCreated(true);
-            } else {
-              console.log('Produkt zarezerwowany przez innego użytkownika');
-              toast({
-                title: "Produkt niedostępny",
-                description: "Ten produkt jest obecnie zarezerwowany przez innego kupującego.",
-                variant: "destructive",
-              });
-            }
-          } else {
-            console.log('Rezerwacja wygasła, można utworzyć nowe zamówienie');
-            // Aktualizuj status wygasłego zamówienia
-            await supabase
-              .from('product_orders')
-              .update({ status: 'reservation_expired' })
-              .eq('id', order.id);
-              
-            // Aktualizuj status produktu na dostępny
-            await supabase
-              .from('products')
-              .update({ status: 'available' })
-              .eq('id', productData.id);
-          }
-        }
-      } else {
-        console.log('Nie znaleziono zarezerwowanych zamówień dla tego produktu');
+      if (checkError || !updatedProduct || updatedProduct.status !== 'reserved') {
+        console.error('Nie udało się zarezerwować produktu - status nie został zaktualizowany');
+        toast({
+          title: "Błąd",
+          description: "Nie udało się zarezerwować produktu. Spróbuj ponownie.",
+          variant: "destructive",
+        });
+        return;
       }
+      
+      console.log('Status produktu zaktualizowany na "reserved"');
       
       const { data: deliveryOptions, error: deliveryError } = await supabase
         .from('delivery_options')
@@ -131,6 +103,11 @@ export const useOrderCreation = (userId: string | undefined) => {
       
       if (deliveryError || !deliveryOptions || deliveryOptions.length === 0) {
         console.error('Błąd podczas pobierania opcji dostawy:', deliveryError);
+        // Przywróć status produktu
+        await supabase
+          .from('products')
+          .update({ status: 'available' })
+          .eq('id', productData.id);
         return;
       }
       
@@ -142,35 +119,7 @@ export const useOrderCreation = (userId: string | undefined) => {
       
       const totalAmount = productPrice + deliveryOption.price;
       
-      console.log('Tworzę nowe zamówienie z danymi:', {
-        productId: productData.id,
-        buyerId: userId,
-        sellerId: productData.user_id,
-        totalAmount: totalAmount,
-        deliveryOptionId: deliveryOption.id,
-        isTestMode: isTestMode
-      });
-      
-      // Najpierw zaktualizuj status produktu
-      const { error: updateProductError } = await supabase
-        .from('products')
-        .update({ status: 'reserved' })
-        .eq('id', productData.id)
-        .select();
-
-      if (updateProductError) {
-        console.error('Błąd podczas aktualizacji statusu produktu:', updateProductError);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się zarezerwować produktu. Spróbuj ponownie.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('Status produktu zaktualizowany na "reserved"');
-      
-      // Następnie utwórz zamówienie
+      // Utwórz zamówienie
       const { data, error } = await supabase
         .from('product_orders')
         .insert([{
@@ -189,19 +138,12 @@ export const useOrderCreation = (userId: string | undefined) => {
       
       if (error) {
         console.error('Błąd podczas tworzenia zamówienia:', error);
-        // W przypadku błędu, przywróć status produktu na dostępny
-        const { error: revertError } = await supabase
+        // Przywróć status produktu
+        await supabase
           .from('products')
           .update({ status: 'available' })
-          .eq('id', productData.id)
-          .select();
+          .eq('id', productData.id);
           
-        if (revertError) {
-          console.error('Błąd podczas przywracania statusu produktu:', revertError);
-        } else {
-          console.log('Status produktu przywrócony na "available"');
-        }
-        
         toast({
           title: "Ostrzeżenie",
           description: "Zamówienie mogło nie zostać zapisane poprawnie. Sprawdź swoje zamówienia.",
@@ -220,18 +162,11 @@ export const useOrderCreation = (userId: string | undefined) => {
       }
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas tworzenia zamówienia:', err);
-      // W przypadku błędu, przywróć status produktu na dostępny
-      const { error: revertError } = await supabase
+      // Przywróć status produktu
+      await supabase
         .from('products')
         .update({ status: 'available' })
-        .eq('id', productData.id)
-        .select();
-        
-      if (revertError) {
-        console.error('Błąd podczas przywracania statusu produktu:', revertError);
-      } else {
-        console.log('Status produktu przywrócony na "available"');
-      }
+        .eq('id', productData.id);
     } finally {
       isCreatingOrder.current = false;
     }
