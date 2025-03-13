@@ -85,18 +85,25 @@ export function CheckoutContent({
       console.log("Rezerwacja już zainicjowana, zatrzymuję ładowanie");
       setInitializing(false);
     }
-  }, [orderInitialized, initializing]);
+    
+    // Jeśli mamy dane rezerwacji, ale nie mamy ustawionego orderInitialized
+    if (reservationData && !orderInitialized) {
+      console.log("Mamy dane rezerwacji, ale nie było ustawione orderInitialized - aktualizuję stan");
+      setOrderInitialized(true);
+      setInitializing(false);
+    }
+  }, [orderInitialized, initializing, reservationData, setOrderInitialized]);
   
-  // Dodajemy timer bezpieczeństwa, który zakończy inicjalizację po 15 sekundach
+  // Dodajemy timer bezpieczeństwa, który zakończy inicjalizację po 5 sekundach
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     
     if (initializing) {
       timeoutId = setTimeout(() => {
-        console.log("Timer bezpieczeństwa: 15 sekund oczekiwania na inicjalizację. Pokazuję przycisk ponowienia.");
+        console.log("Timer bezpieczeństwa: 5 sekund oczekiwania na inicjalizację. Pokazuję przycisk ponowienia.");
         setInitializationTimeout(true);
         setInitializing(false);
-      }, 15000);
+      }, 5000);
     }
     
     return () => {
@@ -109,6 +116,15 @@ export function CheckoutContent({
     setInitializing(true);
     setInitializationTimeout(false);
     setOrderInitialized(false);
+    
+    // Dodaj opóźnienie, aby dać czas na wyrenderowanie się komponentu
+    setTimeout(() => {
+      console.log("Ponowne próbowanie inicjalizacji zamówienia");
+      toast({
+        title: "Ponowna próba",
+        description: "Trwa ponowna inicjalizacja zamówienia...",
+      });
+    }, 100);
   };
   
   // Pokaż indykator ładowania podczas inicjalizacji

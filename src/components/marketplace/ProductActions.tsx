@@ -63,20 +63,18 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       return;
     }
     
-    if (onBuyNow) {
-      console.log("Używam dostarczonej funkcji onBuyNow");
-      onBuyNow();
-      return;
-    }
-    
     setIsReserving(true);
     
     try {
+      if (onBuyNow) {
+        console.log("Używam dostarczonej funkcji onBuyNow");
+        onBuyNow();
+        return;
+      }
+      
       // Sprawdź, czy URL zawiera parametr trybu testowego
       const isTestMode = location.search.includes('mode=test');
       console.log("Tryb testowy:", isTestMode);
-      
-      console.log("Przekierowuję do ekranu koszyka dla produktu:", id);
       
       // Przekieruj natychmiast do ekranu koszyka
       const checkoutUrl = isTestMode 

@@ -41,6 +41,7 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
           // Wywołaj onExpire tylko raz
           if (!hasCalledOnExpire.current) {
             hasCalledOnExpire.current = true;
+            console.log("Wywołuję onExpire - rezerwacja wygasła");
             onExpire();
           }
           
@@ -66,7 +67,13 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
     // Wykonaj obliczenie od razu przy montowaniu komponentu
     calculateTimeLeft();
     
-    // Ustaw interwał co sekundę
+    // Upewnij się, że poprzedni interwał jest wyczyszczony
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    
+    // Ustaw nowy interwał co sekundę
     intervalRef.current = setInterval(calculateTimeLeft, 1000);
     
     // Wyczyść interwał przy odmontowaniu komponentu

@@ -85,6 +85,8 @@ export function CheckoutOrderInitializer({
           if (reservation && mounted) {
             console.log("Rezerwacja utworzona pomyślnie:", reservation);
             setOrderInitialized(true);
+          } else {
+            console.log("Nie udało się utworzyć rezerwacji");
           }
           
           // Zawsze ustaw setInitializing(false) po próbie rezerwacji, niezależnie od wyniku
@@ -109,13 +111,18 @@ export function CheckoutOrderInitializer({
     }, 100);
     
     // Dodajmy dodatkowy timeout, który zawsze zakończy stan ładowania 
-    // po 10 sekundach, aby nie dopuścić do zawieszenia interfejsu
+    // po 5 sekundach, aby nie dopuścić do zawieszenia interfejsu
     const safetyTimeoutId = setTimeout(() => {
       if (mounted && !orderInitialized) {
         console.log("Timeout bezpieczeństwa - kończę inicjalizację");
         setInitializing(false);
+        toast({
+          title: "Uwaga",
+          description: "Inicjalizacja zamówienia trwa dłużej niż zwykle. Możesz spróbować ponownie.",
+          variant: "destructive",
+        });
       }
-    }, 10000);
+    }, 5000);
     
     // Regularnie sprawdzaj wygasłe rezerwacje
     const intervalId = setInterval(() => {
