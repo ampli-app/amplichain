@@ -13,8 +13,10 @@ import {
   CheckCircle, 
   XCircle, 
   Loader2,
-  Box
+  Box,
+  ShoppingCart
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface OrderCardProps {
   order: Order;
@@ -32,6 +34,7 @@ export function OrderCard({
   const [trackingNumber, setTrackingNumber] = useState('');
   const [notes, setNotes] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const navigate = useNavigate();
 
   const getStatusColor = (status: string): string => {
     const statusColorMap: Record<string, string> = {
@@ -61,6 +64,8 @@ export function OrderCard({
         return <CheckCircle className="h-4 w-4" />;
       case 'anulowane':
         return <XCircle className="h-4 w-4" />;
+      case 'reservation_expired':
+        return <XCircle className="h-4 w-4" />;
       default:
         return <Package className="h-4 w-4" />;
     }
@@ -84,6 +89,14 @@ export function OrderCard({
       setIsUpdating(false);
     }
   };
+
+  const handleContinueCheckout = () => {
+    const mode = order.order_type === 'test' ? 'test' : 'buy';
+    navigate(`/checkout/${order.product_id}?mode=${mode}`);
+  };
+
+  const isReservationExpired = order.status === 'reservation_expired';
+  const isWaitingForPayment = order.status === 'oczekujące';
 
   const renderSellerActions = () => {
     if (order.status === 'oczekujące') {
@@ -166,6 +179,22 @@ export function OrderCard({
   };
 
   const renderBuyerActions = () => {
+    if (isWaitingForPayment && !isReservationExpired) {
+      // Jeśli zamówienie czeka na płatność i nie wygasło
+      return (
+        <div className="space-y-4">
+          <Button
+            onClick={handleContinueCheckout}
+            disabled={isUpdating}
+            className="w-full"
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Dokończ zakup
+          </Button>
+        </div>
+      );
+    }
+
     if (order.status === 'wysłane') {
       return (
         <div className="space-y-4">
@@ -177,6 +206,30 @@ export function OrderCard({
             {isUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Potwierdź odbiór przesyłki
           </Button>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+
+  const renderReservationExpiryInfo = () => {
+    if (order.reservation_expires_at && order.status === 'oczekujące') {
+      const expiryDate = new Date(order.reservation_expires_at);
+      const now = new Date();
+      const isExpired = expiryDate < now;
+      
+      return (
+        <div className={`text-sm mt-2 ${isExpired ? "text-red-500" : "text-amber-600"}`}>
+          {isExpired ? 
+            "Czas na opłacenie zamówienia upłynął" : 
+            `Czas na opłacenie: ${expiryDate.toLocaleTimeString('pl-PL', {
+              hour: '2-digit',
+              minute: '2-digit',
+              day: 'numeric',
+              month: 'numeric'
+            })}`
+          }
         </div>
       );
     }
@@ -204,6 +257,7 @@ export function OrderCard({
                 {new Date(order.created_at).toLocaleDateString('pl-PL')}
               </span>
             </div>
+            {renderReservationExpiryInfo()}
           </div>
         </div>
         <div className="text-right">

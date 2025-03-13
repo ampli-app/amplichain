@@ -18,6 +18,8 @@ export interface Order {
   seller_name?: string;
   tracking_number?: string;
   notes?: string;
+  order_type?: string;
+  reservation_expires_at?: string;
 }
 
 export interface OrderStatusUpdate {
@@ -69,7 +71,8 @@ export const useOrderManagement = () => {
           *,
           products:product_id (
             title,
-            image_url
+            image_url,
+            for_testing
           )
         `)
         .eq(filterColumn, user.id)
@@ -109,7 +112,8 @@ export const useOrderManagement = () => {
           return {
             ...order,
             product_title: productData?.title || 'Produkt',
-            product_image: imageUrl
+            product_image: imageUrl,
+            order_type: productData?.for_testing ? 'test' : 'purchase'
           };
         });
         
