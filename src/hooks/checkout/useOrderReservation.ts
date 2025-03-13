@@ -57,6 +57,10 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
         ? parseFloat(product.testing_price) 
         : parseFloat(product.price);
       
+      // Oblicz czas wygaśnięcia rezerwacji (15 minut od teraz)
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+      
       // Utwórz rezerwację zamówienia
       const { data, error } = await supabase
         .from('product_orders')
@@ -66,7 +70,8 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
           seller_id: sellerId,
           total_amount: price,
           status: 'reserved',
-          order_type: isTestMode ? 'test' : 'purchase'
+          order_type: isTestMode ? 'test' : 'purchase',
+          reservation_expires_at: expiresAt.toISOString()
         })
         .select()
         .single();

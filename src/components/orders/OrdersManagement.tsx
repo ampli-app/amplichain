@@ -41,6 +41,24 @@ export function OrdersManagement() {
   const groupOrdersByStatus = () => {
     const grouped: Record<string, any[]> = {};
     
+    // Sortowanie kolejności statusów
+    const statusOrder = [
+      'reserved', // Zarezerwowane (pierwsze)
+      'oczekujące', // Oczekujące
+      'zaakceptowane', // Zaakceptowane
+      'przygotowane_do_wysyłki', // Przygotowane do wysyłki
+      'wysłane', // Wysłane
+      'dostarczone', // Dostarczone
+      'anulowane', // Anulowane
+      'reservation_expired' // Wygasłe rezerwacje (ostatnie)
+    ];
+    
+    // Najpierw utwórz pustą tablicę dla każdego statusu w określonej kolejności
+    statusOrder.forEach(status => {
+      grouped[status] = [];
+    });
+    
+    // Dodaj zamówienia do odpowiednich grup
     orders.forEach(order => {
       if (!grouped[order.status]) {
         grouped[order.status] = [];
@@ -48,7 +66,15 @@ export function OrdersManagement() {
       grouped[order.status].push(order);
     });
     
-    return grouped;
+    // Zwróć tylko statusy, które mają zamówienia
+    const result: Record<string, any[]> = {};
+    for (const status of statusOrder) {
+      if (grouped[status] && grouped[status].length > 0) {
+        result[status] = grouped[status];
+      }
+    }
+    
+    return result;
   };
 
   return (

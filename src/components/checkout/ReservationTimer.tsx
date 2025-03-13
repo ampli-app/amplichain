@@ -12,6 +12,11 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
   const [isExpired, setIsExpired] = useState(false);
   
   useEffect(() => {
+    if (!expiresAt) {
+      setTimeLeft('--:--');
+      return;
+    }
+    
     const expirationDate = typeof expiresAt === 'string' ? new Date(expiresAt) : expiresAt;
     
     const calculateTimeLeft = () => {
@@ -21,7 +26,7 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
       if (difference <= 0) {
         setTimeLeft('00:00');
         setIsExpired(true);
-        if (onExpire) onExpire();
+        if (onExpire && !isExpired) onExpire();
         return;
       }
       
@@ -42,7 +47,11 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
     const interval = setInterval(calculateTimeLeft, 1000);
     
     return () => clearInterval(interval);
-  }, [expiresAt, onExpire]);
+  }, [expiresAt, onExpire, isExpired]);
+  
+  if (!expiresAt) {
+    return null;
+  }
   
   return (
     <div className={`flex items-center gap-2 font-medium ${isExpired ? 'text-red-500' : 'text-amber-600'}`}>

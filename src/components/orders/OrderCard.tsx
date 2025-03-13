@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Order, OrderStatusUpdate } from '@/hooks/useOrderManagement';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,8 @@ import {
   XCircle, 
   Loader2,
   Box,
-  ShoppingCart
+  ShoppingCart,
+  Clock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -37,6 +39,7 @@ export function OrderCard({
 
   const getStatusColor = (status: string): string => {
     const statusColorMap: Record<string, string> = {
+      'reserved': 'bg-amber-500',
       'oczekujące': 'bg-orange-500',
       'zaakceptowane': 'bg-blue-500',
       'przygotowane_do_wysyłki': 'bg-purple-500',
@@ -51,6 +54,8 @@ export function OrderCard({
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      case 'reserved':
+        return <Clock className="h-4 w-4" />;
       case 'oczekujące':
         return <Package className="h-4 w-4" />;
       case 'zaakceptowane':
@@ -95,7 +100,8 @@ export function OrderCard({
 
   const isReservationExpired = order.status === 'reservation_expired';
   
-  const isActiveReservation = order.reservation_expires_at && 
+  const isActiveReservation = order.status === 'reserved' && 
+                             order.reservation_expires_at && 
                              !isReservationExpired && 
                              (new Date(order.reservation_expires_at) > new Date());
 
@@ -221,19 +227,21 @@ export function OrderCard({
       const now = new Date();
       const isExpired = expiryDate < now;
       
-      return (
-        <div className={`text-sm mt-2 ${isExpired ? "text-red-500" : "text-amber-600"}`}>
-          {isExpired ? 
-            "Czas na opłacenie zamówienia upłynął" : 
-            `Czas na opłacenie: ${expiryDate.toLocaleTimeString('pl-PL', {
-              hour: '2-digit',
-              minute: '2-digit',
-              day: 'numeric',
-              month: 'numeric'
-            })}`
-          }
-        </div>
-      );
+      if (order.status === 'reserved') {
+        return (
+          <div className={`text-sm mt-2 ${isExpired ? "text-red-500" : "text-amber-600"}`}>
+            {isExpired ? 
+              "Czas na opłacenie zamówienia upłynął" : 
+              `Czas na opłacenie: ${expiryDate.toLocaleTimeString('pl-PL', {
+                hour: '2-digit',
+                minute: '2-digit',
+                day: 'numeric',
+                month: 'numeric'
+              })}`
+            }
+          </div>
+        );
+      }
     }
     
     return null;

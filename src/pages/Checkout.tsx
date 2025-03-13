@@ -29,6 +29,7 @@ export default function Checkout() {
   const { isLoggedIn, user } = useAuth();
   
   const [reservationExpired, setReservationExpired] = useState(false);
+  const [orderInitialized, setOrderInitialized] = useState(false);
   
   const checkout = useCheckout({ 
     productId: id || '', 
@@ -55,7 +56,7 @@ export default function Checkout() {
   
   useEffect(() => {
     const handleReservation = async () => {
-      if (!checkout.product || !user) return;
+      if (!checkout.product || !user || orderInitialized) return;
       
       await checkExpiredReservations();
       
@@ -65,6 +66,7 @@ export default function Checkout() {
         
         if (existingReservation) {
           console.log("Znaleziono istniejącą rezerwację:", existingReservation);
+          setOrderInitialized(true);
           return;
         }
       }
@@ -85,11 +87,13 @@ export default function Checkout() {
             description: "Nie udało się utworzyć rezerwacji produktu.",
             variant: "destructive",
           });
+        } else {
+          setOrderInitialized(true);
         }
       }
     };
     
-    if (checkout.product && user) {
+    if (checkout.product && user && !orderInitialized) {
       handleReservation();
     }
     
@@ -100,7 +104,7 @@ export default function Checkout() {
     }, 30000);
     
     return () => clearInterval(intervalId);
-  }, [checkout.product, user, reservationData, reservationExpired]);
+  }, [checkout.product, user, reservationData, reservationExpired, orderInitialized]);
   
   useEffect(() => {
     if (user?.email) {

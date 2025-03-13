@@ -47,6 +47,11 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
   const handleBuyNow = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
+    // Blokowanie wielokrotnych kliknięć
+    if (isReserving) {
+      return;
+    }
+    
     if (!isLoggedIn) {
       toast({
         title: "Wymagane logowanie",
