@@ -17,7 +17,6 @@ major_version = 15
 enabled = true
 port = 8001
 api_url = "http://localhost:8000"
-inmemory = false
 
 [inbucket]
 enabled = true

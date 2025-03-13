@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -403,11 +402,15 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       console.log('Status zamówienia zaktualizowany na pending_payment');
       
       // Pobranie profilu użytkownika dla email
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('full_name, email')
+        .select('full_name')
         .eq('id', user?.id)
         .single();
+        
+      if (profileError) {
+        console.error('Błąd podczas pobierania profilu użytkownika:', profileError);
+      }
         
       const customerEmail = user?.email || '';
       const customerName = profileData?.full_name || '';
@@ -439,21 +442,25 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       console.log('Utworzono intencję płatności Stripe:', paymentIntent);
       
       // Zapisz dane płatności lokalnie
-      setPaymentIntentData({
-        payment_intent_id: paymentIntent.payment_intent_id,
-        client_secret: paymentIntent.client_secret,
-        amount: paymentIntent.amount,
-        currency: paymentIntent.currency
-      });
+      if (paymentIntent && typeof paymentIntent === 'object') {
+        setPaymentIntentData({
+          payment_intent_id: paymentIntent.payment_intent_id,
+          client_secret: paymentIntent.client_secret,
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency
+        });
+        
+        // Aktualizuj lokalne dane rezerwacji
+        setReservationData({
+          ...reservationData,
+          status: 'pending_payment',
+          payment_intent_id: paymentIntent.payment_intent_id
+        });
+        
+        return paymentIntent;
+      }
       
-      // Aktualizuj lokalne dane rezerwacji
-      setReservationData({
-        ...reservationData,
-        status: 'pending_payment',
-        payment_intent_id: paymentIntent.payment_intent_id
-      });
-      
-      return paymentIntent;
+      return null;
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas inicjowania płatności:', err);
       toast({
