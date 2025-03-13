@@ -21,3 +21,25 @@ export const formatPaymentId = (id: string) => {
   }
   return id;
 };
+
+export const formatTimeLeft = (date: Date): string => {
+  const now = new Date();
+  const difference = date.getTime() - now.getTime();
+  
+  if (difference <= 0) {
+    return 'Termin upłynął';
+  }
+  
+  // Obliczanie godzin, minut i sekund
+  const hours = Math.floor(difference / 1000 / 60 / 60);
+  const minutes = Math.floor((difference / 1000 / 60) % 60);
+  const seconds = Math.floor((difference / 1000) % 60);
+  
+  if (hours > 0) {
+    return `${hours} godz. ${minutes} min.`;
+  } else if (minutes > 0) {
+    return `${minutes} min. ${seconds} sek.`;
+  } else {
+    return `${seconds} sek.`;
+  }
+};

@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +14,9 @@ import { PaymentForm } from '@/components/checkout/PaymentForm';
 import { OrderSummaryForm } from '@/components/checkout/OrderSummaryForm';
 import { CheckoutSummary } from '@/components/checkout/CheckoutSummary';
 import { useCheckout } from '@/hooks/checkout/useCheckout';
+import { ReservationTimer } from '@/components/checkout/ReservationTimer';
+import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function Checkout() {
   const { id } = useParams<{ id: string }>();
@@ -21,10 +25,43 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { isLoggedIn, user } = useAuth();
   
+  const [reservationExpired, setReservationExpired] = useState(false);
+  
   const checkout = useCheckout({ 
     productId: id || '', 
     isTestMode 
   });
+  
+  const { 
+    isLoading: isReservationLoading, 
+    reservationData, 
+    reservationExpiresAt,
+    initiateOrder,
+    confirmOrder
+  } = useOrderReservation({ 
+    productId: id || '', 
+    isTestMode 
+  });
+  
+  // Inicjalizacja rezerwacji
+  useEffect(() => {
+    const createInitialReservation = async () => {
+      if (checkout.product && !reservationData && !reservationExpired) {
+        const reservation = await initiateOrder(checkout.product);
+        if (!reservation) {
+          toast({
+            title: "Błąd rezerwacji",
+            description: "Nie udało się utworzyć rezerwacji produktu.",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+    
+    if (checkout.product && user) {
+      createInitialReservation();
+    }
+  }, [checkout.product, user, reservationData, reservationExpired]);
   
   useEffect(() => {
     if (user?.email) {
@@ -35,13 +72,36 @@ export default function Checkout() {
     }
   }, [user?.email]);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleReservationExpire = () => {
+    setReservationExpired(true);
+    toast({
+      title: "Rezerwacja wygasła",
+      description: "Czas na dokończenie zamówienia upłynął. Rozpocznij proces od nowa.",
+      variant: "destructive",
+    });
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!checkout.validateForm()) {
       return;
     }
     
+    // Potwierdź zamówienie, aktualizując jego status i dodając dane dostawy
+    const confirmed = await confirmOrder({
+      address: checkout.formData.address,
+      city: checkout.formData.city,
+      postalCode: checkout.formData.postalCode,
+      comments: checkout.formData.comments,
+      paymentMethod: checkout.paymentMethod
+    });
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    // Symuluj proces płatności
     checkout.simulatePaymentProcessing((success) => {
       if (success) {
         toast({
@@ -70,7 +130,7 @@ export default function Checkout() {
     }
   }, [id, isLoggedIn, navigate]);
   
-  if (checkout.isLoading) {
+  if (checkout.isLoading || isReservationLoading) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
@@ -133,6 +193,38 @@ export default function Checkout() {
     );
   }
   
+  if (reservationExpired) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 pt-24 pb-16 flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto">
+            <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-4">Rezerwacja wygasła</h2>
+            <p className="text-rhythm-600 dark:text-rhythm-400 mb-6">
+              Czas na dokończenie zamówienia upłynął. Możesz rozpocząć proces zakupowy od nowa.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button asChild variant="default">
+                <Link to={`/marketplace/${id}`}>
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  Wróć do produktu
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/marketplace">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Wróć do Rynku
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -152,6 +244,17 @@ export default function Checkout() {
           <h1 className="text-3xl font-bold mb-4 text-center">
             {isTestMode ? 'Rezerwacja testowa' : 'Finalizacja zakupu'}
           </h1>
+          
+          {reservationExpiresAt && (
+            <Alert className="mb-6 max-w-lg mx-auto">
+              <AlertDescription className="flex justify-center">
+                <ReservationTimer 
+                  expiresAt={reservationExpiresAt} 
+                  onExpire={handleReservationExpire} 
+                />
+              </AlertDescription>
+            </Alert>
+          )}
           
           <CheckoutProgress activeStep={checkout.activeStep} />
           
