@@ -38,9 +38,10 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
   const [reservationExpiresAt, setReservationExpiresAt] = useState<string | null>(null);
   const [paymentIntentData, setPaymentIntentData] = useState<PaymentIntentResponse | null>(null);
   
-  // Define markReservationAsExpired first since it's used by checkExistingReservation
+  // Funkcja oznaczająca rezerwację jako wygasłą
   const markReservationAsExpired = useCallback(async (orderId: string) => {
     try {
+      console.log(`Oznaczam rezerwację ${orderId} jako wygasłą`);
       const { error } = await supabase
         .from('product_orders')
         .update({ 
@@ -63,11 +64,31 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
     }
   }, []);
   
-  // Define checkExistingReservation next since it's used by initiateOrder
+  // Funkcja sprawdzająca wygasłe rezerwacje
+  const checkExpiredReservations = useCallback(async () => {
+    try {
+      console.log('Wywołuję procedurę cleanup_expired_orders...');
+      const { data, error } = await supabase.rpc('cleanup_expired_orders');
+      
+      if (error) {
+        console.error('Błąd podczas sprawdzania wygasłych rezerwacji:', error);
+      } else {
+        console.log('Sprawdzenie wygasłych rezerwacji zakończone pomyślnie', data);
+      }
+    } catch (err) {
+      console.error('Nieoczekiwany błąd podczas sprawdzania wygasłych rezerwacji:', err);
+    }
+  }, []);
+  
+  // Funkcja sprawdzająca istniejące rezerwacje
   const checkExistingReservation = useCallback(async () => {
-    if (!user || !productId || !isValidUUID(productId)) return null;
+    if (!user || !productId || !isValidUUID(productId)) {
+      console.log("Brak użytkownika lub nieprawidłowy ID produktu");
+      return null;
+    }
     
     try {
+      console.log(`Sprawdzam istniejące rezerwacje dla produktu ${productId} i użytkownika ${user.id}`);
       const { data, error } = await supabase
         .from('product_orders')
         .select('*')
@@ -114,11 +135,12 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
     }
   }, [user, productId, markReservationAsExpired]);
   
-  // Now continue with the rest of the functions
+  // Funkcja anulująca poprzednie rezerwacje
   const cancelPreviousReservations = useCallback(async () => {
     if (!user || !productId || !isValidUUID(productId)) return;
     
     try {
+      console.log(`Anuluję poprzednie rezerwacje dla produktu ${productId} i użytkownika ${user.id}`);
       const { error } = await supabase
         .from('product_orders')
         .update({ 
@@ -139,22 +161,7 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
     }
   }, [user, productId]);
   
-  const checkExpiredReservations = useCallback(async () => {
-    try {
-      console.log('Wywołuję procedurę cleanup_expired_orders...');
-      const { data, error } = await supabase.rpc('cleanup_expired_orders');
-      
-      if (error) {
-        console.error('Błąd podczas sprawdzania wygasłych rezerwacji:', error);
-      } else {
-        console.log('Sprawdzenie wygasłych rezerwacji zakończone pomyślnie', data);
-      }
-    } catch (err) {
-      console.error('Nieoczekiwany błąd podczas sprawdzania wygasłych rezerwacji:', err);
-    }
-  }, []);
-  
-  // initiateOrder now comes after checkExistingReservation is defined
+  // Funkcja inicjująca zamówienie
   const initiateOrder = useCallback(async (product: any, isTestMode: boolean) => {
     if (!user || !product) {
       console.error("Brak użytkownika lub produktu!");
@@ -262,20 +269,7 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
     }
   }, [user, checkExistingReservation]);
   
-  // Sprawdź istniejącą rezerwację przy montowaniu komponentu
-  useEffect(() => {
-    if (user && productId && isValidUUID(productId)) {
-      console.log("Sprawdzam istniejącą rezerwację dla:", productId);
-      checkExistingReservation().then(data => {
-        if (data) {
-          console.log("Znaleziono istniejącą rezerwację po załadowaniu:", data);
-        }
-      });
-    } else if (productId && !isValidUUID(productId)) {
-      console.error("Nieprawidłowy format ID produktu:", productId);
-    }
-  }, [user?.id, productId, checkExistingReservation]);
-  
+  // Funkcja potwierdzająca zamówienie
   const confirmOrder = async (orderDetails: {
     address: string;
     city: string;
@@ -321,6 +315,7 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
     }
   };
   
+  // Funkcja inicjująca płatność
   const initiatePayment = async () => {
     if (!reservationData || !user) return null;
     
@@ -388,6 +383,7 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
     }
   };
   
+  // Funkcja obsługująca wynik płatności
   const handlePaymentResult = async (success: boolean) => {
     if (!reservationData || !paymentIntentData) return false;
     
@@ -416,6 +412,7 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
     }
   };
   
+  // Funkcja anulująca płatność
   const cancelPayment = async () => {
     if (!paymentIntentData) return false;
     
@@ -441,6 +438,20 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
       return false;
     }
   };
+  
+  // Efekt sprawdzający istniejącą rezerwację przy montowaniu komponentu
+  useEffect(() => {
+    if (user && productId && isValidUUID(productId)) {
+      console.log("Sprawdzam istniejącą rezerwację dla:", productId);
+      checkExistingReservation().then(data => {
+        if (data) {
+          console.log("Znaleziono istniejącą rezerwację po załadowaniu:", data);
+        }
+      });
+    } else if (productId && !isValidUUID(productId)) {
+      console.error("Nieprawidłowy format ID produktu:", productId);
+    }
+  }, [user?.id, productId, checkExistingReservation]);
   
   return {
     isLoading,

@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
+import { toast } from "@/components/ui/use-toast";
 
 interface ConsultationBuyDialogProps {
   open: boolean;
@@ -32,7 +33,7 @@ export const ConsultationBuyDialog = ({
   const serviceFee = price * 0.015;
   const totalPrice = price * 1.015;
   
-  const handleBuy = () => {
+  const handleBuy = async () => {
     if (isProcessing) return;
     
     setIsProcessing(true);
@@ -44,17 +45,23 @@ export const ConsultationBuyDialog = ({
     
     try {
       // Wywołaj funkcję onBuy
-      onBuy();
+      await onBuy();
+      
+      toast({
+        title: "Sukces",
+        description: "Zamówienie zostało zainicjowane pomyślnie.",
+      });
+      
     } catch (error) {
       console.error("Błąd podczas przetwarzania zakupu:", error);
+      toast({
+        title: "Błąd zakupu",
+        description: "Wystąpił problem podczas przetwarzania zakupu. Spróbuj ponownie.",
+        variant: "destructive",
+      });
+    } finally {
       setIsProcessing(false);
     }
-    
-    // Dla bezpieczeństwa resetujemy stan przetwarzania po 3 sekundach,
-    // ale nie zamykamy dialogu automatycznie
-    setTimeout(() => {
-      setIsProcessing(false);
-    }, 3000);
   };
   
   return (

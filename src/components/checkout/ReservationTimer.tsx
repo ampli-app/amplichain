@@ -13,6 +13,11 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
 
   const calculateTimeLeft = useCallback(() => {
     try {
+      if (!expiresAt) {
+        console.log("Brak daty wygaśnięcia rezerwacji");
+        return;
+      }
+      
       const expiryTime = new Date(expiresAt).getTime();
       const now = new Date().getTime();
       const difference = expiryTime - now;
@@ -20,7 +25,6 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
       if (difference <= 0) {
         console.log("Rezerwacja wygasła! Czas wygaśnięcia:", expiresAt);
         
-        // Ustaw stan expired tylko jeśli jeszcze nie jest ustawiony
         if (!expired) {
           setExpired(true);
           setTimeLeft({ minutes: 0, seconds: 0 });
@@ -43,17 +47,22 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
     // Reset stanu expired przy zmianie expiresAt
     if (expiresAt) {
       setExpired(false);
+      
+      // Wykonaj obliczenie od razu przy montowaniu komponentu
+      calculateTimeLeft();
+      
+      // Ustaw interwał co sekundę
+      const interval = setInterval(calculateTimeLeft, 1000);
+      
+      // Wyczyść interwał przy odmontowaniu komponentu
+      return () => clearInterval(interval);
     }
-    
-    // Wykonaj obliczenie od razu przy montowaniu komponentu
-    calculateTimeLeft();
-    
-    // Ustaw interwał co sekundę
-    const interval = setInterval(calculateTimeLeft, 1000);
-    
-    // Wyczyść interwał przy odmontowaniu komponentu
-    return () => clearInterval(interval);
   }, [calculateTimeLeft, expiresAt]);
+
+  // Jeśli nie ma daty wygaśnięcia, nie renderuj timera
+  if (!expiresAt) {
+    return null;
+  }
 
   return (
     <div className="flex items-center justify-center text-sm font-medium">
