@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 
 interface ReservationTimerProps {
@@ -11,39 +11,40 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
   const [timeLeft, setTimeLeft] = useState<{ minutes: number; seconds: number }>({ minutes: 0, seconds: 0 });
   const [expired, setExpired] = useState(false);
 
-  const calculateTimeLeft = useCallback(() => {
-    try {
-      if (!expiresAt) {
-        console.log("Brak daty wygaśnięcia rezerwacji");
-        return;
-      }
-      
-      const expiryTime = new Date(expiresAt).getTime();
-      const now = new Date().getTime();
-      const difference = expiryTime - now;
-      
-      if (difference <= 0) {
-        console.log("Rezerwacja wygasła! Czas wygaśnięcia:", expiresAt);
-        
-        if (!expired) {
-          setExpired(true);
-          setTimeLeft({ minutes: 0, seconds: 0 });
-          onExpire();
-        }
-        return;
-      }
-      
-      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-      
-      setTimeLeft({ minutes, seconds });
-    } catch (error) {
-      console.error("Błąd podczas kalkulacji czasu:", error);
-      setTimeLeft({ minutes: 0, seconds: 0 });
-    }
-  }, [expiresAt, expired, onExpire]);
-
   useEffect(() => {
+    // Funkcja do kalkulacji pozostałego czasu
+    const calculateTimeLeft = () => {
+      try {
+        if (!expiresAt) {
+          console.log("Brak daty wygaśnięcia rezerwacji");
+          return;
+        }
+        
+        const expiryTime = new Date(expiresAt).getTime();
+        const now = new Date().getTime();
+        const difference = expiryTime - now;
+        
+        if (difference <= 0) {
+          console.log("Rezerwacja wygasła! Czas wygaśnięcia:", expiresAt);
+          
+          if (!expired) {
+            setExpired(true);
+            setTimeLeft({ minutes: 0, seconds: 0 });
+            onExpire();
+          }
+          return;
+        }
+        
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+        
+        setTimeLeft({ minutes, seconds });
+      } catch (error) {
+        console.error("Błąd podczas kalkulacji czasu:", error);
+        setTimeLeft({ minutes: 0, seconds: 0 });
+      }
+    };
+
     // Reset stanu expired przy zmianie expiresAt
     if (expiresAt) {
       setExpired(false);
@@ -57,7 +58,7 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
       // Wyczyść interwał przy odmontowaniu komponentu
       return () => clearInterval(interval);
     }
-  }, [calculateTimeLeft, expiresAt]);
+  }, [expiresAt, expired, onExpire]);
 
   // Jeśli nie ma daty wygaśnięcia, nie renderuj timera
   if (!expiresAt) {

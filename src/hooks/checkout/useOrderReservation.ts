@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -270,13 +269,7 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
   }, [user, checkExistingReservation]);
   
   // Funkcja potwierdzająca zamówienie
-  const confirmOrder = async (orderDetails: {
-    address: string;
-    city: string;
-    postalCode: string;
-    comments?: string;
-    paymentMethod: string;
-  }) => {
+  const confirmOrder = async (orderDetails: any) => {
     if (!reservationData || !user) return false;
     
     try {

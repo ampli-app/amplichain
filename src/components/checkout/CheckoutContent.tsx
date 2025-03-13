@@ -35,6 +35,7 @@ export function CheckoutContent({
 }: CheckoutContentProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [initializing, setInitializing] = useState(true);
   
   const checkout = useCheckout({ 
     productId: productId, 
@@ -42,6 +43,7 @@ export function CheckoutContent({
   });
   
   const { 
+    isLoading,
     reservationData, 
     reservationExpiresAt,
     initiateOrder,
@@ -59,15 +61,19 @@ export function CheckoutContent({
   
   // Efekt do inicjalizacji rezerwacji
   useEffect(() => {
+    let mounted = true;
+    
     const handleReservation = async () => {
       if (!checkout.product || !user) {
         console.log("Brak produktu lub użytkownika, nie inicjuję rezerwacji");
+        setInitializing(false);
         return;
       }
       
       // Jeśli inicjalizacja już się odbyła, nie rób nic
       if (orderInitialized) {
         console.log("Zamówienie już zainicjowane, pomijam inicjalizację");
+        setInitializing(false);
         return;
       }
       
@@ -80,43 +86,52 @@ export function CheckoutContent({
         // Sprawdź istniejącą rezerwację
         const existingReservation = await checkExistingReservation();
         
-        if (existingReservation) {
+        if (existingReservation && mounted) {
           console.log("Znaleziono istniejącą rezerwację:", existingReservation);
           setOrderInitialized(true);
+          setInitializing(false);
           return;
         }
         
-        // Jeśli nie ma istniejącej rezerwacji, utwórz nową
-        console.log("Brak rezerwacji, tworzymy nową");
-        await cancelPreviousReservations();
-        
-        // Upewnijmy się, że przekazujemy owner_id jeśli nie ma user_id
-        const productWithSeller = {
-          ...checkout.product,
-          user_id: checkout.product.user_id || checkout.product.owner_id
-        };
-        
-        console.log("Inicjowanie zamówienia z produktem:", productWithSeller);
-        const reservation = await initiateOrder(productWithSeller, isTestMode);
-        
-        if (reservation) {
-          console.log("Rezerwacja utworzona pomyślnie:", reservation);
-          setOrderInitialized(true);
-        } else {
-          console.error("Nie udało się utworzyć rezerwacji");
-          toast({
-            title: "Błąd rezerwacji",
-            description: "Nie udało się utworzyć rezerwacji produktu.",
-            variant: "destructive",
-          });
+        if (mounted) {
+          // Jeśli nie ma istniejącej rezerwacji, utwórz nową
+          console.log("Brak rezerwacji, tworzymy nową");
+          await cancelPreviousReservations();
+          
+          // Upewnijmy się, że przekazujemy owner_id jeśli nie ma user_id
+          const productWithSeller = {
+            ...checkout.product,
+            user_id: checkout.product.user_id || checkout.product.owner_id
+          };
+          
+          console.log("Inicjowanie zamówienia z produktem:", productWithSeller);
+          const reservation = await initiateOrder(productWithSeller, isTestMode);
+          
+          if (reservation && mounted) {
+            console.log("Rezerwacja utworzona pomyślnie:", reservation);
+            setOrderInitialized(true);
+          } else if (mounted) {
+            console.error("Nie udało się utworzyć rezerwacji");
+            toast({
+              title: "Błąd rezerwacji",
+              description: "Nie udało się utworzyć rezerwacji produktu.",
+              variant: "destructive",
+            });
+          }
         }
       } catch (error) {
         console.error("Błąd podczas inicjalizacji rezerwacji:", error);
-        toast({
-          title: "Błąd rezerwacji",
-          description: "Wystąpił problem podczas inicjalizacji rezerwacji produktu.",
-          variant: "destructive",
-        });
+        if (mounted) {
+          toast({
+            title: "Błąd rezerwacji",
+            description: "Wystąpił problem podczas inicjalizacji rezerwacji produktu.",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        if (mounted) {
+          setInitializing(false);
+        }
       }
     };
     
@@ -129,7 +144,10 @@ export function CheckoutContent({
       }
     }, 30000);
     
-    return () => clearInterval(intervalId);
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
   }, [checkout.product, user, productId, orderInitialized, checkExpiredReservations, checkExistingReservation, cancelPreviousReservations, initiateOrder, isTestMode, setOrderInitialized]);
   
   // Wypełnij email użytkownika automatycznie
@@ -239,6 +257,18 @@ export function CheckoutContent({
       });
     }
   };
+  
+  // Pokaż indykator ładowania podczas inicjalizacji
+  if (initializing || isLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="space-y-4 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
+          <p>Inicjalizacja zamówienia...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <>
