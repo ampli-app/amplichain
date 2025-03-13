@@ -64,7 +64,15 @@ export default function Marketplace() {
           // Nie dodajemy specjalnej kategorii "all", gdyż teraz pokazujemy wszystkie domyślnie
         }
         
-        setCategories(filteredCategories);
+        // Upewniamy się, że kategorie mają poprawny format
+        const categoriesWithCorrectFormat: Category[] = filteredCategories.map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          slug: cat.slug,
+          description: cat.description || '' // Przekształcamy null na pusty string, jeśli potrzeba
+        }));
+        
+        setCategories(categoriesWithCorrectFormat);
       }
     } catch (err) {
       console.error('Unexpected error:', err);

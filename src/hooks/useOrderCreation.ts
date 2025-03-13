@@ -120,7 +120,7 @@ export const useOrderCreation = (userId: string | undefined) => {
         product_id: productData.id,
         buyer_id: userId,
         seller_id: productData.user_id,
-        total_amount: totalAmount.toString(), // Convert to string
+        total_amount: totalAmount, // Zmienione na number zamiast string
         delivery_option_id: deliveryOption.id,
         status: 'reserved',
         payment_method: 'Karta płatnicza',
@@ -131,7 +131,7 @@ export const useOrderCreation = (userId: string | undefined) => {
       
       const { data, error } = await supabase
         .from('product_orders')
-        .insert(orderData) // Pass the object directly
+        .insert(orderData)
         .select();
       
       if (error) {
