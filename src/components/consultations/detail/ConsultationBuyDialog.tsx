@@ -42,13 +42,19 @@ export const ConsultationBuyDialog = ({
       price
     });
     
-    // Wywołaj funkcję onBuy
-    onBuy();
+    try {
+      // Wywołaj funkcję onBuy
+      onBuy();
+    } catch (error) {
+      console.error("Błąd podczas przetwarzania zakupu:", error);
+      setIsProcessing(false);
+    }
     
-    // Resetuj stan przetwarzania po krótkim opóźnieniu
+    // Dla bezpieczeństwa resetujemy stan przetwarzania po 3 sekundach,
+    // ale nie zamykamy dialogu automatycznie
     setTimeout(() => {
       setIsProcessing(false);
-    }, 1000);
+    }, 3000);
   };
   
   return (

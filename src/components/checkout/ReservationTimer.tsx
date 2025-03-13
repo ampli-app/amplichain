@@ -19,11 +19,11 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
       
       if (difference <= 0) {
         console.log("Rezerwacja wygasła! Czas wygaśnięcia:", expiresAt);
-        setExpired(true);
-        setTimeLeft({ minutes: 0, seconds: 0 });
         
-        // Wywołaj funkcję callback tylko jeśli wcześniej nie wygasło
+        // Ustaw stan expired tylko jeśli jeszcze nie jest ustawiony
         if (!expired) {
+          setExpired(true);
+          setTimeLeft({ minutes: 0, seconds: 0 });
           onExpire();
         }
         return;
@@ -40,6 +40,11 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
   }, [expiresAt, expired, onExpire]);
 
   useEffect(() => {
+    // Reset stanu expired przy zmianie expiresAt
+    if (expiresAt) {
+      setExpired(false);
+    }
+    
     // Wykonaj obliczenie od razu przy montowaniu komponentu
     calculateTimeLeft();
     
@@ -48,7 +53,7 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
     
     // Wyczyść interwał przy odmontowaniu komponentu
     return () => clearInterval(interval);
-  }, [calculateTimeLeft]);
+  }, [calculateTimeLeft, expiresAt]);
 
   return (
     <div className="flex items-center justify-center text-sm font-medium">
