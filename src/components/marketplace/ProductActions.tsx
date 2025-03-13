@@ -5,8 +5,6 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { isValidUUID } from '@/utils/orderUtils';
 
 interface ProductActionsProps {
   id: string;
@@ -20,7 +18,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
   const location = useLocation();
   const { isLoggedIn } = useAuth();
   const isDiscoverPage = location.pathname === '/discover';
-  const [isReserving, setIsReserving] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const handleViewProduct = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -44,17 +42,12 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
   
   const handleBuyNow = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log("Kliknięto przycisk Kup Teraz dla produktu:", id);
     
     // Blokowanie wielokrotnych kliknięć
-    if (isReserving) {
-      console.log("Proces rezerwacji już trwa, blokuję ponowne kliknięcie");
-      return;
-    }
+    if (isProcessing) return;
     
     // Sprawdzenie, czy użytkownik jest zalogowany
     if (!isLoggedIn) {
-      console.log("Użytkownik nie jest zalogowany, przekierowuję do logowania");
       toast({
         title: "Wymagane logowanie",
         description: "Aby dokonać zakupu, musisz być zalogowany.",
@@ -64,40 +57,26 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       return;
     }
     
-    // Walidacja ID produktu
-    if (!isValidUUID(id)) {
-      console.error("Nieprawidłowy format ID produktu:", id);
-      toast({
-        title: "Błąd produktu",
-        description: "Nieprawidłowy format ID produktu. Prosimy o kontakt z administracją.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsReserving(true);
+    setIsProcessing(true);
     
     try {
       // Jeśli dostarczono funkcję onBuyNow, użyj jej
       if (onBuyNow) {
-        console.log("Używam dostarczonej funkcji onBuyNow");
         onBuyNow();
         return;
       }
       
       // Sprawdź, czy URL zawiera parametr trybu testowego
       const isTestMode = location.search.includes('mode=test');
-      console.log("Tryb testowy:", isTestMode);
       
-      // Przekieruj natychmiast do ekranu checkout
+      // Bezpośrednie przekierowanie do checkout
       const checkoutUrl = isTestMode 
         ? `/checkout/${id}?mode=test` 
         : `/checkout/${id}`;
       
-      console.log("Przekierowanie do:", checkoutUrl);
       toast({
         title: "Przechodzę do finalizacji",
-        description: "Trwa inicjowanie zamówienia...",
+        description: "Przygotowuję zamówienie...",
       });
       navigate(checkoutUrl);
     } catch (error) {
@@ -107,7 +86,8 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         description: "Wystąpił problem podczas inicjowania zamówienia.",
         variant: "destructive",
       });
-      setIsReserving(false);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -133,12 +113,12 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
             size="sm"
             className="flex items-center gap-1 h-9"
             onClick={handleBuyNow}
-            disabled={isReserving}
+            disabled={isProcessing}
             title="Kup teraz"
           >
             <ShoppingCart className="h-4 w-4" />
             <span className={isDiscoverPage ? "hidden" : "hidden sm:inline"}>
-              {isReserving ? "Rezerwowanie..." : "Kup teraz"}
+              {isProcessing ? "Przetwarzanie..." : "Kup teraz"}
             </span>
           </Button>
         )}

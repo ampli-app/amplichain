@@ -2,7 +2,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderData } from './useOrderReservationType';
-import { isValidUUID } from '@/utils/orderUtils';
 import { toast } from '@/components/ui/use-toast';
 
 export const useReservationCreation = ({ productId, isTestMode = false }: { productId: string, isTestMode?: boolean }) => {
@@ -17,17 +16,6 @@ export const useReservationCreation = ({ productId, isTestMode = false }: { prod
       return null;
     }
     
-    // Sprawdź poprawność ID produktu
-    if (!isValidUUID(product.id)) {
-      console.error("Nieprawidłowy format ID produktu:", product.id);
-      toast({
-        title: "Błąd produktu",
-        description: "Nieprawidłowy format ID produktu. Prosimy o kontakt z administracją.",
-        variant: "destructive",
-      });
-      return null;
-    }
-    
     setIsLoading(true);
     
     try {
@@ -35,7 +23,6 @@ export const useReservationCreation = ({ productId, isTestMode = false }: { prod
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        console.error("Użytkownik nie jest zalogowany");
         toast({
           title: "Wymagane logowanie",
           description: "Aby dokonać zakupu, musisz być zalogowany.",
@@ -52,7 +39,6 @@ export const useReservationCreation = ({ productId, isTestMode = false }: { prod
         .single();
       
       if (productError || !productData) {
-        console.error("Błąd podczas pobierania produktu:", productError);
         toast({
           title: "Błąd produktu",
           description: "Nie udało się pobrać informacji o produkcie. Spróbuj ponownie.",
@@ -65,7 +51,6 @@ export const useReservationCreation = ({ productId, isTestMode = false }: { prod
       const sellerId = productData.user_id;
       
       if (!sellerId) {
-        console.error("Brak ID właściciela produktu");
         toast({
           title: "Błąd produktu",
           description: "Nie można określić właściciela produktu. Spróbuj ponownie.",
@@ -76,7 +61,6 @@ export const useReservationCreation = ({ productId, isTestMode = false }: { prod
       
       // Sprawdź, czy sprzedawca nie jest kupującym
       if (sellerId === user.id) {
-        console.error("Użytkownik próbuje kupić własny produkt");
         toast({
           title: "Operacja niemożliwa",
           description: "Nie możesz kupić własnego produktu.",
@@ -121,7 +105,6 @@ export const useReservationCreation = ({ productId, isTestMode = false }: { prod
         .single();
       
       if (orderError || !orderData) {
-        console.error("Błąd tworzenia rezerwacji:", orderError);
         toast({
           title: "Błąd rezerwacji",
           description: "Nie udało się utworzyć rezerwacji. Spróbuj ponownie.",
@@ -130,7 +113,6 @@ export const useReservationCreation = ({ productId, isTestMode = false }: { prod
         return null;
       }
       
-      console.log("Utworzono rezerwację:", orderData);
       setReservationData(orderData);
       setReservationExpiresAt(orderData.reservation_expires_at);
       

@@ -2,7 +2,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderData } from './useOrderReservationType';
-import { isValidUUID } from '@/utils/orderUtils';
 
 export const useReservationCheck = ({
   productId,
@@ -18,8 +17,8 @@ export const useReservationCheck = ({
   
   // Funkcja sprawdzająca istniejącą rezerwację
   const checkExistingReservation = useCallback(async () => {
-    if (!productId || !isValidUUID(productId)) {
-      console.log("Brak prawidłowego ID produktu");
+    if (!productId) {
+      console.log("Brak ID produktu");
       return null;
     }
     
@@ -83,7 +82,7 @@ export const useReservationCheck = ({
       if (error) {
         console.error('Błąd podczas sprawdzania wygasłych rezerwacji:', error);
       } else {
-        console.log('Sprawdzenie wygasłych rezerwacji zakończone pomyślnie', data);
+        console.log('Sprawdzenie wygasłych rezerwacji zakończone pomyślnie');
       }
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas sprawdzania wygasłych rezerwacji:', err);

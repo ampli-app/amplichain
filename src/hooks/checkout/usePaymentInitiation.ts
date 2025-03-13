@@ -6,121 +6,126 @@ import { toast } from '@/components/ui/use-toast';
 
 export const usePaymentInitiation = (reservationData: OrderData | null) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   
-  // Funkcja inicjująca płatność
-  const initiatePayment = useCallback(async () => {
+  const initiatePayment = useCallback(async (paymentMethod: string) => {
     if (!reservationData) {
-      console.error("Brak danych rezerwacji przy inicjowaniu płatności");
+      console.error("Brak danych rezerwacji do zainicjowania płatności");
+      setPaymentError("Brak danych rezerwacji");
       return null;
     }
     
     setIsLoading(true);
+    setPaymentError(null);
     
     try {
-      // Pobierz aktualne dane użytkownika
+      // Pobranie użytkownika
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        console.error("Użytkownik nie jest zalogowany");
-        toast({
-          title: "Wymagane logowanie",
-          description: "Aby dokonać płatności, musisz być zalogowany.",
-          variant: "destructive",
-        });
+        setPaymentError("Użytkownik nie jest zalogowany");
         return null;
       }
       
-      // Przygotuj dane dla płatności
-      const amountInSmallestUnit = Math.round(reservationData.total_amount * 100); // Konwersja na grosze
-      
-      // Tworzenie intencji płatności
-      const { data: paymentData, error: paymentError } = await supabase
-        .from('payments')
-        .insert({
-          order_id: reservationData.id,
-          amount: reservationData.total_amount,
-          payment_method: 'stripe',
-          status: 'created',
-          client_secret: 'mock_secret_' + Date.now().toString(), // Konwersja na string
-          payment_intent_id: 'mock_intent_' + Date.now().toString() // Konwersja na string
-        })
-        .select()
+      // Pobranie profilu użytkownika dla danych kontaktowych
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', user.id)
         .single();
       
-      if (paymentError || !paymentData) {
-        console.error('Błąd tworzenia intencji płatności:', paymentError);
-        toast({
-          title: "Błąd płatności",
-          description: "Nie udało się zainicjować płatności. Spróbuj ponownie.",
-          variant: "destructive",
-        });
+      // Utwórz intencję płatności w Stripe poprzez RPC
+      const { data, error } = await supabase.rpc(
+        'create_stripe_payment_intent',
+        {
+          p_order_id: reservationData.id,
+          p_amount: Math.round(reservationData.total_amount * 100), // Konwersja na najmniejsze jednostki (grosze)
+          p_currency: 'pln',
+          p_payment_method: paymentMethod,
+          p_description: `Zamówienie #${reservationData.id.substring(0, 8)}`,
+          p_customer_email: user.email,
+          p_customer_name: profileData?.full_name || ''
+        }
+      );
+      
+      if (error) {
+        console.error("Błąd inicjacji płatności:", error);
+        setPaymentError("Nie udało się zainicjować płatności");
         return null;
       }
       
-      return paymentData;
+      console.log("Utworzono intencję płatności:", data);
+      
+      // Aktualizuj zamówienie z danymi płatności
+      await supabase
+        .from('product_orders')
+        .update({
+          payment_method: paymentMethod,
+          payment_intent_id: data.payment_intent_id,
+          updated_at: new Date().toISOString(),
+          status: 'pending_payment'
+        })
+        .eq('id', reservationData.id);
+      
+      return data;
+      
     } catch (err) {
-      console.error('Nieoczekiwany błąd podczas inicjowania płatności:', err);
-      toast({
-        title: "Błąd systemu",
-        description: "Wystąpił nieoczekiwany błąd podczas inicjowania płatności.",
-        variant: "destructive",
-      });
+      console.error("Nieoczekiwany błąd podczas inicjowania płatności:", err);
+      setPaymentError("Wystąpił nieoczekiwany błąd");
       return null;
     } finally {
       setIsLoading(false);
     }
   }, [reservationData]);
   
-  // Funkcja obsługująca wynik płatności
-  const handlePaymentResult = useCallback(async (success: boolean) => {
-    if (!reservationData) {
-      console.error("Brak danych rezerwacji przy aktualizacji płatności");
+  const handlePaymentResult = useCallback(async (result: any) => {
+    if (!reservationData) return;
+    
+    if (result.error) {
+      console.error("Błąd płatności:", result.error);
+      setPaymentError(result.error.message || "Wystąpił błąd podczas przetwarzania płatności");
+      
+      await supabase
+        .from('product_orders')
+        .update({
+          status: 'payment_failed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', reservationData.id);
+      
+      toast({
+        title: "Błąd płatności",
+        description: result.error.message || "Wystąpił błąd podczas przetwarzania płatności",
+        variant: "destructive",
+      });
+      
       return false;
     }
     
-    try {
-      if (success) {
-        // Aktualizacja statusu zamówienia
-        const { error } = await supabase
-          .from('product_orders')
-          .update({
-            status: 'payment_succeeded',
-            payment_status: 'paid',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', reservationData.id);
-        
-        if (error) {
-          console.error('Błąd aktualizacji statusu zamówienia:', error);
-          return false;
-        }
-        
-        return true;
-      } else {
-        // Aktualizacja statusu przy niepowodzeniu
-        const { error } = await supabase
-          .from('product_orders')
-          .update({
-            status: 'payment_failed',
-            payment_status: 'failed',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', reservationData.id);
-        
-        if (error) {
-          console.error('Błąd aktualizacji statusu zamówienia przy niepowodzeniu:', error);
-        }
-        
-        return false;
-      }
-    } catch (err) {
-      console.error('Nieoczekiwany błąd podczas aktualizacji statusu płatności:', err);
-      return false;
-    }
+    // Płatność zakończona sukcesem
+    setPaymentSuccess(true);
+    
+    await supabase
+      .from('product_orders')
+      .update({
+        status: 'payment_succeeded',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', reservationData.id);
+    
+    toast({
+      title: "Płatność zakończona",
+      description: "Twoja płatność została zrealizowana pomyślnie",
+    });
+    
+    return true;
   }, [reservationData]);
   
   return {
     isLoading,
+    paymentError,
+    paymentSuccess,
     initiatePayment,
     handlePaymentResult
   };

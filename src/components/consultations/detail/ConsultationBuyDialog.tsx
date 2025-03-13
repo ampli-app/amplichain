@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface ConsultationBuyDialogProps {
   open: boolean;
@@ -18,6 +19,7 @@ interface ConsultationBuyDialogProps {
   title: string;
   ownerName: string;
   price: number;
+  consultationId: string;
   onBuy: () => void;
 }
 
@@ -27,8 +29,10 @@ export const ConsultationBuyDialog = ({
   title,
   ownerName,
   price,
+  consultationId,
   onBuy
 }: ConsultationBuyDialogProps) => {
+  const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const serviceFee = price * 0.015;
   const totalPrice = price * 1.015;
@@ -37,20 +41,29 @@ export const ConsultationBuyDialog = ({
     if (isProcessing) return;
     
     setIsProcessing(true);
-    console.log("Kliknięto przycisk Kup w dialogu dla konsultacji", {
+    console.log("Kliknięto przycisk Kup dla konsultacji", {
       title,
       ownerName,
-      price
+      price,
+      consultationId
     });
     
     try {
-      // Wywołaj funkcję onBuy
-      await onBuy();
+      // Wywołaj funkcję onBuy lub przejdź do checkout
+      if (onBuy) {
+        await onBuy();
+      } else {
+        // Przekieruj do strony finalizacji konsultacji
+        navigate(`/checkout/consultation/${consultationId}`);
+      }
       
       toast({
         title: "Sukces",
         description: "Zamówienie zostało zainicjowane pomyślnie.",
       });
+      
+      // Zamknij dialog
+      onOpenChange(false);
       
     } catch (error) {
       console.error("Błąd podczas przetwarzania zakupu:", error);
