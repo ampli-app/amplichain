@@ -137,8 +137,8 @@ export const useOrderCreation = (userId: string | undefined) => {
       const deliveryOption = deliveryOptions[0];
       
       const productPrice = isTestMode && productData.testing_price 
-        ? parseFloat(productData.testing_price) 
-        : parseFloat(productData.price);
+        ? productData.testing_price 
+        : productData.price;
       
       const totalAmount = productPrice + deliveryOption.price;
       
