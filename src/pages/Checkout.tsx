@@ -10,12 +10,7 @@ import { ReservationExpiredState } from '@/components/checkout/ReservationExpire
 import { useCheckout } from '@/hooks/checkout/useCheckout';
 import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
 import { toast } from '@/components/ui/use-toast';
-
-// Helper function to validate UUID format
-const isValidUUID = (uuid: string) => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
-};
+import { isValidUUID } from '@/utils/orderUtils';
 
 export default function Checkout() {
   const { id } = useParams<{ id: string }>();
@@ -48,7 +43,7 @@ export default function Checkout() {
     isTestMode 
   });
   
-  const { isLoading: isReservationLoading, reservationExpiresAt } = useOrderReservation({ 
+  const { isLoading: isReservationLoading, reservationExpiresAt, reservationData } = useOrderReservation({ 
     productId: id && isValidUUID(id) ? id : '', 
     isTestMode 
   });
@@ -62,7 +57,7 @@ export default function Checkout() {
         description: "Aby dokonać zakupu, musisz być zalogowany.",
         variant: "destructive",
       });
-      navigate('/login');
+      navigate('/login', { state: { returnUrl: location.pathname + location.search }});
       return;
     }
     
@@ -78,7 +73,15 @@ export default function Checkout() {
     }
     
     console.log("Checkout zainicjowany dla produktu:", id, "Mode:", isTestMode ? "test" : "purchase", "User:", user?.id);
-  }, [id, isLoggedIn, navigate, isTestMode, user?.id]);
+  }, [id, isLoggedIn, navigate, isTestMode, user?.id, location.pathname, location.search]);
+  
+  // Dodatkowy efekt - jeśli mamy dane rezerwacji, ustaw orderInitialized na true
+  useEffect(() => {
+    if (reservationData && !orderInitialized) {
+      console.log("Mamy dane rezerwacji, ustawiamy orderInitialized na true");
+      setOrderInitialized(true);
+    }
+  }, [reservationData, orderInitialized]);
   
   // Dodatkowy efekt do debugowania
   useEffect(() => {
@@ -90,7 +93,8 @@ export default function Checkout() {
       productLoading: checkout.isLoading,
       reservationLoading: isReservationLoading,
       product: checkout.product ? "załadowany" : "brak",
-      deliveryOptions: checkout.deliveryOptions.length
+      deliveryOptions: checkout.deliveryOptions.length,
+      reservationData: reservationData ? "dostępne" : "brak"
     });
   }, [
     id, 
@@ -100,7 +104,8 @@ export default function Checkout() {
     checkout.isLoading, 
     isReservationLoading, 
     checkout.product,
-    checkout.deliveryOptions.length
+    checkout.deliveryOptions.length,
+    reservationData
   ]);
   
   const handleReservationExpire = () => {

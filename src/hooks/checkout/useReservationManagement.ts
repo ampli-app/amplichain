@@ -151,6 +151,7 @@ export const useReservationManagement = (userId: string | undefined) => {
     
     try {
       console.log("Inicjowanie zamówienia dla produktu:", product.id);
+      console.log("Dane produktu:", product);
       
       // Najpierw sprawdźmy, czy już istnieje aktywna rezerwacja dla tego użytkownika i produktu
       const existingReservation = await checkExistingReservation(product.id);
@@ -159,9 +160,10 @@ export const useReservationManagement = (userId: string | undefined) => {
         return existingReservation;
       }
       
-      // Najpierw upewnijmy się, że mamy ID właściciela produktu
-      if (!product.user_id) {
-        console.error('Brak ID właściciela produktu!');
+      // Upewnijmy się, że mamy ID właściciela produktu
+      const sellerId = product.user_id || product.owner_id;
+      if (!sellerId) {
+        console.error('Brak ID właściciela produktu!', product);
         toast({
           title: "Błąd",
           description: "Nie można określić sprzedawcy dla tego produktu. Prosimy o kontakt z administracją.",
@@ -170,7 +172,6 @@ export const useReservationManagement = (userId: string | undefined) => {
         return null;
       }
       
-      const sellerId = product.user_id;
       const price = isTestMode && product.testing_price 
         ? parseFloat(product.testing_price) 
         : parseFloat(product.price);

@@ -59,7 +59,17 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         description: "Aby dokonać zakupu, musisz być zalogowany.",
         variant: "destructive",
       });
-      navigate('/login');
+      navigate('/login', { state: { returnUrl: `/checkout/${id}` }});
+      return;
+    }
+    
+    if (!isValidUUID(id)) {
+      console.error("Nieprawidłowy format ID produktu:", id);
+      toast({
+        title: "Błąd produktu",
+        description: "Nieprawidłowy format ID produktu. Prosimy o kontakt z administracją.",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -76,6 +86,35 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       const isTestMode = location.search.includes('mode=test');
       console.log("Tryb testowy:", isTestMode);
       
+      // Sprawdź, czy produkt istnieje
+      const { data: productData, error: productError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (productError) {
+        console.error("Błąd podczas sprawdzania produktu:", productError);
+        toast({
+          title: "Błąd produktu",
+          description: "Nie udało się pobrać danych produktu. Spróbuj ponownie później.",
+          variant: "destructive",
+        });
+        setIsReserving(false);
+        return;
+      }
+      
+      if (!productData) {
+        console.error("Nie znaleziono produktu o ID:", id);
+        toast({
+          title: "Błąd produktu",
+          description: "Nie znaleziono produktu. Spróbuj ponownie później.",
+          variant: "destructive",
+        });
+        setIsReserving(false);
+        return;
+      }
+      
       // Przekieruj natychmiast do ekranu koszyka
       const checkoutUrl = isTestMode 
         ? `/checkout/${id}?mode=test` 
@@ -90,7 +129,6 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         description: "Wystąpił problem podczas inicjowania zamówienia.",
         variant: "destructive",
       });
-    } finally {
       setIsReserving(false);
     }
   };
