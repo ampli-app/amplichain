@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
 export const useOrderCreation = (userId: string | undefined) => {
   const [orderCreated, setOrderCreated] = useState(false);
+  const isCreatingOrder = useRef(false);
   
   const testEndDate = new Date();
   testEndDate.setDate(testEndDate.getDate() + 7);
@@ -11,14 +12,21 @@ export const useOrderCreation = (userId: string | undefined) => {
   const createOrder = async (productData: any, isTestMode: boolean) => {
     if (!userId || !productData) return;
     
+    // Zabezpieczenie przed podwójnym wywołaniem
+    if (isCreatingOrder.current) {
+      console.log('Zamówienie jest już w trakcie tworzenia');
+      return;
+    }
+    
     try {
+      isCreatingOrder.current = true;
       console.log('Rozpoczynam tworzenie zamówienia dla produktu:', productData.id);
       console.log('ID użytkownika:', userId);
       
       // Sprawdź, czy produkt jest już zarezerwowany
       const { data: existingOrders, error: fetchError } = await supabase
         .from('product_orders')
-        .select('id, status, buyer_id')
+        .select('id, status, buyer_id, reservation_expires_at')
         .eq('product_id', productData.id)
         .in('status', ['reserved', 'confirmed'])
         .order('created_at', { ascending: false })
@@ -37,27 +45,40 @@ export const useOrderCreation = (userId: string | undefined) => {
           orderId: order.id,
           status: order.status,
           buyerId: order.buyer_id,
-          currentUserId: userId
+          currentUserId: userId,
+          reservationExpiresAt: order.reservation_expires_at
         });
         
         if (order.status === 'reserved') {
-          if (order.buyer_id === userId) {
-            console.log('Produkt już zarezerwowany przez tego samego użytkownika');
-            toast({
-              title: "Produkt już zarezerwowany",
-              description: "Ten produkt jest już w Twoim koszyku.",
-              variant: "default",
-            });
-            setOrderCreated(true);
+          // Sprawdź, czy rezerwacja nie wygasła
+          const now = new Date();
+          const expiresAt = order.reservation_expires_at ? new Date(order.reservation_expires_at) : null;
+          
+          if (expiresAt && expiresAt > now) {
+            if (order.buyer_id === userId) {
+              console.log('Produkt już zarezerwowany przez tego samego użytkownika');
+              toast({
+                title: "Produkt już zarezerwowany",
+                description: "Ten produkt jest już w Twoim koszyku.",
+                variant: "default",
+              });
+              setOrderCreated(true);
+            } else {
+              console.log('Produkt zarezerwowany przez innego użytkownika');
+              toast({
+                title: "Produkt niedostępny",
+                description: "Ten produkt jest obecnie zarezerwowany przez innego kupującego.",
+                variant: "destructive",
+              });
+            }
           } else {
-            console.log('Produkt zarezerwowany przez innego użytkownika');
-            toast({
-              title: "Produkt niedostępny",
-              description: "Ten produkt jest obecnie zarezerwowany przez innego kupującego.",
-              variant: "destructive",
-            });
+            console.log('Rezerwacja wygasła, można utworzyć nowe zamówienie');
+            // Aktualizuj status wygasłego zamówienia
+            await supabase
+              .from('product_orders')
+              .update({ status: 'reservation_expired' })
+              .eq('id', order.id);
           }
-          return;
         }
       } else {
         console.log('Nie znaleziono zarezerwowanych zamówień dla tego produktu');
@@ -127,6 +148,8 @@ export const useOrderCreation = (userId: string | undefined) => {
       }
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas tworzenia zamówienia:', err);
+    } finally {
+      isCreatingOrder.current = false;
     }
   };
   
