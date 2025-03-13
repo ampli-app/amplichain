@@ -6,6 +6,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { isValidUUID } from '@/utils/orderUtils';
 
 interface ProductActionsProps {
   id: string;
