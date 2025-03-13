@@ -1,7 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { OrderData } from './useOrderReservationType';
+import { OrderData, OrderDetails } from './useOrderReservationType';
 import { isValidUUID } from '@/utils/orderUtils';
 import { toast } from '@/components/ui/use-toast';
 
@@ -231,7 +231,7 @@ export const useReservationManagement = (userId: string | undefined) => {
       });
       return null;
     }
-  }, [userId, checkExistingReservation, cancelPreviousReservations]);
+  }, [userId, checkExistingReservation]);
   
   // Funkcja potwierdzająca zamówienie
   const confirmOrder = async (orderDetails: OrderDetails) => {
