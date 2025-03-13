@@ -15,6 +15,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
   const [reservationData, setReservationData] = useState<any>(null);
   const [reservationExpiresAt, setReservationExpiresAt] = useState<Date | null>(null);
   const [paymentDeadline, setPaymentDeadline] = useState<Date | null>(null);
+  const [isOrderInitiated, setIsOrderInitiated] = useState(false); // Nowy stan kontrolujący, czy już zainicjowano zamówienie
   
   const checkExpiredReservations = async () => {
     if (!user) return;
@@ -162,8 +163,15 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       return null;
     }
     
+    // Zabezpieczenie przed podwójnym wywołaniem
+    if (isOrderInitiated) {
+      console.log('Zamówienie jest już w trakcie inicjowania - zapobieganie duplikatom');
+      return reservationData;
+    }
+    
     try {
       setIsLoading(true);
+      setIsOrderInitiated(true); // Ustawiamy flagę przed rozpoczęciem procesu
       
       await checkExpiredReservations();
       
@@ -266,6 +274,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       return null;
     } finally {
       setIsLoading(false);
+      setIsOrderInitiated(false); // Resetujemy flagę po zakończeniu procesu
     }
   };
   
@@ -472,8 +481,6 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       setIsLoading(false);
     }
   };
-  
-  // Usunięta druga definicja checkExpiredReservations
   
   useEffect(() => {
     if (user && productId) {

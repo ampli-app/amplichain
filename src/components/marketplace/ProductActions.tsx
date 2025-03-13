@@ -1,4 +1,3 @@
-
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, Pencil, Share2, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -74,6 +73,11 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       return;
     }
     
+    // Zapobiegaj wielokrotnemu kliknięciu
+    if (isReserving) {
+      return;
+    }
+    
     setIsReserving(true);
     
     try {
@@ -87,11 +91,13 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       if (product) {
         const reservation = await initiateOrder(product, isTestMode);
         if (reservation) {
+          // Dodaj parametr rezerwacji do URL
           if (isTestMode) {
-            navigate(`/checkout/${id}?mode=test`);
+            navigate(`/checkout/${id}?mode=test&orderId=${reservation.id}`);
           } else {
-            navigate(`/checkout/${id}`);
+            navigate(`/checkout/${id}?orderId=${reservation.id}`);
           }
+          return;
         }
       } else {
         // Jeśli nie mamy danych produktu, po prostu przekieruj do checkoutu
@@ -109,7 +115,10 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         variant: "destructive",
       });
     } finally {
-      setIsReserving(false);
+      // Opóźnij resetowanie stanu rezerwacji, aby zapobiec podwójnym kliknięciom
+      setTimeout(() => {
+        setIsReserving(false);
+      }, 1000);
     }
   };
 

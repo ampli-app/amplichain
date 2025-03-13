@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -28,6 +27,7 @@ export default function Checkout() {
   const { isLoggedIn, user } = useAuth();
   
   const [reservationExpired, setReservationExpired] = useState(false);
+  const [isProcessingReservation, setIsProcessingReservation] = useState(false);
   
   const checkout = useCheckout({ 
     productId: id || '', 
@@ -49,38 +49,39 @@ export default function Checkout() {
     isTestMode 
   });
   
-  // Inicjalizacja rezerwacji
   useEffect(() => {
     const handleReservation = async () => {
       if (!checkout.product || !user) return;
       
-      // Sprawdź i zaktualizuj wygasłe rezerwacje
       await checkExpiredReservations();
       
-      // Jeśli mamy orderId, próbujemy użyć istniejącej rezerwacji
       if (orderId) {
         console.log("Kontynuowanie istniejącego zamówienia z ID:", orderId);
-        // Pobieramy istniejącą rezerwację - nie tworzymy nowej
         const existingReservation = await checkExistingReservation();
         
         if (existingReservation) {
           console.log("Znaleziono istniejącą rezerwację:", existingReservation);
-          return; // Używamy istniejącej rezerwacji, nie tworzymy nowej
+          return;
         }
       }
       
-      // Jeśli nie mamy orderId lub nie znaleziono aktywnej rezerwacji, tworzymy nową
       if (!reservationData && !reservationExpired) {
-        // Anuluj wszystkie poprzednie rezerwacje przed utworzeniem nowej
         await cancelPreviousReservations();
         
-        const reservation = await initiateOrder(checkout.product, isTestMode);
-        if (!reservation) {
-          toast({
-            title: "Błąd rezerwacji",
-            description: "Nie udało się utworzyć rezerwacji produktu.",
-            variant: "destructive",
-          });
+        if (!isProcessingReservation) {
+          setIsProcessingReservation(true);
+          try {
+            const reservation = await initiateOrder(checkout.product, isTestMode);
+            if (!reservation) {
+              toast({
+                title: "Błąd rezerwacji",
+                description: "Nie udało się utworzyć rezerwacji produktu.",
+                variant: "destructive",
+              });
+            }
+          } finally {
+            setIsProcessingReservation(false);
+          }
         }
       }
     };
@@ -89,14 +90,12 @@ export default function Checkout() {
       handleReservation();
     }
     
-    // Ustawienie interwału sprawdzającego wygasłe rezerwacje co 30 sekund
     const intervalId = setInterval(() => {
       if (user && id) {
         checkExpiredReservations();
       }
-    }, 30000); // 30 sekund
+    }, 30000);
     
-    // Czyszczenie interwału po odmontowaniu komponentu
     return () => clearInterval(intervalId);
   }, [checkout.product, user, reservationData, reservationExpired]);
   
@@ -110,7 +109,6 @@ export default function Checkout() {
   }, [user?.email]);
   
   const handleReservationExpire = async () => {
-    // Jeśli mamy dane rezerwacji, oznacz ją jako wygasłą
     if (reservationData?.id) {
       await markReservationAsExpired(reservationData.id);
     }
@@ -130,7 +128,6 @@ export default function Checkout() {
       return;
     }
     
-    // Potwierdź zamówienie, aktualizując jego status i dodając dane dostawy
     const confirmed = await confirmOrder({
       address: checkout.formData.address,
       city: checkout.formData.city,
@@ -143,7 +140,6 @@ export default function Checkout() {
       return;
     }
     
-    // Symuluj proces płatności
     checkout.simulatePaymentProcessing((success) => {
       if (success) {
         toast({
