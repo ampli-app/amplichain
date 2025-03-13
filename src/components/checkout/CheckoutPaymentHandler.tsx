@@ -36,6 +36,7 @@ export function CheckoutPaymentHandler({
     e.preventDefault();
     
     if (!reservationData) {
+      console.error("Brak danych rezerwacji przy potwierdzaniu zamówienia");
       toast({
         title: "Błąd rezerwacji",
         description: "Nie znaleziono rezerwacji. Odśwież stronę i spróbuj ponownie.",

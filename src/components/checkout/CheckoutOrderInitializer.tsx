@@ -34,6 +34,7 @@ export function CheckoutOrderInitializer({
   // Efekt do inicjalizacji rezerwacji
   useEffect(() => {
     let mounted = true;
+    let timeoutId: NodeJS.Timeout;
     
     const handleReservation = async () => {
       if (!product || !user) {
@@ -60,8 +61,10 @@ export function CheckoutOrderInitializer({
         
         if (existingReservation && mounted) {
           console.log("Znaleziono istniejącą rezerwację:", existingReservation);
-          if (mounted) setOrderInitialized(true);
-          if (mounted) setInitializing(false);
+          if (mounted) {
+            setOrderInitialized(true);
+            setInitializing(false);
+          }
           return;
         }
         
@@ -81,7 +84,7 @@ export function CheckoutOrderInitializer({
           
           if (reservation && mounted) {
             console.log("Rezerwacja utworzona pomyślnie:", reservation);
-            if (mounted) setOrderInitialized(true);
+            setOrderInitialized(true);
           }
           
           // Zawsze ustaw setInitializing(false) po próbie rezerwacji, niezależnie od wyniku
@@ -100,8 +103,19 @@ export function CheckoutOrderInitializer({
       }
     };
     
-    // Uruchom inicjalizację tylko raz po załadowaniu komponentu
-    handleReservation();
+    // Uruchom inicjalizację z małym opóźnieniem, aby dać czas na załadowanie UI
+    timeoutId = setTimeout(() => {
+      handleReservation();
+    }, 100);
+    
+    // Dodajmy dodatkowy timeout, który zawsze zakończy stan ładowania 
+    // po 10 sekundach, aby nie dopuścić do zawieszenia interfejsu
+    const safetyTimeoutId = setTimeout(() => {
+      if (mounted && !orderInitialized) {
+        console.log("Timeout bezpieczeństwa - kończę inicjalizację");
+        setInitializing(false);
+      }
+    }, 10000);
     
     // Regularnie sprawdzaj wygasłe rezerwacje
     const intervalId = setInterval(() => {
@@ -112,6 +126,8 @@ export function CheckoutOrderInitializer({
     
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
+      clearTimeout(safetyTimeoutId);
       clearInterval(intervalId);
     };
   }, [product, user, productId, orderInitialized, checkExpiredReservations, checkExistingReservation, cancelPreviousReservations, initiateOrder, isTestMode, setOrderInitialized, setInitializing]);

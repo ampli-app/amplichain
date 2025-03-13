@@ -17,6 +17,7 @@ import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
 import { CheckoutOrderInitializer } from './CheckoutOrderInitializer';
 import { CheckoutFormManager } from './CheckoutFormManager';
 import { CheckoutPaymentHandler } from './CheckoutPaymentHandler';
+import { Loader2 } from 'lucide-react';
 
 interface CheckoutContentProps {
   productId: string;
@@ -38,6 +39,7 @@ export function CheckoutContent({
   const navigate = useNavigate();
   const { user } = useAuth();
   const [initializing, setInitializing] = useState(true);
+  const [initializationTimeout, setInitializationTimeout] = useState(false);
   
   const checkout = useCheckout({ 
     productId: productId, 
@@ -85,6 +87,30 @@ export function CheckoutContent({
     }
   }, [orderInitialized, initializing]);
   
+  // Dodajemy timer bezpieczeństwa, który zakończy inicjalizację po 15 sekundach
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    if (initializing) {
+      timeoutId = setTimeout(() => {
+        console.log("Timer bezpieczeństwa: 15 sekund oczekiwania na inicjalizację. Pokazuję przycisk ponowienia.");
+        setInitializationTimeout(true);
+        setInitializing(false);
+      }, 15000);
+    }
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [initializing]);
+  
+  // Handler do ponowienia inicjalizacji
+  const handleRetryInitialization = () => {
+    setInitializing(true);
+    setInitializationTimeout(false);
+    setOrderInitialized(false);
+  };
+  
   // Pokaż indykator ładowania podczas inicjalizacji
   if (initializing) {
     return (
@@ -92,6 +118,33 @@ export function CheckoutContent({
         <div className="space-y-4 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
           <p>Inicjalizacja zamówienia...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Pokazuje stan błędu inicjalizacji z możliwością ponowienia
+  if (initializationTimeout && !orderInitialized) {
+    return (
+      <div className="flex flex-col justify-center items-center py-12 space-y-6 text-center">
+        <div className="text-red-500">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-xl font-medium mb-2">Problem z inicjalizacją zamówienia</h3>
+          <p className="text-gray-500 mb-4">Nie udało się zainicjować zamówienia w oczekiwanym czasie. Możesz spróbować ponownie lub wrócić do strony produktu.</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button onClick={handleRetryInitialization}>
+              Spróbuj ponownie
+            </Button>
+            <Button variant="outline" onClick={() => navigate(`/marketplace/${productId}`)}>
+              Wróć do produktu
+            </Button>
+          </div>
         </div>
       </div>
     );

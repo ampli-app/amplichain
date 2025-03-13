@@ -24,12 +24,17 @@ export function CheckoutFormManager({
       const nameParts = fullName.split(' ');
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
+      const email = user.email || '';
+      const phone = user.user_metadata?.phone || '';
+      
+      console.log("Wypełniam dane użytkownika:", { firstName, lastName, email, phone });
       
       checkout.setFormData(prev => ({
         ...prev,
-        firstName: firstName,
-        lastName: lastName,
-        email: user.email || ''
+        firstName: prev.firstName || firstName,
+        lastName: prev.lastName || lastName,
+        email: prev.email || email,
+        phone: prev.phone || phone
       }));
     }
   }, [user, checkout]);
