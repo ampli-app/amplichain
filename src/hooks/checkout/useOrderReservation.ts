@@ -311,8 +311,8 @@ export const useOrderReservation = ({ productId, isTestMode = false }: { product
           amount: reservationData.total_amount,
           payment_method: 'stripe',
           status: 'created',
-          client_secret: 'mock_secret_' + Date.now(),
-          payment_intent_id: 'mock_intent_' + Date.now()
+          client_secret: 'mock_secret_' + Date.now().toString(),
+          payment_intent_id: 'mock_intent_' + Date.now().toString()
         })
         .select()
         .single();
