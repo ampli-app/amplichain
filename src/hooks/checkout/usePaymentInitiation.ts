@@ -28,6 +28,34 @@ export const usePaymentInitiation = (reservationData: OrderData | null) => {
         return null;
       }
       
+      // Tymczasowo symulujemy integrację ze Stripe - zwracamy fałszywe dane płatności
+      console.log("Symulacja płatności dla zamówienia:", reservationData.id);
+      
+      // Aktualizuj zamówienie z danymi płatności
+      await supabase
+        .from('product_orders')
+        .update({
+          payment_method: paymentMethod,
+          payment_intent_id: `sim_${Math.random().toString(36).substring(2, 15)}`,
+          updated_at: new Date().toISOString(),
+          status: 'pending_payment'
+        })
+        .eq('id', reservationData.id);
+      
+      // Zwróć symulowane dane płatności
+      const simulatedPayment = {
+        payment_intent_id: `sim_${Math.random().toString(36).substring(2, 15)}`,
+        client_secret: `sim_secret_${Math.random().toString(36).substring(2, 15)}`,
+        amount: parseFloat(reservationData.total_amount.toString()) * 100,
+        currency: 'pln'
+      };
+      
+      console.log("Symulowana płatność:", simulatedPayment);
+      return simulatedPayment;
+      
+      /* 
+      // ZAKOMENTOWANA INTEGRACJA ZE STRIPE
+      
       // Pobranie profilu użytkownika dla danych kontaktowych
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -48,7 +76,7 @@ export const usePaymentInitiation = (reservationData: OrderData | null) => {
         'create_stripe_payment_intent',
         {
           p_order_id: reservationData.id,
-          p_amount: Math.round(reservationData.total_amount ? reservationData.total_amount * 100 : 0), // Konwersja na najmniejsze jednostki (grosze)
+          p_amount: Math.round(reservationData.total_amount ? parseFloat(reservationData.total_amount.toString()) * 100 : 0),
           p_currency: 'pln',
           p_payment_method: paymentMethod,
           p_description: `Zamówienie #${reservationData.id.substring(0, 8)}`,
@@ -92,6 +120,7 @@ export const usePaymentInitiation = (reservationData: OrderData | null) => {
         setPaymentError("Otrzymano nieprawidłową odpowiedź z serwera płatności");
         return null;
       }
+      */
       
     } catch (err) {
       console.error("Nieoczekiwany błąd podczas inicjowania płatności:", err);
@@ -105,6 +134,7 @@ export const usePaymentInitiation = (reservationData: OrderData | null) => {
   const handlePaymentResult = useCallback(async (result: any) => {
     if (!reservationData) return false;
     
+    // Symulacja obsługi wyniku płatności
     if (result.error) {
       console.error("Błąd płatności:", result.error);
       setPaymentError(result.error.message || "Wystąpił błąd podczas przetwarzania płatności");

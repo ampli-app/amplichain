@@ -34,7 +34,25 @@ export const usePaymentProcessing = () => {
       
       const productData = order.products as any;
       const productTitle = productData?.title || 'Produkt';
-      const amount = order.total_amount * 100; // Stripe używa najmniejszych jednostek waluty (grosze)
+      const amount = parseFloat(order.total_amount) * 100; // Konwersja string na number i przeliczenie na grosze
+      
+      // Symulacja odpowiedzi z serwera płatności
+      console.log('Symulacja płatności dla zamówienia:', order.id);
+      
+      const simulatedPayment = {
+        payment_intent_id: `sim_${Math.random().toString(36).substring(2, 15)}`,
+        client_secret: `sim_secret_${Math.random().toString(36).substring(2, 15)}`,
+        amount: Math.round(amount),
+        currency: 'pln'
+      };
+      
+      console.log('Symulowana odpowiedź płatności:', simulatedPayment);
+      
+      setPaymentIntentData(simulatedPayment);
+      return simulatedPayment as PaymentIntentResponse;
+      
+      /* 
+      // ZAKOMENTOWANA INTEGRACJA ZE STRIPE
       
       // Wywołaj funkcję edge do obsługi płatności Stripe
       const { data, error } = await supabase.functions.invoke('stripe-payment', {
@@ -65,6 +83,7 @@ export const usePaymentProcessing = () => {
       
       setPaymentIntentData(data);
       return data as PaymentIntentResponse;
+      */
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas inicjowania płatności:', err);
       toast({
@@ -81,6 +100,28 @@ export const usePaymentProcessing = () => {
     if (!reservationData || !paymentIntentData) return false;
     
     try {
+      // Symulacja sprawdzenia statusu płatności
+      console.log('Symulacja sprawdzenia statusu płatności:', success ? 'succeeded' : 'failed');
+      
+      // Aktualizacja statusu zamówienia w bazie danych
+      const { error } = await supabase
+        .from('product_orders')
+        .update({
+          status: success ? 'payment_succeeded' : 'payment_failed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', reservationData.id);
+      
+      if (error) {
+        console.error('Błąd aktualizacji statusu zamówienia:', error);
+        return false;
+      }
+      
+      return true;
+      
+      /*
+      // ZAKOMENTOWANA INTEGRACJA ZE STRIPE
+      
       // Wywołanie funkcji edge do sprawdzenia statusu płatności
       const { data, error } = await supabase.functions.invoke('stripe-payment', {
         body: {
@@ -99,6 +140,7 @@ export const usePaymentProcessing = () => {
       console.log("Status płatności:", data);
       
       return true;
+      */
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas obsługi wyniku płatności:', err);
       return false;
@@ -110,6 +152,12 @@ export const usePaymentProcessing = () => {
     if (!paymentIntentData) return false;
     
     try {
+      console.log('Symulacja anulowania płatności:', paymentIntentData.payment_intent_id);
+      return true;
+      
+      /*
+      // ZAKOMENTOWANA INTEGRACJA ZE STRIPE
+      
       const { data, error } = await supabase.functions.invoke('stripe-payment', {
         body: {
           action: 'cancel_payment',
@@ -126,6 +174,7 @@ export const usePaymentProcessing = () => {
       
       console.log("Anulowano płatność:", data);
       return true;
+      */
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas anulowania płatności:', err);
       return false;

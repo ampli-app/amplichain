@@ -89,17 +89,17 @@ export const useReservationCreation = ({ productId, isTestMode = false }: { prod
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 10);
       
-      // Utwórz nową rezerwację - ważna zmiana: przekazujemy price jako number, ale konwertujemy daty na ISO string
+      // Utwórz nową rezerwację - konwersja price na string przy insert
       const { data: orderData, error: orderError } = await supabase
         .from('product_orders')
         .insert({
           product_id: product.id,
           buyer_id: user.id,
           seller_id: sellerId,
-          total_amount: price,
+          total_amount: price.toString(), // Konwersja na string
           status: 'reserved',
           order_type: isTestMode ? 'test' : 'purchase',
-          reservation_expires_at: expiresAt.toISOString() // Już jako string, nie wymaga konwersji
+          reservation_expires_at: expiresAt.toISOString()
         })
         .select()
         .single();

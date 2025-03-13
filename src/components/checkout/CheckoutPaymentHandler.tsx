@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
-import { loadStripe } from '@/components/checkout/LoadStripeScript';
+// import { loadStripe } from '@/components/checkout/LoadStripeScript';
 import { OrderDetails } from '@/hooks/checkout/useOrderReservationType';
 
 interface CheckoutPaymentHandlerProps {
@@ -84,6 +84,8 @@ export function CheckoutPaymentHandler({
       
       console.log("Zainicjowano płatność:", paymentIntent);
       
+      // Zakomentowana integracja ze Stripe
+      /*
       if (paymentMethod === 'stripe') {
         const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
         if (!stripe) {
@@ -121,31 +123,33 @@ export function CheckoutPaymentHandler({
           setIsProcessing(false);
         }
       } else {
-        // Symulacja płatności dla innych metod
-        simulatePaymentProcessing(async (success) => {
-          const updated = await handlePaymentResult(success ? { success: true } : { error: { message: "Płatność odrzucona" } });
+      */
+      
+      // Symulacja płatności dla wszystkich metod
+      simulatePaymentProcessing(async (success) => {
+        const updated = await handlePaymentResult(success ? { success: true } : { error: { message: "Płatność odrzucona" } });
+        
+        if (success && updated) {
+          toast({
+            title: "Płatność zaakceptowana",
+            description: "Twoje zamówienie zostało złożone pomyślnie!",
+          });
           
-          if (success && updated) {
-            toast({
-              title: "Płatność zaakceptowana",
-              description: "Twoje zamówienie zostało złożone pomyślnie!",
-            });
-            
-            const url = isTestMode 
-              ? `/checkout/success/${productId}?mode=test` 
-              : `/checkout/success/${productId}?mode=buy`;
-            
-            navigate(url);
-          } else {
-            toast({
-              title: "Błąd płatności",
-              description: "Wystąpił problem z płatnością. Spróbuj ponownie.",
-              variant: "destructive",
-            });
-            setIsProcessing(false);
-          }
-        });
-      }
+          const url = isTestMode 
+            ? `/checkout/success/${productId}?mode=test` 
+            : `/checkout/success/${productId}?mode=buy`;
+          
+          navigate(url);
+        } else {
+          toast({
+            title: "Błąd płatności",
+            description: "Wystąpił problem z płatnością. Spróbuj ponownie.",
+            variant: "destructive",
+          });
+          setIsProcessing(false);
+        }
+      });
+      //}
     } catch (error) {
       console.error("Błąd podczas przetwarzania płatności:", error);
       toast({
