@@ -38,7 +38,8 @@ export default function Checkout() {
     reservationExpiresAt,
     initiateOrder,
     confirmOrder,
-    cancelPreviousReservations
+    cancelPreviousReservations,
+    markReservationAsExpired
   } = useOrderReservation({ 
     productId: id || '', 
     isTestMode 
@@ -76,7 +77,12 @@ export default function Checkout() {
     }
   }, [user?.email]);
   
-  const handleReservationExpire = () => {
+  const handleReservationExpire = async () => {
+    // Jeśli mamy dane rezerwacji, oznacz ją jako wygasłą
+    if (reservationData?.id) {
+      await markReservationAsExpired(reservationData.id);
+    }
+    
     setReservationExpired(true);
     toast({
       title: "Rezerwacja wygasła",

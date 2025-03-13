@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -71,7 +70,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       const { error } = await supabase
         .from('product_orders')
         .update({ 
-          status: 'anulowane',
+          status: 'reservation_expired',
           updated_at: new Date().toISOString()
         })
         .eq('product_id', productId)
@@ -82,7 +81,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       if (error) {
         console.error('Błąd podczas anulowania poprzednich rezerwacji:', error);
       } else {
-        console.log('Poprzednie rezerwacje anulowane pomyślnie');
+        console.log('Poprzednie rezerwacje oznaczone jako wygasłe pomyślnie');
       }
       
       // Resetujemy lokalne dane rezerwacji
@@ -92,6 +91,34 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas anulowania rezerwacji:', err);
+    }
+  };
+  
+  // Oznaczenie rezerwacji jako wygasłej
+  const markReservationAsExpired = async (orderId: string) => {
+    if (!user || !orderId) return false;
+    
+    try {
+      console.log('Oznaczanie rezerwacji jako wygasłej, ID:', orderId);
+      
+      const { error } = await supabase
+        .from('product_orders')
+        .update({ 
+          status: 'reservation_expired',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+      
+      if (error) {
+        console.error('Błąd podczas oznaczania rezerwacji jako wygasłej:', error);
+        return false;
+      } else {
+        console.log('Rezerwacja oznaczona jako wygasła pomyślnie');
+        return true;
+      }
+    } catch (err) {
+      console.error('Nieoczekiwany błąd podczas oznaczania rezerwacji jako wygasłej:', err);
+      return false;
     }
   };
   
@@ -459,6 +486,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     initiatePayment,
     handlePaymentResult,
     checkExistingReservation,
-    cancelPreviousReservations
+    cancelPreviousReservations,
+    markReservationAsExpired
   };
 }

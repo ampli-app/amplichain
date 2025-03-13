@@ -156,7 +156,8 @@ export const useOrderManagement = () => {
       'przygotowane_do_wysyłki': 'Przygotowane do wysyłki',
       'wysłane': 'Wysłane',
       'dostarczone': 'Dostarczone',
-      'anulowane': 'Anulowane'
+      'anulowane': 'Anulowane',
+      'reservation_expired': 'Rezerwacja wygasła'  // Dodany nowy status
     };
     
     return statusMap[status] || status;

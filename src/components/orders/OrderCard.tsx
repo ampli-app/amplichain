@@ -40,7 +40,8 @@ export function OrderCard({
       'przygotowane_do_wysyłki': 'bg-purple-500',
       'wysłane': 'bg-indigo-500',
       'dostarczone': 'bg-green-500',
-      'anulowane': 'bg-red-500'
+      'anulowane': 'bg-red-500',
+      'reservation_expired': 'bg-gray-500'  // Dodany nowy status w kolorze szarym
     };
     
     return statusColorMap[status] || 'bg-gray-500';
