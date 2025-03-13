@@ -66,18 +66,18 @@ export function CheckoutContent({
     const handleReservation = async () => {
       if (!checkout.product || !user) {
         console.log("Brak produktu lub użytkownika, nie inicjuję rezerwacji");
-        setInitializing(false);
+        if (mounted) setInitializing(false);
         return;
       }
       
       // Jeśli inicjalizacja już się odbyła, nie rób nic
       if (orderInitialized) {
         console.log("Zamówienie już zainicjowane, pomijam inicjalizację");
-        setInitializing(false);
+        if (mounted) setInitializing(false);
         return;
       }
       
-      console.log("CheckoutContent: Inicjalizacja rezerwacji", { orderInitialized });
+      console.log("CheckoutContent: Inicjalizacja rezerwacji", { orderInitialized, productId });
       
       try {
         // Sprawdź wygasłe rezerwacje
@@ -88,8 +88,8 @@ export function CheckoutContent({
         
         if (existingReservation && mounted) {
           console.log("Znaleziono istniejącą rezerwację:", existingReservation);
-          setOrderInitialized(true);
-          setInitializing(false);
+          if (mounted) setOrderInitialized(true);
+          if (mounted) setInitializing(false);
           return;
         }
         
@@ -109,7 +109,7 @@ export function CheckoutContent({
           
           if (reservation && mounted) {
             console.log("Rezerwacja utworzona pomyślnie:", reservation);
-            setOrderInitialized(true);
+            if (mounted) setOrderInitialized(true);
           } else if (mounted) {
             console.error("Nie udało się utworzyć rezerwacji");
             toast({

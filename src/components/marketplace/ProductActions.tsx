@@ -75,7 +75,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       const isTestMode = location.search.includes('mode=test');
       console.log("Tryb testowy:", isTestMode);
       
-      console.log("Inicjowanie zakupu produktu:", id);
+      console.log("Przekierowuję do ekranu koszyka dla produktu:", id);
       
       // Przekieruj natychmiast do ekranu koszyka
       const checkoutUrl = isTestMode 
@@ -85,7 +85,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       console.log("Przekierowanie do:", checkoutUrl);
       navigate(checkoutUrl);
     } catch (error) {
-      console.error('Błąd podczas tworzenia rezerwacji:', error);
+      console.error('Błąd podczas inicjowania zakupu:', error);
       toast({
         title: "Błąd",
         description: "Wystąpił problem podczas inicjowania zamówienia.",

@@ -12,6 +12,9 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
   const [expired, setExpired] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+    let interval: NodeJS.Timeout | null = null;
+    
     // Funkcja do kalkulacji pozostałego czasu
     const calculateTimeLeft = () => {
       try {
@@ -27,7 +30,7 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
         if (difference <= 0) {
           console.log("Rezerwacja wygasła! Czas wygaśnięcia:", expiresAt);
           
-          if (!expired) {
+          if (isMounted && !expired) {
             setExpired(true);
             setTimeLeft({ minutes: 0, seconds: 0 });
             onExpire();
@@ -38,10 +41,14 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
         const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((difference % (1000 * 60)) / 1000);
         
-        setTimeLeft({ minutes, seconds });
+        if (isMounted) {
+          setTimeLeft({ minutes, seconds });
+        }
       } catch (error) {
         console.error("Błąd podczas kalkulacji czasu:", error);
-        setTimeLeft({ minutes: 0, seconds: 0 });
+        if (isMounted) {
+          setTimeLeft({ minutes: 0, seconds: 0 });
+        }
       }
     };
 
@@ -53,11 +60,16 @@ export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps)
       calculateTimeLeft();
       
       // Ustaw interwał co sekundę
-      const interval = setInterval(calculateTimeLeft, 1000);
-      
-      // Wyczyść interwał przy odmontowaniu komponentu
-      return () => clearInterval(interval);
+      interval = setInterval(calculateTimeLeft, 1000);
     }
+    
+    // Wyczyść interwał przy odmontowaniu komponentu
+    return () => {
+      isMounted = false;
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [expiresAt, expired, onExpire]);
 
   // Jeśli nie ma daty wygaśnięcia, nie renderuj timera
