@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,15 +23,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Próba pobrania istniejącej sesji podczas inicjalizacji
     const initAuth = async () => {
       try {
+        // Użyjemy getSession, aby pobrać aktualną sesję
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Error getting auth session:', error);
+          console.error('Błąd podczas pobierania sesji:', error);
           toast({
-            title: "Authentication Error",
-            description: 'There was a problem retrieving your session.',
+            title: "Błąd uwierzytelniania",
+            description: 'Wystąpił problem podczas pobierania sesji.',
             variant: 'destructive',
           });
         } else {
@@ -38,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(session?.user || null);
         }
       } catch (err) {
-        console.error('Unexpected error during auth initialization:', err);
+        console.error('Nieoczekiwany błąd podczas inicjalizacji uwierzytelniania:', err);
       } finally {
         setLoading(false);
       }
@@ -46,12 +49,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initAuth();
 
+    // Nasłuchiwanie na zmiany stanu uwierzytelniania
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('Zmiana stanu uwierzytelniania:', _event, session ? 'zalogowany' : 'wylogowany');
       setSession(session);
       setUser(session?.user || null);
       setLoading(false);
     });
 
+    // Czyszczenie subskrypcji
     return () => {
       subscription.unsubscribe();
     };

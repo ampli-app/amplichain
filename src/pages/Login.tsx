@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,13 +8,32 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, loginWithGoogle } = useAuth();
+  const { login, loginWithGoogle, isLoggedIn } = useAuth();
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate('/discovery');
+    }
+    
+    const checkSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (data.session) {
+        console.log('Znaleziono zapisaną sesję');
+        navigate('/discovery');
+      } else if (error) {
+        console.error('Błąd przy sprawdzaniu sesji:', error);
+      }
+    };
+    
+    checkSession();
+  }, [isLoggedIn, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
