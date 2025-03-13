@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -15,12 +14,12 @@ export const useOrderCreation = (userId: string | undefined) => {
     try {
       console.log('Rozpoczynam tworzenie zamówienia dla produktu:', productData.id);
       
+      // Sprawdź, czy produkt jest już zarezerwowany przez kogoś innego
       const { data: existingOrders, error: fetchError } = await supabase
         .from('product_orders')
-        .select('id')
+        .select('id, status, buyer_id')
         .eq('product_id', productData.id)
-        .eq('buyer_id', userId)
-        .eq('status', 'oczekujące')
+        .in('status', ['reserved', 'confirmed'])
         .order('created_at', { ascending: false })
         .limit(1);
       
@@ -30,9 +29,15 @@ export const useOrderCreation = (userId: string | undefined) => {
       }
       
       if (existingOrders && existingOrders.length > 0) {
-        console.log('Zamówienie już istnieje:', existingOrders[0].id);
-        setOrderCreated(true);
-        return;
+        const order = existingOrders[0];
+        if (order.status === 'reserved' && order.buyer_id !== userId) {
+          toast({
+            title: "Produkt niedostępny",
+            description: "Ten produkt jest obecnie zarezerwowany przez innego kupującego.",
+            variant: "destructive",
+          });
+          return;
+        }
       }
       
       const { data: deliveryOptions, error: deliveryError } = await supabase
@@ -71,10 +76,11 @@ export const useOrderCreation = (userId: string | undefined) => {
           seller_id: productData.user_id,
           total_amount: totalAmount,
           delivery_option_id: deliveryOption.id,
-          status: 'oczekujące',
+          status: 'reserved',
           payment_method: 'Karta płatnicza',
           order_type: isTestMode ? 'test' : 'purchase',
-          test_end_date: isTestMode ? testEndDate.toISOString() : null
+          test_end_date: isTestMode ? testEndDate.toISOString() : null,
+          reservation_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minut
         }])
         .select();
       

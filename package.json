@@ -59,6 +59,7 @@
     "react-router-dom": "^6.26.2",
     "recharts": "^2.12.7",
     "slate": "^0.112.0",
+    "slate-dom": "^0.112.2",
     "slate-react": "^0.112.1",
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.5.2",
