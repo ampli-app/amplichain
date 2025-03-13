@@ -1,5 +1,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import Stripe from 'https://esm.sh/stripe@12.0.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,12 +23,13 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+  const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
+  const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') || '';
   
-  if (!STRIPE_WEBHOOK_SECRET) {
-    console.error('Brak klucza webhook secret Stripe');
+  if (!STRIPE_SECRET_KEY) {
+    console.error('Brak klucza API Stripe');
     return new Response(
-      JSON.stringify({ error: 'Błąd konfiguracji' }),
+      JSON.stringify({ error: 'Błąd konfiguracji - brak klucza API Stripe' }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -46,14 +48,38 @@ Deno.serve(async (req) => {
       );
     }
     
+    const stripe = new Stripe(STRIPE_SECRET_KEY, {
+      apiVersion: '2022-11-15',
+    });
+    
     const body = await req.text();
+    const signature = req.headers.get('stripe-signature') || '';
     
-    // Normalnie należy zweryfikować podpis Stripe
-    // const signature = req.headers.get('stripe-signature') || '';
-    // const event = stripe.webhooks.constructEvent(body, signature, STRIPE_WEBHOOK_SECRET);
+    let event: WebhookPayload;
     
-    // Dla uproszczenia przyjmujemy dane bezpośrednio
-    const event: WebhookPayload = JSON.parse(body);
+    // Weryfikuj podpis Stripe jeśli mamy skonfigurowany webhook secret
+    if (STRIPE_WEBHOOK_SECRET) {
+      try {
+        event = await stripe.webhooks.constructEvent(
+          body,
+          signature,
+          STRIPE_WEBHOOK_SECRET
+        ) as any;
+      } catch (err) {
+        console.error(`Błąd weryfikacji podpisu webhook: ${err.message}`);
+        return new Response(
+          JSON.stringify({ error: `Błąd weryfikacji podpisu webhook: ${err.message}` }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+    } else {
+      // Dla celów testowych, jeśli nie skonfigurowano webhook secret
+      event = JSON.parse(body);
+      console.log('Webhook bez weryfikacji podpisu (tryb testowy)');
+    }
     
     // Tworzymy klienta Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
@@ -74,7 +100,7 @@ Deno.serve(async (req) => {
     if (error) {
       console.error('Błąd zapisywania webhook:', error);
       return new Response(
-        JSON.stringify({ error: 'Błąd zapisu webhook' }),
+        JSON.stringify({ error: 'Błąd zapisu webhook', details: error }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -82,7 +108,89 @@ Deno.serve(async (req) => {
       );
     }
     
-    console.log(`Webhook przetworzony: ${event.type}`);
+    console.log(`Webhook zapisany: ${event.type}`);
+    
+    // Przetwarzanie wydarzenia
+    if (event.type.startsWith('payment_intent.')) {
+      const paymentIntent = event.data.object;
+      console.log(`Przetwarzanie PaymentIntent ID: ${paymentIntent.id}, Status: ${paymentIntent.status}`);
+      
+      // Znajdź i zaktualizuj odpowiednie dane płatności
+      const { data: paymentData, error: paymentQueryError } = await supabase
+        .from('stripe_payments')
+        .select('order_id')
+        .eq('payment_intent_id', paymentIntent.id)
+        .limit(1);
+      
+      if (paymentQueryError) {
+        console.error('Błąd podczas wyszukiwania płatności:', paymentQueryError);
+      } else if (paymentData && paymentData.length > 0) {
+        const orderId = paymentData[0].order_id;
+        
+        // Aktualizuj status płatności
+        const { error: paymentUpdateError } = await supabase
+          .from('stripe_payments')
+          .update({ status: paymentIntent.status, updated_at: new Date().toISOString() })
+          .eq('payment_intent_id', paymentIntent.id);
+        
+        if (paymentUpdateError) {
+          console.error('Błąd podczas aktualizacji statusu płatności:', paymentUpdateError);
+        } else {
+          console.log(`Status płatności zaktualizowany: ${paymentIntent.status}`);
+          
+          // Aktualizuj status zamówienia na podstawie statusu płatności
+          let orderStatus = '';
+          let paymentStatus = '';
+          
+          if (paymentIntent.status === 'succeeded') {
+            orderStatus = 'payment_succeeded';
+            paymentStatus = 'paid';
+            
+            // Automatyczna zmiana statusu na zaakceptowane po udanej płatności
+            setTimeout(async () => {
+              const { error: acceptError } = await supabase
+                .from('product_orders')
+                .update({ 
+                  status: 'zaakceptowane',
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', orderId);
+              
+              if (acceptError) {
+                console.error('Błąd podczas aktualizacji statusu zamówienia na zaakceptowane:', acceptError);
+              } else {
+                console.log(`Zamówienie ID ${orderId} automatycznie zaakceptowane`);
+              }
+            }, 1000); // Dajemy 1 sekundę na przetworzenie poprzedniej aktualizacji
+          } else if (paymentIntent.status === 'canceled' || paymentIntent.status === 'payment_failed') {
+            orderStatus = 'payment_failed';
+            paymentStatus = 'failed';
+          } else {
+            orderStatus = 'pending_payment';
+            paymentStatus = 'processing';
+          }
+          
+          if (orderStatus) {
+            const { error: orderUpdateError } = await supabase
+              .from('product_orders')
+              .update({ 
+                status: orderStatus,
+                payment_status: paymentStatus,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', orderId);
+            
+            if (orderUpdateError) {
+              console.error('Błąd podczas aktualizacji statusu zamówienia:', orderUpdateError);
+            } else {
+              console.log(`Status zamówienia ID ${orderId} zaktualizowany na ${orderStatus}`);
+            }
+          }
+        }
+      } else {
+        console.log(`Nie znaleziono płatności dla PaymentIntent ID: ${paymentIntent.id}`);
+      }
+    }
     
     return new Response(
       JSON.stringify({ received: true }),
@@ -94,7 +202,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error(`Błąd przetwarzania webhook:`, err);
     return new Response(
-      JSON.stringify({ error: 'Błąd przetwarzania webhook' }),
+      JSON.stringify({ error: 'Błąd przetwarzania webhook', details: err.message }),
       { 
         status: 400, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
