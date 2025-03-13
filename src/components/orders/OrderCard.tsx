@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Order, OrderStatusUpdate } from '@/hooks/useOrderManagement';
 import { Button } from '@/components/ui/button';
@@ -44,7 +43,7 @@ export function OrderCard({
       'wysłane': 'bg-indigo-500',
       'dostarczone': 'bg-green-500',
       'anulowane': 'bg-red-500',
-      'reservation_expired': 'bg-gray-500'  // Dodany nowy status w kolorze szarym
+      'reservation_expired': 'bg-gray-500'
     };
     
     return statusColorMap[status] || 'bg-gray-500';
@@ -82,7 +81,6 @@ export function OrderCard({
         notes: notes || undefined
       });
       
-      // Resetujemy pola po aktualizacji
       setTrackingNumber('');
       setNotes('');
     } finally {
@@ -92,19 +90,15 @@ export function OrderCard({
 
   const handleContinueCheckout = () => {
     const mode = order.order_type === 'test' ? 'test' : 'buy';
-    navigate(`/checkout/${order.product_id}?mode=${mode}`);
+    navigate(`/checkout/${order.product_id}?mode=${mode}&orderId=${order.id}`);
   };
 
-  // Sprawdzamy, czy rezerwacja wygasła lub oczekuje na płatność
   const isReservationExpired = order.status === 'reservation_expired';
   
-  // Zmodyfikowany warunek - sprawdzamy czy zamówienie ma expires_at (czyli jest rezerwacją)
-  // i czy jest to aktywna rezerwacja (nie wygasła)
   const isActiveReservation = order.reservation_expires_at && 
                              !isReservationExpired && 
                              (new Date(order.reservation_expires_at) > new Date());
 
-  // Sprawdzenie, czy to zamówienie czeka na płatność
   const isPendingPayment = order.status === 'oczekujące';
 
   const renderSellerActions = () => {
@@ -188,7 +182,6 @@ export function OrderCard({
   };
 
   const renderBuyerActions = () => {
-    // Jeśli jest to aktywna rezerwacja i nie wygasła, pokazujemy przycisk do dokończenia zakupu
     if (isActiveReservation || isPendingPayment) {
       return (
         <div className="space-y-4">

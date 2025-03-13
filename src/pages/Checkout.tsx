@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -20,7 +21,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 export default function Checkout() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
-  const isTestMode = location.search.includes('mode=test');
+  const searchParams = new URLSearchParams(location.search);
+  const isTestMode = searchParams.get('mode') === 'test';
+  const orderId = searchParams.get('orderId'); // Pobieramy orderId z URL
   const navigate = useNavigate();
   const { isLoggedIn, user } = useAuth();
   
@@ -39,7 +42,8 @@ export default function Checkout() {
     confirmOrder,
     cancelPreviousReservations,
     markReservationAsExpired,
-    checkExpiredReservations
+    checkExpiredReservations,
+    checkExistingReservation
   } = useOrderReservation({ 
     productId: id || '', 
     isTestMode 
@@ -47,11 +51,26 @@ export default function Checkout() {
   
   // Inicjalizacja rezerwacji
   useEffect(() => {
-    const createInitialReservation = async () => {
-      if (checkout.product && !reservationData && !reservationExpired) {
-        // Sprawdź i zaktualizuj wygasłe rezerwacje przed utworzeniem nowej
-        await checkExpiredReservations();
+    const handleReservation = async () => {
+      if (!checkout.product || !user) return;
+      
+      // Sprawdź i zaktualizuj wygasłe rezerwacje
+      await checkExpiredReservations();
+      
+      // Jeśli mamy orderId, próbujemy użyć istniejącej rezerwacji
+      if (orderId) {
+        console.log("Kontynuowanie istniejącego zamówienia z ID:", orderId);
+        // Pobieramy istniejącą rezerwację - nie tworzymy nowej
+        const existingReservation = await checkExistingReservation();
         
+        if (existingReservation) {
+          console.log("Znaleziono istniejącą rezerwację:", existingReservation);
+          return; // Używamy istniejącej rezerwacji, nie tworzymy nowej
+        }
+      }
+      
+      // Jeśli nie mamy orderId lub nie znaleziono aktywnej rezerwacji, tworzymy nową
+      if (!reservationData && !reservationExpired) {
         // Anuluj wszystkie poprzednie rezerwacje przed utworzeniem nowej
         await cancelPreviousReservations();
         
@@ -67,7 +86,7 @@ export default function Checkout() {
     };
     
     if (checkout.product && user) {
-      createInitialReservation();
+      handleReservation();
     }
     
     // Ustawienie interwału sprawdzającego wygasłe rezerwacje co 30 sekund

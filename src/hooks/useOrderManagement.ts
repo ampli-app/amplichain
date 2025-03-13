@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -34,12 +33,10 @@ export const useOrderManagement = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const { user } = useAuth();
 
-  // Funkcja do sprawdzania i aktualizacji wygasłych rezerwacji
   const checkExpiredReservations = async () => {
     if (!user) return;
     
     try {
-      // Wywołaj funkcję bezpośrednio z poziomu klienta
       const { error } = await supabase.rpc('cleanup_expired_orders');
       
       if (error) {
@@ -58,13 +55,10 @@ export const useOrderManagement = () => {
     setIsLoading(true);
     
     try {
-      // Najpierw sprawdź i zaktualizuj wygasłe rezerwacje
       await checkExpiredReservations();
       
-      // Określenie kolumny, po której filtrujemy (kupujący lub sprzedawca)
       const filterColumn = isBuyer ? 'buyer_id' : 'seller_id';
       
-      // Pobieranie zamówień z bazy danych
       const { data, error } = await supabase
         .from('product_orders')
         .select(`
@@ -89,7 +83,6 @@ export const useOrderManagement = () => {
       }
       
       if (data) {
-        // Mapowanie danych do formatu odpowiedniego dla komponentu
         const formattedOrders = data.map(order => {
           const productData = order.products as any;
           
@@ -135,7 +128,6 @@ export const useOrderManagement = () => {
     if (!user) return false;
     
     try {
-      // Aktualizacja statusu zamówienia
       const { error } = await supabase
         .from('product_orders')
         .update({ 
@@ -160,7 +152,6 @@ export const useOrderManagement = () => {
         description: `Status zamówienia został zmieniony na: ${status}`,
       });
       
-      // Odświeżamy listę zamówień
       fetchOrders();
       return true;
     } catch (err) {
