@@ -57,57 +57,63 @@ export function CheckoutContent({
     isTestMode 
   });
   
+  // Efekt do inicjalizacji rezerwacji
   useEffect(() => {
     const handleReservation = async () => {
-      if (!checkout.product || !user || orderInitialized) return;
-      
-      console.log("CheckoutContent: Inicjalizacja rezerwacji", { orderInitialized });
-      await checkExpiredReservations();
-      
-      if (orderId) {
-        console.log("Kontynuowanie istniejącego zamówienia z ID:", orderId);
-        const existingReservation = await checkExistingReservation();
-        
-        if (existingReservation) {
-          console.log("Znaleziono istniejącą rezerwację:", existingReservation);
-          setOrderInitialized(true);
-          return;
-        }
+      if (!checkout.product || !user) {
+        console.log("Brak produktu lub użytkownika, nie inicjuję rezerwacji");
+        return;
       }
       
-      if (!reservationData) {
-        console.log("Brak rezerwacji, tworzymy nową");
-        await cancelPreviousReservations();
-        
-        // Upewnijmy się, że przekazujemy owner_id jeśli nie ma user_id
-        const productWithSeller = {
-          ...checkout.product,
-          owner_id: checkout.product.owner_id || checkout.product.user_id
-        };
-        
-        console.log("Inicjowanie zamówienia z produktem:", productWithSeller);
-        const reservation = await initiateOrder(productWithSeller, isTestMode);
-        if (!reservation) {
-          console.error("Nie udało się utworzyć rezerwacji");
-          toast({
-            title: "Błąd rezerwacji",
-            description: "Nie udało się utworzyć rezerwacji produktu.",
-            variant: "destructive",
-          });
-        } else {
-          console.log("Rezerwacja utworzona pomyślnie:", reservation);
-          setOrderInitialized(true);
-        }
-      } else {
-        console.log("Rezerwacja już istnieje:", reservationData);
+      // Jeśli inicjalizacja już się odbyła, nie rób nic
+      if (orderInitialized) {
+        console.log("Zamówienie już zainicjowane, pomijam inicjalizację");
+        return;
+      }
+      
+      console.log("CheckoutContent: Inicjalizacja rezerwacji", { orderInitialized });
+      
+      // Sprawdź wygasłe rezerwacje
+      await checkExpiredReservations();
+      
+      // Sprawdź istniejącą rezerwację
+      const existingReservation = await checkExistingReservation();
+      
+      if (existingReservation) {
+        console.log("Znaleziono istniejącą rezerwację:", existingReservation);
         setOrderInitialized(true);
+        return;
+      }
+      
+      // Jeśli nie ma istniejącej rezerwacji, utwórz nową
+      console.log("Brak rezerwacji, tworzymy nową");
+      await cancelPreviousReservations();
+      
+      // Upewnijmy się, że przekazujemy owner_id jeśli nie ma user_id
+      const productWithSeller = {
+        ...checkout.product,
+        owner_id: checkout.product.owner_id || checkout.product.user_id
+      };
+      
+      console.log("Inicjowanie zamówienia z produktem:", productWithSeller);
+      const reservation = await initiateOrder(productWithSeller, isTestMode);
+      
+      if (reservation) {
+        console.log("Rezerwacja utworzona pomyślnie:", reservation);
+        setOrderInitialized(true);
+      } else {
+        console.error("Nie udało się utworzyć rezerwacji");
+        toast({
+          title: "Błąd rezerwacji",
+          description: "Nie udało się utworzyć rezerwacji produktu.",
+          variant: "destructive",
+        });
       }
     };
     
-    if (checkout.product && user && !orderInitialized) {
-      handleReservation();
-    }
+    handleReservation();
     
+    // Regularnie sprawdzaj wygasłe rezerwacje
     const intervalId = setInterval(() => {
       if (user && productId) {
         checkExpiredReservations();
@@ -115,8 +121,9 @@ export function CheckoutContent({
     }, 30000);
     
     return () => clearInterval(intervalId);
-  }, [checkout.product, user, reservationData, orderInitialized, productId]);
+  }, [checkout.product, user, productId]);
   
+  // Wypełnij email użytkownika automatycznie
   useEffect(() => {
     if (user?.email) {
       checkout.setFormData(prev => ({

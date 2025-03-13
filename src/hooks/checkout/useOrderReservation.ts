@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,6 +32,17 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
   const [reservationExpiresAt, setReservationExpiresAt] = useState<string | null>(null);
   const [paymentIntentData, setPaymentIntentData] = useState<PaymentIntentResponse | null>(null);
   
+  // Sprawdź istniejącą rezerwację przy montowaniu komponentu
+  useEffect(() => {
+    if (user && productId) {
+      checkExistingReservation().then(data => {
+        if (data) {
+          console.log("Znaleziono istniejącą rezerwację po załadowaniu:", data);
+        }
+      });
+    }
+  }, [user?.id, productId]);
+  
   const initiateOrder = async (product: any, isTestMode: boolean) => {
     if (!user || !product) return null;
     
@@ -39,6 +50,14 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
     
     try {
       console.log("Inicjowanie zamówienia dla produktu:", product.id);
+      
+      // Najpierw sprawdźmy, czy już istnieje aktywna rezerwacja dla tego użytkownika i produktu
+      const existingReservation = await checkExistingReservation();
+      if (existingReservation) {
+        console.log("Używam istniejącej rezerwacji:", existingReservation);
+        setIsLoading(false);
+        return existingReservation;
+      }
       
       // Najpierw upewnijmy się, że mamy ID właściciela produktu
       if (!product.user_id && !product.owner_id) {
@@ -144,18 +163,21 @@ export const useOrderReservation = ({ productId, isTestMode = false }: OrderRese
       
       if (data) {
         console.log("Znaleziono istniejącą rezerwację:", data);
-        setReservationData(data);
         
-        if (data.reservation_expires_at) {
-          const expiresAt = new Date(data.reservation_expires_at);
-          const now = new Date();
-          
-          if (expiresAt > now) {
-            setReservationExpiresAt(data.reservation_expires_at);
-          }
+        // Sprawdź, czy rezerwacja nie wygasła
+        const expiresAt = new Date(data.reservation_expires_at);
+        const now = new Date();
+        
+        if (expiresAt > now) {
+          console.log("Rezerwacja jest nadal aktywna, wygasa:", expiresAt);
+          setReservationData(data);
+          setReservationExpiresAt(data.reservation_expires_at);
+          return data;
+        } else {
+          console.log("Rezerwacja wygasła, oznaczam jako nieaktywną");
+          await markReservationAsExpired(data.id);
+          return null;
         }
-        
-        return data;
       }
       
       return null;

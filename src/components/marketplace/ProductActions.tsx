@@ -46,13 +46,16 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
   
   const handleBuyNow = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    console.log("Kliknięto przycisk Kup Teraz dla produktu:", id);
     
     // Blokowanie wielokrotnych kliknięć
     if (isReserving) {
+      console.log("Proces rezerwacji już trwa, blokuję ponowne kliknięcie");
       return;
     }
     
     if (!isLoggedIn) {
+      console.log("Użytkownik nie jest zalogowany, przekierowuję do logowania");
       toast({
         title: "Wymagane logowanie",
         description: "Aby dokonać zakupu, musisz być zalogowany.",
@@ -63,6 +66,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
     }
     
     if (onBuyNow) {
+      console.log("Używam dostarczonej funkcji onBuyNow");
       onBuyNow();
       return;
     }
@@ -71,35 +75,21 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
     
     try {
       // Anuluj wszystkie poprzednie rezerwacje (w tym wygasłe)
+      console.log("Anulowanie poprzednich rezerwacji");
       await cancelPreviousReservations();
       
       // Sprawdź, czy URL zawiera parametr trybu testowego
       const isTestMode = location.search.includes('mode=test');
+      console.log("Tryb testowy:", isTestMode);
       
       console.log("Inicjowanie zakupu produktu:", id);
       
-      // Jeśli mamy dane produktu, użyj ich do utworzenia rezerwacji
-      if (product) {
-        console.log("Używanie istniejących danych produktu dla rezerwacji");
-        const reservation = await initiateOrder(product, isTestMode);
-        if (reservation) {
-          const checkoutUrl = isTestMode 
-            ? `/checkout/${id}?mode=test` 
-            : `/checkout/${id}`;
-          
-          console.log("Przekierowanie do:", checkoutUrl);
-          navigate(checkoutUrl);
-        } else {
-          toast({
-            title: "Błąd",
-            description: "Nie udało się zainicjować zamówienia. Spróbuj ponownie.",
-            variant: "destructive",
-          });
-        }
-      } else {
-        // Jeśli nie mamy danych produktu, pobierzmy je najpierw
+      let productData = product;
+      
+      // Jeśli nie mamy danych produktu, pobierz je
+      if (!productData) {
         console.log("Pobieranie danych produktu dla rezerwacji:", id);
-        const { data: productData, error } = await supabase
+        const { data, error } = await supabase
           .from('products')
           .select('*')
           .eq('id', id)
@@ -116,24 +106,26 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
           return;
         }
         
-        if (productData) {
-          console.log("Pobrano dane produktu, tworzenie rezerwacji:", productData);
-          const reservation = await initiateOrder(productData, isTestMode);
-          if (reservation) {
-            const checkoutUrl = isTestMode 
-              ? `/checkout/${id}?mode=test` 
-              : `/checkout/${id}`;
-            
-            console.log("Przekierowanie do:", checkoutUrl);
-            navigate(checkoutUrl);
-          } else {
-            toast({
-              title: "Błąd",
-              description: "Nie udało się zainicjować zamówienia. Spróbuj ponownie.",
-              variant: "destructive",
-            });
-          }
-        }
+        productData = data;
+      }
+      
+      if (productData) {
+        console.log("Tworzenie rezerwacji dla produktu:", productData);
+        
+        // Przekieruj natychmiast do ekranu koszyka, rezerwacja będzie utworzona tam
+        const checkoutUrl = isTestMode 
+          ? `/checkout/${id}?mode=test` 
+          : `/checkout/${id}`;
+        
+        console.log("Przekierowanie do:", checkoutUrl);
+        navigate(checkoutUrl);
+      } else {
+        console.error("Brak danych produktu, nie można utworzyć rezerwacji");
+        toast({
+          title: "Błąd",
+          description: "Nie udało się uzyskać danych produktu. Spróbuj ponownie.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Błąd podczas tworzenia rezerwacji:', error);

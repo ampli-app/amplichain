@@ -17,9 +17,9 @@ export default function Checkout() {
   const isTestMode = searchParams.get('mode') === 'test';
   const orderId = searchParams.get('orderId');
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   
-  // Dodanie stanu do śledzenia, czy zamówienie zostało już zainicjowane
+  // Stan do śledzenia inicjalizacji zamówienia
   const [orderInitialized, setOrderInitialized] = useState(false);
   const [reservationExpired, setReservationExpired] = useState(false);
   
@@ -36,17 +36,42 @@ export default function Checkout() {
   // Sprawdzanie, czy użytkownik jest zalogowany i czy ID produktu jest dostępne
   useEffect(() => {
     if (!isLoggedIn) {
+      console.log("Użytkownik nie jest zalogowany, przekierowuję do logowania");
       navigate('/login');
       return;
     }
     
     if (!id) {
+      console.log("Brak ID produktu, przekierowuję do marketplace");
       navigate('/marketplace');
       return;
     }
     
-    console.log("Checkout zainicjowany dla produktu:", id, "Mode:", isTestMode ? "test" : "purchase");
-  }, [id, isLoggedIn, navigate, isTestMode]);
+    console.log("Checkout zainicjowany dla produktu:", id, "Mode:", isTestMode ? "test" : "purchase", "User:", user?.id);
+  }, [id, isLoggedIn, navigate, isTestMode, user?.id]);
+  
+  // Dodatkowy efekt do debugowania
+  useEffect(() => {
+    console.log("Stan komponentu Checkout:", {
+      id,
+      isTestMode,
+      orderInitialized,
+      reservationExpired,
+      productLoading: checkout.isLoading,
+      reservationLoading: isReservationLoading,
+      product: checkout.product ? "załadowany" : "brak",
+      deliveryOptions: checkout.deliveryOptions.length
+    });
+  }, [
+    id, 
+    isTestMode, 
+    orderInitialized, 
+    reservationExpired, 
+    checkout.isLoading, 
+    isReservationLoading, 
+    checkout.product,
+    checkout.deliveryOptions.length
+  ]);
   
   const handleReservationExpire = () => {
     console.log("Rezerwacja wygasła, aktualizacja stanu");

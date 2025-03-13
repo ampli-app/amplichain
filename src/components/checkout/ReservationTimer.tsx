@@ -9,57 +9,50 @@ interface ReservationTimerProps {
 
 export function ReservationTimer({ expiresAt, onExpire }: ReservationTimerProps) {
   const [timeLeft, setTimeLeft] = useState<{ minutes: number; seconds: number }>({ minutes: 0, seconds: 0 });
-  const [isWarning, setIsWarning] = useState(false);
-  
+  const [expired, setExpired] = useState(false);
+
   useEffect(() => {
-    if (!expiresAt) return;
-    
-    const expiresAtDate = new Date(expiresAt);
-    
     const calculateTimeLeft = () => {
-      const now = new Date();
-      const difference = expiresAtDate.getTime() - now.getTime();
+      const expiryTime = new Date(expiresAt).getTime();
+      const now = new Date().getTime();
+      const difference = expiryTime - now;
       
       if (difference <= 0) {
-        console.log("Timer wygasł o:", expiresAtDate);
+        console.log("Rezerwacja wygasła!");
+        setExpired(true);
         setTimeLeft({ minutes: 0, seconds: 0 });
-        onExpire();
-        return false;
+        
+        // Wywołaj funkcję callback tylko jeśli wcześniej nie wygasło
+        if (!expired) {
+          onExpire();
+        }
+        return;
       }
       
-      const minutes = Math.floor(difference / 1000 / 60);
-      const seconds = Math.floor((difference / 1000) % 60);
+      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((difference % (1000 * 60)) / 1000);
       
       setTimeLeft({ minutes, seconds });
-      
-      // Ustaw stan ostrzeżenia jeśli zostało mniej niż 3 minuty
-      setIsWarning(minutes < 3);
-      
-      return true;
     };
     
-    // Wywołaj od razu, aby wyświetlić początkowy czas
-    const hasTimeLeft = calculateTimeLeft();
-    if (!hasTimeLeft) return;
+    // Wykonaj obliczenie od razu przy montowaniu komponentu
+    calculateTimeLeft();
     
-    // Ustaw interval co 1 sekundę
-    const timerId = setInterval(() => {
-      const hasTimeLeft = calculateTimeLeft();
-      if (!hasTimeLeft) {
-        clearInterval(timerId);
-      }
-    }, 1000);
+    // Ustaw interwał co sekundę
+    const interval = setInterval(calculateTimeLeft, 1000);
     
-    return () => clearInterval(timerId);
-  }, [expiresAt, onExpire]);
-  
-  const formatTime = (value: number) => value.toString().padStart(2, '0');
-  
+    // Wyczyść interwał przy odmontowaniu komponentu
+    return () => clearInterval(interval);
+  }, [expiresAt, expired, onExpire]);
+
   return (
-    <div className={`flex items-center gap-2 font-medium ${isWarning ? 'text-red-600 dark:text-red-400' : ''}`}>
-      <Clock className={`h-5 w-5 ${isWarning ? 'animate-pulse' : ''}`} />
+    <div className="flex items-center justify-center text-sm font-medium">
+      <Clock className="mr-2 h-4 w-4" />
       <span>
-        Rezerwacja wygasa za: {formatTime(timeLeft.minutes)}:{formatTime(timeLeft.seconds)}
+        Rezerwacja wygasa za: 
+        <span className="font-bold ml-1">
+          {String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+        </span>
       </span>
     </div>
   );
