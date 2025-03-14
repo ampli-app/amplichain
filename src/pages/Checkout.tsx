@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -15,6 +16,7 @@ import { CheckoutSummary } from '@/components/checkout/CheckoutSummary';
 import { useCheckout } from '@/hooks/checkout/useCheckout';
 import { ReservationTimer } from '@/components/checkout/ReservationTimer';
 import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
+import { usePayment } from '@/hooks/checkout/usePayment';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function Checkout() {
@@ -37,7 +39,8 @@ export default function Checkout() {
   
   const { 
     isLoading: isReservationLoading, 
-    reservationData, 
+    reservationData,
+    setReservationData, 
     reservationExpiresAt,
     initiateOrder,
     confirmOrder,
@@ -49,6 +52,14 @@ export default function Checkout() {
     productId: id || '', 
     isTestMode 
   });
+  
+  const {
+    initiatePayment,
+    handlePaymentResult,
+    simulatePaymentProcessing,
+    isProcessingPayment,
+    paymentError
+  } = usePayment();
   
   useEffect(() => {
     const handleReservation = async () => {
@@ -151,20 +162,56 @@ export default function Checkout() {
       return;
     }
     
-    checkout.simulatePaymentProcessing((success) => {
-      if (success) {
-        toast({
-          title: "Płatność zaakceptowana",
-          description: "Twoje zamówienie zostało złożone pomyślnie!",
-        });
-        
-        const url = isTestMode 
-          ? `/checkout/success/${id}?mode=test` 
-          : `/checkout/success/${id}?mode=buy`;
-        
-        navigate(url);
+    checkout.setIsProcessing(true);
+    
+    try {
+      // Inicjujemy płatność i otrzymujemy paymentIntent
+      const paymentIntent = await initiatePayment(reservationData, null);
+      
+      if (!paymentIntent) {
+        checkout.setIsProcessing(false);
+        return;
       }
-    });
+      
+      // Symulacja płatności (do zastąpienia przez Stripe)
+      simulatePaymentProcessing(
+        {
+          paymentMethod: checkout.paymentMethod,
+          blikCode: checkout.formData.blikCode
+        },
+        reservationData,
+        (result) => {
+          checkout.setIsProcessing(false);
+          
+          if (result.success) {
+            toast({
+              title: "Płatność zaakceptowana",
+              description: "Twoje zamówienie zostało złożone pomyślnie!",
+            });
+            
+            const url = isTestMode 
+              ? `/checkout/success/${id}?mode=test` 
+              : `/checkout/success/${id}?mode=buy`;
+            
+            navigate(url);
+          } else {
+            toast({
+              title: "Błąd płatności",
+              description: result.message,
+              variant: "destructive"
+            });
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Błąd podczas przetwarzania płatności:', error);
+      checkout.setIsProcessing(false);
+      toast({
+        title: "Błąd płatności",
+        description: "Wystąpił nieoczekiwany błąd podczas przetwarzania płatności.",
+        variant: "destructive"
+      });
+    }
   };
   
   useEffect(() => {

@@ -80,6 +80,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
   return {
     isLoading,
     reservationData,
+    setReservationData,
     reservationExpiresAt,
     paymentDeadline,
     isChecking,

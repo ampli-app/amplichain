@@ -189,13 +189,13 @@ export function OrderSummaryForm({
       </CardContent>
       
       <CardFooter className="border-t bg-muted/20 px-6 py-4 flex justify-between">
-        <Button type="button" variant="outline" onClick={goToPreviousStep}>
+        <Button type="button" variant="outline" onClick={goToPreviousStep} disabled={isProcessing}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Wstecz
         </Button>
         <Button 
           type="submit" 
-          disabled={isProcessing} 
+          disabled={!agreeToTerms || isProcessing} 
           onClick={(e) => onSubmit(e)}
         >
           {isProcessing ? (

@@ -1,17 +1,24 @@
 
 import { useState, useEffect } from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface PaymentDeadlineInfoProps {
   deadline: Date | string;
+  paymentStatus?: string;
   onExpire?: () => void;
 }
 
-export function PaymentDeadlineInfo({ deadline, onExpire }: PaymentDeadlineInfoProps) {
+export function PaymentDeadlineInfo({ deadline, paymentStatus, onExpire }: PaymentDeadlineInfoProps) {
   const [timeLeft, setTimeLeft] = useState<string>('');
   const [isExpired, setIsExpired] = useState(false);
   
   useEffect(() => {
+    // Jeśli płatność została zrealizowana, nie pokazujemy odliczania
+    if (paymentStatus === 'paid') {
+      setTimeLeft('');
+      return;
+    }
+    
     const deadlineDate = typeof deadline === 'string' ? new Date(deadline) : deadline;
     
     const calculateTimeLeft = () => {
@@ -44,8 +51,33 @@ export function PaymentDeadlineInfo({ deadline, onExpire }: PaymentDeadlineInfoP
     const interval = setInterval(calculateTimeLeft, 60000);
     
     return () => clearInterval(interval);
-  }, [deadline, onExpire]);
+  }, [deadline, onExpire, paymentStatus]);
   
+  // Jeśli płatność została zrealizowana, pokazujemy potwierdzenie
+  if (paymentStatus === 'paid') {
+    return (
+      <div className="flex items-center gap-2 text-green-600">
+        <CheckCircle className="h-4 w-4" />
+        <span className="font-medium">
+          Płatność zrealizowana
+        </span>
+      </div>
+    );
+  }
+  
+  // Jeśli płatność nie powiodła się
+  if (paymentStatus === 'failed') {
+    return (
+      <div className="flex items-center gap-2 text-red-500">
+        <AlertCircle className="h-4 w-4" />
+        <span className="font-medium">
+          Płatność nie powiodła się
+        </span>
+      </div>
+    );
+  }
+  
+  // Standardowy widok z odliczaniem czasu
   return (
     <div className={`flex items-center gap-2 ${isExpired ? 'text-red-500' : 'text-primary'}`}>
       <Clock className="h-4 w-4" />

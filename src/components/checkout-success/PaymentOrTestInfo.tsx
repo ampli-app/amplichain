@@ -1,5 +1,5 @@
 
-import { Clock, Calendar } from 'lucide-react';
+import { Clock, Calendar, CreditCard, CheckCircle } from 'lucide-react';
 
 interface PaymentOrTestInfoProps {
   isTestMode: boolean;
@@ -23,8 +23,17 @@ export const PaymentOrTestInfo = ({
   return (
     <div>
       <h3 className="font-medium mb-2 flex items-center gap-1">
-        <Clock className="h-4 w-4 text-primary" />
-        {isTestMode ? 'Informacje o teście' : 'Podsumowanie płatności'}
+        {isTestMode ? (
+          <>
+            <Clock className="h-4 w-4 text-primary" />
+            Informacje o teście
+          </>
+        ) : (
+          <>
+            <CreditCard className="h-4 w-4 text-primary" />
+            Podsumowanie płatności
+          </>
+        )}
       </h3>
       {isTestMode ? (
         <div className="text-sm space-y-1">
@@ -34,8 +43,18 @@ export const PaymentOrTestInfo = ({
         </div>
       ) : (
         <div className="text-sm space-y-1">
+          <div className="flex items-center gap-1">
+            <span>Status:</span>
+            <span className={`font-medium ${paymentStatus === 'paid' ? 'text-green-600' : 'text-red-500'}`}>
+              {paymentStatus === 'paid' ? (
+                <span className="flex items-center gap-1">
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Opłacone
+                </span>
+              ) : 'Oczekuje na płatność'}
+            </span>
+          </div>
           <p>Metoda płatności: {paymentMethod || 'Karta płatnicza'}</p>
-          <p>Status: {paymentStatus || 'Opłacone'}</p>
           <p>Data płatności: {paymentDate ? formatDate(paymentDate) : formatDate(new Date())}</p>
           {paymentId && <p className="text-xs text-rhythm-500">ID płatności: {paymentId}</p>}
         </div>

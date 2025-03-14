@@ -28,6 +28,24 @@ export interface ReservationData {
   service_fee?: number;
   product_price?: number;
   total_amount?: number;
-  payment_intent_id?: string; // Dodajemy pole payment_intent_id
-  payment_status?: string; // Dodajemy pole payment_status
+  payment_intent_id?: string;
+  payment_status?: string;
+}
+
+export interface PaymentIntent {
+  id: string;
+  client_secret: string;
+  amount: number;
+  currency: string;
+}
+
+export interface PaymentFormData {
+  blikCode?: string;
+  paymentMethod: string;
+}
+
+export interface PaymentResult {
+  success: boolean;
+  message: string;
+  redirectUrl?: string;
 }
