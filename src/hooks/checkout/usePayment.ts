@@ -81,10 +81,24 @@ export function usePayment() {
       
       // Integracja ze Stripe - tworzymy intencję płatności
       let paymentIntentClientSecret;
+      let paymentIntentId = '';
       
       if (currentOrder.payment_method === PAYMENT_METHODS.CARD) {
+        // Metadane zamówienia
+        const metadata = {
+          order_id: reservationData.id,
+          product_id: reservationData.product_id,
+          buyer_id: reservationData.buyer_id,
+          payment_method: currentOrder.payment_method
+        };
+        
         // Używamy Stripe dla płatności kartą
-        paymentIntentClientSecret = await stripeContext.createPaymentIntent(totalAmount, 'pln');
+        paymentIntentClientSecret = await stripeContext.createPaymentIntent(
+          totalAmount, 
+          'pln', 
+          metadata, 
+          reservationData.id
+        );
         
         if (!paymentIntentClientSecret) {
           setPaymentError('Nie udało się utworzyć intencji płatności Stripe.');
@@ -101,7 +115,7 @@ export function usePayment() {
         
         // Tworzymy obiekt PaymentIntent
         const paymentIntent: PaymentIntent = {
-          id: `pi_${Math.random().toString(36).substring(2, 15)}`, // Tymczasowe ID, rzeczywiste ID jest w Stripe
+          id: paymentIntentId || `pi_${Math.random().toString(36).substring(2, 15)}`,
           client_secret: paymentIntentClientSecret,
           amount: totalAmount * 100,
           currency: 'pln'

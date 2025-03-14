@@ -6,7 +6,6 @@ import { PAYMENT_PROVIDERS } from '@/hooks/checkout/payment/paymentConfig';
 import { supabase } from '@/integrations/supabase/client';
 
 // Publiczny klucz Stripe (powinien być w zmiennych środowiskowych)
-// W przyszłości można przenieść do zmiennych środowiskowych Supabase
 const stripePublishableKey = 'pk_test_TYooMQauvdEDq54NiTphI7jx';
 
 // Inicjalizacja Stripe
@@ -16,7 +15,8 @@ type StripeContextType = {
   isStripeReady: boolean;
   getPaymentProvider: (method: string) => string;
   getPaymentElementOptions: () => Record<string, any>;
-  createPaymentIntent: (amount: number, currency: string) => Promise<string | null>;
+  createPaymentIntent: (amount: number, currency: string, metadata?: Record<string, any>, orderId?: string) => Promise<string | null>;
+  verifyPaymentIntent: (paymentIntentId: string) => Promise<any>;
 };
 
 const defaultContext: StripeContextType = {
@@ -24,6 +24,7 @@ const defaultContext: StripeContextType = {
   getPaymentProvider: () => PAYMENT_PROVIDERS.STRIPE,
   getPaymentElementOptions: () => ({}),
   createPaymentIntent: async () => null,
+  verifyPaymentIntent: async () => null,
 };
 
 const StripeContext = createContext<StripeContextType>(defaultContext);
@@ -72,21 +73,23 @@ export const StripeProvider = ({ children }: StripeProviderProps) => {
   };
 
   // Funkcja do tworzenia intencji płatności z wykorzystaniem Supabase Edge Function
-  const createPaymentIntent = async (amount: number, currency: string = 'pln'): Promise<string | null> => {
+  const createPaymentIntent = async (
+    amount: number, 
+    currency: string = 'pln', 
+    metadata: Record<string, any> = {},
+    orderId?: string
+  ): Promise<string | null> => {
     try {
-      console.log(`Tworzenie intencji płatności: ${amount} ${currency}`);
+      console.log(`Tworzenie intencji płatności: ${amount} ${currency} dla zamówienia ${orderId}`);
       
-      // Tworzymy tymczasowe ID zamówienia jeśli nie jest przekazane
-      // W rzeczywistym scenariuszu powinno być przekazane ID rzeczywistego zamówienia
-      const tempOrderId = crypto.randomUUID();
-      
-      // Wywołanie funkcji Supabase do tworzenia intencji płatności
-      const { data, error } = await supabase.rpc('create_stripe_payment_intent', {
-        p_order_id: tempOrderId,
-        p_amount: Math.round(amount * 100), // Stripe wymaga kwoty w najmniejszych jednostkach waluty (np. grosze)
-        p_currency: currency,
-        p_payment_method: 'card', // Domyślna metoda płatności
-        p_description: 'Płatność za zamówienie w sklepie'
+      // Wywołanie Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('create-payment-intent', {
+        body: {
+          amount,
+          currency,
+          metadata,
+          orderId
+        }
       });
       
       if (error) {
@@ -94,15 +97,37 @@ export const StripeProvider = ({ children }: StripeProviderProps) => {
         return null;
       }
       
-      // Pobieranie client secret z odpowiedzi
-      // Określamy typ zwracanej wartości jako any, aby uzyskać dostęp do client_secret
-      const result = data as any;
-      const clientSecret = result.client_secret;
-      console.log('Wygenerowano client secret:', clientSecret);
+      console.log('Odpowiedź z Supabase Edge Function:', data);
       
-      return clientSecret;
+      if (!data || !data.clientSecret) {
+        console.error('Brak client secret w odpowiedzi z serwera');
+        return null;
+      }
+      
+      return data.clientSecret;
     } catch (error) {
       console.error('Błąd podczas tworzenia intencji płatności:', error);
+      return null;
+    }
+  };
+  
+  // Funkcja do weryfikacji statusu intencji płatności
+  const verifyPaymentIntent = async (paymentIntentId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-payment-intent', {
+        body: {
+          paymentIntentId
+        }
+      });
+      
+      if (error) {
+        console.error('Błąd podczas weryfikacji intencji płatności:', error);
+        return null;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Błąd podczas weryfikacji intencji płatności:', error);
       return null;
     }
   };
@@ -112,6 +137,7 @@ export const StripeProvider = ({ children }: StripeProviderProps) => {
     getPaymentProvider,
     getPaymentElementOptions,
     createPaymentIntent,
+    verifyPaymentIntent,
   };
 
   return (
