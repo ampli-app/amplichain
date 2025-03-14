@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,11 +53,11 @@ export function usePayment() {
         return null;
       }
       
-      // Aktualizacja statusu zamówienia
+      // Aktualizacja statusu zamówienia na awaiting_payment
       const { error } = await supabase
         .from('product_orders')
         .update({
-          status: 'pending_payment'
+          status: 'awaiting_payment'
         })
         .eq('id', reservationData.id);
       
@@ -177,9 +178,13 @@ export function usePayment() {
     
     setIsProcessingPayment(true);
     
+    // W kontekście integracji z rzeczywistym systemem płatności,
+    // tutaj następowałoby przekierowanie do strony płatności
+    // lub przetwarzanie płatności przez Stripe, Przelewy24, itp.
+    
     // Symulujemy opóźnienie przetwarzania płatności
     setTimeout(() => {
-      // Symulujemy udaną płatność (w przyszłości będzie to Stripe)
+      // W symulacji zakładamy udaną płatność (w rzeczywistym przypadku będzie to odpowiedź z Stripe)
       const success = true;
       
       handlePaymentResult(success, reservationData).then(() => {
