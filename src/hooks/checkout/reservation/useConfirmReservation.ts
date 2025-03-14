@@ -43,8 +43,24 @@ export function useConfirmReservation({
       const paymentDeadlineDate = new Date();
       paymentDeadlineDate.setHours(paymentDeadlineDate.getHours() + 24);
       
+      // Definiujemy typ dla danych aktualizacji - rozszerzony o nowe pola
+      interface UpdateData {
+        status: string;
+        payment_deadline: string;
+        shipping_address: string;
+        shipping_method: string;
+        payment_method: string | null;
+        notes: string | null;
+        delivery_price?: number;
+        discount_value?: number;
+        discount_code?: string | null;
+        service_fee?: number;
+        product_price?: number;
+        discount_code_id?: string | null;
+      }
+      
       // Przygotowanie danych do aktualizacji, zawierających wszystkie istotne informacje
-      const updateData = {
+      const updateData: UpdateData = {
         status: 'awaiting_payment',
         payment_deadline: paymentDeadlineDate.toISOString(),
         shipping_address: `${formData.address}, ${formData.postalCode} ${formData.city}`,
