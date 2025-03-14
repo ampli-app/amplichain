@@ -130,15 +130,19 @@ export function useCreateReservation({
       
       console.log("Zmieniam status produktu na 'reserved'");
       
-      // Najpierw zmień status produktu na 'reserved'
-      const { error: updateProductError } = await supabase
+      // Dodajemy opóźnienie przed próbą aktualizacji statusu produktu
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Najpierw zmień status produktu na 'reserved' - wykorzystujemy bardziej szczegółowy warunek
+      const { data: updateResult, error: updateProductError } = await supabase
         .from('products')
         .update({ 
           status: 'reserved',
           updated_at: new Date().toISOString()
         })
         .eq('id', productId)
-        .eq('status', 'available'); // Zabezpieczenie, aby zmienić tylko jeśli dalej jest dostępny
+        .eq('status', 'available') // Zabezpieczenie, aby zmienić tylko jeśli dalej jest dostępny
+        .select('status'); // Zwróć zaktualizowane dane
       
       if (updateProductError) {
         console.error('Błąd podczas aktualizacji statusu produktu:', updateProductError);
@@ -150,9 +154,20 @@ export function useCreateReservation({
         return null;
       }
       
-      console.log("Status produktu zmieniony na 'reserved'");
+      // Sprawdź, czy aktualizacja faktycznie zmieniła dane (czy zwrócono wyniki)
+      if (!updateResult || updateResult.length === 0) {
+        console.error('Aktualizacja statusu produktu nie powiodła się - brak zwróconych danych');
+        toast({
+          title: "Błąd",
+          description: "Nie udało się zarezerwować produktu. Mógł on zostać właśnie zarezerwowany przez kogoś innego.",
+          variant: "destructive",
+        });
+        return null;
+      }
       
-      // Sprawdź, czy aktualizacja statusu powiodła się
+      console.log("Status produktu zmieniony na 'reserved'", updateResult);
+      
+      // Dokonujemy bezpośredniego sprawdzenia statusu po aktualizacji
       const { data: verifyProductStatus, error: verifyError } = await supabase
         .from('products')
         .select('status')
@@ -164,15 +179,47 @@ export function useCreateReservation({
         return null;
       }
       
+      console.log('Aktualny status produktu po aktualizacji:', verifyProductStatus?.status);
+      
       if (!verifyProductStatus || verifyProductStatus.status !== 'reserved') {
         console.error('Weryfikacja aktualizacji statusu produktu nie powiodła się!');
-        console.log('Aktualny status produktu po próbie aktualizacji:', verifyProductStatus?.status);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się zarezerwować produktu. Spróbuj ponownie.",
-          variant: "destructive",
-        });
-        return null;
+        
+        // Ponawiamy próbę aktualizacji
+        const { error: retryUpdateError } = await supabase
+          .from('products')
+          .update({ 
+            status: 'reserved',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', productId);
+          
+        if (retryUpdateError) {
+          console.error('Ponowna próba aktualizacji statusu produktu nie powiodła się:', retryUpdateError);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się zarezerwować produktu po ponownej próbie. Spróbuj ponownie później.",
+            variant: "destructive",
+          });
+          return null;
+        }
+        
+        // Sprawdzamy status po ponownej aktualizacji
+        const { data: retryVerifyStatus, error: retryVerifyError } = await supabase
+          .from('products')
+          .select('status')
+          .eq('id', productId)
+          .single();
+          
+        if (retryVerifyError || retryVerifyStatus.status !== 'reserved') {
+          console.error('Weryfikacja po ponownej aktualizacji nie powiodła się:', 
+            retryVerifyError || `Status: ${retryVerifyStatus?.status}`);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się zarezerwować produktu. Spróbuj ponownie.",
+            variant: "destructive",
+          });
+          return null;
+        }
       }
       
       console.log('Zweryfikowano zmianę statusu na "reserved" pomyślnie');
@@ -240,11 +287,10 @@ export function useCreateReservation({
         status: 'reserved',
         reservation_expires_at: expiresAt.toISOString(),
         order_type: testMode ? 'test' : 'purchase',
-        discount_code_id: discountCodeId,
         discount_code: discountCodeText
       });
       
-      // Utwórz nowe zamówienie
+      // Utwórz nowe zamówienie - usuwamy pole discount_code_id, które powodowało problemy
       const { data, error } = await supabase
         .from('product_orders')
         .insert([{
@@ -260,7 +306,6 @@ export function useCreateReservation({
           status: 'reserved',
           reservation_expires_at: expiresAt.toISOString(),
           order_type: testMode ? 'test' : 'purchase',
-          discount_code_id: discountCodeId,
           discount_code: discountCodeText
         }])
         .select();
