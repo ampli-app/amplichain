@@ -43,6 +43,15 @@ export function OrderSummaryForm({
   const isInpostDelivery = selectedDeliveryOption?.name === 'Paczkomat InPost';
   const isCourierDelivery = selectedDeliveryOption?.name === 'Kurier';
   
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation(); // Zapobiegamy domyślnej akcji formularza
+    
+    console.log('Kliknięto przycisk "Zapłać i zamów"');
+    // Wywołujemy przekazaną funkcję onSubmit
+    onSubmit(e);
+  };
+  
   return (
     <Card className="mb-8">
       <CardHeader className="border-b bg-muted/40">
@@ -194,9 +203,9 @@ export function OrderSummaryForm({
           Wstecz
         </Button>
         <Button 
-          type="submit" 
+          type="button" 
           disabled={isProcessing} 
-          onClick={(e) => onSubmit(e)}
+          onClick={handleSubmit}
         >
           {isProcessing ? (
             <>

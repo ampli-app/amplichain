@@ -55,6 +55,7 @@ export function usePaymentProcessing({
         return null;
       }
       
+      // Aktualizujemy status na pending_payment
       const { error } = await supabase
         .from('product_orders')
         .update({
@@ -88,6 +89,10 @@ export function usePaymentProcessing({
       
       // Tworzenie sesji płatności Stripe przez edge function
       try {
+        console.log('Rozpoczynam tworzenie sesji płatności Stripe dla zamówienia:', reservationData.id);
+        console.log('Kwota płatności (w groszach):', Math.round(totalAmount * 100));
+        console.log('Metoda płatności:', currentOrder.payment_method || 'card');
+        
         const stripeResponse = await supabase.functions.invoke('stripe-payment', {
           body: {
             orderId: reservationData.id,
@@ -101,10 +106,16 @@ export function usePaymentProcessing({
         });
         
         if (stripeResponse.error) {
+          console.error('Błąd odpowiedzi ze Stripe:', stripeResponse.error);
           throw new Error(stripeResponse.error.message || 'Błąd podczas tworzenia sesji płatności');
         }
         
-        console.log('Stripe response:', stripeResponse.data);
+        console.log('Odpowiedź ze Stripe:', stripeResponse.data);
+        
+        if (!stripeResponse.data || !stripeResponse.data.url) {
+          console.error('Nieprawidłowa odpowiedź ze Stripe - brak URL:', stripeResponse.data);
+          throw new Error('Nieprawidłowa odpowiedź ze Stripe - brak URL do płatności');
+        }
         
         // Aktualizuj dane zamówienia z informacjami ze Stripe
         await supabase
@@ -124,8 +135,10 @@ export function usePaymentProcessing({
           stripe_checkout_url: stripeResponse.data.url
         });
         
-        // Przekieruj użytkownika do strony płatności Stripe
-        window.location.href = stripeResponse.data.url;
+        // Dodaję bezpośrednie przekierowanie zamiast przypisania do window.location.href
+        // co może być blokowane przez niektóre przeglądarki
+        console.log('Przekierowuję użytkownika do strony płatności Stripe:', stripeResponse.data.url);
+        window.open(stripeResponse.data.url, '_self');
         
         return stripeResponse.data;
       } catch (stripeError) {
