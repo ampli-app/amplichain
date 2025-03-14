@@ -16,6 +16,8 @@ export const useProductAvailability = (productId: string | undefined) => {
     const checkAvailability = async () => {
       setIsLoading(true);
       try {
+        console.log(`[useProductAvailability] Sprawdzanie statusu produktu: ${productId}`);
+        
         const { data, error } = await supabase
           .from('products')
           .select('status')
@@ -65,8 +67,12 @@ export const useProductAvailability = (productId: string | undefined) => {
         console.log(`[useProductAvailability] Status subskrypcji dla produktu ${productId}:`, status);
       });
 
+    // Sprawdzaj status co 15 sekund jako dodatkowe zabezpieczenie
+    const intervalId = setInterval(checkAvailability, 15000);
+
     return () => {
-      console.log(`[useProductAvailability] Usuwanie kanału dla produktu ${productId}`);
+      console.log(`[useProductAvailability] Usuwanie kanału i interwału dla produktu ${productId}`);
+      clearInterval(intervalId);
       supabase.removeChannel(channel);
     };
   }, [productId]);

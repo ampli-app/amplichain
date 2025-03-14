@@ -82,9 +82,13 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
     setIsReserving(true);
     
     try {
+      console.log("Rozpoczynam procedurę zakupu dla produktu", id);
+      
+      // Anuluj poprzednie rezerwacje, jeśli istnieją
       const canProceed = await cancelPreviousReservations();
       
       if (canProceed === false) {
+        console.log("Nie można kontynuować - poprzednia rezerwacja jest aktywna");
         setIsReserving(false);
         return;
       }
@@ -121,22 +125,26 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       const isTestMode = location.search.includes('mode=test');
       
       if (product) {
-        console.log("Inicjujemy rezerwację dla produktu", product.id);
+        console.log("Inicjuję rezerwację dla produktu", product.id);
         const reservation = await initiateOrder(product, isTestMode);
+        
         if (reservation) {
-          console.log("Rezerwacja udana, przekierowujemy do checkout z orderId:", reservation.id);
-          // Przekazujemy orderId w URL, aby strona checkout nie tworzyła nowego zamówienia
+          console.log("Rezerwacja udana, przekierowuję do checkout z orderId:", reservation.id);
           if (isTestMode) {
             navigate(`/checkout/${id}?mode=test&orderId=${reservation.id}`);
           } else {
             navigate(`/checkout/${id}?orderId=${reservation.id}`);
           }
-          return;
         } else {
           console.log("Nie udało się utworzyć rezerwacji");
+          toast({
+            title: "Błąd",
+            description: "Nie udało się utworzyć rezerwacji. Spróbuj ponownie za chwilę.",
+            variant: "destructive",
+          });
         }
       } else {
-        console.log("Brak danych produktu, przekierowujemy bez orderId");
+        console.log("Brak danych produktu, przekierowuję bez orderId");
         if (isTestMode) {
           navigate(`/checkout/${id}?mode=test`);
         } else {
@@ -151,6 +159,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         variant: "destructive",
       });
     } finally {
+      // Opóźnione resetowanie stanu, aby zapobiec wielokrotnym kliknięciom
       setTimeout(() => {
         setIsReserving(false);
       }, 2000);

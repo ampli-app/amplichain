@@ -22,7 +22,15 @@ export function useReservationCheck({
   const [isChecking, setIsChecking] = useState(false);
   
   const checkExistingReservation = async () => {
-    if (!user || !productId || isChecking) return null;
+    if (!user || !productId) {
+      console.log("Brak użytkownika lub produktId - nie można sprawdzić rezerwacji");
+      return null;
+    }
+    
+    if (isChecking) {
+      console.log("Sprawdzanie rezerwacji już w toku - pomijam");
+      return null;
+    }
     
     try {
       setIsChecking(true);
@@ -43,7 +51,7 @@ export function useReservationCheck({
         .select('*')
         .eq('product_id', productId)
         .eq('buyer_id', user.id)
-        .in('status', ['reserved', 'confirmed'])
+        .in('status', ['reserved', 'confirmed', 'awaiting_payment'])
         .order('created_at', { ascending: false })
         .limit(1);
       
@@ -57,11 +65,47 @@ export function useReservationCheck({
         setReservationData(data[0]);
         
         if (data[0].reservation_expires_at) {
-          setReservationExpiresAt(new Date(data[0].reservation_expires_at));
+          const expiresAt = new Date(data[0].reservation_expires_at);
+          setReservationExpiresAt(expiresAt);
+          console.log('Rezerwacja wygasa o:', expiresAt.toISOString());
+        } else {
+          console.log('Brak daty wygaśnięcia rezerwacji');
+          setReservationExpiresAt(null);
         }
         
         if (data[0].payment_deadline) {
           setPaymentDeadline(new Date(data[0].payment_deadline));
+        } else {
+          setPaymentDeadline(null);
+        }
+        
+        // Sprawdź czy status produktu jest zgodny z rezerwacją
+        if (data[0].status !== 'reservation_expired') {
+          const { data: productData, error: productError } = await supabase
+            .from('products')
+            .select('status')
+            .eq('id', productId)
+            .single();
+            
+          if (!productError && productData && productData.status !== 'reserved') {
+            console.log('Niezgodność statusu produktu! Aktualny status:', productData.status);
+            console.log('Aktualizuję status produktu na "reserved"');
+            
+            // Aktualizuj status produktu na "reserved" jeśli nie jest zgodny z rezerwacją
+            const { error: updateError } = await supabase
+              .from('products')
+              .update({ 
+                status: 'reserved',
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', productId);
+              
+            if (updateError) {
+              console.error('Błąd podczas aktualizacji statusu produktu:', updateError);
+            } else {
+              console.log('Status produktu zaktualizowany pomyślnie na "reserved"');
+            }
+          }
         }
         
         return data[0];
@@ -70,7 +114,7 @@ export function useReservationCheck({
       console.log('Nie znaleziono istniejących rezerwacji');
       return null;
     } catch (err) {
-      console.error('Nieoczekiwany błąd:', err);
+      console.error('Nieoczekiwany błąd podczas sprawdzania rezerwacji:', err);
       return null;
     } finally {
       setIsChecking(false);

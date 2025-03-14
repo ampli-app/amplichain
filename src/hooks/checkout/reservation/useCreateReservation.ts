@@ -20,11 +20,13 @@ export function useCreateReservation({
   const [isInitiating, setIsInitiating] = useState(false);
 
   const initiateOrder = async (product: any, testMode: boolean = false) => {
-    if (!user || !productId || !product || isInitiating) {
-      console.log("Nie można utworzyć rezerwacji - brak wymaganych danych lub rezerwacja w toku.");
-      if (isInitiating) {
-        console.log("Zamówienie jest już w trakcie inicjowania - blokowanie duplikatu");
-      }
+    if (!user || !productId || !product) {
+      console.log("Nie można utworzyć rezerwacji - brak wymaganych danych");
+      return null;
+    }
+    
+    if (isInitiating) {
+      console.log("Zamówienie jest już w trakcie inicjowania - blokowanie duplikatu");
       return null;
     }
     
@@ -69,6 +71,7 @@ export function useCreateReservation({
         .from('product_orders')
         .select('id')
         .eq('product_id', productId)
+        .eq('buyer_id', user.id)
         .in('status', ['reserved', 'awaiting_payment', 'confirmed'])
         .limit(1);
         
@@ -86,12 +89,13 @@ export function useCreateReservation({
           
         if (!fetchError && fullOrder) {
           setReservationData(fullOrder);
-          setReservationExpiresAt(new Date(fullOrder.reservation_expires_at));
+          if (fullOrder.reservation_expires_at) {
+            setReservationExpiresAt(new Date(fullOrder.reservation_expires_at));
+          }
           
           toast({
             title: "Rezerwacja istnieje",
-            description: "Ten produkt jest już zarezerwowany. Nie można utworzyć nowej rezerwacji.",
-            variant: "destructive",
+            description: "Ten produkt jest już zarezerwowany. Kontynuujesz istniejącą rezerwację.",
           });
           
           return fullOrder;
@@ -106,6 +110,8 @@ export function useCreateReservation({
         });
         return null;
       }
+      
+      console.log("Zmieniam status produktu na 'reserved'");
       
       // Najpierw zmień status produktu na 'reserved' za pomocą transakcji
       const { error: updateProductError } = await supabase
@@ -136,12 +142,18 @@ export function useCreateReservation({
         .eq('id', productId)
         .single();
         
-      if (verifyError || verifyProductStatus.status !== 'reserved') {
+      if (verifyError || !verifyProductStatus || verifyProductStatus.status !== 'reserved') {
         console.error('Weryfikacja aktualizacji statusu produktu nie powiodła się:', verifyError);
         console.log('Aktualny status produktu po próbie aktualizacji:', verifyProductStatus?.status);
-      } else {
-        console.log('Zweryfikowano zmianę statusu na "reserved" pomyślnie');
+        toast({
+          title: "Błąd",
+          description: "Nie udało się zarezerwować produktu. Spróbuj ponownie.",
+          variant: "destructive",
+        });
+        return null;
       }
+      
+      console.log('Zweryfikowano zmianę statusu na "reserved" pomyślnie');
       
       const { data: deliveryOptions, error: deliveryError } = await supabase
         .from('delivery_options')
