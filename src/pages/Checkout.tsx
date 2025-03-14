@@ -24,7 +24,6 @@ import { PaymentRedirection } from '@/components/checkout/PaymentRedirection';
 import { useStripe } from '@/contexts/StripeContext';
 import { PAYMENT_METHODS } from '@/hooks/checkout/payment/paymentConfig';
 
-// Inicjalizacja Stripe - używamy publicznego klucza z kontekstu
 const stripePromise = loadStripe('pk_test_TYooMQauvdEDq54NiTphI7jx');
 
 export default function Checkout() {
@@ -32,7 +31,7 @@ export default function Checkout() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const isTestMode = searchParams.get('mode') === 'test';
-  const orderId = searchParams.get('orderId'); // Pobieramy orderId z URL
+  const orderId = searchParams.get('orderId');
   const navigate = useNavigate();
   const { isLoggedIn, user } = useAuth();
   
@@ -40,7 +39,6 @@ export default function Checkout() {
   const [isProcessingReservation, setIsProcessingReservation] = useState(false);
   const [hasCheckedExistingReservation, setHasCheckedExistingReservation] = useState(false);
   
-  // Stripe state
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
   const [showStripeForm, setShowStripeForm] = useState(false);
   const stripeContext = useStripe();
@@ -180,9 +178,7 @@ export default function Checkout() {
     checkout.setIsProcessing(true);
     
     try {
-      // Jeśli wybrano płatność kartą, używamy Stripe
       if (checkout.paymentMethod === PAYMENT_METHODS.CARD) {
-        // Przygotuj intencję płatności Stripe
         const paymentIntent = await initiatePayment(reservationData, null);
         
         if (!paymentIntent) {
@@ -193,7 +189,6 @@ export default function Checkout() {
         setStripeClientSecret(paymentIntent.client_secret);
         setShowStripeForm(true);
       } else {
-        // Dla innych metod płatności używamy dotychczasowej logiki
         const paymentIntent = await initiatePayment(reservationData, null);
         
         if (!paymentIntent) {
@@ -201,7 +196,6 @@ export default function Checkout() {
           return;
         }
         
-        // Symulacja płatności (do zastąpienia przez faktyczną integrację)
         simulatePaymentProcessing(
           {
             paymentMethod: checkout.paymentMethod,
@@ -217,22 +211,20 @@ export default function Checkout() {
                 description: "Twoje zamówienie zostało złożone pomyślnie!",
               });
               
-              const url = isTestMode 
+              let baseUrl = isTestMode 
                 ? `/checkout/success/${id}?mode=test` 
                 : `/checkout/success/${id}?mode=buy`;
               
-              // Dodanie parametrów jeśli są
               const currentUrlParams = new URLSearchParams(location.search);
-              currentUrlParams.delete('mode'); // Usuwamy mode, bo dodajemy go ręcznie
-            
+              currentUrlParams.delete('mode');
+              
               if (currentUrlParams.toString()) {
-                url += (url.includes('?') ? '&' : '?') + currentUrlParams.toString();
+                baseUrl = baseUrl + (baseUrl.includes('?') ? '&' : '?') + currentUrlParams.toString();
               }
               
-              // Dodajemy tryb na końcu
-              url += (url.includes('?') ? '&' : '?') + `mode=${isTestMode ? 'test' : 'buy'}`;
+              const finalUrl = baseUrl + (baseUrl.includes('?') ? '&' : '?') + `mode=${isTestMode ? 'test' : 'buy'}`;
               
-              navigate(url);
+              navigate(finalUrl);
             } else {
               toast({
                 title: "Błąd płatności",
@@ -262,22 +254,20 @@ export default function Checkout() {
       description: "Twoje zamówienie zostało złożone pomyślnie!",
     });
     
-    const url = isTestMode 
+    let baseUrl = isTestMode 
       ? `/checkout/success/${id}?mode=test` 
       : `/checkout/success/${id}`;
     
-    // Dodanie parametrów jeśli są
     const currentUrlParams = new URLSearchParams(location.search);
-    currentUrlParams.delete('mode'); // Usuwamy mode, bo dodajemy go ręcznie
+    currentUrlParams.delete('mode');
     
     if (currentUrlParams.toString()) {
-      url += (url.includes('?') ? '&' : '?') + currentUrlParams.toString();
+      baseUrl = baseUrl + (baseUrl.includes('?') ? '&' : '?') + currentUrlParams.toString();
     }
     
-    // Dodajemy tryb na końcu
-    url += (url.includes('?') ? '&' : '?') + `mode=${isTestMode ? 'test' : 'buy'}`;
+    const finalUrl = baseUrl + (baseUrl.includes('?') ? '&' : '?') + `mode=${isTestMode ? 'test' : 'buy'}`;
     
-    navigate(url);
+    navigate(finalUrl);
   };
   
   const handleStripePaymentError = (error: string) => {
