@@ -57,6 +57,7 @@ export function useConfirmReservation({
         service_fee?: number;
         product_price?: number;
         discount_code_id?: string | null;
+        total_amount?: number;  // Dodajemy pole total_amount
       }
       
       // Przygotowanie danych do aktualizacji, zawierających wszystkie istotne informacje
@@ -69,26 +70,40 @@ export function useConfirmReservation({
         notes: formData.comments || null
       };
       
+      // Obliczamy wartości
+      let productPrice = 0;
+      let deliveryPrice = 0;
+      let serviceFee = 0;
+      let discountValue = 0;
+      
       // Sprawdzamy czy dane faktycznie istnieją zanim je dodamy do updateData
       if (formData.deliveryPrice !== undefined) {
-        updateData.delivery_price = parseFloat(formData.deliveryPrice);
+        deliveryPrice = parseFloat(formData.deliveryPrice);
+        updateData.delivery_price = deliveryPrice;
       }
       
       if (formData.discount !== undefined) {
-        updateData.discount_value = parseFloat(formData.discount);
+        discountValue = parseFloat(formData.discount);
+        updateData.discount_value = discountValue;
         updateData.discount_code = formData.discountCode || null;
       }
       
       if (formData.serviceFee !== undefined) {
-        updateData.service_fee = parseFloat(formData.serviceFee);
+        serviceFee = parseFloat(formData.serviceFee);
+        updateData.service_fee = serviceFee;
       }
       
       if (formData.productPrice !== undefined) {
-        updateData.product_price = parseFloat(formData.productPrice);
+        productPrice = parseFloat(formData.productPrice);
+        updateData.product_price = productPrice;
       }
       
       // Pomijamy dodawanie discount_code_id, które powodowało błąd
       // Jeśli w przyszłości będzie potrzebne, należy zapewnić, że jest to prawidłowe UUID
+      
+      // Obliczamy całkowitą kwotę
+      const totalAmount = productPrice + deliveryPrice + serviceFee - discountValue;
+      updateData.total_amount = parseFloat(totalAmount.toFixed(2));
       
       console.log('Aktualizacja zamówienia z danymi:', updateData);
       
@@ -111,7 +126,8 @@ export function useConfirmReservation({
       setReservationData({
         ...reservationData,
         status: 'awaiting_payment',
-        payment_deadline: paymentDeadlineDate.toISOString()
+        payment_deadline: paymentDeadlineDate.toISOString(),
+        total_amount: totalAmount
       });
       
       toast({
