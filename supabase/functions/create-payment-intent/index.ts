@@ -52,10 +52,6 @@ serve(async (req) => {
       currency: currency,
       metadata: paymentMetadata,
       payment_method_types: ['card'],
-      // Dodaj tryb testowy, żeby Stripe zwrócił nam testową intencję płatności
-      // (to zabezpieczenie, gdyby środowisko nie było prawidłowo skonfigurowane)
-      // W produkcji to powinno być usunięte
-      test_clock: process.env.NODE_ENV === 'development' ? undefined : undefined
     })
     
     console.log(`Utworzono intencję płatności: ${paymentIntent.id}`)

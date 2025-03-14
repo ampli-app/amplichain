@@ -37,27 +37,43 @@ serve(async (req) => {
     console.log(`Weryfikacja intencji płatności: ${paymentIntentId}`)
     console.log('Używany klucz Stripe:', stripeSecretKey.substring(0, 8) + '...')
     
-    // Pobierz status intencji płatności ze Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
-    
-    console.log(`Status intencji płatności ${paymentIntentId}: ${paymentIntent.status}`)
-    
-    // Zwracamy dane statusu płatności
-    return new Response(
-      JSON.stringify({
-        status: paymentIntent.status,
-        amount: paymentIntent.amount / 100, // Konwersja z "centów" na główną jednostkę waluty
-        currency: paymentIntent.currency,
-        metadata: paymentIntent.metadata
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        status: 200,
-      }
-    )
+    try {
+      // Pobierz status intencji płatności ze Stripe
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+      
+      console.log(`Status intencji płatności ${paymentIntentId}: ${paymentIntent.status}`)
+      
+      // Zwracamy dane statusu płatności
+      return new Response(
+        JSON.stringify({
+          status: paymentIntent.status,
+          amount: paymentIntent.amount / 100, // Konwersja z "centów" na główną jednostkę waluty
+          currency: paymentIntent.currency,
+          metadata: paymentIntent.metadata
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+          status: 200,
+        }
+      )
+    } catch (stripeError) {
+      console.error('Błąd Stripe podczas weryfikacji intencji płatności:', stripeError)
+      return new Response(
+        JSON.stringify({
+          error: `Błąd Stripe: ${stripeError.message}`,
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+          status: 400,
+        }
+      )
+    }
   } catch (error) {
     console.error('Błąd podczas weryfikacji intencji płatności:', error)
     

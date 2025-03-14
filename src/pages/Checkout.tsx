@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -24,7 +25,7 @@ import { PaymentRedirection } from '@/components/checkout/PaymentRedirection';
 import { useStripe } from '@/contexts/StripeContext';
 import { PAYMENT_METHODS } from '@/hooks/checkout/payment/paymentConfig';
 
-const stripePromise = loadStripe('pk_test_51JUxVMHWq4SaAphR5xVQG3Xn7AkBjQphEojXF5YhXQo80dxzLMASgNyLCwGzxITwBIu8Hs1iIgXD8BF8NwIptTNx00dZKGH9kR');
+const stripePromise = loadStripe('pk_test_51PknP5HWq4SaAphRMxLKZvKm5A3fJRXiajDAD5kwwAGGEmT4ZjBYayqWspHZcViJBs9hfA1ADCRtDIZh6p7UOlS900OdLD37Ya');
 
 export default function Checkout() {
   const { id } = useParams<{ id: string }>();

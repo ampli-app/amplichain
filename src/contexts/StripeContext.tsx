@@ -6,7 +6,7 @@ import { PAYMENT_PROVIDERS } from '@/hooks/checkout/payment/paymentConfig';
 import { supabase } from '@/integrations/supabase/client';
 
 // Publiczny klucz Stripe - musi być z tego samego konta co tajny klucz
-const stripePublishableKey = 'pk_test_51JUxVMHWq4SaAphR5xVQG3Xn7AkBjQphEojXF5YhXQo80dxzLMASgNyLCwGzxITwBIu8Hs1iIgXD8BF8NwIptTNx00dZKGH9kR';
+const stripePublishableKey = 'pk_test_51PknP5HWq4SaAphRMxLKZvKm5A3fJRXiajDAD5kwwAGGEmT4ZjBYayqWspHZcViJBs9hfA1ADCRtDIZh6p7UOlS900OdLD37Ya';
 
 // Inicjalizacja Stripe
 const stripePromise = loadStripe(stripePublishableKey);

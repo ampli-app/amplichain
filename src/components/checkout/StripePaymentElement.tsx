@@ -101,6 +101,7 @@ export function StripePaymentElement({
         confirmParams: {
           return_url: finalReturnUrl,
         },
+        redirect: 'if_required',
       });
 
       if (error) {
