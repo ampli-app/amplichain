@@ -40,11 +40,23 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
     const productUrl = `${window.location.origin}/marketplace/${id}`;
-    navigator.clipboard.writeText(productUrl);
-    toast({
-      title: "Link skopiowany",
-      description: "Link do produktu został skopiowany do schowka.",
-    });
+    
+    navigator.clipboard.writeText(productUrl).then(
+      () => {
+        toast({
+          title: "Link skopiowany",
+          description: "Link do produktu został skopiowany do schowka.",
+        });
+      },
+      (err) => {
+        console.error('Could not copy text: ', err);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się skopiować linku.",
+          variant: "destructive",
+        });
+      }
+    );
   };
   
   const handleBuyNow = async (e: React.MouseEvent) => {
@@ -126,9 +138,33 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       
       const isTestMode = location.search.includes('mode=test');
       
-      if (product) {
-        console.log("Inicjuję rezerwację dla produktu", product.id);
-        const reservation = await initiateOrder(product, isTestMode);
+      // Pobierz pełne dane produktu, jeśli nie zostały przekazane
+      let productToUse = product;
+      if (!productToUse) {
+        console.log("Brak danych produktu, pobieranie z bazy danych");
+        const { data: fetchedProduct, error: fetchError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .single();
+          
+        if (fetchError || !fetchedProduct) {
+          console.error('Błąd podczas pobierania danych produktu:', fetchError);
+          toast({
+            title: "Błąd",
+            description: "Nie udało się pobrać danych produktu.",
+            variant: "destructive",
+          });
+          setIsReserving(false);
+          return;
+        }
+        
+        productToUse = fetchedProduct;
+      }
+      
+      if (productToUse) {
+        console.log("Inicjuję rezerwację dla produktu", productToUse.id);
+        const reservation = await initiateOrder(productToUse, isTestMode);
         
         if (reservation) {
           console.log("Rezerwacja udana, przekierowuję do checkout z orderId:", reservation.id);
@@ -138,7 +174,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
             navigate(`/checkout/${id}?orderId=${reservation.id}`);
           }
         } else {
-          console.log("Nie udało się utworzyć rezerwacji - brak danych rezervacji");
+          console.log("Nie udało się utworzyć rezerwacji - brak danych rezerwacji");
           toast({
             title: "Błąd",
             description: "Nie udało się utworzyć rezerwacji. Spróbuj ponownie za chwilę.",
@@ -146,12 +182,12 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
           });
         }
       } else {
-        console.log("Brak danych produktu, przekierowuję bez orderId");
-        if (isTestMode) {
-          navigate(`/checkout/${id}?mode=test`);
-        } else {
-          navigate(`/checkout/${id}`);
-        }
+        console.error("Brak danych produktu po wszystkich próbach pobrania!");
+        toast({
+          title: "Błąd",
+          description: "Nie udało się pobrać danych produktu.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Błąd podczas tworzenia rezerwacji:', error);
