@@ -4,6 +4,7 @@ import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js'
 import { Button } from '@/components/ui/button';
 import { PaymentRedirection } from './PaymentRedirection';
 import { toast } from '@/components/ui/use-toast';
+import { useStripe as useStripeContext } from '@/contexts/StripeContext';
 
 interface StripePaymentElementProps {
   clientSecret: string | null;
@@ -22,6 +23,7 @@ export function StripePaymentElement({
 }: StripePaymentElementProps) {
   const stripe = useStripe();
   const elements = useElements();
+  const stripeContext = useStripeContext();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
@@ -168,9 +170,15 @@ export function StripePaymentElement({
     return <PaymentRedirection isLoading={true} paymentProvider="Stripe" />;
   }
 
+  // Pobieramy opcje konfiguracyjne z kontekstu
+  const paymentElementOptions = stripeContext.getPaymentElementOptions();
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement onReady={handleFormReady} />
+      <PaymentElement 
+        options={paymentElementOptions}
+        onReady={handleFormReady} 
+      />
       <Button 
         type="submit" 
         className="w-full" 

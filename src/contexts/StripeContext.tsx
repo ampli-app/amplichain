@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
@@ -63,11 +62,15 @@ export const StripeProvider = ({ children }: StripeProviderProps) => {
   const getPaymentElementOptions = () => {
     return {
       layout: "tabs",
+      paymentMethodOrder: ['card', 'p24', 'blik'],
       defaultValues: {
         billingDetails: {
           name: '',
           email: '',
         }
+      },
+      paymentMethodConfiguration: {
+        apple_pay: { enabled: false },
       }
     };
   };
@@ -155,6 +158,9 @@ export const StripeProvider = ({ children }: StripeProviderProps) => {
             spacingUnit: '4px',
             borderRadius: '4px',
           }
+        },
+        paymentMethodConfiguration: {
+          apple_pay: { enabled: false },
         }
       }}>
         {children}
