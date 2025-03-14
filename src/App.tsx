@@ -36,12 +36,13 @@ import Orders from './pages/Orders';
 // Inicjalizacja klienta TanStack Query
 const queryClient = new QueryClient();
 
+// Główny komponent aplikacji z poprawną hierarchią kontekstów
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system" storageKey="ui-theme">
-        <AuthProvider>
-          <SocialProvider>
+        <SocialProvider>
+          <AuthProvider>
             <StripeProvider>
               <Router>
                 <Routes>
@@ -75,8 +76,8 @@ function App() {
                 <Toaster />
               </Router>
             </StripeProvider>
-          </SocialProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </SocialProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
