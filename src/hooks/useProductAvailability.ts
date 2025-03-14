@@ -1,11 +1,14 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useProductAvailability = (productId: string | undefined) => {
   const [isAvailable, setIsAvailable] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [productStatus, setProductStatus] = useState<string | null>(null);
+  const [isBackgroundChecking, setIsBackgroundChecking] = useState(false);
+  const initialCheckDoneRef = useRef(false);
+  const lastStatusRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!productId) {
@@ -13,10 +16,19 @@ export const useProductAvailability = (productId: string | undefined) => {
       return;
     }
 
-    const checkAvailability = async () => {
-      setIsLoading(true);
+    // Funkcja sprawdzania dostępności, która nie aktualizuje stanu loadingu dla sprawdzeń w tle
+    const checkAvailability = async (background = false) => {
+      if (background) {
+        if (isBackgroundChecking) return; // Zapobieganie równoległym sprawdzeniom w tle
+        setIsBackgroundChecking(true);
+      } else {
+        setIsLoading(true);
+      }
+
       try {
-        console.log(`[useProductAvailability] Sprawdzanie statusu produktu: ${productId}`);
+        if (!background) {
+          console.log(`[useProductAvailability] Sprawdzanie statusu produktu: ${productId}`);
+        }
         
         const { data, error } = await supabase
           .from('products')
@@ -26,21 +38,33 @@ export const useProductAvailability = (productId: string | undefined) => {
 
         if (error) {
           console.error('Błąd podczas sprawdzania dostępności produktu:', error);
-          setIsAvailable(false);
+          if (!background) setIsAvailable(false);
         } else {
-          console.log(`[useProductAvailability] Status produktu ${productId}:`, data.status);
-          setProductStatus(data.status);
-          setIsAvailable(data.status === 'available');
+          // Aktualizuj stan tylko jeśli status się zmienił, aby uniknąć zbędnych renderowań
+          if (lastStatusRef.current !== data.status) {
+            if (!background) {
+              console.log(`[useProductAvailability] Status produktu ${productId}:`, data.status);
+            }
+            lastStatusRef.current = data.status;
+            setProductStatus(data.status);
+            setIsAvailable(data.status === 'available');
+          }
         }
       } catch (err) {
         console.error('Nieoczekiwany błąd:', err);
-        setIsAvailable(false);
+        if (!background) setIsAvailable(false);
       } finally {
-        setIsLoading(false);
+        if (background) {
+          setIsBackgroundChecking(false);
+        } else {
+          setIsLoading(false);
+          initialCheckDoneRef.current = true;
+        }
       }
     };
 
-    checkAvailability();
+    // Pierwsze sprawdzenie, które pokaże wskaźnik ładowania
+    checkAvailability(false);
 
     // Ustaw subskrypcję na zmiany w tabeli products
     const channel = supabase
@@ -57,9 +81,12 @@ export const useProductAvailability = (productId: string | undefined) => {
           console.log('[useProductAvailability] Zmiana w produkcie:', payload);
           if (payload.new && 'status' in payload.new) {
             const newStatus = payload.new.status as string;
-            console.log('[useProductAvailability] Nowy status produktu:', newStatus);
-            setProductStatus(newStatus);
-            setIsAvailable(newStatus === 'available');
+            if (lastStatusRef.current !== newStatus) {
+              console.log('[useProductAvailability] Nowy status produktu (z subskrypcji):', newStatus);
+              lastStatusRef.current = newStatus;
+              setProductStatus(newStatus);
+              setIsAvailable(newStatus === 'available');
+            }
           }
         }
       )
@@ -67,8 +94,13 @@ export const useProductAvailability = (productId: string | undefined) => {
         console.log(`[useProductAvailability] Status subskrypcji dla produktu ${productId}:`, status);
       });
 
-    // Sprawdzaj status co 15 sekund jako dodatkowe zabezpieczenie
-    const intervalId = setInterval(checkAvailability, 15000);
+    // Sprawdzaj status co 15 sekund jako dodatkowe zabezpieczenie, ale w tle
+    const intervalId = setInterval(() => {
+      // Pomiń pierwsze uruchomienie interwału jeśli pierwsze sprawdzenie jeszcze się nie zakończyło
+      if (initialCheckDoneRef.current) {
+        checkAvailability(true);
+      }
+    }, 15000);
 
     return () => {
       console.log(`[useProductAvailability] Usuwanie kanału i interwału dla produktu ${productId}`);

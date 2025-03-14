@@ -4,7 +4,7 @@ import { Eye, Pencil, Share2, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
 import { useProductAvailability } from '@/hooks/useProductAvailability';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -23,6 +23,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
   const { isLoggedIn } = useAuth();
   const isDiscoverPage = location.pathname === '/discover';
   const [isReserving, setIsReserving] = useState(false);
+  const buyButtonClickedRef = useRef(false);
   
   const { initiateOrder, cancelPreviousReservations, isInitiating, isChecking } = useOrderReservation({ productId: id });
   const { isAvailable, isLoading: isCheckingAvailability, productStatus } = useProductAvailability(id);
@@ -62,6 +63,14 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
   const handleBuyNow = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
+    if (buyButtonClickedRef.current) {
+      console.log("Przycisk kup teraz został już kliknięty - ignorowanie powtórnych kliknięć");
+      return;
+    }
+    
+    // Ustaw flagę, aby zapobiec wielokrotnym kliknięciom
+    buyButtonClickedRef.current = true;
+    
     if (!isLoggedIn) {
       toast({
         title: "Wymagane logowanie",
@@ -69,6 +78,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         variant: "destructive",
       });
       navigate('/login');
+      buyButtonClickedRef.current = false;
       return;
     }
 
@@ -78,16 +88,19 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         description: "Ten produkt jest obecnie zarezerwowany lub został sprzedany.",
         variant: "destructive",
       });
+      buyButtonClickedRef.current = false;
       return;
     }
     
     if (onBuyNow) {
       onBuyNow();
+      buyButtonClickedRef.current = false;
       return;
     }
     
     if (isReserving || isInitiating || isChecking) {
       console.log("Proces rezerwacji już trwa - ignorowanie kliknięcia");
+      buyButtonClickedRef.current = false;
       return;
     }
     
@@ -111,6 +124,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
           variant: "destructive",
         });
         setIsReserving(false);
+        buyButtonClickedRef.current = false;
         return;
       }
       
@@ -122,6 +136,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
           variant: "destructive",
         });
         setIsReserving(false);
+        buyButtonClickedRef.current = false;
         return;
       }
       
@@ -131,6 +146,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       if (canProceed === false) {
         console.log("Nie można kontynuować - poprzednia rezerwacja jest aktywna");
         setIsReserving(false);
+        buyButtonClickedRef.current = false;
         return;
       }
       
@@ -156,6 +172,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
             variant: "destructive",
           });
           setIsReserving(false);
+          buyButtonClickedRef.current = false;
           return;
         }
         
@@ -180,6 +197,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
             description: "Nie udało się utworzyć rezerwacji. Spróbuj ponownie za chwilę.",
             variant: "destructive",
           });
+          buyButtonClickedRef.current = false;
         }
       } else {
         console.error("Brak danych produktu po wszystkich próbach pobrania!");
@@ -188,6 +206,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
           description: "Nie udało się pobrać danych produktu.",
           variant: "destructive",
         });
+        buyButtonClickedRef.current = false;
       }
     } catch (error) {
       console.error('Błąd podczas tworzenia rezerwacji:', error);
@@ -196,6 +215,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         description: "Wystąpił problem podczas inicjowania zamówienia.",
         variant: "destructive",
       });
+      buyButtonClickedRef.current = false;
     } finally {
       // Opóźnione resetowanie stanu, aby zapobiec wielokrotnym kliknięciom
       setTimeout(() => {
@@ -205,7 +225,8 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
   };
 
   const renderBuyButton = () => {
-    if (isCheckingAvailability) {
+    // Pokaż stan ładowania tylko przy pierwszym sprawdzaniu
+    if (isCheckingAvailability && !productStatus) {
       return (
         <Button 
           variant="default" 
@@ -254,7 +275,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         size="sm"
         className="flex items-center gap-1 h-9"
         onClick={handleBuyNow}
-        disabled={isReserving}
+        disabled={isReserving || buyButtonClickedRef.current}
         title="Kup teraz"
       >
         <ShoppingCart className="h-4 w-4" />

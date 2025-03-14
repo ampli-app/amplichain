@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +20,7 @@ export function useReservationCheck({
 }) {
   const { user } = useAuth();
   const [isChecking, setIsChecking] = useState(false);
+  const lastReservationIdRef = useRef<string | null>(null);
   
   const checkExistingReservation = async () => {
     if (!user || !productId) {
@@ -61,7 +62,14 @@ export function useReservationCheck({
       }
       
       if (data && data.length > 0) {
+        // Sprawdź czy jest to ta sama rezerwacja co poprzednio
+        if (lastReservationIdRef.current === data[0].id) {
+          console.log('Ta sama rezerwacja co poprzednio, pomijam aktualizację stanu');
+          return data[0];
+        }
+        
         console.log('Znaleziono istniejącą rezerwację:', data[0]);
+        lastReservationIdRef.current = data[0].id;
         setReservationData(data[0]);
         
         if (data[0].reservation_expires_at) {
@@ -126,7 +134,14 @@ export function useReservationCheck({
         return data[0];
       }
       
-      console.log('Nie znaleziono istniejących rezerwacji');
+      // Jeśli nie znaleziono rezerwacji, a była poprzednio, wyzeruj referencję
+      if (lastReservationIdRef.current !== null) {
+        console.log('Poprzednia rezerwacja już nie istnieje, resetuję stan');
+        lastReservationIdRef.current = null;
+      } else {
+        console.log('Nie znaleziono istniejących rezerwacji');
+      }
+      
       return null;
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas sprawdzania rezerwacji:', err);
