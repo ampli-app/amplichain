@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -15,7 +16,6 @@ import { CheckoutSummary } from '@/components/checkout/CheckoutSummary';
 import { useCheckout } from '@/hooks/checkout/useCheckout';
 import { ReservationTimer } from '@/components/checkout/ReservationTimer';
 import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
-import { usePaymentProcessing } from '@/hooks/checkout/reservation/usePaymentProcessing';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function Checkout() {
@@ -45,12 +45,14 @@ export default function Checkout() {
     cancelPreviousReservations,
     markReservationAsExpired,
     checkExpiredReservations,
-    checkExistingReservation
+    checkExistingReservation,
+    setReservationData  // <- Properly destructuring setReservationData from useOrderReservation
   } = useOrderReservation({ 
     productId: id || '', 
     isTestMode 
   });
   
+  // Now we can use the properly destructured setReservationData function
   const { 
     initiatePayment, 
     handlePaymentResult, 
@@ -58,7 +60,7 @@ export default function Checkout() {
   } = usePaymentProcessing({
     reservationData,
     paymentDeadline: reservationExpiresAt,
-    setReservationData,
+    setReservationData,  // <- This will now work correctly
     setIsLoading: (loading) => setIsProcessingReservation(loading)
   });
   
