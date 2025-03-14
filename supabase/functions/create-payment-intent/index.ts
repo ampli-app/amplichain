@@ -47,31 +47,47 @@ serve(async (req) => {
     }
     
     // Tworzenie intencji płatności w Stripe
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Stripe wymaga kwoty w najmniejszej jednostce waluty (grosze)
-      currency: currency,
-      metadata: paymentMetadata,
-      payment_method_types: ['card'],
-    })
-    
-    console.log(`Utworzono intencję płatności: ${paymentIntent.id}`)
-    
-    // Zwracamy dane intencji płatności
-    return new Response(
-      JSON.stringify({
-        clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id,
-        amount: amount,
-        currency: currency
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        status: 200,
-      }
-    )
+    try {
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Stripe wymaga kwoty w najmniejszej jednostce waluty (grosze)
+        currency: currency,
+        metadata: paymentMetadata,
+        payment_method_types: ['card'],
+      })
+      
+      console.log(`Utworzono intencję płatności: ${paymentIntent.id}`)
+      
+      // Zwracamy dane intencji płatności
+      return new Response(
+        JSON.stringify({
+          clientSecret: paymentIntent.client_secret,
+          paymentIntentId: paymentIntent.id,
+          amount: amount,
+          currency: currency
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+          status: 200,
+        }
+      )
+    } catch (stripeError) {
+      console.error('Błąd Stripe podczas tworzenia intencji płatności:', stripeError)
+      return new Response(
+        JSON.stringify({
+          error: `Błąd Stripe: ${stripeError.message}`,
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+          status: 400,
+        }
+      )
+    }
   } catch (error) {
     console.error('Błąd podczas tworzenia intencji płatności:', error)
     

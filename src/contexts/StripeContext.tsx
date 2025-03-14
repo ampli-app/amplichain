@@ -142,7 +142,21 @@ export const StripeProvider = ({ children }: StripeProviderProps) => {
 
   return (
     <StripeContext.Provider value={value}>
-      <Elements stripe={stripePromise}>
+      <Elements stripe={stripePromise} options={{
+        locale: 'pl',
+        appearance: {
+          theme: 'stripe',
+          variables: {
+            colorPrimary: '#0570de',
+            colorBackground: '#ffffff',
+            colorText: '#30313d',
+            colorDanger: '#df1b41',
+            fontFamily: 'Roboto, Open Sans, Segoe UI, sans-serif',
+            spacingUnit: '4px',
+            borderRadius: '4px',
+          }
+        }
+      }}>
         {children}
       </Elements>
     </StripeContext.Provider>

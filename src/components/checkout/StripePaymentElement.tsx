@@ -25,6 +25,7 @@ export function StripePaymentElement({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [isFormReady, setIsFormReady] = useState(false);
 
   useEffect(() => {
     if (!stripe || !clientSecret) {
@@ -65,11 +66,39 @@ export function StripePaymentElement({
     });
   }, [stripe, clientSecret, onSuccess, onError]);
 
+  // Funkcja pomocnicza do sprawdzenia, czy element PaymentElement jest już załadowany
+  const checkElementsReady = () => {
+    if (!elements) return false;
+    try {
+      // Próba pobrania elementu - jeśli się nie uda, nie jest jeszcze gotowy
+      const element = elements.getElement(PaymentElement);
+      return !!element;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  // Obsługa gotowości formularza płatności
+  const handleFormReady = () => {
+    console.log('Formularz płatności Stripe został załadowany');
+    setIsFormReady(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!stripe || !elements || !clientSecret) {
       console.error("Stripe nie jest gotowy lub brak client secret");
+      return;
+    }
+
+    if (!checkElementsReady()) {
+      console.error("Element płatności Stripe nie jest jeszcze załadowany");
+      toast({
+        title: "Formularz nie jest gotowy",
+        description: "Poczekaj chwilę, aż formularz płatności się załaduje i spróbuj ponownie.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -141,11 +170,11 @@ export function StripePaymentElement({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
+      <PaymentElement onReady={handleFormReady} />
       <Button 
         type="submit" 
         className="w-full" 
-        disabled={isLoading || !stripe || !elements}
+        disabled={isLoading || !stripe || !elements || !isFormReady}
       >
         {isLoading ? "Przetwarzanie..." : "Zapłać teraz"}
       </Button>
