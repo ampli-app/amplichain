@@ -23,7 +23,7 @@ export function useReservationCheck({
   
   const checkExistingReservation = async () => {
     if (!user || !productId) {
-      console.log("Brak użytkownika lub produktId - nie można sprawdzić rezerwacji");
+      console.log("Brak użytkownika lub productId - nie można sprawdzić rezerwacji");
       return null;
     }
     
@@ -87,24 +87,39 @@ export function useReservationCheck({
             .eq('id', productId)
             .single();
             
-          if (!productError && productData && productData.status !== 'reserved') {
-            console.log('Niezgodność statusu produktu! Aktualny status:', productData.status);
-            console.log('Aktualizuję status produktu na "reserved"');
-            
-            // Aktualizuj status produktu na "reserved" jeśli nie jest zgodny z rezerwacją
-            const { error: updateError } = await supabase
-              .from('products')
-              .update({ 
-                status: 'reserved',
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', productId);
+          if (!productError && productData) {
+            if (productData.status !== 'reserved') {
+              console.log('Niezgodność statusu produktu! Aktualny status:', productData.status);
+              console.log('Aktualizuję status produktu na "reserved"');
               
-            if (updateError) {
-              console.error('Błąd podczas aktualizacji statusu produktu:', updateError);
+              // Aktualizuj status produktu na "reserved" jeśli nie jest zgodny z rezerwacją
+              const { error: updateError } = await supabase
+                .from('products')
+                .update({ 
+                  status: 'reserved',
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', productId);
+                
+              if (updateError) {
+                console.error('Błąd podczas aktualizacji statusu produktu:', updateError);
+              } else {
+                console.log('Status produktu zaktualizowany pomyślnie na "reserved"');
+                
+                // Dodatkowo sprawdźmy, czy aktualizacja się powiodła
+                const { data: checkData } = await supabase
+                  .from('products')
+                  .select('status')
+                  .eq('id', productId)
+                  .single();
+                  
+                console.log('Status produktu po aktualizacji:', checkData?.status);
+              }
             } else {
-              console.log('Status produktu zaktualizowany pomyślnie na "reserved"');
+              console.log('Status produktu jest zgodny z rezerwacją: reserved');
             }
+          } else {
+            console.error('Nie udało się sprawdzić statusu produktu:', productError);
           }
         }
         

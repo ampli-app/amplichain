@@ -48,13 +48,13 @@ export const useProductAvailability = (productId: string | undefined) => {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*', // Nasłuchuj na wszystkie zmiany (INSERT, UPDATE, DELETE)
           schema: 'public',
           table: 'products',
           filter: `id=eq.${productId}`,
         },
         (payload) => {
-          console.log('[useProductAvailability] Produkt został zaktualizowany:', payload);
+          console.log('[useProductAvailability] Zmiana w produkcie:', payload);
           if (payload.new && 'status' in payload.new) {
             const newStatus = payload.new.status as string;
             console.log('[useProductAvailability] Nowy status produktu:', newStatus);

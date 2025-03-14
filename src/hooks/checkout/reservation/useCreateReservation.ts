@@ -63,13 +63,10 @@ export function useCreateReservation({
         return null;
       }
       
-      const expiresAt = new Date();
-      expiresAt.setMinutes(expiresAt.getMinutes() + 10);
-      
       // Sprawdź, czy zamówienie nie zostało już utworzone
       const { data: existingOrders, error: checkError } = await supabase
         .from('product_orders')
-        .select('id')
+        .select('*')
         .eq('product_id', productId)
         .eq('buyer_id', user.id)
         .in('status', ['reserved', 'awaiting_payment', 'confirmed'])
@@ -88,6 +85,31 @@ export function useCreateReservation({
           .single();
           
         if (!fetchError && fullOrder) {
+          // Sprawdź czy produkt ma poprawny status "reserved"
+          const { data: productCurrentStatus, error: productCurrentError } = await supabase
+            .from('products')
+            .select('status')
+            .eq('id', productId)
+            .single();
+            
+          if (!productCurrentError && productCurrentStatus.status !== 'reserved') {
+            console.log('Niezgodność statusu produktu! Aktualizuję na reserved...');
+            
+            const { error: updateError } = await supabase
+              .from('products')
+              .update({ 
+                status: 'reserved',
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', productId);
+              
+            if (updateError) {
+              console.error('Błąd aktualizacji statusu produktu:', updateError);
+            } else {
+              console.log('Status produktu zaktualizowany na reserved');
+            }
+          }
+          
           setReservationData(fullOrder);
           if (fullOrder.reservation_expires_at) {
             setReservationExpiresAt(new Date(fullOrder.reservation_expires_at));
@@ -100,20 +122,14 @@ export function useCreateReservation({
           
           return fullOrder;
         }
-        
-        // Jeśli znaleziono istniejącą rezerwację, ale nie udało się pobrać pełnych danych,
-        // powiadom użytkownika i przerwij operację
-        toast({
-          title: "Produkt zarezerwowany",
-          description: "Ten produkt ma już aktywną rezerwację. Nie można utworzyć nowej.",
-          variant: "destructive",
-        });
-        return null;
       }
+      
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 10);
       
       console.log("Zmieniam status produktu na 'reserved'");
       
-      // Najpierw zmień status produktu na 'reserved' za pomocą transakcji
+      // Najpierw zmień status produktu na 'reserved'
       const { error: updateProductError } = await supabase
         .from('products')
         .update({ 
@@ -142,8 +158,13 @@ export function useCreateReservation({
         .eq('id', productId)
         .single();
         
-      if (verifyError || !verifyProductStatus || verifyProductStatus.status !== 'reserved') {
-        console.error('Weryfikacja aktualizacji statusu produktu nie powiodła się:', verifyError);
+      if (verifyError) {
+        console.error('Błąd weryfikacji statusu produktu:', verifyError);
+        return null;
+      }
+      
+      if (!verifyProductStatus || verifyProductStatus.status !== 'reserved') {
+        console.error('Weryfikacja aktualizacji statusu produktu nie powiodła się!');
         console.log('Aktualny status produktu po próbie aktualizacji:', verifyProductStatus?.status);
         toast({
           title: "Błąd",

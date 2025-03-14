@@ -84,24 +84,15 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
     try {
       console.log("Rozpoczynam procedurę zakupu dla produktu", id);
       
-      // Anuluj poprzednie rezerwacje, jeśli istnieją
-      const canProceed = await cancelPreviousReservations();
-      
-      if (canProceed === false) {
-        console.log("Nie można kontynuować - poprzednia rezerwacja jest aktywna");
-        setIsReserving(false);
-        return;
-      }
-      
-      // Sprawdź ostatni raz status produktu przed utworzeniem rezerwacji
-      const { data: productData, error: productError } = await supabase
+      // Dodatkowe sprawdzenie statusu przed procesem rezerwacji
+      const { data: productData, error: productStatusError } = await supabase
         .from('products')
         .select('status')
         .eq('id', id)
         .single();
         
-      if (productError) {
-        console.error('Błąd podczas sprawdzania statusu produktu:', productError);
+      if (productStatusError) {
+        console.error('Błąd podczas sprawdzania statusu produktu:', productStatusError);
         toast({
           title: "Błąd",
           description: "Nie udało się sprawdzić dostępności produktu.",
@@ -112,7 +103,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       }
       
       if (productData.status !== 'available') {
-        console.log('Produkt nie jest dostępny, status:', productData.status);
+        console.log('Produkt nie jest dostępny, aktualny status:', productData.status);
         toast({
           title: "Produkt niedostępny",
           description: "Ten produkt jest obecnie zarezerwowany lub sprzedany.",
@@ -121,6 +112,17 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         setIsReserving(false);
         return;
       }
+      
+      // Anuluj poprzednie rezerwacje, jeśli istnieją
+      const canProceed = await cancelPreviousReservations();
+      
+      if (canProceed === false) {
+        console.log("Nie można kontynuować - poprzednia rezerwacja jest aktywna");
+        setIsReserving(false);
+        return;
+      }
+      
+      console.log("Status produktu przed utworzeniem rezerwacji:", productData.status);
       
       const isTestMode = location.search.includes('mode=test');
       
@@ -136,7 +138,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
             navigate(`/checkout/${id}?orderId=${reservation.id}`);
           }
         } else {
-          console.log("Nie udało się utworzyć rezerwacji");
+          console.log("Nie udało się utworzyć rezerwacji - brak danych rezervacji");
           toast({
             title: "Błąd",
             description: "Nie udało się utworzyć rezerwacji. Spróbuj ponownie za chwilę.",
