@@ -140,7 +140,7 @@ export default function Checkout() {
       serviceFee: checkout.getServiceFee(),
       discount: checkout.getDiscountAmount(),
       discountCode: checkout.discountApplied ? checkout.discountCode : null,
-      discountCodeId: checkout.discountApplied && checkout.discountData ? checkout.discountData.discount_id : null
+      discountCodeId: null
     };
     
     console.log('Przekazuję do potwierdzenia zamówienia dane:', orderData);

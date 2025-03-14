@@ -87,9 +87,8 @@ export function useConfirmReservation({
         updateData.product_price = parseFloat(formData.productPrice);
       }
       
-      if (formData.discountCodeId !== undefined) {
-        updateData.discount_code_id = formData.discountCodeId;
-      }
+      // Pomijamy dodawanie discount_code_id, które powodowało błąd
+      // Jeśli w przyszłości będzie potrzebne, należy zapewnić, że jest to prawidłowe UUID
       
       console.log('Aktualizacja zamówienia z danymi:', updateData);
       

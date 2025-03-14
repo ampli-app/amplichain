@@ -372,7 +372,7 @@ export function useCheckout({ productId, isTestMode = false }: { productId: stri
         const productPrice = getPrice();
         setDiscountValue(productPrice * 0.1);
         setDiscountData({
-          discount_id: "example-id-1",
+          discount_id: null,
           code: "RABAT10",
           discount_type: "percentage",
           discount_value: 10
@@ -386,7 +386,7 @@ export function useCheckout({ productId, isTestMode = false }: { productId: stri
         const productPrice = getPrice();
         setDiscountValue(productPrice * 0.2);
         setDiscountData({
-          discount_id: "example-id-2",
+          discount_id: null,
           code: "RABAT20",
           discount_type: "percentage",
           discount_value: 20
@@ -400,7 +400,7 @@ export function useCheckout({ productId, isTestMode = false }: { productId: stri
         const deliveryCost = getDeliveryCost();
         setDiscountValue(deliveryCost);
         setDiscountData({
-          discount_id: "example-id-3",
+          discount_id: null,
           code: "DOSTAWA",
           discount_type: "delivery",
           discount_value: 100
@@ -414,7 +414,7 @@ export function useCheckout({ productId, isTestMode = false }: { productId: stri
         const serviceFee = getServiceFee();
         setDiscountValue(serviceFee);
         setDiscountData({
-          discount_id: "example-id-4",
+          discount_id: null,
           code: "BEZPROWIZJI",
           discount_type: "fee",
           discount_value: 100
