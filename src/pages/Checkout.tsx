@@ -134,12 +134,13 @@ export default function Checkout() {
       postalCode: checkout.formData.postalCode,
       comments: checkout.formData.comments,
       paymentMethod: checkout.paymentMethod,
+      deliveryMethod: checkout.deliveryMethod,
       productPrice: checkout.getPrice(),
       deliveryPrice: checkout.getDeliveryCost(),
       serviceFee: checkout.getServiceFee(),
       discount: checkout.getDiscountAmount(),
-      discountCode: checkout.discountCode,
-      discountCodeId: checkout.discountApplied ? checkout.discountData?.discount_id : null
+      discountCode: checkout.discountApplied ? checkout.discountCode : null,
+      discountCodeId: checkout.discountApplied && checkout.discountData ? checkout.discountData.discount_id : null
     };
     
     console.log('Przekazuję do potwierdzenia zamówienia dane:', orderData);

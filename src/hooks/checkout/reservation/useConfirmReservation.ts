@@ -64,27 +64,27 @@ export function useConfirmReservation({
         status: 'awaiting_payment',
         payment_deadline: paymentDeadlineDate.toISOString(),
         shipping_address: `${formData.address}, ${formData.postalCode} ${formData.city}`,
-        shipping_method: reservationData.delivery_option_id,
-        payment_method: formData.paymentMethod || 'card',
+        shipping_method: formData.deliveryMethod || reservationData.delivery_option_id,
+        payment_method: formData.paymentMethod || null,
         notes: formData.comments || null
       };
       
-      // Jeśli w formData są informacje o cenie dostawy, rabacie itp., dodajemy je do aktualizacji
+      // Sprawdzamy czy dane faktycznie istnieją zanim je dodamy do updateData
       if (formData.deliveryPrice !== undefined) {
-        updateData.delivery_price = formData.deliveryPrice;
+        updateData.delivery_price = parseFloat(formData.deliveryPrice);
       }
       
       if (formData.discount !== undefined) {
-        updateData.discount_value = formData.discount;
+        updateData.discount_value = parseFloat(formData.discount);
         updateData.discount_code = formData.discountCode || null;
       }
       
       if (formData.serviceFee !== undefined) {
-        updateData.service_fee = formData.serviceFee;
+        updateData.service_fee = parseFloat(formData.serviceFee);
       }
       
       if (formData.productPrice !== undefined) {
-        updateData.product_price = formData.productPrice;
+        updateData.product_price = parseFloat(formData.productPrice);
       }
       
       if (formData.discountCodeId !== undefined) {
@@ -102,7 +102,7 @@ export function useConfirmReservation({
         console.error('Błąd podczas potwierdzania zamówienia:', error);
         toast({
           title: "Błąd",
-          description: "Nie udało się potwierdzić zamówienia.",
+          description: "Nie udało się potwierdzić zamówienia: " + error.message,
           variant: "destructive",
         });
         return false;
