@@ -98,38 +98,56 @@ export function usePayment() {
         
         // Zapisujemy client secret do wykorzystania w komponencie płatności
         setClientSecret(paymentIntentClientSecret);
+        
+        // Tworzymy obiekt PaymentIntent
+        const paymentIntent: PaymentIntent = {
+          id: `pi_${Math.random().toString(36).substring(2, 15)}`, // Tymczasowe ID, rzeczywiste ID jest w Stripe
+          client_secret: paymentIntentClientSecret,
+          amount: totalAmount * 100,
+          currency: 'pln'
+        };
+        
+        // Aktualizujemy zamówienie z informacjami o płatności
+        await supabase
+          .from('product_orders')
+          .update({
+            payment_intent_id: paymentIntent.id
+          })
+          .eq('id', reservationData.id);
+        
+        return paymentIntent;
       } else {
         // Dla innych metod płatności używamy tymczasowego ID
         paymentIntentClientSecret = `cs_temp_${Math.random().toString(36).substring(2, 15)}`;
+        
+        // Tworzymy obiekt PaymentIntent
+        const paymentIntent: PaymentIntent = {
+          id: `pi_${Math.random().toString(36).substring(2, 15)}`,
+          client_secret: paymentIntentClientSecret,
+          amount: totalAmount * 100,
+          currency: 'pln'
+        };
+        
+        // Zapisujemy informacje o płatności w bazie danych
+        const { data: paymentData, error: paymentError } = await supabase
+          .from('payments')
+          .insert([{
+            order_id: reservationData.id,
+            payment_intent_id: paymentIntent.id,
+            client_secret: paymentIntent.client_secret,
+            amount: totalAmount,
+            status: 'pending',
+            payment_method: currentOrder.payment_method,
+            payment_provider: stripeContext.getPaymentProvider(currentOrder.payment_method)
+          }])
+          .select();
+        
+        if (paymentError) {
+          console.error('Błąd podczas zapisywania informacji o płatności:', paymentError);
+        }
+        
+        return paymentIntent;
       }
-      
-      // Tworzymy obiekt PaymentIntent
-      const paymentIntent: PaymentIntent = {
-        id: `pi_${Math.random().toString(36).substring(2, 15)}`,
-        client_secret: paymentIntentClientSecret,
-        amount: totalAmount * 100,
-        currency: 'pln'
-      };
-      
-      // Zapisujemy informacje o płatności w bazie danych
-      const { data: paymentData, error: paymentError } = await supabase
-        .from('payments')
-        .insert([{
-          order_id: reservationData.id,
-          payment_intent_id: paymentIntent.id,
-          client_secret: paymentIntent.client_secret,
-          amount: totalAmount,
-          status: 'pending',
-          payment_method: currentOrder.payment_method,
-          payment_provider: stripeContext.getPaymentProvider(currentOrder.payment_method)
-        }])
-        .select();
-      
-      if (paymentError) {
-        console.error('Błąd podczas zapisywania informacji o płatności:', paymentError);
-      }
-      
-      return paymentIntent;
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas inicjowania płatności:', err);
       setPaymentError('Wystąpił nieoczekiwany błąd podczas inicjowania płatności.');
@@ -242,6 +260,7 @@ export function usePayment() {
     simulatePaymentProcessing,
     isProcessingPayment,
     paymentError,
-    clientSecret
+    clientSecret,
+    setClientSecret
   };
 }

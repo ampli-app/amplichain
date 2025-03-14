@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -25,7 +24,7 @@ import { PaymentRedirection } from '@/components/checkout/PaymentRedirection';
 import { useStripe } from '@/contexts/StripeContext';
 import { PAYMENT_METHODS } from '@/hooks/checkout/payment/paymentConfig';
 
-// Inicjalizacja Stripe (powinien być w zmiennych środowiskowych)
+// Inicjalizacja Stripe - używamy publicznego klucza z kontekstu
 const stripePromise = loadStripe('pk_test_TYooMQauvdEDq54NiTphI7jx');
 
 export default function Checkout() {
@@ -73,7 +72,8 @@ export default function Checkout() {
     simulatePaymentProcessing,
     isProcessingPayment,
     paymentError,
-    clientSecret
+    clientSecret,
+    setClientSecret
   } = usePayment();
   
   useEffect(() => {
@@ -183,19 +183,15 @@ export default function Checkout() {
       // Jeśli wybrano płatność kartą, używamy Stripe
       if (checkout.paymentMethod === PAYMENT_METHODS.CARD) {
         // Przygotuj intencję płatności Stripe
-        const totalAmount = checkout.getTotalCost();
-        const secret = await stripeContext.createPaymentIntent(totalAmount * 100, 'pln');
+        const paymentIntent = await initiatePayment(reservationData, null);
         
-        if (secret) {
-          setStripeClientSecret(secret);
-          setShowStripeForm(true);
-        } else {
-          toast({
-            title: "Błąd płatności",
-            description: "Nie udało się zainicjować płatności kartą. Spróbuj ponownie.",
-            variant: "destructive"
-          });
+        if (!paymentIntent) {
+          checkout.setIsProcessing(false);
+          return;
         }
+        
+        setStripeClientSecret(paymentIntent.client_secret);
+        setShowStripeForm(true);
       } else {
         // Dla innych metod płatności używamy dotychczasowej logiki
         const paymentIntent = await initiatePayment(reservationData, null);
@@ -224,6 +220,17 @@ export default function Checkout() {
               const url = isTestMode 
                 ? `/checkout/success/${id}?mode=test` 
                 : `/checkout/success/${id}?mode=buy`;
+              
+              // Dodanie parametrów jeśli są
+              const currentUrlParams = new URLSearchParams(location.search);
+              currentUrlParams.delete('mode'); // Usuwamy mode, bo dodajemy go ręcznie
+            
+              if (currentUrlParams.toString()) {
+                url += (url.includes('?') ? '&' : '?') + currentUrlParams.toString();
+              }
+              
+              // Dodajemy tryb na końcu
+              url += (url.includes('?') ? '&' : '?') + `mode=${isTestMode ? 'test' : 'buy'}`;
               
               navigate(url);
             } else {
@@ -257,7 +264,18 @@ export default function Checkout() {
     
     const url = isTestMode 
       ? `/checkout/success/${id}?mode=test` 
-      : `/checkout/success/${id}?mode=buy`;
+      : `/checkout/success/${id}`;
+    
+    // Dodanie parametrów jeśli są
+    const currentUrlParams = new URLSearchParams(location.search);
+    currentUrlParams.delete('mode'); // Usuwamy mode, bo dodajemy go ręcznie
+    
+    if (currentUrlParams.toString()) {
+      url += (url.includes('?') ? '&' : '?') + currentUrlParams.toString();
+    }
+    
+    // Dodajemy tryb na końcu
+    url += (url.includes('?') ? '&' : '?') + `mode=${isTestMode ? 'test' : 'buy'}`;
     
     navigate(url);
   };
@@ -404,6 +422,11 @@ export default function Checkout() {
                   clientSecret={stripeClientSecret}
                   onSuccess={handleStripePaymentSuccess}
                   onError={handleStripePaymentError}
+                  orderId={reservationData?.id}
+                  returnUrl={isTestMode 
+                    ? `${window.location.origin}/checkout/success/${id}?mode=test&orderId=${reservationData?.id}` 
+                    : `${window.location.origin}/checkout/success/${id}?mode=buy&orderId=${reservationData?.id}`
+                  }
                 />
               </Elements>
             </div>

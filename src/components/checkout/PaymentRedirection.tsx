@@ -10,6 +10,7 @@ interface PaymentRedirectionProps {
   onReady?: () => void;
   paymentProvider?: string;
   paymentSuccess?: boolean;
+  clientSecret?: string | null;
 }
 
 export function PaymentRedirection({ 
@@ -17,10 +18,12 @@ export function PaymentRedirection({
   error, 
   onReady,
   paymentProvider,
-  paymentSuccess = false
+  paymentSuccess = false,
+  clientSecret
 }: PaymentRedirectionProps) {
   const { isStripeReady, getPaymentProvider } = useStripeContext();
   const [provider, setProvider] = useState(paymentProvider || 'Stripe');
+  const [message, setMessage] = useState<string | null>(null);
   
   useEffect(() => {
     if (paymentProvider) {
@@ -64,6 +67,11 @@ export function PaymentRedirection({
           <p className="text-sm text-green-600 dark:text-green-400">
             Płatność została pomyślnie przetworzona.
           </p>
+          {message && (
+            <p className="text-sm text-green-600 dark:text-green-400 mt-2">
+              {message}
+            </p>
+          )}
         </CardContent>
       </Card>
     );

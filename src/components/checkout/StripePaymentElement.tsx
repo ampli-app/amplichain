@@ -9,9 +9,17 @@ interface StripePaymentElementProps {
   clientSecret: string | null;
   onSuccess?: () => void;
   onError?: (error: string) => void;
+  orderId?: string;
+  returnUrl?: string;
 }
 
-export function StripePaymentElement({ clientSecret, onSuccess, onError }: StripePaymentElementProps) {
+export function StripePaymentElement({ 
+  clientSecret, 
+  onSuccess, 
+  onError, 
+  orderId,
+  returnUrl 
+}: StripePaymentElementProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isLoading, setIsLoading] = useState(false);
@@ -27,15 +35,21 @@ export function StripePaymentElement({ clientSecret, onSuccess, onError }: Strip
     stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => {
       if (!paymentIntent) return;
 
+      console.log('Status płatności:', paymentIntent.status);
+
       switch (paymentIntent.status) {
         case "succeeded":
           setPaymentSuccess(true);
           onSuccess && onSuccess();
+          toast({
+            title: "Płatność zakończona powodzeniem",
+            description: "Twoja płatność została zrealizowana pomyślnie."
+          });
           break;
         case "processing":
           toast({
             title: "Płatność w trakcie przetwarzania",
-            description: "Twoja płatność jest przetwarzana, prosimy o cierpliwość.",
+            description: "Twoja płatność jest przetwarzana, prosimy o cierpliwość."
           });
           break;
         case "requires_payment_method":
@@ -62,10 +76,26 @@ export function StripePaymentElement({ clientSecret, onSuccess, onError }: Strip
     setIsLoading(true);
     setErrorMessage(null);
 
+    // Przygotuj URL powrotu
+    const defaultReturnUrl = `${window.location.origin}/checkout/success/${orderId || ''}`;
+    const effectiveReturnUrl = returnUrl || defaultReturnUrl;
+    console.log('URL powrotu po płatności:', effectiveReturnUrl);
+
+    // Dodaj parametry zapytania, jeśli istnieją w bieżącym URL
+    const currentUrlParams = new URLSearchParams(window.location.search);
+    if (currentUrlParams.toString()) {
+      // Dodaj parametry do URL powrotu
+      const returnUrlObj = new URL(effectiveReturnUrl);
+      currentUrlParams.forEach((value, key) => {
+        returnUrlObj.searchParams.append(key, value);
+      });
+      console.log('URL powrotu z parametrami:', returnUrlObj.toString());
+    }
+
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/checkout/success/${new URLSearchParams(window.location.search).get('id') || ''}`,
+        return_url: effectiveReturnUrl,
       },
       redirect: 'if_required',
     });
@@ -74,10 +104,19 @@ export function StripePaymentElement({ clientSecret, onSuccess, onError }: Strip
       console.error('Błąd płatności:', error);
       setErrorMessage(error.message || "Wystąpił błąd podczas przetwarzania płatności");
       onError && onError(error.message || "Wystąpił błąd podczas przetwarzania płatności");
+      toast({
+        title: "Błąd płatności",
+        description: error.message || "Wystąpił błąd podczas przetwarzania płatności",
+        variant: "destructive"
+      });
     } else {
       // Płatność została potwierdzona bez przekierowania
       setPaymentSuccess(true);
       onSuccess && onSuccess();
+      toast({
+        title: "Płatność zakończona powodzeniem",
+        description: "Twoja płatność została zrealizowana pomyślnie."
+      });
     }
 
     setIsLoading(false);
