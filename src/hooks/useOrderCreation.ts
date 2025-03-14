@@ -24,6 +24,30 @@ export const useOrderCreation = (userId: string | undefined) => {
       console.log('Rozpoczynam tworzenie zamówienia dla produktu:', productData.id);
       console.log('ID użytkownika:', userId);
       
+      // Sprawdź czy nie istnieje już aktywne zamówienie dla tego produktu
+      const { data: existingOrders, error: existingOrderError } = await supabase
+        .from('product_orders')
+        .select('id, status')
+        .eq('product_id', productData.id)
+        .in('status', ['reserved', 'awaiting_payment', 'confirmed'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (existingOrderError) {
+        console.error('Błąd podczas sprawdzania istniejących zamówień:', existingOrderError);
+        return;
+      }
+
+      if (existingOrders && existingOrders.length > 0) {
+        console.log('Znaleziono istniejące aktywne zamówienie:', existingOrders[0]);
+        toast({
+          title: "Zamówienie już istnieje",
+          description: "Ten produkt ma już aktywne zamówienie.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Sprawdź aktualny status produktu z blokadą
       const { data: product, error: productError } = await supabase
         .from('products')
