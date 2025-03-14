@@ -128,13 +128,23 @@ export default function Checkout() {
       return;
     }
     
-    const confirmed = await confirmOrder({
+    const orderData = {
       address: checkout.formData.address,
       city: checkout.formData.city,
       postalCode: checkout.formData.postalCode,
       comments: checkout.formData.comments,
-      paymentMethod: checkout.paymentMethod
-    });
+      paymentMethod: checkout.paymentMethod,
+      productPrice: checkout.getPrice(),
+      deliveryPrice: checkout.getDeliveryCost(),
+      serviceFee: checkout.getServiceFee(),
+      discount: checkout.getDiscountAmount(),
+      discountCode: checkout.discountCode,
+      discountCodeId: checkout.discountApplied ? checkout.discountData?.discount_id : null
+    };
+    
+    console.log('Przekazuję do potwierdzenia zamówienia dane:', orderData);
+    
+    const confirmed = await confirmOrder(orderData);
     
     if (!confirmed) {
       return;

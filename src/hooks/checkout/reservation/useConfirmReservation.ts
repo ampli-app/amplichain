@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { ReservationData } from './types';
@@ -42,16 +43,43 @@ export function useConfirmReservation({
       const paymentDeadlineDate = new Date();
       paymentDeadlineDate.setHours(paymentDeadlineDate.getHours() + 24);
       
+      // Przygotowanie danych do aktualizacji, zawierających wszystkie istotne informacje
+      const updateData = {
+        status: 'awaiting_payment',
+        payment_deadline: paymentDeadlineDate.toISOString(),
+        shipping_address: `${formData.address}, ${formData.postalCode} ${formData.city}`,
+        shipping_method: reservationData.delivery_option_id,
+        payment_method: formData.paymentMethod || 'card',
+        notes: formData.comments || null
+      };
+      
+      // Jeśli w formData są informacje o cenie dostawy, rabacie itp., dodajemy je do aktualizacji
+      if (formData.deliveryPrice !== undefined) {
+        updateData.delivery_price = formData.deliveryPrice;
+      }
+      
+      if (formData.discount !== undefined) {
+        updateData.discount_value = formData.discount;
+        updateData.discount_code = formData.discountCode || null;
+      }
+      
+      if (formData.serviceFee !== undefined) {
+        updateData.service_fee = formData.serviceFee;
+      }
+      
+      if (formData.productPrice !== undefined) {
+        updateData.product_price = formData.productPrice;
+      }
+      
+      if (formData.discountCodeId !== undefined) {
+        updateData.discount_code_id = formData.discountCodeId;
+      }
+      
+      console.log('Aktualizacja zamówienia z danymi:', updateData);
+      
       const { error } = await supabase
         .from('product_orders')
-        .update({
-          status: 'awaiting_payment',
-          payment_deadline: paymentDeadlineDate.toISOString(),
-          shipping_address: `${formData.address}, ${formData.postalCode} ${formData.city}`,
-          shipping_method: reservationData.delivery_option_id,
-          payment_method: formData.paymentMethod || 'card',
-          notes: formData.comments || null
-        })
+        .update(updateData)
         .eq('id', reservationData.id);
       
       if (error) {

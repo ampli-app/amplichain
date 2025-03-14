@@ -38,6 +38,23 @@ export function usePaymentProcessing({
     try {
       setIsLoading(true);
       
+      // Najpierw pobierzmy aktualny stan zamówienia, aby mieć wszystkie informacje
+      const { data: currentOrder, error: fetchError } = await supabase
+        .from('product_orders')
+        .select('*')
+        .eq('id', reservationData.id)
+        .single();
+      
+      if (fetchError) {
+        console.error('Błąd podczas pobierania aktualnych danych zamówienia:', fetchError);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się pobrać aktualnych danych zamówienia.",
+          variant: "destructive",
+        });
+        return null;
+      }
+      
       const { error } = await supabase
         .from('product_orders')
         .update({
@@ -55,10 +72,13 @@ export function usePaymentProcessing({
         return null;
       }
       
+      // Używamy aktualnej kwoty z bazy danych, która powinna zawierać wszystkie składniki ceny
+      const totalAmount = currentOrder.total_amount;
+      
       const paymentIntent = {
         id: `pi_${Math.random().toString(36).substring(2, 15)}`,
         client_secret: `cs_${Math.random().toString(36).substring(2, 15)}`,
-        amount: reservationData.total_amount * 100,
+        amount: totalAmount * 100,
         currency: 'pln'
       };
       
@@ -68,9 +88,9 @@ export function usePaymentProcessing({
           order_id: reservationData.id,
           payment_intent_id: paymentIntent.id,
           client_secret: paymentIntent.client_secret,
-          amount: reservationData.total_amount,
+          amount: totalAmount,
           status: 'pending',
-          payment_method: reservationData.payment_method
+          payment_method: currentOrder.payment_method
         }])
         .select();
       

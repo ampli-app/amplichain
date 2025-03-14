@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -31,7 +30,7 @@ export interface UseCheckoutProps {
 
 export const SERVICE_FEE_PERCENTAGE = 0.015;
 
-export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
+export function useCheckout({ productId, isTestMode = false }: { productId: string; isTestMode?: boolean }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -441,28 +440,50 @@ export function useCheckout({ productId, isTestMode }: UseCheckoutProps) {
     }
   };
   
-  const getPrice = () => isTestMode && product?.testing_price 
-    ? parseFloat(product.testing_price) 
-    : parseFloat(product?.price || 0);
+  const getPrice = () => {
+    if (!product) return 0;
+    
+    if (isTestMode && product.testing_price !== null && product.testing_price !== undefined) {
+      return product.testing_price;
+    }
+    
+    return product.price || 0;
+  };
   
-  const getDeliveryCost = () => selectedDeliveryOption ? selectedDeliveryOption.price : 0;
-  const getDiscountAmount = () => discountApplied ? discountValue : 0;
+  const getDeliveryCost = () => {
+    if (!selectedDeliveryOption) return 0;
+    return selectedDeliveryOption.price || 0;
+  };
+  
+  const getDiscountAmount = () => {
+    if (!discountApplied || !discountData) return 0;
+    
+    const price = getPrice();
+    
+    if (discountData.discount_type === 'percentage') {
+      return -(price * (discountData.discount_value / 100));
+    } else if (discountData.discount_type === 'fixed') {
+      return -discountData.discount_value;
+    }
+    
+    return 0;
+  };
   
   const getServiceFee = () => {
-    const productPrice = getPrice();
+    const price = getPrice();
     const deliveryCost = getDeliveryCost();
-    const subtotal = productPrice + deliveryCost;
+    const baseAmount = price + deliveryCost;
     
-    return parseFloat((subtotal * SERVICE_FEE_PERCENTAGE).toFixed(2));
+    return baseAmount * 0.015;
   };
   
   const getTotalCost = () => {
-    const productPrice = getPrice();
+    const price = getPrice();
     const deliveryCost = getDeliveryCost();
     const discountAmount = getDiscountAmount();
     const serviceFee = getServiceFee();
     
-    return productPrice + deliveryCost - discountAmount + serviceFee;
+    return price + deliveryCost + discountAmount + serviceFee;
   };
   
   const removeDiscount = () => {
