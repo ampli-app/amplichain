@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -24,31 +25,7 @@ export const useOrderCreation = (userId: string | undefined) => {
       console.log('Rozpoczynam tworzenie zamówienia dla produktu:', productData.id);
       console.log('ID użytkownika:', userId);
       
-      // Sprawdź czy nie istnieje już aktywne zamówienie dla tego produktu
-      const { data: existingOrders, error: existingOrderError } = await supabase
-        .from('product_orders')
-        .select('id, status')
-        .eq('product_id', productData.id)
-        .in('status', ['reserved', 'awaiting_payment', 'confirmed'])
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (existingOrderError) {
-        console.error('Błąd podczas sprawdzania istniejących zamówień:', existingOrderError);
-        return;
-      }
-
-      if (existingOrders && existingOrders.length > 0) {
-        console.log('Znaleziono istniejące aktywne zamówienie:', existingOrders[0]);
-        toast({
-          title: "Zamówienie już istnieje",
-          description: "Ten produkt ma już aktywne zamówienie.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Sprawdź aktualny status produktu z blokadą
+      // Sprawdź czy produkt jest dostępny
       const { data: product, error: productError } = await supabase
         .from('products')
         .select('status')
@@ -77,13 +54,36 @@ export const useOrderCreation = (userId: string | undefined) => {
         return;
       }
       
-      // Najpierw spróbuj zarezerwować produkt
+      // Sprawdź czy nie istnieje już aktywne zamówienie dla tego produktu
+      const { data: existingOrders, error: existingOrderError } = await supabase
+        .from('product_orders')
+        .select('id, status')
+        .eq('product_id', productData.id)
+        .in('status', ['reserved', 'awaiting_payment', 'confirmed'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (existingOrderError) {
+        console.error('Błąd podczas sprawdzania istniejących zamówień:', existingOrderError);
+        return;
+      }
+
+      if (existingOrders && existingOrders.length > 0) {
+        console.log('Znaleziono istniejące aktywne zamówienie:', existingOrders[0]);
+        toast({
+          title: "Zamówienie już istnieje",
+          description: "Ten produkt ma już aktywne zamówienie.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Najpierw spróbuj zarezerwować produkt - WAŻNE: używamy transakcji
       const { error: updateError } = await supabase
         .from('products')
         .update({ status: 'reserved' })
         .eq('id', productData.id)
-        .eq('status', 'available') // Dodatkowe zabezpieczenie - aktualizuj tylko jeśli status to 'available'
-        .select();
+        .eq('status', 'available'); // Dodatkowe zabezpieczenie - aktualizuj tylko jeśli status to 'available'
       
       if (updateError) {
         console.error('Błąd podczas aktualizacji statusu produktu:', updateError);

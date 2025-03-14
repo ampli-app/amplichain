@@ -26,6 +26,7 @@ export const useProductAvailability = (productId: string | undefined) => {
           console.error('Błąd podczas sprawdzania dostępności produktu:', error);
           setIsAvailable(false);
         } else {
+          console.log(`[useProductAvailability] Status produktu ${productId}:`, data.status);
           setProductStatus(data.status);
           setIsAvailable(data.status === 'available');
         }
@@ -51,7 +52,7 @@ export const useProductAvailability = (productId: string | undefined) => {
           filter: `id=eq.${productId}`,
         },
         (payload) => {
-          console.log('Produkt został zaktualizowany:', payload);
+          console.log('[useProductAvailability] Produkt został zaktualizowany:', payload);
           if (payload.new && 'status' in payload.new) {
             setProductStatus(payload.new.status as string);
             setIsAvailable(payload.new.status === 'available');

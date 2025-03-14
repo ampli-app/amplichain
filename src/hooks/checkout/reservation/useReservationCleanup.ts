@@ -52,6 +52,31 @@ export function useReservationCleanup({ productId }: { productId: string }) {
     try {
       console.log('Anulowanie poprzednich rezerwacji dla produktu:', productId);
       
+      // Pierwsza sprawdź czy istnieje aktywna rezerwacja
+      const { data: activeReservations, error: checkError } = await supabase
+        .from('product_orders')
+        .select('id, status')
+        .eq('product_id', productId)
+        .in('status', ['reserved', 'awaiting_payment', 'confirmed'])
+        .limit(1);
+        
+      if (checkError) {
+        console.error('Błąd podczas sprawdzania aktywnych rezerwacji:', checkError);
+        return;
+      }
+      
+      // Jeśli istnieje już aktywna rezerwacja, nie anuluj jej i powiadom użytkownika
+      if (activeReservations && activeReservations.length > 0) {
+        console.log('Istnieje już aktywna rezerwacja. Anulowanie przerwane.', activeReservations[0]);
+        toast({
+          title: "Produkt zarezerwowany",
+          description: "Ten produkt ma już aktywną rezerwację. Nie można utworzyć nowej.",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      // Anuluj poprzednie wygasłe rezerwacje dla tego użytkownika
       const { error } = await supabase
         .from('product_orders')
         .update({ 
@@ -65,6 +90,7 @@ export function useReservationCleanup({ productId }: { productId: string }) {
       
       if (error) {
         console.error('Błąd podczas anulowania poprzednich rezerwacji:', error);
+        return false;
       } else {
         console.log('Poprzednie rezerwacje oznaczone jako wygasłe pomyślnie');
         
@@ -72,18 +98,19 @@ export function useReservationCleanup({ productId }: { productId: string }) {
         const { error: productUpdateError } = await supabase
           .from('products')
           .update({ status: 'available' })
-          .eq('id', productId)
-          .eq('status', 'reserved');
+          .eq('id', productId);
           
         if (productUpdateError) {
           console.error('Błąd podczas przywracania statusu produktu:', productUpdateError);
+          return false;
         } else {
           console.log('Status produktu przywrócony na "available"');
+          return true;
         }
       }
-      
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas anulowania rezerwacji:', err);
+      return false;
     }
   };
   

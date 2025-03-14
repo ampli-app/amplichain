@@ -1,3 +1,4 @@
+
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, Pencil, Share2, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -80,7 +81,43 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
     setIsReserving(true);
     
     try {
-      await cancelPreviousReservations();
+      // Anuluj poprzednie rezerwacje (zmienił status na wygasłe)
+      const canProceed = await cancelPreviousReservations();
+      
+      // Jeśli istnieje aktywna rezerwacja, nie kontynuuj
+      if (canProceed === false) {
+        setIsReserving(false);
+        return;
+      }
+      
+      // Sprawdź jeszcze raz dostępność produktu przed utworzeniem zamówienia
+      const { data: productData, error: productError } = await supabase
+        .from('products')
+        .select('status')
+        .eq('id', id)
+        .single();
+        
+      if (productError) {
+        console.error('Błąd podczas sprawdzania statusu produktu:', productError);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się sprawdzić dostępności produktu.",
+          variant: "destructive",
+        });
+        setIsReserving(false);
+        return;
+      }
+      
+      if (productData.status !== 'available') {
+        console.log('Produkt nie jest dostępny, status:', productData.status);
+        toast({
+          title: "Produkt niedostępny",
+          description: "Ten produkt jest obecnie zarezerwowany lub sprzedany.",
+          variant: "destructive",
+        });
+        setIsReserving(false);
+        return;
+      }
       
       const isTestMode = location.search.includes('mode=test');
       

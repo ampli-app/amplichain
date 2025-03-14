@@ -34,50 +34,42 @@ export function useCreateReservation({
       
       console.log("Rozpoczynam tworzenie rezerwacji dla produktu:", productId);
       
-      const expiresAt = new Date();
-      expiresAt.setMinutes(expiresAt.getMinutes() + 10);
-      
-      const { data: deliveryOptions, error: deliveryError } = await supabase
-        .from('delivery_options')
-        .select('*')
-        .eq('name', 'Kurier')
-        .limit(1);
-      
-      if (deliveryError || !deliveryOptions || deliveryOptions.length === 0) {
-        console.error('Błąd podczas pobierania opcji dostawy:', deliveryError);
+      // Sprawdź czy produkt jest dostępny przed utworzeniem rezerwacji
+      const { data: productStatus, error: productStatusError } = await supabase
+        .from('products')
+        .select('status')
+        .eq('id', productId)
+        .single();
+        
+      if (productStatusError) {
+        console.error('Błąd podczas sprawdzania statusu produktu:', productStatusError);
         toast({
           title: "Błąd",
-          description: "Nie można pobrać opcji dostawy.",
+          description: "Nie udało się sprawdzić dostępności produktu.",
           variant: "destructive",
         });
         return null;
       }
       
-      const productPrice = testMode && product.testing_price 
-        ? parseFloat(product.testing_price) 
-        : parseFloat(product.price);
+      if (productStatus.status !== 'available') {
+        console.log('Produkt nie jest dostępny, status:', productStatus.status);
+        toast({
+          title: "Produkt niedostępny",
+          description: "Ten produkt jest obecnie zarezerwowany lub sprzedany.",
+          variant: "destructive",
+        });
+        return null;
+      }
       
-      const totalAmount = productPrice + deliveryOptions[0].price;
-      
-      console.log("Tworzę zamówienie z parametrami:", {
-        product_id: productId,
-        buyer_id: user.id,
-        seller_id: product.user_id,
-        total_amount: totalAmount,
-        delivery_option_id: deliveryOptions[0].id,
-        status: 'reserved',
-        reservation_expires_at: expiresAt.toISOString(),
-        order_type: testMode ? 'test' : 'purchase'
-      });
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 10);
       
       // Sprawdź, czy zamówienie nie zostało już utworzone
       const { data: existingOrders, error: checkError } = await supabase
         .from('product_orders')
         .select('id')
         .eq('product_id', productId)
-        .eq('buyer_id', user.id)
-        .eq('status', 'reserved')
-        .gte('reservation_expires_at', new Date().toISOString())
+        .in('status', ['reserved', 'awaiting_payment', 'confirmed'])
         .limit(1);
         
       if (checkError) {
@@ -98,14 +90,81 @@ export function useCreateReservation({
           
           toast({
             title: "Rezerwacja istnieje",
-            description: "Kontynuujesz istniejącą rezerwację.",
+            description: "Ten produkt jest już zarezerwowany. Nie można utworzyć nowej rezerwacji.",
+            variant: "destructive",
           });
           
           return fullOrder;
         }
+        
+        // Jeśli znaleziono istniejącą rezerwację, ale nie udało się pobrać pełnych danych,
+        // powiadom użytkownika i przerwij operację
+        toast({
+          title: "Produkt zarezerwowany",
+          description: "Ten produkt ma już aktywną rezerwację. Nie można utworzyć nowej.",
+          variant: "destructive",
+        });
+        return null;
       }
       
-      // Utwórz nowe zamówienie tylko jeśli nie ma istniejącego
+      // Zarezerwuj produkt - najpierw zmień status produktu
+      const { error: updateProductError } = await supabase
+        .from('products')
+        .update({ status: 'reserved' })
+        .eq('id', productId)
+        .eq('status', 'available'); // Zabezpieczenie, aby zmienić tylko jeśli dalej jest dostępny
+      
+      if (updateProductError) {
+        console.error('Błąd podczas aktualizacji statusu produktu:', updateProductError);
+        toast({
+          title: "Błąd",
+          description: "Nie udało się zarezerwować produktu. Spróbuj ponownie.",
+          variant: "destructive",
+        });
+        return null;
+      }
+      
+      const { data: deliveryOptions, error: deliveryError } = await supabase
+        .from('delivery_options')
+        .select('*')
+        .eq('name', 'Kurier')
+        .limit(1);
+      
+      if (deliveryError || !deliveryOptions || deliveryOptions.length === 0) {
+        console.error('Błąd podczas pobierania opcji dostawy:', deliveryError);
+        toast({
+          title: "Błąd",
+          description: "Nie można pobrać opcji dostawy.",
+          variant: "destructive",
+        });
+        
+        // Przywróć status produktu na available
+        await supabase
+          .from('products')
+          .update({ status: 'available' })
+          .eq('id', productId);
+          
+        return null;
+      }
+      
+      const productPrice = testMode && product.testing_price 
+        ? parseFloat(product.testing_price) 
+        : parseFloat(product.price);
+      
+      const totalAmount = productPrice + deliveryOptions[0].price;
+      
+      console.log("Tworzę zamówienie z parametrami:", {
+        product_id: productId,
+        buyer_id: user.id,
+        seller_id: product.user_id,
+        total_amount: totalAmount,
+        delivery_option_id: deliveryOptions[0].id,
+        status: 'reserved',
+        reservation_expires_at: expiresAt.toISOString(),
+        order_type: testMode ? 'test' : 'purchase'
+      });
+      
+      // Utwórz nowe zamówienie
       const { data, error } = await supabase
         .from('product_orders')
         .insert([{
@@ -127,24 +186,19 @@ export function useCreateReservation({
           description: "Nie udało się utworzyć rezerwacji.",
           variant: "destructive",
         });
+        
+        // Przywróć status produktu
+        await supabase
+          .from('products')
+          .update({ status: 'available' })
+          .eq('id', productId);
+          
         return null;
       }
       
       if (data && data.length > 0) {
         const reservation = data[0];
         console.log("Utworzono nową rezerwację:", reservation.id);
-        
-        // Aktualizuj status produktu na "reserved"
-        const { error: productUpdateError } = await supabase
-          .from('products')
-          .update({ status: 'reserved' })
-          .eq('id', productId);
-          
-        if (productUpdateError) {
-          console.error('Błąd podczas aktualizacji statusu produktu:', productUpdateError);
-        } else {
-          console.log('Status produktu zaktualizowany na "reserved"');
-        }
         
         setReservationData(reservation);
         setReservationExpiresAt(new Date(reservation.reservation_expires_at));
@@ -165,6 +219,13 @@ export function useCreateReservation({
         description: "Wystąpił nieoczekiwany błąd podczas tworzenia rezerwacji.",
         variant: "destructive",
       });
+      
+      // Przywróć status produktu w przypadku błędu
+      await supabase
+        .from('products')
+        .update({ status: 'available' })
+        .eq('id', productId);
+        
       return null;
     } finally {
       setIsInitiating(false);
