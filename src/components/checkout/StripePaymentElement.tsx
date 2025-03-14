@@ -76,50 +76,50 @@ export function StripePaymentElement({
     setIsLoading(true);
     setErrorMessage(null);
 
-    // Przygotuj URL powrotu
-    const defaultReturnUrl = `${window.location.origin}/checkout/success/${orderId || ''}`;
-    const effectiveReturnUrl = returnUrl || defaultReturnUrl;
-    console.log('URL powrotu po płatności:', effectiveReturnUrl);
+    try {
+      // Przygotuj URL powrotu
+      const defaultReturnUrl = `${window.location.origin}/checkout/success/${orderId || ''}`;
+      const effectiveReturnUrl = returnUrl || defaultReturnUrl;
+      console.log('URL powrotu po płatności:', effectiveReturnUrl);
 
-    // Dodaj parametry zapytania, jeśli istnieją w bieżącym URL
-    const currentUrlParams = new URLSearchParams(window.location.search);
-    if (currentUrlParams.toString()) {
-      // Dodaj parametry do URL powrotu
-      const returnUrlObj = new URL(effectiveReturnUrl);
-      currentUrlParams.forEach((value, key) => {
-        returnUrlObj.searchParams.append(key, value);
+      // Dodaj parametry zapytania, jeśli istnieją w bieżącym URL
+      const currentUrlParams = new URLSearchParams(window.location.search);
+      let finalReturnUrl = effectiveReturnUrl;
+      
+      if (currentUrlParams.toString()) {
+        // Dodaj parametry do URL powrotu
+        const returnUrlObj = new URL(effectiveReturnUrl);
+        currentUrlParams.forEach((value, key) => {
+          returnUrlObj.searchParams.append(key, value);
+        });
+        finalReturnUrl = returnUrlObj.toString();
+        console.log('URL powrotu z parametrami:', finalReturnUrl);
+      }
+
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: finalReturnUrl,
+        },
       });
-      console.log('URL powrotu z parametrami:', returnUrlObj.toString());
+
+      if (error) {
+        console.error('Błąd płatności:', error);
+        setErrorMessage(error.message || "Wystąpił błąd podczas przetwarzania płatności");
+        onError && onError(error.message || "Wystąpił błąd podczas przetwarzania płatności");
+        toast({
+          title: "Błąd płatności",
+          description: error.message || "Wystąpił błąd podczas przetwarzania płatności",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Nieobsłużony błąd płatności:', error);
+      setErrorMessage("Wystąpił nieoczekiwany błąd podczas przetwarzania płatności");
+      onError && onError("Wystąpił nieoczekiwany błąd podczas przetwarzania płatności");
+    } finally {
+      setIsLoading(false);
     }
-
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: effectiveReturnUrl,
-      },
-      redirect: 'if_required',
-    });
-
-    if (error) {
-      console.error('Błąd płatności:', error);
-      setErrorMessage(error.message || "Wystąpił błąd podczas przetwarzania płatności");
-      onError && onError(error.message || "Wystąpił błąd podczas przetwarzania płatności");
-      toast({
-        title: "Błąd płatności",
-        description: error.message || "Wystąpił błąd podczas przetwarzania płatności",
-        variant: "destructive"
-      });
-    } else {
-      // Płatność została potwierdzona bez przekierowania
-      setPaymentSuccess(true);
-      onSuccess && onSuccess();
-      toast({
-        title: "Płatność zakończona powodzeniem",
-        description: "Twoja płatność została zrealizowana pomyślnie."
-      });
-    }
-
-    setIsLoading(false);
   };
 
   if (paymentSuccess) {

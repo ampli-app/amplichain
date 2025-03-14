@@ -5,8 +5,8 @@ import { Elements } from '@stripe/react-stripe-js';
 import { PAYMENT_PROVIDERS } from '@/hooks/checkout/payment/paymentConfig';
 import { supabase } from '@/integrations/supabase/client';
 
-// Publiczny klucz Stripe (powinien być w zmiennych środowiskowych)
-const stripePublishableKey = 'pk_test_TYooMQauvdEDq54NiTphI7jx';
+// Publiczny klucz Stripe - musi być z tego samego konta co tajny klucz
+const stripePublishableKey = 'pk_test_51JUxVMHWq4SaAphR5xVQG3Xn7AkBjQphEojXF5YhXQo80dxzLMASgNyLCwGzxITwBIu8Hs1iIgXD8BF8NwIptTNx00dZKGH9kR';
 
 // Inicjalizacja Stripe
 const stripePromise = loadStripe(stripePublishableKey);

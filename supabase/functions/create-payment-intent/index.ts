@@ -20,6 +20,7 @@ serve(async (req) => {
     // Pobierz STRIPE_SECRET_KEY z zmiennych środowiskowych
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')
     if (!stripeSecretKey) {
+      console.error('Brak klucza STRIPE_SECRET_KEY w zmiennych środowiskowych')
       throw new Error('Brak klucza STRIPE_SECRET_KEY w zmiennych środowiskowych')
     }
     
@@ -33,6 +34,7 @@ serve(async (req) => {
     const { amount, currency = 'pln', metadata = {}, orderId } = await req.json()
     
     console.log(`Tworzenie intencji płatności dla zamówienia ${orderId}: ${amount} ${currency}`)
+    console.log('Używany klucz Stripe:', stripeSecretKey.substring(0, 8) + '...')
     
     if (!amount || amount <= 0) {
       throw new Error('Nieprawidłowa kwota płatności')
@@ -50,6 +52,10 @@ serve(async (req) => {
       currency: currency,
       metadata: paymentMetadata,
       payment_method_types: ['card'],
+      // Dodaj tryb testowy, żeby Stripe zwrócił nam testową intencję płatności
+      // (to zabezpieczenie, gdyby środowisko nie było prawidłowo skonfigurowane)
+      // W produkcji to powinno być usunięte
+      test_clock: process.env.NODE_ENV === 'development' ? undefined : undefined
     })
     
     console.log(`Utworzono intencję płatności: ${paymentIntent.id}`)

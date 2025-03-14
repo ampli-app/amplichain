@@ -24,7 +24,7 @@ import { PaymentRedirection } from '@/components/checkout/PaymentRedirection';
 import { useStripe } from '@/contexts/StripeContext';
 import { PAYMENT_METHODS } from '@/hooks/checkout/payment/paymentConfig';
 
-const stripePromise = loadStripe('pk_test_TYooMQauvdEDq54NiTphI7jx');
+const stripePromise = loadStripe('pk_test_51JUxVMHWq4SaAphR5xVQG3Xn7AkBjQphEojXF5YhXQo80dxzLMASgNyLCwGzxITwBIu8Hs1iIgXD8BF8NwIptTNx00dZKGH9kR');
 
 export default function Checkout() {
   const { id } = useParams<{ id: string }>();

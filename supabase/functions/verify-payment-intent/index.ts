@@ -17,6 +17,7 @@ serve(async (req) => {
     // Pobierz STRIPE_SECRET_KEY z zmiennych środowiskowych
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')
     if (!stripeSecretKey) {
+      console.error('Brak klucza STRIPE_SECRET_KEY w zmiennych środowiskowych')
       throw new Error('Brak klucza STRIPE_SECRET_KEY w zmiennych środowiskowych')
     }
     
@@ -34,6 +35,7 @@ serve(async (req) => {
     }
     
     console.log(`Weryfikacja intencji płatności: ${paymentIntentId}`)
+    console.log('Używany klucz Stripe:', stripeSecretKey.substring(0, 8) + '...')
     
     // Pobierz status intencji płatności ze Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
