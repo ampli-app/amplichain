@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { ReservationData, PaymentIntent, PaymentResult } from './reservation/types';
+import { ReservationData, PaymentIntent, PaymentResult, PaymentFormData } from './reservation/types';
 
 export function usePayment() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);

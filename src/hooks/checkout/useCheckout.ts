@@ -519,6 +519,7 @@ export function useCheckout({ productId, isTestMode = false }: { productId: stri
   return {
     isLoading,
     isProcessing,
+    setIsProcessing,
     product,
     paymentMethod,
     setPaymentMethod,
