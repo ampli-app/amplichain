@@ -1,4 +1,3 @@
-
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, Pencil, Share2, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { useState } from 'react';
 import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
 import { useProductAvailability } from '@/hooks/useProductAvailability';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProductActionsProps {
   id: string;
@@ -81,16 +81,13 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
     setIsReserving(true);
     
     try {
-      // Anuluj poprzednie rezerwacje (zmienił status na wygasłe)
       const canProceed = await cancelPreviousReservations();
       
-      // Jeśli istnieje aktywna rezerwacja, nie kontynuuj
       if (canProceed === false) {
         setIsReserving(false);
         return;
       }
       
-      // Sprawdź jeszcze raz dostępność produktu przed utworzeniem zamówienia
       const { data: productData, error: productError } = await supabase
         .from('products')
         .select('status')
