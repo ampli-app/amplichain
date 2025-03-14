@@ -84,11 +84,11 @@ export function StripePaymentElement({ clientSecret, onSuccess, onError }: Strip
   };
 
   if (paymentSuccess) {
-    return <PaymentRedirection paymentSuccess={true} />;
+    return <PaymentRedirection isLoading={false} paymentSuccess={true} />;
   }
 
   if (errorMessage) {
-    return <PaymentRedirection error={errorMessage} />;
+    return <PaymentRedirection isLoading={false} error={errorMessage} />;
   }
 
   if (isLoading) {
