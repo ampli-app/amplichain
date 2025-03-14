@@ -1,13 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from '@/providers/ThemeProvider';
-import { AuthProvider } from './contexts/AuthContext';
-import { SocialProvider } from './contexts/social/SocialContext';
-import { StripeProvider } from './contexts/StripeContext';
-import { Toaster } from '@/components/ui/sonner';
-
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Index from './pages/Index';
 import Discover from './pages/Discover';
 import Feed from './pages/Feed';
@@ -32,54 +25,49 @@ import EditConsultation from './pages/EditConsultation';
 import StolenEquipment from './pages/StolenEquipment';
 import StolenEquipmentAll from './pages/StolenEquipmentAll';
 import Orders from './pages/Orders';
+import { AuthProvider } from './contexts/AuthContext';
+import { SocialProvider } from './contexts/SocialContext';
+import { Toaster } from '@/components/ui/toaster';
 
-// Inicjalizacja klienta TanStack Query
-const queryClient = new QueryClient();
-
-// Główny komponent aplikacji z poprawną hierarchią kontekstów
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="system" storageKey="ui-theme">
-        <SocialProvider>
-          <AuthProvider>
-            <StripeProvider>
-              <Router>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/discover" element={<Discover />} />
-                  <Route path="/feed" element={<Feed />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/profile/:userId" element={<PublicProfile />} />
-                  <Route path="/marketplace" element={<Marketplace />} />
-                  <Route path="/marketplace/:id" element={<ProductDetail />} />
-                  <Route path="/mentorship" element={<Mentorship />} />
-                  <Route path="/groups" element={<Groups />} />
-                  <Route path="/groups/:id" element={<GroupDetail />} />
-                  <Route path="/messages" element={<Messages />} />
-                  <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/checkout/:id" element={<Checkout />} />
-                  <Route path="/checkout/success/:id" element={<CheckoutSuccess />} />
-                  <Route path="/checkout/success" element={<CheckoutSuccess />} />
-                  <Route path="/connections" element={<Connections />} />
-                  <Route path="/favorites" element={<Favorites />} />
-                  <Route path="/consultation/:id" element={<ConsultationDetail />} />
-                  <Route path="/edit-consultation/:id?" element={<EditConsultation />} />
-                  <Route path="/edit-product/:id?" element={<EditProduct />} />
-                  <Route path="/stolen-equipment" element={<StolenEquipment />} />
-                  <Route path="/stolen-equipment/all" element={<StolenEquipmentAll />} />
-                  <Route path="/orders" element={<Orders />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-                <Toaster />
-              </Router>
-            </StripeProvider>
-          </AuthProvider>
-        </SocialProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <AuthProvider>
+      <SocialProvider>
+        <div className="App">
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/discover" element={<Discover />} />
+              <Route path="/feed" element={<Feed />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:userId" element={<PublicProfile />} />
+              <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/marketplace/:id" element={<ProductDetail />} />
+              <Route path="/mentorship" element={<Mentorship />} />
+              <Route path="/groups" element={<Groups />} />
+              <Route path="/groups/:id" element={<GroupDetail />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/checkout/:id" element={<Checkout />} />
+              <Route path="/checkout/success/:id" element={<CheckoutSuccess />} />
+              <Route path="/checkout/success" element={<CheckoutSuccess />} />
+              <Route path="/connections" element={<Connections />} />
+              <Route path="/favorites" element={<Favorites />} />
+              <Route path="/consultation/:id" element={<ConsultationDetail />} />
+              <Route path="/edit-consultation/:id?" element={<EditConsultation />} />
+              <Route path="/edit-product/:id?" element={<EditProduct />} />
+              <Route path="/stolen-equipment" element={<StolenEquipment />} />
+              <Route path="/stolen-equipment/all" element={<StolenEquipmentAll />} />
+              <Route path="/orders" element={<Orders />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+          <Toaster />
+        </div>
+      </SocialProvider>
+    </AuthProvider>
   );
 }
 
