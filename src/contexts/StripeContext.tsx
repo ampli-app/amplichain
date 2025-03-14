@@ -38,12 +38,10 @@ export const StripeProvider = ({ children }: StripeProviderProps) => {
   const [isStripeInitialized, setIsStripeInitialized] = useState(false);
 
   useEffect(() => {
-    // Symulacja inicjalizacji Stripe
-    const timer = setTimeout(() => {
+    // Sprawdzamy, czy Stripe jest załadowany
+    if (stripePromise) {
       setIsStripeInitialized(true);
-    }, 1000);
-
-    return () => clearTimeout(timer);
+    }
   }, []);
 
   // Określamy dostawcę płatności na podstawie metody
@@ -78,33 +76,16 @@ export const StripeProvider = ({ children }: StripeProviderProps) => {
     try {
       console.log(`Tworzenie intencji płatności: ${amount} ${currency}`);
       
-      // W rzeczywistej implementacji połączenie z backendową funkcją do tworzenia PaymentIntent
-      // Poniżej przykład, jak można zaimplementować tego typu logikę
+      // W rzeczywistym projekcie tutaj byłoby połączenie z API
+      // Poniżej symulacja odpowiedzi z serwera
       
-      // Zwykle API do tworzenia intencji płatności powinno być na backendzie
-      // ze względów bezpieczeństwa. W tym przypadku tworzymy symulację, która
-      // z czasem może zostać zastąpiona rzeczywistym połączeniem do backendu.
-      
-      // TODO: Zastąpić poniższą symulację rzeczywistym połączeniem z API
+      // W przyszłości można zaimplementować faktyczne połączenie z API Stripe
+      // np. poprzez funkcję Edge w Supabase
       
       // Symulacja odpowiedzi z API
-      const clientSecret = `cs_test_${Math.random().toString(36).substr(2, 9)}`;
+      const clientSecret = `pi_3${Math.random().toString(36).substr(2, 9)}_secret_${Math.random().toString(36).substr(2, 9)}`;
       
-      // W rzeczywistej implementacji mielibyśmy coś takiego:
-      /*
-      const response = await fetch('/api/create-payment-intent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount,
-          currency,
-        }),
-      });
-      
-      const { clientSecret } = await response.json();
-      */
+      console.log('Wygenerowano client secret:', clientSecret);
       
       return clientSecret;
     } catch (error) {

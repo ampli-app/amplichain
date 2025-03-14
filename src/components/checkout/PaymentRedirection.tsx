@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2, AlertCircle, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { useStripe } from '@/contexts/StripeContext';
+import { useStripe as useStripeContext } from '@/contexts/StripeContext';
 
 interface PaymentRedirectionProps {
   isLoading: boolean;
@@ -19,7 +19,7 @@ export function PaymentRedirection({
   paymentProvider,
   paymentSuccess = false
 }: PaymentRedirectionProps) {
-  const { isStripeReady, getPaymentProvider } = useStripe();
+  const { isStripeReady, getPaymentProvider } = useStripeContext();
   const [provider, setProvider] = useState(paymentProvider || 'Stripe');
   
   useEffect(() => {

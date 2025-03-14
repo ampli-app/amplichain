@@ -18,6 +18,15 @@ import { ReservationTimer } from '@/components/checkout/ReservationTimer';
 import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
 import { usePayment } from '@/hooks/checkout/usePayment';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import { StripePaymentElement } from '@/components/checkout/StripePaymentElement';
+import { PaymentRedirection } from '@/components/checkout/PaymentRedirection';
+import { useStripe } from '@/contexts/StripeContext';
+import { PAYMENT_METHODS } from '@/hooks/checkout/payment/paymentConfig';
+
+// Inicjalizacja Stripe (powinien być w zmiennych środowiskowych)
+const stripePromise = loadStripe('pk_test_TYooMQauvdEDq54NiTphI7jx');
 
 export default function Checkout() {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +40,11 @@ export default function Checkout() {
   const [reservationExpired, setReservationExpired] = useState(false);
   const [isProcessingReservation, setIsProcessingReservation] = useState(false);
   const [hasCheckedExistingReservation, setHasCheckedExistingReservation] = useState(false);
+  
+  // Stripe state
+  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
+  const [showStripeForm, setShowStripeForm] = useState(false);
+  const stripeContext = useStripe();
   
   const checkout = useCheckout({ 
     productId: id || '', 
@@ -58,7 +72,8 @@ export default function Checkout() {
     handlePaymentResult,
     simulatePaymentProcessing,
     isProcessingPayment,
-    paymentError
+    paymentError,
+    clientSecret
   } = usePayment();
   
   useEffect(() => {
@@ -165,44 +180,62 @@ export default function Checkout() {
     checkout.setIsProcessing(true);
     
     try {
-      // Inicjujemy płatność i otrzymujemy paymentIntent
-      const paymentIntent = await initiatePayment(reservationData, null);
-      
-      if (!paymentIntent) {
-        checkout.setIsProcessing(false);
-        return;
-      }
-      
-      // Symulacja płatności (do zastąpienia przez Stripe)
-      simulatePaymentProcessing(
-        {
-          paymentMethod: checkout.paymentMethod,
-          blikCode: checkout.formData.blikCode
-        },
-        reservationData,
-        (result) => {
-          checkout.setIsProcessing(false);
-          
-          if (result.success) {
-            toast({
-              title: "Płatność zaakceptowana",
-              description: "Twoje zamówienie zostało złożone pomyślnie!",
-            });
-            
-            const url = isTestMode 
-              ? `/checkout/success/${id}?mode=test` 
-              : `/checkout/success/${id}?mode=buy`;
-            
-            navigate(url);
-          } else {
-            toast({
-              title: "Błąd płatności",
-              description: result.message,
-              variant: "destructive"
-            });
-          }
+      // Jeśli wybrano płatność kartą, używamy Stripe
+      if (checkout.paymentMethod === PAYMENT_METHODS.CARD) {
+        // Przygotuj intencję płatności Stripe
+        const totalAmount = checkout.getTotalCost();
+        const secret = await stripeContext.createPaymentIntent(totalAmount * 100, 'pln');
+        
+        if (secret) {
+          setStripeClientSecret(secret);
+          setShowStripeForm(true);
+        } else {
+          toast({
+            title: "Błąd płatności",
+            description: "Nie udało się zainicjować płatności kartą. Spróbuj ponownie.",
+            variant: "destructive"
+          });
         }
-      );
+      } else {
+        // Dla innych metod płatności używamy dotychczasowej logiki
+        const paymentIntent = await initiatePayment(reservationData, null);
+        
+        if (!paymentIntent) {
+          checkout.setIsProcessing(false);
+          return;
+        }
+        
+        // Symulacja płatności (do zastąpienia przez faktyczną integrację)
+        simulatePaymentProcessing(
+          {
+            paymentMethod: checkout.paymentMethod,
+            blikCode: checkout.formData.blikCode
+          },
+          reservationData,
+          (result) => {
+            checkout.setIsProcessing(false);
+            
+            if (result.success) {
+              toast({
+                title: "Płatność zaakceptowana",
+                description: "Twoje zamówienie zostało złożone pomyślnie!",
+              });
+              
+              const url = isTestMode 
+                ? `/checkout/success/${id}?mode=test` 
+                : `/checkout/success/${id}?mode=buy`;
+              
+              navigate(url);
+            } else {
+              toast({
+                title: "Błąd płatności",
+                description: result.message,
+                variant: "destructive"
+              });
+            }
+          }
+        );
+      }
     } catch (error) {
       console.error('Błąd podczas przetwarzania płatności:', error);
       checkout.setIsProcessing(false);
@@ -212,6 +245,31 @@ export default function Checkout() {
         variant: "destructive"
       });
     }
+  };
+  
+  const handleStripePaymentSuccess = () => {
+    checkout.setIsProcessing(false);
+    handlePaymentResult(true, reservationData);
+    toast({
+      title: "Płatność zaakceptowana",
+      description: "Twoje zamówienie zostało złożone pomyślnie!",
+    });
+    
+    const url = isTestMode 
+      ? `/checkout/success/${id}?mode=test` 
+      : `/checkout/success/${id}?mode=buy`;
+    
+    navigate(url);
+  };
+  
+  const handleStripePaymentError = (error: string) => {
+    checkout.setIsProcessing(false);
+    handlePaymentResult(false, reservationData);
+    toast({
+      title: "Błąd płatności",
+      description: error,
+      variant: "destructive"
+    });
   };
   
   useEffect(() => {
@@ -313,6 +371,41 @@ export default function Checkout() {
                   Wróć do Rynku
                 </Link>
               </Button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
+  if (showStripeForm && stripeClientSecret) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 pt-24 pb-16">
+          <div className="container max-w-xl mx-auto px-4">
+            <div className="mb-8">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowStripeForm(false)}
+                className="inline-flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Wróć do podsumowania
+              </Button>
+            </div>
+            
+            <h1 className="text-2xl font-bold mb-6 text-center">Płatność kartą</h1>
+            
+            <div className="mb-6">
+              <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret }}>
+                <StripePaymentElement 
+                  clientSecret={stripeClientSecret}
+                  onSuccess={handleStripePaymentSuccess}
+                  onError={handleStripePaymentError}
+                />
+              </Elements>
             </div>
           </div>
         </main>
