@@ -107,10 +107,13 @@ export function useCreateReservation({
         return null;
       }
       
-      // Zarezerwuj produkt - najpierw zmień status produktu
+      // Najpierw zmień status produktu na 'reserved' za pomocą transakcji
       const { error: updateProductError } = await supabase
         .from('products')
-        .update({ status: 'reserved' })
+        .update({ 
+          status: 'reserved',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', productId)
         .eq('status', 'available'); // Zabezpieczenie, aby zmienić tylko jeśli dalej jest dostępny
       
@@ -122,6 +125,22 @@ export function useCreateReservation({
           variant: "destructive",
         });
         return null;
+      }
+      
+      console.log("Status produktu zmieniony na 'reserved'");
+      
+      // Sprawdź, czy aktualizacja statusu powiodła się
+      const { data: verifyProductStatus, error: verifyError } = await supabase
+        .from('products')
+        .select('status')
+        .eq('id', productId)
+        .single();
+        
+      if (verifyError || verifyProductStatus.status !== 'reserved') {
+        console.error('Weryfikacja aktualizacji statusu produktu nie powiodła się:', verifyError);
+        console.log('Aktualny status produktu po próbie aktualizacji:', verifyProductStatus?.status);
+      } else {
+        console.log('Zweryfikowano zmianę statusu na "reserved" pomyślnie');
       }
       
       const { data: deliveryOptions, error: deliveryError } = await supabase
@@ -138,10 +157,13 @@ export function useCreateReservation({
           variant: "destructive",
         });
         
-        // Przywróć status produktu na available
+        // Przywróć status produktu na available w przypadku błędu
         await supabase
           .from('products')
-          .update({ status: 'available' })
+          .update({ 
+            status: 'available',
+            updated_at: new Date().toISOString()
+          })
           .eq('id', productId);
           
         return null;
@@ -187,10 +209,13 @@ export function useCreateReservation({
           variant: "destructive",
         });
         
-        // Przywróć status produktu
+        // Przywróć status produktu w przypadku błędu
         await supabase
           .from('products')
-          .update({ status: 'available' })
+          .update({ 
+            status: 'available',
+            updated_at: new Date().toISOString()
+          })
           .eq('id', productId);
           
         return null;
@@ -223,7 +248,10 @@ export function useCreateReservation({
       // Przywróć status produktu w przypadku błędu
       await supabase
         .from('products')
-        .update({ status: 'available' })
+        .update({ 
+          status: 'available',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', productId);
         
       return null;

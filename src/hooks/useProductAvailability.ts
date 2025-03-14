@@ -54,12 +54,16 @@ export const useProductAvailability = (productId: string | undefined) => {
         (payload) => {
           console.log('[useProductAvailability] Produkt został zaktualizowany:', payload);
           if (payload.new && 'status' in payload.new) {
-            setProductStatus(payload.new.status as string);
-            setIsAvailable(payload.new.status === 'available');
+            const newStatus = payload.new.status as string;
+            console.log('[useProductAvailability] Nowy status produktu:', newStatus);
+            setProductStatus(newStatus);
+            setIsAvailable(newStatus === 'available');
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[useProductAvailability] Status subskrypcji:', status);
+      });
 
     return () => {
       supabase.removeChannel(channel);

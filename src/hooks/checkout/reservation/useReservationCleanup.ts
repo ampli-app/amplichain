@@ -31,7 +31,10 @@ export function useReservationCleanup({ productId }: { productId: string }) {
         // Aktualizuj produkty związane z wygasłymi rezerwacjami
         const { error: updateError } = await supabase
           .from('products')
-          .update({ status: 'available' })
+          .update({ 
+            status: 'available', 
+            updated_at: new Date().toISOString() 
+          })
           .in('id', productIds)
           .eq('status', 'reserved');
           
@@ -76,6 +79,20 @@ export function useReservationCleanup({ productId }: { productId: string }) {
         return false;
       }
       
+      // Sprawdź aktualny status produktu przed anulowaniem
+      const { data: productStatus, error: productStatusError } = await supabase
+        .from('products')
+        .select('status')
+        .eq('id', productId)
+        .single();
+        
+      if (productStatusError) {
+        console.error('Błąd podczas sprawdzania statusu produktu:', productStatusError);
+        return false;
+      }
+      
+      console.log('Aktualny status produktu przed anulowaniem:', productStatus?.status);
+      
       // Anuluj poprzednie wygasłe rezerwacje dla tego użytkownika
       const { error } = await supabase
         .from('product_orders')
@@ -94,19 +111,25 @@ export function useReservationCleanup({ productId }: { productId: string }) {
       } else {
         console.log('Poprzednie rezerwacje oznaczone jako wygasłe pomyślnie');
         
-        // Przywróć status produktu na "available"
-        const { error: productUpdateError } = await supabase
-          .from('products')
-          .update({ status: 'available' })
-          .eq('id', productId);
-          
-        if (productUpdateError) {
-          console.error('Błąd podczas przywracania statusu produktu:', productUpdateError);
-          return false;
-        } else {
-          console.log('Status produktu przywrócony na "available"');
-          return true;
+        // Przywróć status produktu na "available" tylko jeśli był "reserved"
+        if (productStatus?.status === 'reserved') {
+          const { error: productUpdateError } = await supabase
+            .from('products')
+            .update({ 
+              status: 'available',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', productId);
+            
+          if (productUpdateError) {
+            console.error('Błąd podczas przywracania statusu produktu:', productUpdateError);
+            return false;
+          } else {
+            console.log('Status produktu przywrócony na "available"');
+          }
         }
+        
+        return true;
       }
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas anulowania rezerwacji:', err);
@@ -131,7 +154,10 @@ export function useReservationCleanup({ productId }: { productId: string }) {
       
       const { error: updateError } = await supabase
         .from('product_orders')
-        .update({ status: 'reservation_expired' })
+        .update({ 
+          status: 'reservation_expired',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', reservationId);
         
       if (updateError) {
@@ -142,7 +168,10 @@ export function useReservationCleanup({ productId }: { productId: string }) {
       if (reservation && reservation.product_id) {
         const { error: productUpdateError } = await supabase
           .from('products')
-          .update({ status: 'available' })
+          .update({ 
+            status: 'available',
+            updated_at: new Date().toISOString()
+          })
           .eq('id', reservation.product_id)
           .eq('status', 'reserved');
           
