@@ -3,6 +3,7 @@ import React, { createContext, useContext, ReactNode, useState, useEffect } from
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { PAYMENT_PROVIDERS } from '@/hooks/checkout/payment/paymentConfig';
+import { supabase } from '@/integrations/supabase/client';
 
 // Publiczny klucz Stripe (normalnie powinien być w zmiennych środowiskowych)
 // TO DO: W przyszłości przenieść do zmiennych środowiskowych Supabase
@@ -72,14 +73,39 @@ export const StripeProvider = ({ children }: StripeProviderProps) => {
     };
   };
 
-  // Funkcja do tworzenia intencji płatności (w rzeczywistym przypadku połączenie z backendem)
+  // Funkcja do tworzenia intencji płatności
   const createPaymentIntent = async (amount: number, currency: string = 'pln'): Promise<string | null> => {
     try {
-      // W prawdziwej implementacji, należy wywołać API tworzące PaymentIntent
       console.log(`Tworzenie intencji płatności: ${amount} ${currency}`);
+      
+      // W rzeczywistej implementacji połączenie z backendową funkcją do tworzenia PaymentIntent
+      // Poniżej przykład, jak można zaimplementować tego typu logikę
+      
+      // Zwykle API do tworzenia intencji płatności powinno być na backendzie
+      // ze względów bezpieczeństwa. W tym przypadku tworzymy symulację, która
+      // z czasem może zostać zastąpiona rzeczywistym połączeniem do backendu.
+      
+      // TODO: Zastąpić poniższą symulację rzeczywistym połączeniem z API
       
       // Symulacja odpowiedzi z API
       const clientSecret = `cs_test_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // W rzeczywistej implementacji mielibyśmy coś takiego:
+      /*
+      const response = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount,
+          currency,
+        }),
+      });
+      
+      const { clientSecret } = await response.json();
+      */
+      
       return clientSecret;
     } catch (error) {
       console.error('Błąd podczas tworzenia intencji płatności:', error);

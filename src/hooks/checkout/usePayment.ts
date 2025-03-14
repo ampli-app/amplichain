@@ -9,6 +9,7 @@ import { PAYMENT_METHODS } from './payment/paymentConfig';
 export function usePayment() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const stripeContext = useStripe();
   
   const initiatePayment = async (
@@ -94,6 +95,9 @@ export function usePayment() {
           });
           return null;
         }
+        
+        // Zapisujemy client secret do wykorzystania w komponencie płatności
+        setClientSecret(paymentIntentClientSecret);
       } else {
         // Dla innych metod płatności używamy tymczasowego ID
         paymentIntentClientSecret = `cs_temp_${Math.random().toString(36).substring(2, 15)}`;
@@ -237,6 +241,7 @@ export function usePayment() {
     handlePaymentResult,
     simulatePaymentProcessing,
     isProcessingPayment,
-    paymentError
+    paymentError,
+    clientSecret
   };
 }

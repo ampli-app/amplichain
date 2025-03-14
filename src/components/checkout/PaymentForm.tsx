@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormData } from '@/hooks/checkout/useCheckout';
 import { ArrowLeft, ArrowRight, Clock, CreditCard, LockIcon, Smartphone } from 'lucide-react';
+import { PAYMENT_METHODS } from '@/hooks/checkout/payment/paymentConfig';
 
 interface PaymentFormProps {
   formData: FormData;
@@ -37,10 +38,29 @@ export function PaymentForm({
         <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
           <div 
             className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-muted/20 transition-colors ${
-              paymentMethod === 'blik' ? 'border-primary bg-primary/5' : ''
+              paymentMethod === PAYMENT_METHODS.CARD ? 'border-primary bg-primary/5' : ''
             }`}
           >
-            <RadioGroupItem value="blik" id="blik" />
+            <RadioGroupItem value={PAYMENT_METHODS.CARD} id="card" />
+            <Label htmlFor="card" className="flex-1 cursor-pointer">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                  <span>Karta płatnicza</span>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Zapłać kartą kredytową lub debetową
+              </p>
+            </Label>
+          </div>
+          
+          <div 
+            className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-muted/20 transition-colors ${
+              paymentMethod === PAYMENT_METHODS.BLIK ? 'border-primary bg-primary/5' : ''
+            }`}
+          >
+            <RadioGroupItem value={PAYMENT_METHODS.BLIK} id="blik" />
             <Label htmlFor="blik" className="flex-1 cursor-pointer">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
@@ -56,10 +76,10 @@ export function PaymentForm({
           
           <div 
             className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-muted/20 transition-colors ${
-              paymentMethod === 'p24' ? 'border-primary bg-primary/5' : ''
+              paymentMethod === PAYMENT_METHODS.P24 ? 'border-primary bg-primary/5' : ''
             }`}
           >
-            <RadioGroupItem value="p24" id="p24" />
+            <RadioGroupItem value={PAYMENT_METHODS.P24} id="p24" />
             <Label htmlFor="p24" className="flex-1 cursor-pointer">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
@@ -75,7 +95,7 @@ export function PaymentForm({
         </RadioGroup>
         
         {/* Dodatkowe pola dla wybranej metody płatności */}
-        {paymentMethod === 'blik' && (
+        {paymentMethod === PAYMENT_METHODS.BLIK && (
           <div className="mt-6 p-4 border border-dashed rounded-lg">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
@@ -113,7 +133,7 @@ export function PaymentForm({
           </div>
         )}
         
-        {paymentMethod === 'p24' && (
+        {paymentMethod === PAYMENT_METHODS.P24 && (
           <div className="mt-6 p-4 border border-dashed rounded-lg">
             <div className="text-sm">
               <p className="font-medium mb-2">Jak to działa?</p>
@@ -123,6 +143,22 @@ export function PaymentForm({
                 <li>Zaloguj się i potwierdź płatność w banku</li>
                 <li>Po zakończeniu transakcji wrócisz na stronę potwierdzenia zamówienia</li>
               </ol>
+              
+              <div className="flex items-center gap-2 mt-4 text-muted-foreground">
+                <LockIcon className="h-4 w-4" />
+                <span>Bezpieczna płatność szyfrowana SSL</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {paymentMethod === PAYMENT_METHODS.CARD && (
+          <div className="mt-6 p-4 border border-dashed rounded-lg">
+            <div className="text-sm">
+              <p className="font-medium mb-2">Płatność kartą</p>
+              <p className="text-muted-foreground mb-2">
+                Na następnym ekranie wprowadzisz dane swojej karty płatniczej.
+              </p>
               
               <div className="flex items-center gap-2 mt-4 text-muted-foreground">
                 <LockIcon className="h-4 w-4" />
