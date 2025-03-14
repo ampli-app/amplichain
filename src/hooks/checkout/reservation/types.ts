@@ -27,5 +27,7 @@ export interface ReservationData {
   discount_code?: string;
   service_fee?: number;
   product_price?: number;
-  total_amount?: number;  // Dodajemy pole total_amount
+  total_amount?: number;
+  payment_intent_id?: string; // Dodajemy pole payment_intent_id
+  payment_status?: string; // Dodajemy pole payment_status
 }
