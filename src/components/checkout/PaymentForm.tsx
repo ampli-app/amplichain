@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,25 +35,6 @@ export function PaymentForm({
       
       <CardContent className="p-6">
         <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
-          <div 
-            className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-muted/20 transition-colors ${
-              paymentMethod === 'card' ? 'border-primary bg-primary/5' : ''
-            }`}
-          >
-            <RadioGroupItem value="card" id="card" />
-            <Label htmlFor="card" className="flex-1 cursor-pointer">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                  <span>Karta płatnicza</span>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Zapłać bezpiecznie kartą kredytową lub debetową
-              </p>
-            </Label>
-          </div>
-          
           <div 
             className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-muted/20 transition-colors ${
               paymentMethod === 'blik' ? 'border-primary bg-primary/5' : ''
@@ -92,21 +74,40 @@ export function PaymentForm({
           </div>
         </RadioGroup>
         
-        {/* Pole dla metody BLIK ma zostać usunięte, gdyż będzie to obsługiwane przez Stripe */}
+        {/* Dodatkowe pola dla wybranej metody płatności */}
         {paymentMethod === 'blik' && (
           <div className="mt-6 p-4 border border-dashed rounded-lg">
-            <div className="text-sm">
-              <p className="font-medium mb-2">Jak to działa?</p>
-              <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
-                <li>Po kliknięciu "Zapłać" zostaniesz przekierowany do bezpiecznej strony płatności</li>
-                <li>Wybierz płatność BLIK</li>
-                <li>Wygeneruj i wprowadź kod z aplikacji bankowej</li>
-                <li>Po potwierdzeniu płatności wrócisz na stronę potwierdzenia zamówienia</li>
-              </ol>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <Label htmlFor="blikCode" className="font-medium">Kod BLIK</Label>
+                <span className="text-sm text-muted-foreground">
+                  Wygeneruj kod w aplikacji bankowej
+                </span>
+              </div>
               
-              <div className="flex items-center gap-2 mt-4 text-muted-foreground">
-                <LockIcon className="h-4 w-4" />
-                <span>Bezpieczna płatność szyfrowana SSL</span>
+              <Input 
+                id="blikCode"
+                name="blikCode"
+                placeholder="Wpisz 6-cyfrowy kod"
+                maxLength={6}
+                className="text-center text-xl tracking-widest h-14"
+                value={formData.blikCode}
+                onChange={(e) => {
+                  // Tylko cyfry
+                  const sanitized = e.target.value.replace(/\D/g, '');
+                  const event = {
+                    target: {
+                      name: 'blikCode',
+                      value: sanitized
+                    }
+                  } as React.ChangeEvent<HTMLInputElement>;
+                  handleInputChange(event);
+                }}
+              />
+              
+              <div className="text-sm text-muted-foreground flex items-center justify-center gap-2 mt-2">
+                <Clock className="h-4 w-4" />
+                <span>Kod BLIK jest ważny przez 2 minuty</span>
               </div>
             </div>
           </div>
@@ -117,28 +118,9 @@ export function PaymentForm({
             <div className="text-sm">
               <p className="font-medium mb-2">Jak to działa?</p>
               <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
-                <li>Po kliknięciu "Zapłać" zostaniesz przekierowany do bezpiecznej strony płatności</li>
+                <li>Po kliknięciu "Zapłać" zostaniesz przekierowany do serwisu Przelewy24</li>
                 <li>Wybierz swój bank</li>
                 <li>Zaloguj się i potwierdź płatność w banku</li>
-                <li>Po zakończeniu transakcji wrócisz na stronę potwierdzenia zamówienia</li>
-              </ol>
-              
-              <div className="flex items-center gap-2 mt-4 text-muted-foreground">
-                <LockIcon className="h-4 w-4" />
-                <span>Bezpieczna płatność szyfrowana SSL</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {paymentMethod === 'card' && (
-          <div className="mt-6 p-4 border border-dashed rounded-lg">
-            <div className="text-sm">
-              <p className="font-medium mb-2">Jak to działa?</p>
-              <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
-                <li>Po kliknięciu "Zapłać" zostaniesz przekierowany do bezpiecznej strony płatności</li>
-                <li>Wprowadź dane swojej karty</li>
-                <li>Potwierdź płatność</li>
                 <li>Po zakończeniu transakcji wrócisz na stronę potwierdzenia zamówienia</li>
               </ol>
               

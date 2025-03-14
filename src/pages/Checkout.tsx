@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -45,23 +44,10 @@ export default function Checkout() {
     cancelPreviousReservations,
     markReservationAsExpired,
     checkExpiredReservations,
-    checkExistingReservation,
-    setReservationData  // <- Properly destructuring setReservationData from useOrderReservation
+    checkExistingReservation
   } = useOrderReservation({ 
     productId: id || '', 
     isTestMode 
-  });
-  
-  // Now we can use the properly destructured setReservationData function
-  const { 
-    initiatePayment, 
-    handlePaymentResult, 
-    checkPaymentStatus 
-  } = usePaymentProcessing({
-    reservationData,
-    paymentDeadline: reservationExpiresAt,
-    setReservationData,  // <- This will now work correctly
-    setIsLoading: (loading) => setIsProcessingReservation(loading)
   });
   
   useEffect(() => {
@@ -138,10 +124,7 @@ export default function Checkout() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('Rozpoczęcie procesu płatności');
-    
     if (!checkout.validateForm()) {
-      console.log('Walidacja formularza nie powiodła się');
       return;
     }
     
@@ -165,33 +148,23 @@ export default function Checkout() {
     const confirmed = await confirmOrder(orderData);
     
     if (!confirmed) {
-      console.log('Potwierdzenie zamówienia nie powiodło się');
       return;
     }
     
-    console.log('Zamówienie potwierdzone, inicjuję płatność');
-    
-    try {
-      const paymentResult = await initiatePayment();
-      
-      if (paymentResult) {
-        console.log('Zainicjowano płatność:', paymentResult);
-      } else {
-        console.log('Nie udało się zainicjować płatności');
+    checkout.simulatePaymentProcessing((success) => {
+      if (success) {
         toast({
-          title: "Błąd płatności",
-          description: "Nie udało się zainicjować płatności. Spróbuj ponownie.",
-          variant: "destructive",
+          title: "Płatność zaakceptowana",
+          description: "Twoje zamówienie zostało złożone pomyślnie!",
         });
+        
+        const url = isTestMode 
+          ? `/checkout/success/${id}?mode=test` 
+          : `/checkout/success/${id}?mode=buy`;
+        
+        navigate(url);
       }
-    } catch (error) {
-      console.error('Błąd podczas inicjowania płatności:', error);
-      toast({
-        title: "Błąd płatności",
-        description: "Wystąpił błąd podczas inicjowania płatności. Spróbuj ponownie.",
-        variant: "destructive",
-      });
-    }
+    });
   };
   
   useEffect(() => {
@@ -334,7 +307,7 @@ export default function Checkout() {
           
           <CheckoutProgress activeStep={checkout.activeStep} />
           
-          <form onSubmit={(e) => e.preventDefault()}>
+          <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2">
                 {checkout.activeStep === 'personal' && (

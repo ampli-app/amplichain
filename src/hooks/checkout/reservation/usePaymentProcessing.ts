@@ -55,7 +55,6 @@ export function usePaymentProcessing({
         return null;
       }
       
-      // Aktualizujemy status na pending_payment
       const { error } = await supabase
         .from('product_orders')
         .update({
@@ -76,80 +75,36 @@ export function usePaymentProcessing({
       // Używamy aktualnej kwoty z bazy danych, która powinna zawierać wszystkie składniki ceny
       const totalAmount = currentOrder.total_amount;
       
-      // Pobierz dane użytkownika do przekazania do Stripe
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('email, full_name')
-        .eq('id', currentOrder.buyer_id)
-        .single();
+      const paymentIntent = {
+        id: `pi_${Math.random().toString(36).substring(2, 15)}`,
+        client_secret: `cs_${Math.random().toString(36).substring(2, 15)}`,
+        amount: totalAmount * 100,
+        currency: 'pln'
+      };
       
-      if (userError) {
-        console.error('Błąd podczas pobierania danych użytkownika:', userError);
+      const { data: paymentData, error: paymentError } = await supabase
+        .from('payments')
+        .insert([{
+          order_id: reservationData.id,
+          payment_intent_id: paymentIntent.id,
+          client_secret: paymentIntent.client_secret,
+          amount: totalAmount,
+          status: 'pending',
+          payment_method: currentOrder.payment_method
+        }])
+        .select();
+      
+      if (paymentError) {
+        console.error('Błąd podczas zapisywania informacji o płatności:', paymentError);
       }
       
-      // Tworzenie sesji płatności Stripe przez edge function
-      try {
-        console.log('Rozpoczynam tworzenie sesji płatności Stripe dla zamówienia:', reservationData.id);
-        console.log('Kwota płatności (w groszach):', Math.round(totalAmount * 100));
-        console.log('Metoda płatności:', currentOrder.payment_method || 'card');
-        
-        const stripeResponse = await supabase.functions.invoke('stripe-payment', {
-          body: {
-            orderId: reservationData.id,
-            amount: Math.round(totalAmount * 100), // Stripe wymaga kwoty w groszach
-            currency: 'pln',
-            paymentMethod: currentOrder.payment_method || 'card',
-            customerEmail: userData?.email || '',
-            customerName: userData?.full_name || '',
-            description: `Zamówienie #${reservationData.id.substring(0, 8)}`
-          }
-        });
-        
-        if (stripeResponse.error) {
-          console.error('Błąd odpowiedzi ze Stripe:', stripeResponse.error);
-          throw new Error(stripeResponse.error.message || 'Błąd podczas tworzenia sesji płatności');
-        }
-        
-        console.log('Odpowiedź ze Stripe:', stripeResponse.data);
-        
-        if (!stripeResponse.data || !stripeResponse.data.url) {
-          console.error('Nieprawidłowa odpowiedź ze Stripe - brak URL:', stripeResponse.data);
-          throw new Error('Nieprawidłowa odpowiedź ze Stripe - brak URL do płatności');
-        }
-        
-        // Aktualizuj dane zamówienia z informacjami ze Stripe
-        await supabase
-          .from('product_orders')
-          .update({
-            payment_intent_id: stripeResponse.data.payment_intent_id,
-            stripe_session_id: stripeResponse.data.session_id,
-            stripe_checkout_url: stripeResponse.data.url
-          })
-          .eq('id', reservationData.id);
-        
-        setReservationData({
-          ...reservationData,
-          status: 'pending_payment',
-          payment_intent_id: stripeResponse.data.payment_intent_id,
-          stripe_session_id: stripeResponse.data.session_id,
-          stripe_checkout_url: stripeResponse.data.url
-        });
-        
-        // Dodaję bezpośrednie przekierowanie zamiast przypisania do window.location.href
-        // co może być blokowane przez niektóre przeglądarki
-        console.log('Przekierowuję użytkownika do strony płatności Stripe:', stripeResponse.data.url);
-        window.open(stripeResponse.data.url, '_self');
-        
-        return stripeResponse.data;
-      } catch (stripeError) {
-        console.error('Błąd podczas integracji ze Stripe:', stripeError);
-        toast({
-          title: "Błąd płatności",
-          description: `Nie udało się uruchomić płatności: ${stripeError instanceof Error ? stripeError.message : 'Nieznany błąd'}`,
-          variant: "destructive",
-        });
-        return null;
-      }
+      setReservationData({
+        ...reservationData,
+        status: 'pending_payment',
+        payment_intent_id: paymentIntent.id
+      });
+      
+      return paymentIntent;
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas inicjowania płatności:', err);
       toast({
@@ -210,52 +165,8 @@ export function usePaymentProcessing({
     }
   };
   
-  const checkPaymentStatus = async () => {
-    if (!reservationData || !reservationData.id || !reservationData.payment_intent_id) {
-      return null;
-    }
-    
-    try {
-      setIsLoading(true);
-      
-      // Sprawdź status płatności przez funkcję edge
-      const statusResponse = await supabase.functions.invoke('stripe-payment', {
-        body: {
-          action: 'check_status',
-          paymentIntentId: reservationData.payment_intent_id
-        }
-      });
-      
-      if (statusResponse.error) {
-        console.error('Błąd podczas sprawdzania statusu płatności:', statusResponse.error);
-        return null;
-      }
-      
-      const paymentStatus = statusResponse.data?.status;
-      
-      // Aktualizuj status płatności w bazie danych
-      if (paymentStatus) {
-        if (paymentStatus === 'succeeded') {
-          await handlePaymentResult(true);
-        } else if (paymentStatus === 'canceled' || paymentStatus === 'failed') {
-          await handlePaymentResult(false);
-        }
-        
-        return paymentStatus;
-      }
-      
-      return null;
-    } catch (err) {
-      console.error('Błąd podczas sprawdzania statusu płatności:', err);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
   return {
     initiatePayment,
-    handlePaymentResult,
-    checkPaymentStatus
+    handlePaymentResult
   };
 }
