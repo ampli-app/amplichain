@@ -76,8 +76,13 @@ export const StripeProvider = ({ children }: StripeProviderProps) => {
     try {
       console.log(`Tworzenie intencji płatności: ${amount} ${currency}`);
       
+      // Tworzymy tymczasowe ID zamówienia jeśli nie jest przekazane
+      // W rzeczywistym scenariuszu powinno być przekazane ID rzeczywistego zamówienia
+      const tempOrderId = crypto.randomUUID();
+      
       // Wywołanie funkcji Supabase do tworzenia intencji płatności
       const { data, error } = await supabase.rpc('create_stripe_payment_intent', {
+        p_order_id: tempOrderId,
         p_amount: Math.round(amount * 100), // Stripe wymaga kwoty w najmniejszych jednostkach waluty (np. grosze)
         p_currency: currency,
         p_payment_method: 'card', // Domyślna metoda płatności
@@ -90,7 +95,9 @@ export const StripeProvider = ({ children }: StripeProviderProps) => {
       }
       
       // Pobieranie client secret z odpowiedzi
-      const clientSecret = data.client_secret;
+      // Określamy typ zwracanej wartości jako any, aby uzyskać dostęp do client_secret
+      const result = data as any;
+      const clientSecret = result.client_secret;
       console.log('Wygenerowano client secret:', clientSecret);
       
       return clientSecret;
