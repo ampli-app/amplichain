@@ -42,7 +42,7 @@ export const useProductAvailability = (productId: string | undefined) => {
 
     // Ustaw subskrypcję na zmiany w tabeli products
     const channel = supabase
-      .channel('product-status-changes')
+      .channel(`product-status-changes-${productId}`)
       .on(
         'postgres_changes',
         {
@@ -62,10 +62,11 @@ export const useProductAvailability = (productId: string | undefined) => {
         }
       )
       .subscribe((status) => {
-        console.log('[useProductAvailability] Status subskrypcji:', status);
+        console.log(`[useProductAvailability] Status subskrypcji dla produktu ${productId}:`, status);
       });
 
     return () => {
+      console.log(`[useProductAvailability] Usuwanie kanału dla produktu ${productId}`);
       supabase.removeChannel(channel);
     };
   }, [productId]);

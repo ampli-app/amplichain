@@ -75,13 +75,19 @@ export const useOrderCreation = (userId: string | undefined) => {
           description: "Ten produkt ma już aktywne zamówienie.",
           variant: "destructive",
         });
+        
+        // Zamiast tworzyć nowe zamówienie, użyjemy istniejącego
+        setOrderCreated(true);
         return;
       }
       
       // Najpierw spróbuj zarezerwować produkt - WAŻNE: używamy transakcji
       const { error: updateError } = await supabase
         .from('products')
-        .update({ status: 'reserved' })
+        .update({ 
+          status: 'reserved',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', productData.id)
         .eq('status', 'available'); // Dodatkowe zabezpieczenie - aktualizuj tylko jeśli status to 'available'
       
@@ -186,7 +192,10 @@ export const useOrderCreation = (userId: string | undefined) => {
       // Przywróć status produktu
       await supabase
         .from('products')
-        .update({ status: 'available' })
+        .update({ 
+          status: 'available',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', productData.id);
     } finally {
       isCreatingOrder.current = false;

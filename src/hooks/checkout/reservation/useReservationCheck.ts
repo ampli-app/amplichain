@@ -28,6 +28,14 @@ export function useReservationCheck({
       setIsChecking(true);
       setIsLoading(true);
       
+      // Walidacja UUID przed wysłaniem zapytania do Supabase
+      const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId);
+      
+      if (!isValidUUID) {
+        console.log(`ProductId nie jest prawidłowym UUID: ${productId}`);
+        return null;
+      }
+      
       console.log(`Sprawdzanie istniejących rezerwacji dla produktu: ${productId} i użytkownika: ${user.id}`);
       
       const { data, error } = await supabase

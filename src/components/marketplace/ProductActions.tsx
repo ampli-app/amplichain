@@ -1,3 +1,4 @@
+
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, Pencil, Share2, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -88,6 +89,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         return;
       }
       
+      // Sprawdź ostatni raz status produktu przed utworzeniem rezerwacji
       const { data: productData, error: productError } = await supabase
         .from('products')
         .select('status')
@@ -123,6 +125,7 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
         const reservation = await initiateOrder(product, isTestMode);
         if (reservation) {
           console.log("Rezerwacja udana, przekierowujemy do checkout z orderId:", reservation.id);
+          // Przekazujemy orderId w URL, aby strona checkout nie tworzyła nowego zamówienia
           if (isTestMode) {
             navigate(`/checkout/${id}?mode=test&orderId=${reservation.id}`);
           } else {

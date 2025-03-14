@@ -28,6 +28,7 @@ export default function Checkout() {
   
   const [reservationExpired, setReservationExpired] = useState(false);
   const [isProcessingReservation, setIsProcessingReservation] = useState(false);
+  const [hasCheckedExistingReservation, setHasCheckedExistingReservation] = useState(false);
   
   const checkout = useCheckout({ 
     productId: id || '', 
@@ -55,34 +56,33 @@ export default function Checkout() {
       
       await checkExpiredReservations();
       
-      if (orderId) {
-        console.log("Kontynuowanie istniejącego zamówienia z ID:", orderId);
+      if (orderId || hasCheckedExistingReservation) {
+        if (orderId && !hasCheckedExistingReservation) {
+          console.log("Kontynuowanie istniejącego zamówienia z ID:", orderId);
+          const existingReservation = await checkExistingReservation();
+          setHasCheckedExistingReservation(true);
+          
+          if (existingReservation) {
+            console.log("Znaleziono istniejącą rezerwację:", existingReservation);
+            return;
+          }
+        }
+        
+        if (hasCheckedExistingReservation && !reservationData) {
+          console.log("Brak aktywnej rezerwacji po sprawdzeniu, nie tworzymy nowej automatycznie");
+          return;
+        }
+      } else {
+        setHasCheckedExistingReservation(true);
+        
         const existingReservation = await checkExistingReservation();
         
         if (existingReservation) {
-          console.log("Znaleziono istniejącą rezerwację:", existingReservation);
+          console.log("Znaleziono istniejącą rezerwację bez orderId w URL:", existingReservation);
           return;
         }
-      }
-      
-      if (!reservationData && !reservationExpired) {
-        await cancelPreviousReservations();
         
-        if (!isProcessingReservation) {
-          setIsProcessingReservation(true);
-          try {
-            const reservation = await initiateOrder(checkout.product, isTestMode);
-            if (!reservation) {
-              toast({
-                title: "Błąd rezerwacji",
-                description: "Nie udało się utworzyć rezerwacji produktu.",
-                variant: "destructive",
-              });
-            }
-          } finally {
-            setIsProcessingReservation(false);
-          }
-        }
+        console.log("Brak orderId i istniejącej rezerwacji - nie tworzymy nowej automatycznie");
       }
     };
     
@@ -97,7 +97,7 @@ export default function Checkout() {
     }, 30000);
     
     return () => clearInterval(intervalId);
-  }, [checkout.product, user, reservationData, reservationExpired]);
+  }, [checkout.product, user, orderId]);
   
   useEffect(() => {
     if (user?.email) {
