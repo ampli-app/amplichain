@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { PAYMENT_PROVIDERS } from '@/hooks/checkout/payment/paymentConfig';
@@ -14,11 +14,15 @@ const stripePromise = loadStripe(stripePublishableKey);
 type StripeContextType = {
   isStripeReady: boolean;
   getPaymentProvider: (method: string) => string;
+  getPaymentElementOptions: () => Record<string, any>;
+  createPaymentIntent: (amount: number, currency: string) => Promise<string | null>;
 };
 
 const defaultContext: StripeContextType = {
   isStripeReady: false,
   getPaymentProvider: () => PAYMENT_PROVIDERS.STRIPE,
+  getPaymentElementOptions: () => ({}),
+  createPaymentIntent: async () => null,
 };
 
 const StripeContext = createContext<StripeContextType>(defaultContext);
@@ -30,6 +34,17 @@ type StripeProviderProps = {
 };
 
 export const StripeProvider = ({ children }: StripeProviderProps) => {
+  const [isStripeInitialized, setIsStripeInitialized] = useState(false);
+
+  useEffect(() => {
+    // Symulacja inicjalizacji Stripe
+    const timer = setTimeout(() => {
+      setIsStripeInitialized(true);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   // Określamy dostawcę płatności na podstawie metody
   const getPaymentProvider = (method: string) => {
     switch (method) {
@@ -44,9 +59,39 @@ export const StripeProvider = ({ children }: StripeProviderProps) => {
     }
   };
 
+  // Opcje konfiguracyjne dla komponentu PaymentElement
+  const getPaymentElementOptions = () => {
+    return {
+      layout: "tabs",
+      defaultValues: {
+        billingDetails: {
+          name: '',
+          email: '',
+        }
+      }
+    };
+  };
+
+  // Funkcja do tworzenia intencji płatności (w rzeczywistym przypadku połączenie z backendem)
+  const createPaymentIntent = async (amount: number, currency: string = 'pln'): Promise<string | null> => {
+    try {
+      // W prawdziwej implementacji, należy wywołać API tworzące PaymentIntent
+      console.log(`Tworzenie intencji płatności: ${amount} ${currency}`);
+      
+      // Symulacja odpowiedzi z API
+      const clientSecret = `cs_test_${Math.random().toString(36).substr(2, 9)}`;
+      return clientSecret;
+    } catch (error) {
+      console.error('Błąd podczas tworzenia intencji płatności:', error);
+      return null;
+    }
+  };
+
   const value = {
-    isStripeReady: true,
+    isStripeReady: isStripeInitialized,
     getPaymentProvider,
+    getPaymentElementOptions,
+    createPaymentIntent,
   };
 
   return (

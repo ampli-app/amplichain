@@ -3,10 +3,13 @@ import { useState } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ReservationData, PaymentIntent, PaymentResult, PaymentFormData } from './reservation/types';
+import { useStripe } from '@/contexts/StripeContext';
+import { PAYMENT_METHODS } from './payment/paymentConfig';
 
 export function usePayment() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const stripeContext = useStripe();
   
   const initiatePayment = async (
     reservationData: ReservationData | null,
@@ -35,7 +38,7 @@ export function usePayment() {
       setIsProcessingPayment(true);
       setPaymentError(null);
       
-      // Pobieranie aktualnego stanu zamówienia
+      // Pobieramy aktualne dane zamówienia
       const { data: currentOrder, error: fetchError } = await supabase
         .from('product_orders')
         .select('*')
@@ -53,7 +56,7 @@ export function usePayment() {
         return null;
       }
       
-      // Aktualizacja statusu zamówienia na awaiting_payment
+      // Aktualizujemy status zamówienia
       const { error } = await supabase
         .from('product_orders')
         .update({
@@ -75,15 +78,36 @@ export function usePayment() {
       // Używamy aktualnej kwoty z bazy danych
       const totalAmount = currentOrder.total_amount;
       
-      // Tworzymy tymczasowy payment intent (w przyszłości będzie to Stripe PaymentIntent)
+      // Integracja ze Stripe - tworzymy intencję płatności
+      let paymentIntentClientSecret;
+      
+      if (currentOrder.payment_method === PAYMENT_METHODS.CARD) {
+        // Używamy Stripe dla płatności kartą
+        paymentIntentClientSecret = await stripeContext.createPaymentIntent(totalAmount, 'pln');
+        
+        if (!paymentIntentClientSecret) {
+          setPaymentError('Nie udało się utworzyć intencji płatności Stripe.');
+          toast({
+            title: "Błąd",
+            description: "Nie udało się utworzyć intencji płatności.",
+            variant: "destructive",
+          });
+          return null;
+        }
+      } else {
+        // Dla innych metod płatności używamy tymczasowego ID
+        paymentIntentClientSecret = `cs_temp_${Math.random().toString(36).substring(2, 15)}`;
+      }
+      
+      // Tworzymy obiekt PaymentIntent
       const paymentIntent: PaymentIntent = {
         id: `pi_${Math.random().toString(36).substring(2, 15)}`,
-        client_secret: `cs_${Math.random().toString(36).substring(2, 15)}`,
+        client_secret: paymentIntentClientSecret,
         amount: totalAmount * 100,
         currency: 'pln'
       };
       
-      // Zapisujemy informacje o płatności
+      // Zapisujemy informacje o płatności w bazie danych
       const { data: paymentData, error: paymentError } = await supabase
         .from('payments')
         .insert([{
@@ -92,7 +116,8 @@ export function usePayment() {
           client_secret: paymentIntent.client_secret,
           amount: totalAmount,
           status: 'pending',
-          payment_method: currentOrder.payment_method
+          payment_method: currentOrder.payment_method,
+          payment_provider: stripeContext.getPaymentProvider(currentOrder.payment_method)
         }])
         .select();
       
@@ -178,13 +203,14 @@ export function usePayment() {
     
     setIsProcessingPayment(true);
     
-    // W kontekście integracji z rzeczywistym systemem płatności,
-    // tutaj następowałoby przekierowanie do strony płatności
-    // lub przetwarzanie płatności przez Stripe, Przelewy24, itp.
+    const paymentMethod = paymentData.paymentMethod;
+    const paymentProvider = stripeContext.getPaymentProvider(paymentMethod);
+    
+    console.log(`Przetwarzanie płatności przez ${paymentProvider} dla metody ${paymentMethod}`);
     
     // Symulujemy opóźnienie przetwarzania płatności
     setTimeout(() => {
-      // W symulacji zakładamy udaną płatność (w rzeczywistym przypadku będzie to odpowiedź z Stripe)
+      // W symulacji zakładamy udaną płatność
       const success = true;
       
       handlePaymentResult(success, reservationData).then(() => {
@@ -193,13 +219,13 @@ export function usePayment() {
         if (success) {
           onComplete({
             success: true,
-            message: "Płatność zakończona pomyślnie",
+            message: `Płatność ${paymentProvider} zakończona pomyślnie`,
             redirectUrl: `/checkout/success/${reservationData.product_id}`
           });
         } else {
           onComplete({
             success: false,
-            message: "Błąd płatności. Spróbuj ponownie."
+            message: `Błąd płatności ${paymentProvider}. Spróbuj ponownie.`
           });
         }
       });
