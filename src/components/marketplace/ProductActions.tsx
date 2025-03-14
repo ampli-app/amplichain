@@ -181,7 +181,8 @@ export function ProductActions({ id, isUserProduct, product, onBuyNow }: Product
       
       if (productToUse) {
         console.log("Inicjuję rezerwację dla produktu", productToUse.id);
-        const reservation = await initiateOrder(productToUse, isTestMode);
+        // Nie przekazujemy rabatu przy kliknięciu przycisku "Kup teraz" - rabat będzie zastosowany w procesie checkoutu
+        const reservation = await initiateOrder(productToUse, null, isTestMode);
         
         if (reservation) {
           console.log("Rezerwacja udana, przekierowuję do checkout z orderId:", reservation.id);

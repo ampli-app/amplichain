@@ -84,7 +84,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
     paymentDeadline,
     isChecking,
     isInitiating,
-    initiateOrder: async (product: any, testMode: boolean = false) => {
+    initiateOrder: async (product: any, discount: any = null, testMode: boolean = false) => {
       // Zabezpieczenie przed podwójnym wywołaniem
       if (isOrderInitiated || isChecking || isInitiating) {
         console.log('Zamówienie jest już w trakcie inicjowania lub sprawdzania - zapobieganie duplikatom');
@@ -93,7 +93,7 @@ export function useOrderReservation({ productId, isTestMode = false }: OrderRese
       
       setIsOrderInitiated(true);
       try {
-        return await initiateOrder(product, testMode || isTestMode);
+        return await initiateOrder(product, discount, testMode || isTestMode);
       } finally {
         setIsOrderInitiated(false);
       }

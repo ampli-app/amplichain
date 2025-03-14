@@ -1769,6 +1769,10 @@ export type Database = {
           buyer_id: string
           created_at: string
           delivery_option_id: string | null
+          delivery_price: number | null
+          discount_code: string | null
+          discount_code_id: string | null
+          discount_value: number | null
           id: string
           notes: string | null
           order_type: string | null
@@ -1777,8 +1781,10 @@ export type Database = {
           payment_method: string | null
           payment_status: string | null
           product_id: string
+          product_price: number | null
           reservation_expires_at: string | null
           seller_id: string
+          service_fee: number | null
           shipping_address: string | null
           shipping_method: string | null
           status: string
@@ -1790,6 +1796,10 @@ export type Database = {
           buyer_id: string
           created_at?: string
           delivery_option_id?: string | null
+          delivery_price?: number | null
+          discount_code?: string | null
+          discount_code_id?: string | null
+          discount_value?: number | null
           id?: string
           notes?: string | null
           order_type?: string | null
@@ -1798,8 +1808,10 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string | null
           product_id: string
+          product_price?: number | null
           reservation_expires_at?: string | null
           seller_id: string
+          service_fee?: number | null
           shipping_address?: string | null
           shipping_method?: string | null
           status?: string
@@ -1811,6 +1823,10 @@ export type Database = {
           buyer_id?: string
           created_at?: string
           delivery_option_id?: string | null
+          delivery_price?: number | null
+          discount_code?: string | null
+          discount_code_id?: string | null
+          discount_value?: number | null
           id?: string
           notes?: string | null
           order_type?: string | null
@@ -1819,8 +1835,10 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string | null
           product_id?: string
+          product_price?: number | null
           reservation_expires_at?: string | null
           seller_id?: string
+          service_fee?: number | null
           shipping_address?: string | null
           shipping_method?: string | null
           status?: string
@@ -1834,6 +1852,13 @@ export type Database = {
             columns: ["delivery_option_id"]
             isOneToOne: false
             referencedRelation: "delivery_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_orders_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes"
             referencedColumns: ["id"]
           },
           {

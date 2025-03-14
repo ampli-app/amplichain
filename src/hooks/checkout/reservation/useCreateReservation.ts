@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { ReservationData } from './types';
+import { SERVICE_FEE_PERCENTAGE } from '@/hooks/checkout/useCheckout';
 
 export function useCreateReservation({
   productId,
@@ -19,7 +20,7 @@ export function useCreateReservation({
   const { user } = useAuth();
   const [isInitiating, setIsInitiating] = useState(false);
 
-  const initiateOrder = async (product: any, testMode: boolean = false) => {
+  const initiateOrder = async (product: any, discount: any = null, testMode: boolean = false) => {
     if (!user || !productId || !product) {
       console.log("Nie można utworzyć rezerwacji - brak wymaganych danych");
       return null;
@@ -206,17 +207,41 @@ export function useCreateReservation({
         ? parseFloat(product.testing_price) 
         : parseFloat(product.price);
       
-      const totalAmount = productPrice + deliveryOptions[0].price;
+      const deliveryPrice = deliveryOptions[0].price;
+      
+      // Obliczenie wartości rabatu
+      let discountValue = 0;
+      let discountCodeId = null;
+      let discountCodeText = null;
+      
+      if (discount && discount.valid) {
+        discountValue = parseFloat(discount.discount_value) || 0;
+        discountCodeId = discount.discount_id;
+        discountCodeText = discount.code;
+      }
+      
+      // Obliczenie opłaty serwisowej (1,5% od sumy produktu i dostawy)
+      const subtotal = productPrice + deliveryPrice;
+      const serviceFee = parseFloat((subtotal * SERVICE_FEE_PERCENTAGE).toFixed(2));
+      
+      // Obliczenie sumy całkowitej
+      const totalAmount = productPrice + deliveryPrice - discountValue + serviceFee;
       
       console.log("Tworzę zamówienie z parametrami:", {
         product_id: productId,
         buyer_id: user.id,
         seller_id: product.user_id,
+        product_price: productPrice,
+        delivery_price: deliveryPrice,
+        discount_value: discountValue,
+        service_fee: serviceFee,
         total_amount: totalAmount,
         delivery_option_id: deliveryOptions[0].id,
         status: 'reserved',
         reservation_expires_at: expiresAt.toISOString(),
-        order_type: testMode ? 'test' : 'purchase'
+        order_type: testMode ? 'test' : 'purchase',
+        discount_code_id: discountCodeId,
+        discount_code: discountCodeText
       });
       
       // Utwórz nowe zamówienie
@@ -226,11 +251,17 @@ export function useCreateReservation({
           product_id: productId,
           buyer_id: user.id,
           seller_id: product.user_id,
+          product_price: productPrice,
+          delivery_price: deliveryPrice,
+          discount_value: discountValue,
+          service_fee: serviceFee,
           total_amount: totalAmount,
           delivery_option_id: deliveryOptions[0].id,
           status: 'reserved',
           reservation_expires_at: expiresAt.toISOString(),
-          order_type: testMode ? 'test' : 'purchase'
+          order_type: testMode ? 'test' : 'purchase',
+          discount_code_id: discountCodeId,
+          discount_code: discountCodeText
         }])
         .select();
       
