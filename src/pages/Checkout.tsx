@@ -15,6 +15,7 @@ import { CheckoutSummary } from '@/components/checkout/CheckoutSummary';
 import { useCheckout } from '@/hooks/checkout/useCheckout';
 import { ReservationTimer } from '@/components/checkout/ReservationTimer';
 import { useOrderReservation } from '@/hooks/checkout/useOrderReservation';
+import { usePaymentProcessing } from '@/hooks/checkout/reservation/usePaymentProcessing';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function Checkout() {
@@ -48,6 +49,17 @@ export default function Checkout() {
   } = useOrderReservation({ 
     productId: id || '', 
     isTestMode 
+  });
+  
+  const { 
+    initiatePayment, 
+    handlePaymentResult, 
+    checkPaymentStatus 
+  } = usePaymentProcessing({
+    reservationData,
+    paymentDeadline: reservationExpiresAt,
+    setReservationData,
+    setIsLoading: (loading) => setIsProcessingReservation(loading)
   });
   
   useEffect(() => {
