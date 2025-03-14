@@ -21,17 +21,24 @@ export function useReservationCheck({
   const { user } = useAuth();
   const [isChecking, setIsChecking] = useState(false);
   const lastReservationIdRef = useRef<string | null>(null);
+  const operationCountRef = useRef(0);
   
-  const checkExistingReservation = async () => {
+  const checkExistingReservation = async (logActivity = true) => {
     if (!user || !productId) {
-      console.log("Brak użytkownika lub productId - nie można sprawdzić rezerwacji");
+      if (logActivity) {
+        console.log("Brak użytkownika lub productId - nie można sprawdzić rezerwacji");
+      }
       return null;
     }
     
     if (isChecking) {
-      console.log("Sprawdzanie rezerwacji już w toku - pomijam");
+      if (logActivity) {
+        console.log("Sprawdzanie rezerwacji już w toku - pomijam");
+      }
       return null;
     }
+    
+    const operationId = ++operationCountRef.current;
     
     try {
       setIsChecking(true);
@@ -41,11 +48,15 @@ export function useReservationCheck({
       const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId);
       
       if (!isValidUUID) {
-        console.log(`ProductId nie jest prawidłowym UUID: ${productId}`);
+        if (logActivity) {
+          console.log(`ProductId nie jest prawidłowym UUID: ${productId}`);
+        }
         return null;
       }
       
-      console.log(`Sprawdzanie istniejących rezerwacji dla produktu: ${productId} i użytkownika: ${user.id}`);
+      if (logActivity) {
+        console.log(`Sprawdzanie rezerwacji dla produktu: ${productId} (operacja ${operationId})`);
+      }
       
       const { data, error } = await supabase
         .from('product_orders')
@@ -57,27 +68,35 @@ export function useReservationCheck({
         .limit(1);
       
       if (error) {
-        console.error('Błąd podczas sprawdzania istniejącej rezerwacji:', error);
+        if (logActivity) {
+          console.error('Błąd podczas sprawdzania rezerwacji:', error);
+        }
         return null;
       }
       
       if (data && data.length > 0) {
         // Sprawdź czy jest to ta sama rezerwacja co poprzednio
         if (lastReservationIdRef.current === data[0].id) {
-          console.log('Ta sama rezerwacja co poprzednio, pomijam aktualizację stanu');
+          if (logActivity) {
+            console.log('Ta sama rezerwacja co poprzednio, pomijam aktualizację');
+          }
           return data[0];
         }
         
-        console.log('Znaleziono istniejącą rezerwację:', data[0]);
+        if (logActivity) {
+          console.log(`Znaleziono rezerwację: ${data[0].id} (operacja ${operationId})`);
+        }
+        
         lastReservationIdRef.current = data[0].id;
         setReservationData(data[0]);
         
         if (data[0].reservation_expires_at) {
           const expiresAt = new Date(data[0].reservation_expires_at);
           setReservationExpiresAt(expiresAt);
-          console.log('Rezerwacja wygasa o:', expiresAt.toISOString());
+          if (logActivity) {
+            console.log('Rezerwacja wygasa:', expiresAt.toLocaleString());
+          }
         } else {
-          console.log('Brak daty wygaśnięcia rezerwacji');
           setReservationExpiresAt(null);
         }
         
@@ -97,8 +116,9 @@ export function useReservationCheck({
             
           if (!productError && productData) {
             if (productData.status !== 'reserved') {
-              console.log('Niezgodność statusu produktu! Aktualny status:', productData.status);
-              console.log('Aktualizuję status produktu na "reserved"');
+              if (logActivity) {
+                console.log(`Niezgodność statusu produktu: ${productData.status}, aktualizuję na "reserved"`);
+              }
               
               // Aktualizuj status produktu na "reserved" jeśli nie jest zgodny z rezerwacją
               const { error: updateError } = await supabase
@@ -109,25 +129,10 @@ export function useReservationCheck({
                 })
                 .eq('id', productId);
                 
-              if (updateError) {
-                console.error('Błąd podczas aktualizacji statusu produktu:', updateError);
-              } else {
-                console.log('Status produktu zaktualizowany pomyślnie na "reserved"');
-                
-                // Dodatkowo sprawdźmy, czy aktualizacja się powiodła
-                const { data: checkData } = await supabase
-                  .from('products')
-                  .select('status')
-                  .eq('id', productId)
-                  .single();
-                  
-                console.log('Status produktu po aktualizacji:', checkData?.status);
+              if (updateError && logActivity) {
+                console.error('Błąd aktualizacji statusu produktu:', updateError);
               }
-            } else {
-              console.log('Status produktu jest zgodny z rezerwacją: reserved');
             }
-          } else {
-            console.error('Nie udało się sprawdzić statusu produktu:', productError);
           }
         }
         
@@ -136,15 +141,22 @@ export function useReservationCheck({
       
       // Jeśli nie znaleziono rezerwacji, a była poprzednio, wyzeruj referencję
       if (lastReservationIdRef.current !== null) {
-        console.log('Poprzednia rezerwacja już nie istnieje, resetuję stan');
+        if (logActivity) {
+          console.log('Poprzednia rezerwacja już nie istnieje, resetuję stan');
+        }
         lastReservationIdRef.current = null;
-      } else {
-        console.log('Nie znaleziono istniejących rezerwacji');
+        setReservationData(null);
+        setReservationExpiresAt(null);
+        setPaymentDeadline(null);
+      } else if (logActivity) {
+        console.log(`Brak aktywnych rezerwacji (operacja ${operationId})`);
       }
       
       return null;
     } catch (err) {
-      console.error('Nieoczekiwany błąd podczas sprawdzania rezerwacji:', err);
+      if (logActivity) {
+        console.error('Nieoczekiwany błąd sprawdzania rezerwacji:', err);
+      }
       return null;
     } finally {
       setIsChecking(false);
