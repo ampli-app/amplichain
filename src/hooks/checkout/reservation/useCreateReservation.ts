@@ -46,21 +46,13 @@ export function useCreateReservation({
         
       if (productStatusError) {
         console.error('Błąd podczas sprawdzania statusu produktu:', productStatusError);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się sprawdzić dostępności produktu.",
-          variant: "destructive",
-        });
+        // Usunięto toast o błędzie
         return null;
       }
       
       if (productStatus.status !== 'available') {
         console.log('Produkt nie jest dostępny, status:', productStatus.status);
-        toast({
-          title: "Produkt niedostępny",
-          description: "Ten produkt jest obecnie zarezerwowany lub sprzedany.",
-          variant: "destructive",
-        });
+        // Usunięto toast o produkcie niedostępnym
         return null;
       }
       
@@ -116,10 +108,7 @@ export function useCreateReservation({
             setReservationExpiresAt(new Date(fullOrder.reservation_expires_at));
           }
           
-          toast({
-            title: "Rezerwacja istnieje",
-            description: "Ten produkt jest już zarezerwowany. Kontynuujesz istniejącą rezerwację.",
-          });
+          // Usunięto toast o istniejącej rezerwacji
           
           return fullOrder;
         }
@@ -146,22 +135,14 @@ export function useCreateReservation({
       
       if (updateProductError) {
         console.error('Błąd podczas aktualizacji statusu produktu:', updateProductError);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się zarezerwować produktu. Spróbuj ponownie.",
-          variant: "destructive",
-        });
+        // Usunięto toast o błędzie
         return null;
       }
       
       // Sprawdź, czy aktualizacja faktycznie zmieniła dane (czy zwrócono wyniki)
       if (!updateResult || updateResult.length === 0) {
         console.error('Aktualizacja statusu produktu nie powiodła się - brak zwróconych danych');
-        toast({
-          title: "Błąd",
-          description: "Nie udało się zarezerwować produktu. Mógł on zostać właśnie zarezerwowany przez kogoś innego.",
-          variant: "destructive",
-        });
+        // Usunięto toast o błędzie
         return null;
       }
       
@@ -195,11 +176,7 @@ export function useCreateReservation({
           
         if (retryUpdateError) {
           console.error('Ponowna próba aktualizacji statusu produktu nie powiodła się:', retryUpdateError);
-          toast({
-            title: "Błąd",
-            description: "Nie udało się zarezerwować produktu po ponownej próbie. Spróbuj ponownie później.",
-            variant: "destructive",
-          });
+          // Usunięto toast o błędzie
           return null;
         }
         
@@ -213,11 +190,7 @@ export function useCreateReservation({
         if (retryVerifyError || retryVerifyStatus.status !== 'reserved') {
           console.error('Weryfikacja po ponownej aktualizacji nie powiodła się:', 
             retryVerifyError || `Status: ${retryVerifyStatus?.status}`);
-          toast({
-            title: "Błąd",
-            description: "Nie udało się zarezerwować produktu. Spróbuj ponownie.",
-            variant: "destructive",
-          });
+          // Usunięto toast o błędzie
           return null;
         }
       }
@@ -232,11 +205,7 @@ export function useCreateReservation({
       
       if (deliveryError || !deliveryOptions || deliveryOptions.length === 0) {
         console.error('Błąd podczas pobierania opcji dostawy:', deliveryError);
-        toast({
-          title: "Błąd",
-          description: "Nie można pobrać opcji dostawy.",
-          variant: "destructive",
-        });
+        // Usunięto toast o błędzie
         
         // Przywróć status produktu na available w przypadku błędu
         await supabase
@@ -312,11 +281,7 @@ export function useCreateReservation({
       
       if (error) {
         console.error('Błąd podczas tworzenia rezerwacji:', error);
-        toast({
-          title: "Błąd",
-          description: "Nie udało się utworzyć rezerwacji.",
-          variant: "destructive",
-        });
+        // Usunięto toast o błędzie
         
         // Przywróć status produktu w przypadku błędu
         await supabase
@@ -337,10 +302,7 @@ export function useCreateReservation({
         setReservationData(reservation);
         setReservationExpiresAt(new Date(reservation.reservation_expires_at));
         
-        toast({
-          title: "Rezerwacja utworzona",
-          description: "Masz 10 minut na dokończenie zamówienia.",
-        });
+        // Usunięto toast o utworzeniu rezerwacji
         
         return reservation;
       }
@@ -348,11 +310,7 @@ export function useCreateReservation({
       return null;
     } catch (err) {
       console.error('Nieoczekiwany błąd podczas tworzenia rezerwacji:', err);
-      toast({
-        title: "Błąd",
-        description: "Wystąpił nieoczekiwany błąd podczas tworzenia rezerwacji.",
-        variant: "destructive",
-      });
+      // Usunięto toast o nieoczekiwanym błędzie
       
       // Przywróć status produktu w przypadku błędu
       await supabase
