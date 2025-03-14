@@ -5,8 +5,8 @@ import { Elements } from '@stripe/react-stripe-js';
 import { PAYMENT_PROVIDERS } from '@/hooks/checkout/payment/paymentConfig';
 import { supabase } from '@/integrations/supabase/client';
 
-// Publiczny klucz Stripe (normalnie powinien być w zmiennych środowiskowych)
-// TO DO: W przyszłości przenieść do zmiennych środowiskowych Supabase
+// Publiczny klucz Stripe (powinien być w zmiennych środowiskowych)
+// W przyszłości można przenieść do zmiennych środowiskowych Supabase
 const stripePublishableKey = 'pk_test_TYooMQauvdEDq54NiTphI7jx';
 
 // Inicjalizacja Stripe
@@ -71,20 +71,26 @@ export const StripeProvider = ({ children }: StripeProviderProps) => {
     };
   };
 
-  // Funkcja do tworzenia intencji płatności
+  // Funkcja do tworzenia intencji płatności z wykorzystaniem Supabase Edge Function
   const createPaymentIntent = async (amount: number, currency: string = 'pln'): Promise<string | null> => {
     try {
       console.log(`Tworzenie intencji płatności: ${amount} ${currency}`);
       
-      // W rzeczywistym projekcie tutaj byłoby połączenie z API
-      // Poniżej symulacja odpowiedzi z serwera
+      // Wywołanie funkcji Supabase do tworzenia intencji płatności
+      const { data, error } = await supabase.rpc('create_stripe_payment_intent', {
+        p_amount: Math.round(amount * 100), // Stripe wymaga kwoty w najmniejszych jednostkach waluty (np. grosze)
+        p_currency: currency,
+        p_payment_method: 'card', // Domyślna metoda płatności
+        p_description: 'Płatność za zamówienie w sklepie'
+      });
       
-      // W przyszłości można zaimplementować faktyczne połączenie z API Stripe
-      // np. poprzez funkcję Edge w Supabase
+      if (error) {
+        console.error('Błąd podczas tworzenia intencji płatności:', error);
+        return null;
+      }
       
-      // Symulacja odpowiedzi z API
-      const clientSecret = `pi_3${Math.random().toString(36).substr(2, 9)}_secret_${Math.random().toString(36).substr(2, 9)}`;
-      
+      // Pobieranie client secret z odpowiedzi
+      const clientSecret = data.client_secret;
       console.log('Wygenerowano client secret:', clientSecret);
       
       return clientSecret;
