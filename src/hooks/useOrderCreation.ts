@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -120,9 +119,9 @@ export const useOrderCreation = (userId: string | undefined) => {
         product_id: productData.id,
         buyer_id: userId,
         seller_id: productData.user_id,
-        total_amount: totalAmount, // Zmienione na number zamiast string
+        total_amount: totalAmount,
         delivery_option_id: deliveryOption.id,
-        status: 'reserved',
+        status: 'awaiting_payment',
         payment_method: 'Karta płatnicza',
         order_type: isTestMode ? 'test' : 'purchase',
         test_end_date: isTestMode ? testEndDate.toISOString() : null,

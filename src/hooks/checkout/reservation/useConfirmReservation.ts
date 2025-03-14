@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { ReservationData } from './types';
@@ -46,7 +45,7 @@ export function useConfirmReservation({
       const { error } = await supabase
         .from('product_orders')
         .update({
-          status: 'confirmed',
+          status: 'awaiting_payment',
           payment_deadline: paymentDeadlineDate.toISOString(),
           shipping_address: `${formData.address}, ${formData.postalCode} ${formData.city}`,
           shipping_method: reservationData.delivery_option_id,
@@ -68,7 +67,7 @@ export function useConfirmReservation({
       setPaymentDeadline(paymentDeadlineDate);
       setReservationData({
         ...reservationData,
-        status: 'confirmed',
+        status: 'awaiting_payment',
         payment_deadline: paymentDeadlineDate.toISOString()
       });
       
