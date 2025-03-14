@@ -9,6 +9,7 @@ interface PaymentOrTestInfoProps {
   paymentStatus?: string;
   paymentDate?: Date;
   paymentId?: string;
+  stripeSessionId?: string;
 }
 
 export const PaymentOrTestInfo = ({ 
@@ -18,7 +19,8 @@ export const PaymentOrTestInfo = ({
   paymentMethod,
   paymentStatus,
   paymentDate,
-  paymentId
+  paymentId,
+  stripeSessionId
 }: PaymentOrTestInfoProps) => {
   return (
     <div>
@@ -38,6 +40,7 @@ export const PaymentOrTestInfo = ({
           <p>Status: {paymentStatus || 'Opłacone'}</p>
           <p>Data płatności: {paymentDate ? formatDate(paymentDate) : formatDate(new Date())}</p>
           {paymentId && <p className="text-xs text-rhythm-500">ID płatności: {paymentId}</p>}
+          {stripeSessionId && <p className="text-xs text-rhythm-500">ID sesji: {stripeSessionId}</p>}
         </div>
       )}
     </div>

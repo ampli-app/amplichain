@@ -28,6 +28,8 @@ export interface ReservationData {
   service_fee?: number;
   product_price?: number;
   total_amount?: number;
-  payment_intent_id?: string; // Dodajemy pole payment_intent_id
-  payment_status?: string; // Dodajemy pole payment_status
+  payment_intent_id?: string;
+  payment_status?: string;
+  stripe_session_id?: string; // Dodane pole do identyfikatora sesji Stripe
+  stripe_checkout_url?: string; // Dodane pole do URL checkoutu Stripe
 }
