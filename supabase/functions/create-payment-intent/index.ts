@@ -52,7 +52,7 @@ serve(async (req) => {
         amount: Math.round(amount * 100), // Stripe wymaga kwoty w najmniejszej jednostce waluty (grosze)
         currency: currency,
         metadata: paymentMetadata,
-        payment_method_types: ['card'],
+        payment_method_types: ['card', 'p24', 'blik'],
       })
       
       console.log(`Utworzono intencję płatności: ${paymentIntent.id}`)

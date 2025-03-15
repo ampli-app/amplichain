@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
@@ -70,7 +69,6 @@ export default function Checkout() {
     handlePaymentResult,
     simulatePaymentProcessing,
     isProcessingPayment,
-    paymentError,
     clientSecret,
     setClientSecret
   } = usePayment();
